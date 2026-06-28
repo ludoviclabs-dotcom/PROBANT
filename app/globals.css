@@ -1,0 +1,127 @@
+@import "tailwindcss";
+
+/*
+  PROBANT — Design system "control room"
+  Thème sombre par défaut. Couleurs sémantiques first.
+  Police tabulaire pour toute donnée chiffrée.
+*/
+
+:root {
+  /* Surfaces */
+  --pb-bg: #0a0e14;
+  --pb-surface: #111722;
+  --pb-surface-2: #161d2b;
+  --pb-surface-3: #1d2738;
+  --pb-border: #243044;
+  --pb-border-strong: #324563;
+
+  /* Texte */
+  --pb-text: #e6edf6;
+  --pb-text-muted: #8a99af;
+  --pb-text-faint: #5c6b82;
+
+  /* Accent produit (probant) */
+  --pb-accent: #5b9dff;
+  --pb-accent-dim: #1e3a5f;
+
+  /* Gravité sémantique */
+  --pb-bloquant: #ef4444;
+  --pb-bloquant-bg: #2a1416;
+  --pb-majeur: #f97316;
+  --pb-majeur-bg: #2a1a0e;
+  --pb-mineur: #eab308;
+  --pb-mineur-bg: #292207;
+  --pb-informatif: #3b82f6;
+  --pb-informatif-bg: #11203a;
+  --pb-ok: #22c55e;
+  --pb-ok-bg: #0f2417;
+
+  /* Nature de règle */
+  --pb-hardlaw: #ef4444;
+  --pb-methodology: #a78bfa;
+  --pb-internal: #38bdf8;
+}
+
+@theme inline {
+  --color-bg: var(--pb-bg);
+  --color-surface: var(--pb-surface);
+  --color-surface-2: var(--pb-surface-2);
+  --color-surface-3: var(--pb-surface-3);
+  --color-border-base: var(--pb-border);
+  --color-border-strong: var(--pb-border-strong);
+
+  --color-text-base: var(--pb-text);
+  --color-text-muted: var(--pb-text-muted);
+  --color-text-faint: var(--pb-text-faint);
+
+  --color-accent: var(--pb-accent);
+
+  --color-bloquant: var(--pb-bloquant);
+  --color-majeur: var(--pb-majeur);
+  --color-mineur: var(--pb-mineur);
+  --color-informatif: var(--pb-informatif);
+  --color-ok: var(--pb-ok);
+
+  --color-hardlaw: var(--pb-hardlaw);
+  --color-methodology: var(--pb-methodology);
+  --color-internal: var(--pb-internal);
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+* {
+  border-color: var(--pb-border);
+}
+
+html,
+body {
+  background-color: var(--pb-bg);
+  color: var(--pb-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* Chiffres alignés en colonnes : tabular-nums partout où on affiche des montants */
+.tnum {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* Scrollbar discrète façon control room */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--pb-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pb-border-strong);
+  border-radius: 6px;
+  border: 2px solid var(--pb-bg);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f567a;
+}
+
+@keyframes pb-pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 var(--ring-color, rgba(239, 68, 68, 0.5));
+  }
+  70% {
+    box-shadow: 0 0 0 8px rgba(0, 0, 0, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes pb-dash {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
