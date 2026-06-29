@@ -126,6 +126,21 @@ body {
   }
 }
 
+@keyframes pb-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.home-pillars {
+  display: grid;
+  width: 100%;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 640px) {
+  .home-pillars { grid-template-columns: repeat(3, 1fr); }
+}
+
 @keyframes pb-drawer-in {
   from {
     transform: translateX(16px);
