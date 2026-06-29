@@ -1,0 +1,254 @@
+slug: contrats-location-ifrs16
+family: ACTIF_IMMOBILISE
+title: Contrats de location et droits d'utilisation
+summary: >
+  Cycle relatif au traitement des contrats de location : identification des
+  contrats contenant une location, détermination de la durée de location et du
+  taux d'actualisation, comptabilisation de la dette de location et du droit
+  d'utilisation (ROU) chez le preneur en IFRS 16, suivi des options de
+  renouvellement et impact sur les agrégats et les covenants.
+
+pcgAccounts: ["612"]
+probantSiloIds: []
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: ifrs-16
+    label: IFRS 16 — Contrats de location
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Comptabilisation au bilan du preneur (ROU + dette de location).
+  - id: ias-36
+    label: IAS 36 — Dépréciation d'actifs
+    type: IAS
+    status: OBLIGATOIRE
+    note: Test de dépréciation du droit d'utilisation en présence d'indices.
+  - id: ifrs-7
+    label: IFRS 7 — Instruments financiers, informations à fournir
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Informations sur les échéances et le risque de liquidité de la dette locative.
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Pertinent pour la durée de location et le taux d'actualisation.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Location simple et crédit-bail (information en annexe)
+    type: PCG
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Comptabilisation au bilan du preneur (IFRS 16)
+    value: Comptabilisation d'un droit d'utilisation et d'une dette de location pour tout contrat de location, sauf exemptions (court terme ≤ 12 mois et actifs de faible valeur)
+    status: OBLIGATOIRE
+    sourceIds: ["ifrs-16"]
+  - label: Détermination de la durée de location
+    value: Durée non résiliable augmentée des options de renouvellement raisonnablement certaines d'être exercées
+    status: OBLIGATOIRE
+    sourceIds: ["ifrs-16"]
+  - label: Écart loyer IFRS 16 / loyer cash significatif
+    value: Écart significatif à investiguer (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["ifrs-16"]
+    caveat: Seuil indicatif interne, non opposable.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Plutôt 60 % en cas de risque élevé ou
+      d'anomalies historiques.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Endettement locatif rapporté à l'EBITDA
+    formula: Dette de location IFRS 16 / EBITDA
+    alertThreshold: Hausse significative vs N-1 ou niveau tendu vis-à-vis des covenants à investiguer
+    interpretation: Mesure le poids de la dette locative dans l'endettement et l'impact potentiel sur les covenants financiers.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Cohérence loyer IFRS 16 / loyer cash
+    formula: Charge IFRS 16 (amortissement du ROU + intérêts) / Loyers décaissés sur la période
+    alertThreshold: Écart inattendu entre charge comptable et décaissements à investiguer
+    interpretation: Détecte des erreurs de durée, de taux ou des contrats omis dans le retraitement IFRS 16.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Poids du droit d'utilisation dans l'actif
+    formula: Droit d'utilisation (ROU) net / Total actifs
+    alertThreshold: Variation significative vs N-1 à investiguer
+    interpretation: Mesure l'importance des actifs de location au bilan et l'effet du renouvellement ou des nouveaux contrats.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Rapprochement loyers payés / charges IFRS 16
+    objective: Vérifier la cohérence globale du retraitement IFRS 16 avec les décaissements de loyers.
+    method: Comparer les loyers décaissés de la période à la somme de l'amortissement du ROU et des charges d'intérêts, et analyser l'écart.
+    expectedVariation: Écart cohérent avec le profil d'amortissement de la dette et des actifs.
+    anomalyTrigger: Écart inexpliqué pouvant révéler des contrats omis, une durée ou un taux erroné.
+    benchmark: ["N-1", "Échéancier des loyers"]
+    assertions: ["Exhaustivité", "Exactitude", "Rattachement"]
+    sourceIds: ["isa-520", "isa-540"]
+  - name: Analyse de la variation de la dette de location et du ROU
+    objective: Identifier les nouveaux contrats, modifications, renouvellements et sorties inhabituels.
+    method: Comparer N/N-1 le tableau de mouvement de la dette locative et du ROU et rapprocher des contrats signés.
+    expectedVariation: Variation cohérente avec les contrats conclus, renouvelés ou résiliés sur la période.
+    anomalyTrigger: Nouveaux baux non comptabilisés, modifications de durée non reflétées, variation inexpliquée.
+    benchmark: ["N-1", "Liste des contrats", "Tableau des mouvements"]
+    assertions: ["Existence", "Exhaustivité", "Évaluation"]
+    sourceIds: ["isa-520", "ifrs-16"]
+
+detailTests:
+  - name: Test d'exhaustivité des contrats de location
+    nature: Test de détail
+    extent: Population des baux et contrats de service susceptibles de contenir une location
+    timing: Clôture ou intérim avec roll-forward
+    samplingMethod: Sélection ciblée à partir des charges de loyers, des décaissements récurrents et des contrats fournisseurs
+    evidenceRequired:
+      - Liste des contrats de location et de service
+      - Comptes de charges de loyers (612)
+      - Grand livre des décaissements récurrents
+      - Analyse de l'existence d'un actif identifié et du contrôle de l'usage
+    assertions: ["Exhaustivité", "Existence"]
+    sourceIds: ["isa-500", "ifrs-16"]
+  - name: Recalcul de la dette de location et du droit d'utilisation
+    nature: Test substantif
+    extent: Contrats significatifs
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les baux à forts enjeux + échantillonnage selon ISA 530
+    evidenceRequired:
+      - Contrats de location (loyers, échéances, options)
+      - Recalcul de l'actualisation des loyers
+      - Justification du taux d'actualisation (taux d'emprunt marginal)
+      - Tableau d'amortissement de la dette et du ROU
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-500", "isa-540"]
+  - name: Revue de la durée de location et des options de renouvellement
+    nature: Test de détail
+    extent: Contrats comportant des options de renouvellement ou de résiliation significatives
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les contrats à options structurantes
+    evidenceRequired:
+      - Clauses de durée, de renouvellement et de résiliation
+      - Justification du caractère raisonnablement certain de l'exercice des options
+      - Cohérence avec l'historique et la stratégie de l'entité
+    assertions: ["Évaluation", "Présentation"]
+    sourceIds: ["isa-540", "ifrs-16"]
+
+risks:
+  - name: Contrats de location omis
+    category: RISQUE_INHERENT
+    description: Contrats contenant une location non identifiés et donc non comptabilisés au bilan (ROU et dette).
+    indicators:
+      - Charges de loyers récurrentes sans contrat retraité
+      - Contrats de service intégrant la mise à disposition d'un actif
+      - Décentralisation des engagements de location
+    response:
+      - Tester l'exhaustivité à partir des charges de loyers et des décaissements
+      - Examiner les contrats de service pour identifier un actif identifié
+      - Rapprocher la liste des contrats des engagements connus
+    sourceIds: ["isa-315", "isa-330", "ifrs-16"]
+  - name: Durée de location ou taux d'actualisation erronés
+    category: RISQUE_INHERENT
+    description: Estimation inappropriée de la durée (options de renouvellement) ou du taux d'actualisation, faussant la dette et le ROU.
+    indicators:
+      - Durée retenue incohérente avec l'historique ou la stratégie
+      - Taux d'actualisation non justifié
+      - Options de renouvellement non analysées
+    response:
+      - Apprécier le caractère raisonnable de la durée retenue (ISA 540)
+      - Vérifier la justification du taux d'emprunt marginal
+      - Recalculer la dette et le ROU
+    sourceIds: ["isa-540", "ifrs-16"]
+  - name: Covenants impactés par le retraitement IFRS 16
+    category: RISQUE_CONTROLE
+    description: Effet du passage au bilan de la dette locative sur les ratios financiers et les covenants, mal anticipé ou non suivi.
+    indicators:
+      - Covenants calculés sans cohérence avec le référentiel applicable
+      - Absence de suivi de l'impact IFRS 16 sur les ratios
+      - Définitions de covenants ambiguës (avant/après IFRS 16)
+    response:
+      - Examiner les définitions contractuelles des covenants
+      - Recalculer les ratios concernés en intégrant la dette locative
+      - Vérifier le suivi du respect des covenants par la direction
+    sourceIds: ["isa-315", "isa-330", "ifrs-7"]
+
+ifrsVsPcg:
+  - topic: Comptabilisation des contrats de location chez le preneur
+    ifrsTreatment: >
+      IFRS 16 — modèle unique chez le preneur : capitalisation de quasiment tous
+      les contrats de location au bilan sous forme d'un droit d'utilisation (ROU)
+      et d'une dette de location, avec amortissement du ROU et charges d'intérêts ;
+      seules exemptions : locations court terme (≤ 12 mois) et actifs de faible valeur.
+    pcgTreatment: >
+      En PCG, la location simple reste comptabilisée en charges (loyers, compte 612)
+      sans inscription au bilan ; seul le crédit-bail fait l'objet d'une information
+      en annexe (et d'un retraitement en comptes consolidés), le bien n'étant pas
+      porté au bilan du preneur en comptes individuels.
+    auditImpact: Vérifier le référentiel applicable, l'exhaustivité du retraitement IFRS 16 et la cohérence de l'information en annexe en PCG.
+    sourceIds: ["ifrs-16", "pcg"]
+  - topic: Dépréciation du droit d'utilisation
+    ifrsTreatment: Le droit d'utilisation est soumis à IAS 36 et déprécié en présence d'indices de perte de valeur.
+    pcgTreatment: Absence de droit d'utilisation au bilan en location simple ; pas de test de dépréciation d'un ROU en comptes individuels PCG.
+    auditImpact: En IFRS, rechercher les indices de dépréciation du ROU (UGT, contrats déficitaires) et vérifier le test le cas échéant.
+    sourceIds: ["ifrs-16", "ias-36"]
+
+officialSources:
+  - id: ifrs-16
+    label: IFRS 16 — Leases
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-16-leases.html
+    status: OBLIGATOIRE
+  - id: ias-36
+    label: IAS 36 — Impairment of Assets
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-36-impairment-of-assets.html
+    status: OBLIGATOIRE
+  - id: ifrs-7
+    label: "IFRS 7 — Financial Instruments: Disclosures"
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-7-financial-instruments-disclosures.html
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Tester l'exhaustivité des contrats de location à partir des charges de loyers et des contrats de service (risque de contrats omis).
+  - Apprécier le caractère raisonnable de la durée de location et du taux d'actualisation (taux d'emprunt marginal).
+  - Recalculer la dette de location et le droit d'utilisation et rapprocher des loyers décaissés.
+  - Mesurer l'impact du retraitement IFRS 16 sur les ratios et les covenants financiers.
+  - Distinguer le traitement IFRS 16 (capitalisation au bilan) du traitement PCG (location simple en charges, crédit-bail en annexe).
+
+relatedCycles:
+  - immobilisations-corporelles
+  - dettes-financieres-emprunts
+  - covenants-gearing-icr
+
+reviewStatus: REVIEW_REQUIRED

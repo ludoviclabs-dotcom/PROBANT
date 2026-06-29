@@ -1,0 +1,248 @@
+slug: tva-etat
+family: ACTIF_CIRCULANT
+title: TVA déductible et comptes d'État
+summary: >
+  Cycle relatif à la justification de la TVA, à la cohérence des comptes de TVA
+  avec les déclarations CA3, à la déductibilité, au traitement de la TVA sur
+  immobilisations, au cut-off de la TVA et au suivi des crédits de TVA.
+
+pcgAccounts: ["445"]
+probantSiloIds: ["dettes-fiscales-sociales"]
+probantCloisons: ["tva-fiscalite"]
+
+applicableStandards:
+  - id: legifrance-cgi
+    label: Code général des impôts — Régime de la TVA
+    type: CGI
+    status: OBLIGATOIRE
+    note: Cadre légal national régissant la TVA (collecte, déduction, crédit).
+  - id: isa-250
+    label: ISA 250 — Prise en compte des textes légaux et réglementaires
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Comptes d'État, taxes sur le chiffre d'affaires (445)
+    type: PCG
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Cohérence des comptes de TVA avec les déclarations CA3
+    value: Rapprochement de la TVA comptabilisée avec les déclarations CA3 déposées
+    status: OBLIGATOIRE
+    sourceIds: ["legifrance-cgi", "isa-250"]
+  - label: Déductibilité de la TVA conforme au CGI
+    value: TVA déduite uniquement sur dépenses ouvrant droit à déduction
+    status: OBLIGATOIRE
+    sourceIds: ["legifrance-cgi"]
+  - label: Ancienneté d'un crédit de TVA non remboursé
+    value: Crédit de TVA non apuré > 12 mois à investiguer (paramètre interne PROBANT)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Borne indicative interne, à adapter au régime déclaratif de l'entité.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Plutôt 60 % en cas de risque fiscal élevé ou d'anomalies déclaratives.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: TVA déductible / achats taxables
+    formula: TVA déductible de la période / Achats et charges taxables
+    alertThreshold: Taux implicite incohérent avec les taux légaux à investiguer
+    interpretation: >
+      Un ratio s'écartant des taux légaux signale une erreur de taux ou une
+      déduction de TVA non déductible.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: TVA collectée / chiffre d'affaires taxable
+    formula: TVA collectée de la période / Chiffre d'affaires taxable
+    alertThreshold: Écart au taux moyen attendu vs N-1 à investiguer
+    interpretation: >
+      Un taux implicite de TVA collectée anormal peut révéler une collecte
+      insuffisante ou une ventilation erronée des taux.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Ancienneté du crédit de TVA
+    formula: Durée écoulée depuis la constatation du crédit de TVA
+    alertThreshold: Crédit non remboursé > 12 mois à investiguer
+    interpretation: >
+      Un crédit de TVA ancien et non remboursé interroge sa réalité et son
+      recouvrement effectif.
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Rapprochement TVA comptabilisée / chiffre d'affaires et achats
+    objective: Vérifier la cohérence globale de la TVA avec l'activité.
+    method: Recalculer un taux implicite de TVA collectée et déductible et le comparer aux taux légaux.
+    expectedVariation: Taux implicite cohérent avec le mix de taux applicables.
+    anomalyTrigger: Écart significatif entre taux implicite et taux légaux attendus.
+    benchmark: ["N-1", "Taux légaux CGI"]
+    assertions: ["Exactitude", "Exhaustivité"]
+    sourceIds: ["isa-520", "nep-520"]
+  - name: Analyse de l'évolution du crédit de TVA
+    objective: Détecter un crédit de TVA ancien, fictif ou non recouvrable.
+    method: Suivre l'évolution du compte de crédit de TVA et son apurement par remboursement ou imputation.
+    expectedVariation: Apurement régulier par remboursement ou imputation.
+    anomalyTrigger: Crédit de TVA stagnant ou croissant sans demande de remboursement.
+    benchmark: ["N-1"]
+    assertions: ["Existence", "Évaluation"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Rapprochement CA3 / comptabilité
+    nature: Rapprochement
+    extent: Rapprochement de la TVA déclarée et de la TVA comptabilisée sur la période
+    timing: Clôture
+    samplingMethod: Exhaustif sur le rapprochement annuel ; sondage sur les déclarations mensuelles
+    evidenceRequired:
+      - Déclarations CA3 déposées
+      - Balance générale des comptes 445
+      - Tableau de réconciliation TVA
+    assertions: ["Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-500", "isa-250"]
+  - name: Test des factures et contrôle des taux
+    nature: Test de détail
+    extent: Échantillon de factures d'achat et de vente significatives
+    timing: Intérim et clôture
+    samplingMethod: Sélection ciblée + échantillonnage selon ISA 530
+    evidenceRequired:
+      - Factures d'achat et de vente
+      - Mentions obligatoires de TVA
+      - Justification de la déductibilité
+      - Application du taux légal correct
+    assertions: ["Exactitude", "Droits et obligations"]
+    sourceIds: ["isa-500", "isa-530", "legifrance-cgi"]
+  - name: Test de cut-off de la TVA
+    nature: Test substantif
+    extent: Opérations autour de la clôture (TVA collectée et déductible)
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les dernières et premières opérations de la période
+    evidenceRequired:
+      - Factures de fin et début de période
+      - Date d'exigibilité de la TVA
+      - Justificatifs de TVA sur immobilisations
+    assertions: ["Rattachement", "Exactitude"]
+    sourceIds: ["isa-500", "isa-330"]
+
+risks:
+  - name: Erreur de taux ou TVA non déductible
+    category: RISQUE_INHERENT
+    description: >
+      Application d'un taux erroné ou déduction de TVA sur des dépenses n'ouvrant
+      pas droit à déduction, exposant à un redressement.
+    indicators:
+      - Taux implicite incohérent avec les taux légaux
+      - TVA déduite sur dépenses exclues du droit à déduction
+      - Absence de mentions obligatoires sur les factures
+    response:
+      - Tester un échantillon de factures et les taux appliqués
+      - Vérifier la déductibilité au regard du CGI
+      - Recalculer le taux implicite de TVA
+    sourceIds: ["isa-250", "legifrance-cgi", "isa-330"]
+  - name: Crédit de TVA fictif ou non recouvrable
+    category: RISQUE_FRAUDE
+    description: >
+      Constatation d'un crédit de TVA fictif ou maintien d'un crédit non
+      recouvrable afin de présenter un actif surévalué.
+    indicators:
+      - Crédit de TVA ancien sans demande de remboursement
+      - Écart entre crédit comptabilisé et déclarations CA3
+      - Absence de justificatif de remboursement
+    response:
+      - Rapprocher le crédit de TVA des déclarations CA3
+      - Confirmer les remboursements obtenus
+      - Apprécier la réalité et la recouvrabilité du crédit
+    sourceIds: ["isa-240", "isa-250", "isa-330"]
+  - name: Pénalités fiscales pour défaut déclaratif
+    category: RISQUE_CONTROLE
+    description: >
+      Retards ou erreurs déclaratifs générant des pénalités et intérêts de retard
+      non provisionnés.
+    indicators:
+      - Déclarations CA3 déposées hors délai
+      - Écarts récurrents CA3 / comptabilité
+      - Absence de procédure de contrôle déclaratif
+    response:
+      - Tester le respect des échéances déclaratives
+      - Vérifier la provision des pénalités éventuelles
+      - Apprécier les procédures de contrôle interne fiscal
+    sourceIds: ["isa-250", "isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Traitement comptable de la TVA
+    ifrsTreatment: >
+      La TVA est régie par le droit fiscal national (CGI) et non par un référentiel
+      comptable ; elle est exclue du chiffre d'affaires et traitée comme une dette
+      ou créance envers l'État, sans divergence introduite par les IFRS.
+    pcgTreatment: >
+      La TVA est comptabilisée dans les comptes d'État (445) selon le CGI ; elle est
+      exclue du chiffre d'affaires et présentée en dette ou créance envers l'État.
+    auditImpact: >
+      Pas de divergence IFRS/PCG significative : le traitement est identique car régi
+      par le droit fiscal. L'audit porte sur la conformité au CGI et la cohérence avec
+      les déclarations CA3.
+    sourceIds: ["legifrance-cgi", "pcg"]
+
+officialSources:
+  - id: legifrance-cgi
+    label: Code général des impôts — TVA
+    type: CGI
+    url: https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000006069577/
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Comptes d'État (445)
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: isa-250
+    label: ISA 250 — Consideration of Laws and Regulations in an Audit
+    type: ISA
+    url: https://www.iaasb.org/publications/2009-handbook-international-standards-auditing-and-quality-control
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Rapprocher systématiquement la TVA comptabilisée des déclarations CA3 déposées.
+  - Vérifier l'application des taux légaux et la déductibilité de la TVA au regard du CGI.
+  - Contrôler le traitement de la TVA sur immobilisations et le cut-off de la TVA.
+  - Apprécier la réalité et la recouvrabilité des crédits de TVA anciens.
+  - PROBANT signale automatiquement les écarts CA3 / comptabilité et les crédits de TVA anciens (silo dettes-fiscales-sociales).
+
+relatedCycles:
+  - resultat-fiscal-is
+  - chiffre-affaires-ifrs15
+  - achats-charges-externes
+
+reviewStatus: REVIEW_REQUIRED

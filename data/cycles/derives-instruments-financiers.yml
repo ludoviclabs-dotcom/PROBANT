@@ -1,0 +1,262 @@
+slug: derives-instruments-financiers
+family: CAPITAUX_PROPRES_FINANCEMENT
+title: Instruments financiers dérivés
+summary: >
+  Cycle relatif aux instruments financiers dérivés : swaps de taux, contrats de change à
+  terme, options et dérivés incorporés. Couvre la valorisation à la juste valeur, la
+  documentation et l'efficacité de la comptabilité de couverture, ainsi que les
+  informations à fournir sur les risques financiers.
+
+pcgAccounts: ["52"]
+probantSiloIds: []
+probantCloisons: ["bilan-passif"]
+
+applicableStandards:
+  - id: ifrs-9
+    label: IFRS 9 — Instruments financiers
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Comptabilisation à la juste valeur et comptabilité de couverture.
+  - id: ias-32
+    label: IAS 32 — Instruments financiers, présentation
+    type: IAS
+    status: OBLIGATOIRE
+  - id: ias-39
+    label: IAS 39 — Instruments financiers, comptabilisation et évaluation
+    type: IAS
+    status: A_VALIDER
+    note: >
+      Largement remplacée par IFRS 9 ; applicabilité résiduelle (ex. macro-couverture) à
+      confirmer selon le référentiel et les options retenues par l'entité.
+  - id: ifrs-7
+    label: IFRS 7 — Instruments financiers, informations à fournir
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Informations sur les risques et la juste valeur.
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Pertinent pour les estimations de juste valeur.
+
+thresholds:
+  - label: Valorisation à la juste valeur des dérivés
+    value: Comptabilisation à la juste valeur de tous les instruments dérivés (référentiel IFRS)
+    status: OBLIGATOIRE
+    sourceIds: ["ifrs-9", "ias-32"]
+  - label: Documentation de la relation de couverture
+    value: >
+      Documentation formelle obligatoire dès l'origine pour appliquer la comptabilité de
+      couverture (instrument, élément couvert, objectif, méthode d'appréciation de l'efficacité)
+    status: OBLIGATOIRE
+    sourceIds: ["ifrs-9"]
+  - label: Seuil de tolérance sur les tests d'efficacité
+    value: Bande de tolérance de l'efficacité de couverture (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["ifrs-9"]
+    caveat: Seuil indicatif interne, non opposable ; IFRS 9 privilégie une appréciation qualitative et un ratio de couverture.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Plutôt 60 % en cas de risque élevé ou d'anomalies historiques.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Juste valeur des dérivés / Dette couverte
+    formula: Juste valeur nette des dérivés / Encours de dette couverte
+    alertThreshold: Ratio anormalement élevé ou volatil à investiguer
+    interpretation: Apprécie l'ampleur des positions dérivées au regard du sous-jacent couvert.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Notionnel / Dette
+    formula: Montant notionnel des dérivés / Total des dettes financières
+    alertThreshold: Notionnel excédant l'exposition sous-jacente (sur-couverture / spéculation)
+    interpretation: Détecte une couverture excédant le risque couvert, signe possible de spéculation.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Sensibilité taux / change
+    formula: Variation de juste valeur pour une variation donnée du taux ou du cours de change
+    alertThreshold: Sensibilité incohérente avec le notionnel et la maturité
+    interpretation: Vérifie la cohérence de la valorisation et l'exposition résiduelle au risque de marché.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Revue de cohérence des justes valeurs
+    objective: Vérifier la cohérence des justes valeurs avec les paramètres de marché et le notionnel.
+    method: Comparer les justes valeurs aux valorisations de marché, à la maturité résiduelle et aux taux observables.
+    expectedVariation: Évolution de la juste valeur cohérente avec les mouvements de taux et de change.
+    anomalyTrigger: Juste valeur figée, écart important avec les valorisations indépendantes.
+    benchmark: ["N-1", "Valorisations de marché", "Confirmations bancaires"]
+    assertions: ["Évaluation", "Exactitude", "Présentation"]
+    sourceIds: ["isa-520", "isa-540"]
+  - name: Analyse des positions dérivées vs exposition couverte
+    objective: Détecter une sur-couverture ou une position non adossée à un risque économique.
+    method: Rapprocher les notionnels des expositions sous-jacentes (dette, flux en devises, achats).
+    expectedVariation: Notionnel inférieur ou égal à l'exposition couverte.
+    anomalyTrigger: Notionnel supérieur à l'exposition, dérivé sans sous-jacent identifié.
+    benchmark: ["Exposition sous-jacente", "Politique de couverture"]
+    assertions: ["Existence", "Droits et obligations", "Présentation"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Confirmations bancaires des positions dérivées
+    nature: Confirmation externe
+    extent: Exhaustif sur les contreparties de dérivés
+    timing: Clôture
+    samplingMethod: Exhaustif sur les contreparties
+    evidenceRequired:
+      - Réponses aux demandes de confirmation
+      - Liste des positions ouvertes (notionnel, sens, maturité)
+      - Justes valeurs confirmées par la contrepartie
+    assertions: ["Existence", "Exhaustivité", "Évaluation"]
+    sourceIds: ["isa-505", "isa-500"]
+  - name: Valorisations indépendantes des justes valeurs
+    nature: Test substantif
+    extent: Dérivés significatifs ou complexes
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les positions significatives ou de niveau 2/3
+    evidenceRequired:
+      - Modèle et paramètres de valorisation
+      - Valorisation indépendante (expert ou contrepartie)
+      - Données de marché observables
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-540", "isa-500", "isa-620"]
+  - name: Examen des contrats-cadres ISDA
+    nature: Inspection
+    extent: Exhaustif sur les contrats-cadres en vigueur
+    timing: Clôture ou intérim
+    samplingMethod: Exhaustif sur les conventions-cadres
+    evidenceRequired:
+      - Contrats-cadres ISDA et annexes
+      - Confirmations d'opérations
+      - Clauses de compensation et de garantie (collateral)
+    assertions: ["Droits et obligations", "Existence", "Présentation"]
+    sourceIds: ["isa-500", "isa-505"]
+  - name: Tests d'efficacité de la couverture
+    nature: Test de détail
+    extent: Exhaustif sur les relations de couverture documentées
+    timing: Clôture
+    samplingMethod: Exhaustif sur les relations de couverture
+    evidenceRequired:
+      - Documentation de couverture à l'origine
+      - Tests d'efficacité prospectifs et rétrospectifs
+      - Justification du ratio de couverture
+    assertions: ["Évaluation", "Présentation", "Rattachement"]
+    sourceIds: ["isa-540", "isa-500"]
+
+risks:
+  - name: Mauvaise juste valeur
+    category: RISQUE_INHERENT
+    description: >
+      Estimation erronée de la juste valeur des dérivés, en particulier pour les instruments
+      complexes ou de niveau 2/3 reposant sur des modèles et paramètres non observables.
+    indicators:
+      - Instruments complexes ou illiquides
+      - Paramètres non observables significatifs
+      - Écart avec les valorisations de la contrepartie
+    response:
+      - Obtenir des valorisations indépendantes
+      - Examiner les modèles et paramètres de valorisation
+      - Recourir à un expert si nécessaire (ISA 620)
+    sourceIds: ["isa-540", "isa-500", "isa-620"]
+  - name: Comptabilité de couverture non éligible
+    category: RISQUE_CONTROLE
+    description: >
+      Application de la comptabilité de couverture sans documentation suffisante ou sans
+      démonstration de l'efficacité, faussant le résultat et les capitaux propres.
+    indicators:
+      - Documentation de couverture absente ou incomplète à l'origine
+      - Tests d'efficacité non réalisés
+      - Ratio de couverture incohérent
+    response:
+      - Vérifier l'existence de la documentation à l'origine
+      - Contrôler les tests d'efficacité
+      - Apprécier l'éligibilité de la relation de couverture
+    sourceIds: ["isa-315", "isa-330", "isa-540"]
+  - name: Dérivés non identifiés et dérivés incorporés
+    category: RISQUE_FRAUDE
+    description: >
+      Positions dérivées non comptabilisées ou dérivés incorporés dans des contrats hôtes
+      non séparés, pouvant masquer des pertes ou une exposition spéculative.
+    indicators:
+      - Contrats commerciaux comportant des clauses indexées
+      - Positions non confirmées par les contreparties
+      - Absence de recensement exhaustif des instruments
+    response:
+      - Examiner les contrats à la recherche de dérivés incorporés
+      - Adresser des confirmations bancaires exhaustives
+      - Recouper avec les PV et la politique de gestion des risques
+    sourceIds: ["isa-240", "isa-505", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Comptabilisation des instruments dérivés
+    ifrsTreatment: >
+      IFRS 9 impose la comptabilisation au bilan de tous les dérivés à leur juste valeur,
+      avec variations en résultat ou en OCI selon la qualification de couverture.
+    pcgTreatment: >
+      Le PCG fonctionne par symétrie avec l'élément couvert et privilégie l'information en
+      annexe (engagements hors bilan), sans comptabilisation généralisée à la juste valeur.
+    auditImpact: Vérifier la comptabilisation à la juste valeur (IFRS) ou la symétrie et l'information en annexe (PCG).
+    sourceIds: ["ifrs-9", "pcg"]
+  - topic: Informations à fournir sur les risques financiers
+    ifrsTreatment: IFRS 7 impose des informations détaillées sur la juste valeur (hiérarchie) et l'exposition aux risques.
+    pcgTreatment: Informations en annexe sur les engagements et instruments financiers selon les règles du PCG.
+    auditImpact: Contrôler l'exhaustivité et la cohérence des informations sur les risques et la juste valeur.
+    sourceIds: ["ifrs-7", "pcg"]
+
+officialSources:
+  - id: ifrs-9
+    label: IFRS 9 — Financial Instruments
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-9-financial-instruments.html
+    status: OBLIGATOIRE
+  - id: ias-32
+    label: "IAS 32 — Financial Instruments: Presentation"
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-32-financial-instruments-presentation.html
+    status: OBLIGATOIRE
+  - id: ifrs-7
+    label: "IFRS 7 — Financial Instruments: Disclosures"
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-7-financial-instruments-disclosures.html
+    status: OBLIGATOIRE
+  - id: ias-39
+    label: "IAS 39 — Financial Instruments: Recognition and Measurement"
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-39-financial-instruments-recognition-and-measurement.html
+    status: A_VALIDER
+
+keyPoints:
+  - Obtenir des confirmations bancaires exhaustives des positions dérivées (notionnel, sens, juste valeur).
+  - Sécuriser les justes valeurs par des valorisations indépendantes, surtout pour les niveaux 2/3.
+  - Vérifier la documentation de couverture à l'origine et les tests d'efficacité.
+  - Rechercher les dérivés incorporés non séparés dans les contrats commerciaux.
+  - Sous IFRS, tous les dérivés sont au bilan à la juste valeur ; le PCG privilégie symétrie et annexe.
+
+relatedCycles:
+  - dettes-financieres-emprunts
+  - covenants-gearing-icr
+  - charges-produits-financiers
+
+reviewStatus: REVIEW_REQUIRED

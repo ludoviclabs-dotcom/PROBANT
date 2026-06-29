@@ -1,0 +1,209 @@
+slug: creances-clients
+family: ACTIF_CIRCULANT
+title: Créances clients et effets à recevoir
+summary: >
+  Cycle relatif à l'existence, aux droits, à la recouvrabilité et à la
+  dépréciation des créances clients, ainsi qu'au rattachement du chiffre
+  d'affaires (cut-off) et aux avoirs post-clôture.
+
+pcgAccounts: ["411", "413", "416", "418", "491"]
+probantSiloIds: ["creances-clients"]
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: ifrs-9
+    label: IFRS 9 — Instruments financiers (dépréciation ECL)
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Modèle des pertes de crédit attendues pour les entités IFRS.
+  - id: pcg
+    label: PCG — Compte 411 et dépréciation des créances
+    type: PCG
+    status: OBLIGATOIRE
+  - id: isa-505
+    label: ISA 505 — Confirmations externes
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-530
+    label: ISA 530 — Sondages
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-240
+    label: ISA 240 — Fraude (présomption sur le revenu)
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Ancienneté de créance nécessitant analyse détaillée
+    value: Créances > 180 jours à analyser individuellement
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Borne indicative non normative, à adapter au secteur et aux conditions contractuelles.
+  - label: Dépréciation par pertes de crédit attendues (ECL)
+    value: Modèle ECL obligatoire en IFRS 9 ; approche par historique de pertes en PCG
+    status: OBLIGATOIRE
+    sourceIds: ["ifrs-9"]
+
+materiality:
+  globalMateriality:
+    benchmark: Chiffre d'affaires ou total bilan selon le profil
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 0,5 % à 1 % du CA, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Pourcentage relevant du jugement professionnel.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: DSO (délai moyen de recouvrement)
+    formula: Créances clients TTC / Chiffre d'affaires TTC × 365
+    alertThreshold: "> 90 jours à investiguer sauf secteur ou conditions contractuelles spécifiques"
+    interpretation: Mesure la rapidité d'encaissement ; un DSO élevé peut signaler des créances douteuses ou un CA fictif.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Taux de provision
+    formula: Dépréciation des créances / Créances échues
+    alertThreshold: Couverture insuffisante des créances anciennes à investiguer
+    interpretation: Apprécie l'adéquation de la dépréciation à l'ancienneté du poste.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520", "ifrs-9"]
+  - name: Part des créances échues
+    formula: Créances échues / Total créances clients
+    alertThreshold: Hausse significative vs N-1
+    interpretation: Détérioration du recouvrement.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Revue de la balance âgée
+    objective: Identifier les créances anciennes et apprécier la dépréciation.
+    method: Analyser l'antériorité des soldes, comparer N/N-1 et aux pertes historiques.
+    expectedVariation: Profil d'antériorité stable hors évolution d'activité.
+    anomalyTrigger: Concentration de créances anciennes non dépréciées, soldes créditeurs clients.
+    benchmark: ["N-1", "Historique de pertes"]
+    assertions: ["Évaluation", "Existence"]
+    sourceIds: ["isa-520", "ifrs-9"]
+  - name: Analyse du cut-off des ventes
+    objective: Vérifier le rattachement du CA au bon exercice.
+    method: Examiner les ventes et avoirs autour de la clôture (BL, factures, dates de livraison).
+    expectedVariation: Cohérence entre date de transfert de contrôle et comptabilisation.
+    anomalyTrigger: Ventes antidatées, livraison en N+1, avoirs significatifs post-clôture.
+    benchmark: ["Dernier mois", "Post-clôture"]
+    assertions: ["Rattachement", "Existence"]
+    sourceIds: ["isa-240", "ifrs-15"]
+
+detailTests:
+  - name: Confirmation externe des soldes clients
+    nature: Confirmation externe
+    extent: Échantillon de soldes significatifs et sélection ciblée
+    timing: Clôture (ou intérim avec roll-forward)
+    samplingMethod: MUS ou sélection ciblée selon ISA 530
+    evidenceRequired:
+      - Réponses de circularisation
+      - Procédures alternatives (encaissements post-clôture) si non-réponse
+    assertions: ["Existence", "Droits et obligations"]
+    sourceIds: ["isa-505", "isa-500"]
+  - name: Test des encaissements post-clôture
+    nature: Test de détail
+    extent: Échantillon de créances à la clôture
+    timing: Post-clôture
+    samplingMethod: Sélection ciblée sur les soldes élevés et anciens
+    evidenceRequired:
+      - Relevés bancaires post-clôture
+      - Lettrage des règlements
+    assertions: ["Existence", "Évaluation"]
+    sourceIds: ["isa-500"]
+
+risks:
+  - name: Chiffre d'affaires fictif / antidaté
+    category: RISQUE_FRAUDE
+    description: Comptabilisation de ventes inexistantes ou anticipées pour gonfler le résultat (présomption ISA 240).
+    indicators:
+      - Pic de ventes en fin d'exercice
+      - Avoirs importants en début d'exercice suivant
+      - Créances sans encaissement
+    response:
+      - Tester le cut-off des ventes
+      - Confirmer les soldes clients
+      - Analyser les avoirs post-clôture
+    sourceIds: ["isa-240", "ifrs-15"]
+  - name: Non-recouvrabilité des créances
+    category: RISQUE_INHERENT
+    description: Risque de surévaluation par dépréciation insuffisante.
+    indicators:
+      - DSO en hausse
+      - Créances anciennes non provisionnées
+    response:
+      - Revue de la balance âgée
+      - Recalcul de l'ECL (IFRS 9)
+    sourceIds: ["ifrs-9", "isa-540"]
+  - name: Avoirs non comptabilisés
+    category: RISQUE_CONTROLE
+    description: Avoirs émis après clôture non rattachés à l'exercice.
+    indicators:
+      - Avoirs significatifs en N+1 portant sur des ventes N
+    response:
+      - Examiner les avoirs post-clôture
+    sourceIds: ["isa-500", "isa-560"]
+
+ifrsVsPcg:
+  - topic: Dépréciation des créances
+    ifrsTreatment: Modèle prospectif des pertes de crédit attendues (ECL) — IFRS 9.
+    pcgTreatment: Dépréciation au cas par cas fondée sur le risque avéré et l'historique de pertes.
+    auditImpact: Vérifier la méthode ECL en IFRS ; en PCG, apprécier la justification des dépréciations individuelles.
+    sourceIds: ["ifrs-9", "pcg"]
+
+officialSources:
+  - id: ifrs-9
+    label: IFRS 9 — Financial Instruments
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-9-financial-instruments.html
+    status: OBLIGATOIRE
+  - id: isa-505
+    label: ISA 505 — External Confirmations
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Compte 411
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Confirmer les soldes clients (ISA 505) et prévoir des procédures alternatives en cas de non-réponse.
+  - Apprécier la dépréciation selon le référentiel (ECL en IFRS 9, cas par cas en PCG).
+  - Tester systématiquement le cut-off du chiffre d'affaires (présomption de fraude ISA 240).
+  - PROBANT détecte les ventes antidatées et les anomalies de cut-off (silo créances-clients / chiffre-affaires).
+
+relatedCycles:
+  - chiffre-affaires-ifrs15
+  - cutoff-separation-exercices
+  - autres-creances-cca
+
+reviewStatus: REVIEW_REQUIRED

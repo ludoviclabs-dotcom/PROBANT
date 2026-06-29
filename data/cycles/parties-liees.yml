@@ -1,0 +1,208 @@
+slug: parties-liees
+family: TRANSVERSAL
+title: Parties liées et apparentés
+summary: >
+  Cycle transversal relatif à l'identification et à l'exhaustivité des parties
+  liées, à l'appréciation des conditions de marché des transactions, aux
+  informations à fournir en annexe et à la procédure des conventions
+  réglementées. Domaine sensible à la fraude (transactions dissimulées,
+  conflits d'intérêts).
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["annexe"]
+
+applicableStandards:
+  - id: ias-24
+    label: IAS 24 — Information relative aux parties liées
+    type: IAS
+    status: OBLIGATOIRE
+  - id: isa-550
+    label: ISA 550 — Parties liées
+    type: ISA
+    status: OBLIGATOIRE
+  - id: nep-550
+    label: NEP 550 — Relations et transactions avec les parties liées
+    type: NEP
+    status: OBLIGATOIRE
+  - id: cc-conventions-reglementees
+    label: Code de commerce — Conventions réglementées
+    type: CODE_COMMERCE
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Informations à fournir sur les parties liées
+    value: >
+      Nature de la relation, montant des transactions, soldes et conditions
+      (IAS 24) ; information en annexe des transactions non conclues à des
+      conditions normales de marché
+    status: OBLIGATOIRE
+    sourceIds: ["ias-24"]
+  - label: Procédure des conventions réglementées
+    value: >
+      Autorisation préalable, rapport spécial et approbation des conventions
+      entre la société et ses dirigeants ou actionnaires significatifs
+    status: OBLIGATOIRE
+    sourceIds: ["cc-conventions-reglementees"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total bilan
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Réduire en présence de transactions significatives avec des parties liées.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Transactions parties liées / Total transactions
+    formula: Volume des transactions avec parties liées / Total des transactions
+    alertThreshold: Poids significatif ou en forte progression vs N-1
+    interpretation: Mesure la dépendance de l'entité aux opérations intragroupe ou avec les dirigeants.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-550"]
+  - name: Comptes courants d'associés / Capitaux propres
+    formula: Soldes des comptes courants d'associés / Capitaux propres
+    alertThreshold: Comptes courants élevés ou débiteurs à investiguer
+    interpretation: Un compte courant débiteur peut révéler un financement irrégulier d'un dirigeant.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-550", "cc-conventions-reglementees"]
+
+analyticalProcedures:
+  - name: Revue des soldes et flux avec les parties liées
+    objective: Apprécier la cohérence et les conditions des transactions avec les parties liées.
+    method: >
+      Analyser l'évolution des comptes courants, des transactions intragroupe et
+      des marges pratiquées par rapport aux conditions de marché et à N-1.
+    expectedVariation: Conditions cohérentes avec celles consenties à des tiers indépendants.
+    anomalyTrigger: Marges hors marché, comptes courants débiteurs, transactions sans substance économique.
+    benchmark: ["N-1", "Conditions de marché"]
+    assertions: ["Présentation", "Exhaustivité", "Évaluation"]
+    sourceIds: ["isa-550", "isa-520"]
+
+detailTests:
+  - name: Identification et exhaustivité des parties liées
+    nature: Test de détail
+    extent: Ensemble des parties liées déclarées et recherchées
+    timing: Planification et clôture
+    samplingMethod: Revue exhaustive croisée des sources
+    evidenceRequired:
+      - Déclarations écrites de la direction
+      - Registres juridiques et organigramme du groupe
+      - Liste des dirigeants et mandataires (K-bis, statuts)
+      - PV d'assemblées et de conseils
+    assertions: ["Exhaustivité", "Présentation"]
+    sourceIds: ["isa-550", "nep-550", "isa-580"]
+  - name: Test des transactions et conventions réglementées
+    nature: Test de détail
+    extent: Transactions significatives et conventions soumises à approbation
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les transactions significatives
+    evidenceRequired:
+      - Contrats et conditions tarifaires
+      - Relevés de comptes courants
+      - PV d'autorisation des conventions réglementées
+      - Rapport spécial sur les conventions
+    assertions: ["Évaluation", "Droits et obligations", "Présentation"]
+    sourceIds: ["ias-24", "cc-conventions-reglementees", "isa-500"]
+
+risks:
+  - name: Transactions avec parties liées dissimulées
+    category: RISQUE_FRAUDE
+    description: >
+      Existence de relations ou transactions non déclarées permettant de
+      détourner des actifs ou de masquer la réalité économique (ISA 550).
+    indicators:
+      - Transactions complexes sans substance économique claire
+      - Entités liées non révélées par la direction
+      - Flux vers des entités situées dans des juridictions opaques
+    response:
+      - Recouper les déclarations de la direction avec les registres juridiques
+      - Analyser les transactions inhabituelles hors circuit normal
+    sourceIds: ["isa-550", "nep-550", "isa-240"]
+  - name: Transactions à des conditions hors marché
+    category: RISQUE_CONTROLE
+    description: >
+      Transactions avec des parties liées réalisées à des conditions non
+      normales, faussant le résultat ou l'information financière.
+    indicators:
+      - Marges anormales sur ventes ou achats intragroupe
+      - Prêts sans intérêt ou abandons de créance
+    response:
+      - Comparer les conditions aux prix de pleine concurrence
+      - Tester la justification économique des conditions consenties
+    sourceIds: ["ias-24", "isa-550"]
+  - name: Conflit d'intérêts non divulgué
+    category: RISQUE_FRAUDE
+    description: >
+      Convention conclue dans l'intérêt d'un dirigeant non soumise à la
+      procédure d'autorisation ni mentionnée en annexe.
+    indicators:
+      - Conventions non présentées au conseil
+      - Avantages consentis à des dirigeants non documentés
+    response:
+      - Vérifier le respect de la procédure des conventions réglementées
+      - Rapprocher les avantages des dirigeants des autorisations sociales
+    sourceIds: ["cc-conventions-reglementees", "isa-550"]
+
+ifrsVsPcg:
+  - topic: Information sur les parties liées
+    ifrsTreatment: >
+      IAS 24 impose une information détaillée (relations, transactions, soldes,
+      rémunération des principaux dirigeants).
+    pcgTreatment: >
+      Mentions en annexe (transactions avec parties liées non conclues à des
+      conditions normales) complétées par la procédure des conventions
+      réglementées du Code de commerce.
+    auditImpact: >
+      Vérifier l'exhaustivité de l'information selon le référentiel et le respect
+      de la procédure des conventions réglementées en environnement français.
+    sourceIds: ["ias-24", "cc-conventions-reglementees"]
+
+officialSources:
+  - id: ias-24
+    label: IAS 24 — Related Party Disclosures
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-24-related-party-disclosures.html
+    status: OBLIGATOIRE
+  - id: isa-550
+    label: ISA 550 — Related Parties
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: cc-conventions-reglementees
+    label: Code de commerce — Conventions réglementées
+    type: CODE_COMMERCE
+    url: https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000005634379/
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Recouper les déclarations de la direction avec les registres juridiques pour assurer l'exhaustivité.
+  - Traiter les transactions dissimulées et conflits d'intérêts comme des risques de fraude.
+  - Apprécier les conditions des transactions au regard du prix de pleine concurrence.
+  - Vérifier le respect de la procédure des conventions réglementées (Code de commerce).
+
+relatedCycles:
+  - consolidation-perimetre
+  - capitaux-propres
+  - controle-interne-fraude
+
+reviewStatus: REVIEW_REQUIRED

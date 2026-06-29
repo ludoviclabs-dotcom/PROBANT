@@ -1,0 +1,107 @@
+# Plan comptable général (PCG) et réglementation comptable française — ANC
+# Source maîtresse : https://www.anc.gouv.fr/fr/reglementation
+# Le PCG est le règlement ANC n° 2014-03 modifié.
+sources:
+  - id: anc-reglementation
+    label: ANC — Réglementation comptable française
+    type: ANC
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Autorité des normes comptables — règlements applicables aux comptes français.
+
+  - id: pcg
+    label: Plan comptable général (règlement ANC n° 2014-03 modifié)
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Plan de comptes et règles d'évaluation/comptabilisation en comptes sociaux.
+
+  - id: pcg-121-5
+    label: PCG art. 121-5 — Permanence des méthodes
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Comparabilité des comptes par la permanence des méthodes d'un exercice à l'autre.
+
+  - id: pcg-122-x
+    label: PCG art. 122-1 et s. — Changements de méthode, d'estimation et corrections d'erreurs
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+  - id: pcg-214-13
+    label: PCG art. 214-13 — Plan d'amortissement
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Définition et modification du plan d'amortissement, approche par composants.
+
+  - id: pcg-214-x
+    label: PCG art. 214-1 et s. — Dépréciation des actifs
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Indices de perte de valeur et test de dépréciation des actifs immobilisés.
+
+  - id: pcg-213-x
+    label: PCG art. 212-1 et s. / 213 — Immobilisations incorporelles, frais de développement
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Conditions d'inscription à l'actif des frais de développement et logiciels.
+
+  - id: pcg-221-x
+    label: PCG — Évaluation des stocks (coût d'entrée, dépréciation)
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Coût d'acquisition/production et dépréciation des stocks et en-cours.
+
+  - id: pcg-322-1
+    label: PCG art. 322-1 et s. — Provisions pour risques et charges
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Conditions de comptabilisation d'une provision (obligation, sortie probable).
+
+  - id: pcg-cpt-418
+    label: PCG compte 418 — Clients, produits non encore facturés
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Rattachement des produits à l'exercice (cut-off / FAE).
+
+  - id: pcg-cpt-486-487
+    label: PCG comptes 486 / 487 — Charges et produits constatés d'avance
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Rattachement temporel des charges (486) et produits (487) constatés d'avance.
+
+  - id: pcg-cpt-408-486
+    label: PCG comptes 408 / 4081 — Fournisseurs, factures non parvenues
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Rattachement des charges fournisseurs à l'exercice (FNP / cut-off achats).
+
+  - id: pcg-rattachement
+    label: PCG — Principe de rattachement des charges et produits à l'exercice
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Indépendance des exercices et séparation des exercices (cut-off).
+
+  - id: pcg-classe-7
+    label: PCG comptes classe 7 — Produits
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+    summary: Comptes de produits (ventes, production) — reconnaissance du chiffre d'affaires.
+
+  - id: anc-flux-tresorerie
+    label: ANC — Tableau de flux de trésorerie (comptes consolidés)
+    type: ANC
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: RECOMMANDE
+    note: Modèle de tableau de flux ; à confirmer selon le référentiel applicable.

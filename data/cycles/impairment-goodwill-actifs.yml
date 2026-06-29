@@ -1,0 +1,256 @@
+slug: impairment-goodwill-actifs
+family: ACTIF_IMMOBILISE
+title: Tests de dépréciation goodwill et actifs
+summary: >
+  Cycle transverse relatif aux tests de dépréciation du goodwill et des actifs
+  immobilisés : définition des unités génératrices de trésorerie (UGT),
+  détermination de la valeur recouvrable (valeur d'utilité par actualisation des
+  flux de trésorerie ou juste valeur diminuée des coûts de sortie), choix du WACC,
+  des flux futurs et de la croissance terminale, et analyses de sensibilité.
+
+pcgAccounts: ["207", "2807", "29"]
+probantSiloIds: []
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: ias-36
+    label: IAS 36 — Dépréciation d'actifs
+    type: IAS
+    status: OBLIGATOIRE
+    note: Test annuel obligatoire du goodwill et des actifs à durée indéterminée.
+  - id: ias-38
+    label: IAS 38 — Immobilisations incorporelles
+    type: IAS
+    status: OBLIGATOIRE
+    note: Incorporels à durée indéterminée soumis au test annuel.
+  - id: ifrs-3
+    label: IFRS 3 — Regroupements d'entreprises
+    type: IFRS
+    status: OBLIGATOIRE
+    note: Origine et affectation du goodwill aux UGT.
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Cœur de l'audit des hypothèses du test de dépréciation.
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-620
+    label: ISA 620 — Recours à un expert de l'auditeur
+    type: ISA
+    status: OBLIGATOIRE
+    note: Pertinent pour l'appréciation du modèle DCF et du WACC.
+
+thresholds:
+  - label: Test de dépréciation annuel du goodwill
+    value: Test obligatoire au moins une fois par an et dès qu'un indice de perte de valeur existe, indépendamment de tout indice
+    status: OBLIGATOIRE
+    sourceIds: ["ias-36", "ifrs-3"]
+  - label: Comptabilisation de la perte de valeur
+    value: Dépréciation dès que la valeur recouvrable (max entre valeur d'utilité et juste valeur diminuée des coûts de sortie) est inférieure à la valeur comptable de l'UGT
+    status: OBLIGATOIRE
+    sourceIds: ["ias-36"]
+  - label: Seuil de headroom faible
+    value: Marge de manœuvre (headroom) faible déclenchant une investigation renforcée (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["ias-36"]
+    caveat: Seuil indicatif interne, non opposable.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Plutôt 60 % en cas de risque élevé ou
+      d'anomalies historiques.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Headroom (marge de manœuvre)
+    formula: (Valeur recouvrable de l'UGT - Valeur comptable de l'UGT) / Valeur comptable de l'UGT
+    alertThreshold: Headroom faible ou nul à investiguer ; sensibilité élevée aux hypothèses
+    interpretation: Mesure la marge avant dépréciation ; un headroom faible rend le test très sensible aux hypothèses de flux et de taux.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Ratio de couverture de la valeur comptable
+    formula: Valeur recouvrable de l'UGT / Valeur comptable de l'UGT
+    alertThreshold: Ratio proche de 1 ou inférieur à 1 à investiguer
+    interpretation: Un ratio inférieur à 1 implique une dépréciation ; un ratio proche de 1 appelle des sensibilités approfondies.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520", "ias-36"]
+  - name: Cohérence du WACC retenu
+    formula: WACC retenu par la direction comparé à une fourchette de marché reconstituée par l'auditeur
+    alertThreshold: Écart significatif entre le WACC retenu et la fourchette de marché à investiguer
+    interpretation: Un WACC sous-évalué majore artificiellement la valeur d'utilité et réduit le risque de dépréciation.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-540", "isa-620"]
+  - name: Taux de croissance terminale
+    formula: Taux de croissance à l'infini retenu dans le modèle DCF comparé à la croissance long terme du secteur/économie
+    alertThreshold: Taux supérieur à la croissance long terme attendue du secteur à investiguer
+    interpretation: Un taux de croissance terminale trop élevé gonfle la valeur terminale et donc la valeur recouvrable.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-540"]
+
+analyticalProcedures:
+  - name: Comparaison historique budget / réalisé
+    objective: Apprécier la fiabilité des prévisions de la direction utilisées dans le test de dépréciation.
+    method: Comparer les flux budgétés des exercices antérieurs aux réalisations effectives et mesurer l'écart (biais optimiste éventuel).
+    expectedVariation: Écarts limités et non systématiquement favorables.
+    anomalyTrigger: Surestimation récurrente des flux budgétés par rapport au réalisé.
+    benchmark: ["Historique budget vs réel", "N-1", "N-2"]
+    assertions: ["Évaluation", "Présentation"]
+    sourceIds: ["isa-540", "isa-520"]
+  - name: Analyse de sensibilité des hypothèses clés
+    objective: Identifier le caractère critique des hypothèses (WACC, croissance terminale, flux) et le risque de dépréciation non comptabilisée.
+    method: Recalculer la valeur recouvrable en faisant varier le WACC, le taux de croissance terminale et les flux dans des bornes raisonnables.
+    expectedVariation: Le résultat du test reste positif dans des hypothèses raisonnablement défavorables.
+    anomalyTrigger: Bascule du test en dépréciation pour une variation faible et plausible d'une hypothèse clé.
+    benchmark: ["Fourchette de marché du WACC", "Croissance long terme du secteur"]
+    assertions: ["Évaluation", "Présentation"]
+    sourceIds: ["isa-540", "isa-520"]
+
+detailTests:
+  - name: Revue du modèle DCF et cohérence du WACC
+    nature: Test substantif
+    extent: Modèle de chaque UGT significative portant un goodwill ou des actifs importants
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les UGT significatives
+    evidenceRequired:
+      - Modèle DCF complet (flux, taux, valeur terminale)
+      - Justification du WACC (taux sans risque, prime de risque, structure financière)
+      - Définition et affectation des UGT
+      - Travaux de l'expert le cas échéant (ISA 620)
+    assertions: ["Évaluation", "Exactitude", "Présentation"]
+    sourceIds: ["isa-540", "isa-620"]
+  - name: Rapprochement des flux avec le budget approuvé
+    nature: Test de détail
+    extent: Flux prévisionnels des UGT significatives
+    timing: Clôture
+    samplingMethod: Sélection ciblée + rapprochement avec les budgets validés par la gouvernance
+    evidenceRequired:
+      - Budgets et plans d'affaires approuvés par les organes de direction
+      - Rapprochement flux du modèle / budget approuvé
+      - Justification des écarts éventuels
+    assertions: ["Évaluation", "Existence"]
+    sourceIds: ["isa-540", "isa-500"]
+  - name: Recalcul du test et des sensibilités
+    nature: Test substantif
+    extent: Test de dépréciation des UGT significatives
+    timing: Clôture
+    samplingMethod: Recalcul indépendant sur les UGT à headroom faible
+    evidenceRequired:
+      - Feuille de calcul de la valeur recouvrable
+      - Recalcul indépendant de l'auditeur
+      - Analyses de sensibilité documentées
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-540", "isa-500"]
+
+risks:
+  - name: Hypothèses trop optimistes et biais de la direction
+    category: RISQUE_FRAUDE
+    description: Choix d'hypothèses (flux, WACC sous-évalué, croissance terminale élevée) destinées à éviter la comptabilisation d'une dépréciation.
+    indicators:
+      - Headroom systématiquement faible mais jamais en dépréciation
+      - WACC inférieur aux références de marché
+      - Croissance terminale supérieure à la croissance long terme du secteur
+      - Historique de surestimation des flux budgétés
+    response:
+      - Apprécier le caractère raisonnable des hypothèses (ISA 540)
+      - Reconstituer une fourchette de WACC indépendante
+      - Recourir à un expert pour le modèle si nécessaire (ISA 620)
+      - Réaliser des analyses de sensibilité
+    sourceIds: ["isa-240", "isa-540", "isa-620"]
+  - name: Non-dépréciation du goodwill et des actifs
+    category: RISQUE_INHERENT
+    description: Maintien du goodwill et des actifs à leur valeur comptable malgré une valeur recouvrable inférieure.
+    indicators:
+      - Indices de perte de valeur non pris en compte
+      - Sous-performance durable d'une UGT
+      - Capitalisation boursière inférieure à l'actif net (le cas échéant)
+    response:
+      - Rechercher les indices de perte de valeur
+      - Vérifier la réalisation effective du test annuel
+      - Recalculer la valeur recouvrable des UGT concernées
+    sourceIds: ["isa-540", "ias-36"]
+  - name: UGT mal définies
+    category: RISQUE_CONTROLE
+    description: Définition ou affectation inappropriée des UGT et du goodwill masquant la dépréciation par compensation entre activités.
+    indicators:
+      - UGT trop larges regroupant activités performantes et déficitaires
+      - Affectation du goodwill non documentée
+      - Changement de périmètre des UGT non justifié
+    response:
+      - Examiner la cohérence de la définition des UGT avec le suivi interne
+      - Vérifier l'affectation du goodwill aux UGT (IFRS 3 / IAS 36)
+      - Contrôler la stabilité du périmètre des UGT
+    sourceIds: ["isa-315", "isa-330", "ias-36"]
+
+ifrsVsPcg:
+  - topic: Traitement du goodwill (amortissement vs test annuel)
+    ifrsTreatment: >
+      IAS 36 interdit l'amortissement du goodwill ; celui-ci fait l'objet d'un
+      test de dépréciation annuel obligatoire (et à chaque indice de perte de
+      valeur), la perte de valeur du goodwill étant irréversible.
+    pcgTreatment: >
+      Le PCG amortit le fonds commercial / mali de fusion sur sa durée d'utilité
+      (avec présomption de 10 ans lorsque la durée n'est pas déterminable de façon
+      fiable), tout en imposant un test de dépréciation en présence d'indices.
+    auditImpact: Vérifier la méthode applicable selon le référentiel (test annuel IFRS vs amortissement PCG) et la cohérence des durées et dépréciations.
+    sourceIds: ["ias-36", "ifrs-3", "pcg"]
+  - topic: Reprise des dépréciations
+    ifrsTreatment: Reprise possible des dépréciations d'actifs (sauf goodwill), dans la limite de la valeur comptable qui aurait existé sans dépréciation.
+    pcgTreatment: Reprise des dépréciations possible lorsque la valeur recouvrable redevient supérieure à la valeur comptable, selon les règles françaises applicables.
+    auditImpact: Vérifier l'irréversibilité de la dépréciation du goodwill et la justification des reprises éventuelles sur les autres actifs.
+    sourceIds: ["ias-36", "pcg"]
+
+officialSources:
+  - id: ias-36
+    label: IAS 36 — Impairment of Assets
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-36-impairment-of-assets.html
+    status: OBLIGATOIRE
+  - id: ifrs-3
+    label: IFRS 3 — Business Combinations
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-3-business-combinations.html
+    status: OBLIGATOIRE
+  - id: isa-540
+    label: ISA 540 (Revised) — Auditing Accounting Estimates
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standard-auditing-540-revised-auditing-accounting-estimates-and-related-disclosures
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Apprécier le caractère raisonnable des hypothèses clés (flux, WACC, croissance terminale) au regard des références externes (ISA 540).
+  - Vérifier la définition et l'affectation des UGT et du goodwill, et la réalisation effective du test annuel.
+  - Réaliser des analyses de sensibilité et identifier les UGT à headroom faible.
+  - Comparer l'historique budget/réel pour détecter un biais optimiste de la direction.
+  - Recourir à un expert de l'auditeur (ISA 620) lorsque la complexité du modèle DCF le justifie.
+
+relatedCycles:
+  - immobilisations-incorporelles
+  - immobilisations-corporelles
+  - estimations-jugements
+
+reviewStatus: REVIEW_REQUIRED

@@ -1,0 +1,123 @@
+# Normes d'exercice professionnel (NEP) françaises — CNCC / H3C-H2A
+# Source maîtresse : https://www.cncc.fr/les-normes-dexercice-professionnel.html
+# Supervision : Haute autorité de l'audit (H2A, ex-H3C).
+sources:
+  - id: nep-cncc-master
+    label: CNCC — Normes d'exercice professionnel
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+    summary: Normes homologuées applicables au commissariat aux comptes en France.
+
+  - id: h2a-master
+    label: H2A (ex-H3C) — Supervision de l'audit légal
+    type: H3C_H2A
+    url: https://www.h2a.fr
+    status: OBLIGATOIRE
+    summary: Autorité publique de supervision des commissaires aux comptes.
+
+  - id: nep-200
+    label: NEP 200 — Principes applicables à l'audit des comptes
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+    summary: Principes généraux et objectifs de l'audit légal.
+
+  - id: nep-240
+    label: NEP 240 — Prise en considération de la possibilité de fraudes
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+    summary: Équivalent français d'ISA 240 — présomption de fraude au revenu.
+
+  - id: nep-300
+    label: NEP 300 — Planification de l'audit
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-315
+    label: NEP 315 — Connaissance de l'entité et évaluation du risque d'anomalies significatives
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-320
+    label: NEP 320 — Anomalies significatives et seuil de signification
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+    summary: Impose la détermination et la documentation du seuil, sans pourcentage imposé.
+
+  - id: nep-330
+    label: NEP 330 — Procédures d'audit mises en œuvre à l'issue de l'évaluation des risques
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-450
+    label: NEP 450 — Évaluation des anomalies relevées au cours de l'audit
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-500
+    label: NEP 500 — Caractère probant des éléments collectés
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-501
+    label: NEP 501 — Caractère probant — applications spécifiques
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+    summary: Stocks, litiges et informations sectorielles.
+
+  - id: nep-505
+    label: NEP 505 — Demandes de confirmation des tiers
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-520
+    label: NEP 520 — Procédures analytiques
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-530
+    label: NEP 530 — Sélection des éléments à contrôler
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-540
+    label: NEP 540 — Appréciation des estimations comptables
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-550
+    label: NEP 550 — Relations et transactions avec les parties liées
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-560
+    label: NEP 560 — Événements postérieurs à la clôture
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-570
+    label: NEP 570 — Continuité d'exploitation
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE
+
+  - id: nep-580
+    label: NEP 580 — Déclarations de la direction
+    type: NEP
+    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    status: OBLIGATOIRE

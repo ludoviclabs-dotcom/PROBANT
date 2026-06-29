@@ -1,0 +1,50 @@
+# Document méthodologique — Procédures analytiques
+# Référentiel « Audit Normatif 360 ». Le PRINCIPE (ISA 520 / NEP 520) est
+# obligatoire ; le seuil d'écart déclenchant une investigation est paramétrable.
+title: "Procédures analytiques"
+description: >
+  Revue de cohérence des données financières par l'analyse de corrélations
+  plausibles, utilisée en planification, en tant que contrôle de substance et
+  lors de la revue finale de cohérence d'ensemble.
+status: OBLIGATOIRE
+sourceIds: [isa-520, nep-520]
+content:
+  principle:
+    title: Nature et usages des procédures analytiques
+    status: OBLIGATOIRE
+    sourceIds: [isa-520, nep-520]
+    description: >
+      Les procédures analytiques consistent à apprécier l'information financière
+      à partir de l'analyse de corrélations plausibles entre données
+      financières et non financières. Elles sont utilisées à trois moments :
+      lors de la planification (compréhension de l'entité et identification des
+      zones de risque), en tant que contrôle de substance (lorsqu'elles sont
+      plus efficaces que des tests de détail), et lors de la revue finale pour
+      apprécier la cohérence d'ensemble des états financiers avec la
+      connaissance de l'entité.
+  types:
+    - name: Revue de tendances
+      description: Comparaison des données de l'exercice N avec N-1 et les exercices antérieurs.
+    - name: Comparaisons budget / réel
+      description: Confrontation des réalisations aux budgets, prévisions et objectifs.
+    - name: Comparaisons sectorielles
+      description: Comparaison avec des entités comparables, moyennes et données du secteur.
+    - name: Ratios clés
+      description: >
+        Analyse de ratios significatifs (marge, rotation, structure,
+        endettement) et de leur évolution.
+    - name: Tests de prévisibilité
+      description: >
+        Estimation indépendante d'un montant attendu (modèles, régression) puis
+        comparaison avec le montant comptabilisé.
+  investigationTrigger:
+    title: Investigation des écarts significatifs
+    status: PARAMETRABLE
+    sourceIds: [isa-520, nep-520]
+    description: >
+      Tout écart significatif entre le montant constaté et l'attente
+      préalablement documentée déclenche une investigation : interrogation de la
+      direction et obtention d'éléments corroborants, puis mise en oeuvre
+      d'autres procédures si nécessaire. Le seuil d'écart considéré comme
+      significatif (en valeur absolue et/ou en pourcentage) relève du jugement
+      et est fixé en cohérence avec le seuil de signification.

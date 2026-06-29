@@ -1,0 +1,251 @@
+slug: dotations-amortissements-depreciations
+family: COMPTE_RESULTAT
+title: Dotations aux amortissements et dépréciations
+summary: >
+  Cycle relatif aux dotations aux amortissements et dépréciations et à leurs reprises :
+  cohérence des bases amortissables, des durées et méthodes, recherche d'indices de perte
+  de valeur (impairment) et appréciation des reprises. Zone d'estimation à fort jugement
+  pouvant être instrumentalisée pour piloter le résultat.
+
+pcgAccounts: ["68", "78"]
+probantSiloIds: ["dap"]
+probantCloisons: ["resultat"]
+
+applicableStandards:
+  - id: ias-16
+    label: IAS 16 — Immobilisations corporelles
+    type: IAS
+    status: OBLIGATOIRE
+    note: Base amortissable, durées d'utilité et approche par composants.
+  - id: ias-36
+    label: IAS 36 — Dépréciation d'actifs
+    type: IAS
+    status: OBLIGATOIRE
+    note: Indices de perte de valeur, test de dépréciation et reprises.
+  - id: ias-38
+    label: IAS 38 — Immobilisations incorporelles
+    type: IAS
+    status: OBLIGATOIRE
+    note: Amortissement des incorporelles à durée d'utilité définie.
+  - id: pcg-214-13
+    label: PCG art. 214-13 — Plan d'amortissement
+    type: PCG
+    status: OBLIGATOIRE
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Cœur du cycle — durées, méthodes et dépréciations relèvent d'estimations.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Plan d'amortissement et durées d'utilité
+    value: Amortissement systématique selon le rythme de consommation des avantages économiques
+    status: OBLIGATOIRE
+    sourceIds: ["pcg-214-13", "ias-16"]
+  - label: Test de dépréciation en présence d'indices de perte de valeur
+    value: Comparaison de la valeur comptable à la valeur recouvrable lorsqu'un indice existe (IAS 36)
+    status: OBLIGATOIRE
+    sourceIds: ["ias-36"]
+  - label: Écart de taux d'amortissement significatif vs N-1
+    value: 5 points (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["pcg-214-13"]
+    caveat: Seuil indicatif interne, non opposable.
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total bilan
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt normalisé, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Réduire en présence d'estimations sensibles (dépréciations, changements de durées).
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Dotations aux amortissements / Immobilisations brutes
+    formula: Dotations aux amortissements de l'exercice / Valeur brute des immobilisations amortissables
+    alertThreshold: Variation > 5 pts vs N-1 à investiguer
+    interpretation: Détecte un changement de durée d'utilité, une erreur de base ou une dotation anormale.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Dotations / Chiffre d'affaires
+    formula: Dotations aux amortissements et dépréciations / Chiffre d'affaires
+    alertThreshold: Variation atypique vs N-1 ou budget
+    interpretation: Identifie une charge de dotation inhabituelle ou un pilotage du résultat.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Dépréciations / Actifs concernés
+    formula: Dotations aux dépréciations / Valeur brute des actifs concernés
+    alertThreshold: Absence de dépréciation malgré des indices, ou reprise importante non justifiée
+    interpretation: Révèle une sous- ou sur-évaluation des actifs et un possible lissage du résultat.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520", "ias-36"]
+
+analyticalProcedures:
+  - name: Revue analytique des dotations par catégorie d'actifs
+    objective: Détecter une rupture de méthode, une durée incohérente ou une dotation anormale.
+    method: Comparer le taux de dotation par catégorie N vs N-1 et le rapprocher du fichier des immobilisations.
+    expectedVariation: Stabilité hors changement justifié et documenté en annexe.
+    anomalyTrigger: Variation > 5 pts sans justification, dotation incohérente avec les acquisitions.
+    benchmark: ["N-1", "Fichier des immobilisations"]
+    assertions: ["Évaluation", "Rattachement"]
+    sourceIds: ["isa-520", "pcg-214-13"]
+  - name: Analyse des reprises de dépréciation
+    objective: Apprécier le bien-fondé des reprises et détecter un pilotage du résultat.
+    method: Analyser les reprises de l'exercice et les confronter à l'évolution réelle de la valeur recouvrable.
+    expectedVariation: Reprises justifiées par une amélioration documentée des perspectives.
+    anomalyTrigger: Reprise importante en période de résultat faible, sans justification économique.
+    benchmark: ["N-1", "Valeur recouvrable"]
+    assertions: ["Évaluation", "Rattachement"]
+    sourceIds: ["isa-520", "ias-36", "isa-540"]
+
+detailTests:
+  - name: Recalcul des dotations aux amortissements
+    nature: Test substantif
+    extent: Recalcul global + sélection ciblée sur les actifs significatifs
+    timing: Clôture
+    samplingMethod: Recalcul d'ensemble et sélection ciblée selon ISA 530
+    evidenceRequired:
+      - Fichier des immobilisations
+      - Bases amortissables et durées
+      - Plan d'amortissement
+    assertions: ["Exactitude", "Évaluation"]
+    sourceIds: ["isa-500", "isa-540"]
+  - name: Cohérence des dotations avec le fichier des immobilisations
+    nature: Test substantif
+    extent: Rapprochement des dotations comptabilisées avec le fichier et la balance
+    timing: Clôture
+    samplingMethod: Exhaustif sur le rapprochement ; investigation des écarts
+    evidenceRequired:
+      - Fichier des immobilisations
+      - Balance générale (comptes 68 et 28/29)
+      - Tableau des mouvements
+    assertions: ["Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-500", "isa-330"]
+  - name: Revue des durées d'utilité et des indices de dépréciation
+    nature: Test de détail
+    extent: Durées par catégorie ; recherche d'indices de perte de valeur (IAS 36)
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les catégories et actifs sensibles
+    evidenceRequired:
+      - Justification des durées d'utilité
+      - Analyse des indices de dépréciation
+      - Tests de dépréciation et hypothèses retenues
+    assertions: ["Évaluation", "Rattachement"]
+    sourceIds: ["isa-540", "ias-36"]
+
+risks:
+  - name: Pilotage du résultat via les estimations d'amortissement et de dépréciation
+    category: RISQUE_FRAUDE
+    description: >
+      Manipulation du résultat en ajustant les durées, les méthodes, les dépréciations ou leurs
+      reprises pour atteindre un objectif (lissage ou amélioration opportuniste du résultat).
+    indicators:
+      - Changement de durée ou de méthode juste avant la clôture
+      - Reprise de dépréciation en période de résultat faible
+      - Absence de dépréciation malgré des indices manifestes
+    response:
+      - Examiner la justification des changements d'estimation
+      - Analyser le timing et le bien-fondé des reprises
+      - Rechercher les indices de dépréciation non traités
+    sourceIds: ["isa-240", "isa-540", "ias-36"]
+  - name: Amortissements insuffisants / durées excessives
+    category: RISQUE_INHERENT
+    description: Sous-évaluation des dotations par des durées d'utilité trop longues au regard de l'usage réel.
+    indicators:
+      - Durées supérieures aux usages du secteur
+      - Actifs obsolètes maintenus avec une faible dotation
+    response:
+      - Recalculer les dotations
+      - Comparer les durées aux références sectorielles
+    sourceIds: ["isa-540", "ias-16"]
+  - name: Reprises de dépréciation opportunistes (défaillance du contrôle)
+    category: RISQUE_CONTROLE
+    description: Reprises comptabilisées sans validation ni justification documentée de l'évolution de la valeur recouvrable.
+    indicators:
+      - Absence de contrôle sur la justification des reprises
+      - Reprises non revues par la direction financière
+    response:
+      - Tester les contrôles d'approbation des estimations
+      - Exiger la documentation des reprises
+    sourceIds: ["isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Amortissement par composants et test de dépréciation
+    ifrsTreatment: >
+      Approche par composants imposée (IAS 16) et test de dépréciation systématique en présence
+      d'indices, avec comparaison à la valeur recouvrable et possibilité de reprise (IAS 36).
+    pcgTreatment: >
+      Plan d'amortissement par composants prévu (art. 214-13) ; dépréciation comptabilisée en
+      présence d'indices, mais cadre de reprise plus restrictif que le référentiel IFRS.
+    auditImpact: >
+      Vérifier l'identification des composants, la cohérence des durées et, pour les dépréciations,
+      la méthode de détermination de la valeur recouvrable et le traitement des reprises.
+    sourceIds: ["ias-16", "ias-36"]
+
+officialSources:
+  - id: ias-16
+    label: IAS 16 — Property, Plant and Equipment
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-16-property-plant-and-equipment.html
+    status: OBLIGATOIRE
+  - id: ias-36
+    label: IAS 36 — Impairment of Assets
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-36-impairment-of-assets.html
+    status: OBLIGATOIRE
+  - id: pcg-214-13
+    label: PCG art. 214-13
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: isa-540
+    label: ISA 540 (Revised) — Auditing Accounting Estimates
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Recalculer les dotations et vérifier leur cohérence avec le fichier des immobilisations.
+  - Examiner toute modification de durée ou de méthode et sa justification en annexe.
+  - Apprécier le bien-fondé et le timing des dépréciations et de leurs reprises (risque de pilotage du résultat).
+  - PROBANT détecte les ruptures de plan d'amortissement et les variations de dotation atypiques (silo dap).
+
+relatedCycles:
+  - immobilisations-corporelles
+  - impairment-goodwill-actifs
+  - estimations-jugements
+
+reviewStatus: REVIEW_REQUIRED

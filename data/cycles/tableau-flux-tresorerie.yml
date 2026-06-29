@@ -1,0 +1,259 @@
+slug: tableau-flux-tresorerie
+family: TRESORERIE
+title: Tableau des flux de trésorerie
+summary: >
+  Cycle relatif à la cohérence du tableau des flux de trésorerie : capacité
+  d'autofinancement, variation du besoin en fonds de roulement, flux
+  d'investissement, flux de financement et réconciliation de la variation de
+  trésorerie, avec une attention particulière à la classification des flux.
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["flux"]
+
+applicableStandards:
+  - id: ias-7
+    label: IAS 7 — Tableau des flux de trésorerie
+    type: IAS
+    status: OBLIGATOIRE
+    note: Norme de référence en IFRS (méthode directe ou indirecte).
+  - id: anc-flux-tresorerie
+    label: ANC — Tableau des flux de trésorerie (comptes consolidés)
+    type: ANC
+    status: OBLIGATOIRE
+    note: Modèle normé ANC pour les comptes consolidés français.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Réconciliation de la variation de trésorerie
+    value: La variation nette du tableau doit égaler la variation de trésorerie au bilan N/N-1
+    status: OBLIGATOIRE
+    sourceIds: ["ias-7"]
+  - label: Classification des flux (exploitation / investissement / financement)
+    value: Affectation de chaque flux à la catégorie appropriée selon la norme applicable
+    status: OBLIGATOIRE
+    sourceIds: ["ias-7", "anc-flux-tresorerie"]
+  - label: Écart de cash conversion vs N-1
+    value: Variation significative du taux de conversion du résultat en cash (paramètre interne PROBANT)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Seuil indicatif interne, non opposable.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Plutôt 60 % en cas de risque élevé de classification manipulée des flux.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Operating cash flow / EBITDA
+    formula: Flux net de trésorerie d'exploitation / EBITDA
+    alertThreshold: Ratio durablement faible ou divergent du résultat à investiguer
+    interpretation: >
+      Un flux d'exploitation faible alors que l'EBITDA est élevé signale une faible
+      conversion du résultat en trésorerie ou une classification manipulée.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Cash conversion
+    formula: Flux net de trésorerie d'exploitation / Résultat net
+    alertThreshold: Variation significative vs N-1 à investiguer
+    interpretation: >
+      Un taux de conversion volatil ou anormalement élevé peut traduire un
+      reclassement de flux pour gonfler le flux opérationnel.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Free cash flow
+    formula: Flux net de trésorerie d'exploitation - Investissements (capex)
+    alertThreshold: Free cash flow durablement négatif ou en forte rupture à investiguer
+    interpretation: >
+      Un free cash flow négatif persistant interroge la soutenabilité du modèle et
+      la cohérence avec le flux de financement.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Variation du BFR / chiffre d'affaires
+    formula: Variation du besoin en fonds de roulement / Chiffre d'affaires
+    alertThreshold: Variation du BFR incohérente avec l'évolution de l'activité à investiguer
+    interpretation: >
+      Une variation du BFR déconnectée de l'activité peut révéler un classement
+      erroné de flux entre exploitation et autres catégories.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Cohérence des flux avec le résultat et le BFR
+    objective: Vérifier la cohérence d'ensemble entre résultat, variation du BFR et flux d'exploitation.
+    method: Rapprocher la CAF, la variation du BFR et le flux d'exploitation des données du bilan et du compte de résultat.
+    expectedVariation: Flux d'exploitation cohérent avec le résultat et la variation du BFR.
+    anomalyTrigger: Flux d'exploitation déconnecté du résultat ou de la variation du BFR.
+    benchmark: ["N-1", "Bilan", "Compte de résultat"]
+    assertions: ["Exactitude", "Présentation"]
+    sourceIds: ["isa-520", "nep-520"]
+  - name: Analyse de la classification des flux
+    objective: Détecter un reclassement de flux destiné à gonfler le flux opérationnel.
+    method: Comparer la ventilation exploitation / investissement / financement N vs N-1 et vs la norme applicable.
+    expectedVariation: Ventilation stable et conforme à la classification normée.
+    anomalyTrigger: Reclassement inhabituel de flux entre catégories sans justification.
+    benchmark: ["N-1"]
+    assertions: ["Présentation", "Exactitude"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Recalcul du tableau des flux de trésorerie
+    nature: Recalcul
+    extent: Recalcul intégral du tableau à partir des données comptables
+    timing: Clôture
+    samplingMethod: Exhaustif sur la construction du tableau
+    evidenceRequired:
+      - Bilans N et N-1
+      - Compte de résultat
+      - Détail des mouvements non cash
+      - Tableau des flux établi par l'entité
+    assertions: ["Exactitude", "Présentation"]
+    sourceIds: ["isa-500", "ias-7"]
+  - name: Rapprochement bilan N / N-1 et variation de trésorerie
+    nature: Rapprochement
+    extent: Rapprochement exhaustif de la variation nette de trésorerie
+    timing: Clôture
+    samplingMethod: Exhaustif sur la réconciliation de trésorerie
+    evidenceRequired:
+      - Postes de trésorerie au bilan N et N-1
+      - Variation nette du tableau des flux
+      - Détail des équivalents de trésorerie
+    assertions: ["Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-500", "isa-330"]
+  - name: Contrôle de la cohérence et de la classification des flux non cash
+    nature: Test de détail
+    extent: Éléments non cash et flux à classification sensible
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les retraitements non cash et les flux significatifs
+    evidenceRequired:
+      - Détail des dotations et reprises non décaissées
+      - Justification de la classification des intérêts et dividendes
+      - Pièces justificatives des flux d'investissement et de financement
+    assertions: ["Présentation", "Rattachement"]
+    sourceIds: ["isa-500", "isa-330"]
+
+risks:
+  - name: Classification manipulée pour gonfler le flux opérationnel
+    category: RISQUE_FRAUDE
+    description: >
+      Reclassement de flux de financement ou d'investissement en flux
+      d'exploitation afin de présenter une génération de trésorerie opérationnelle
+      artificiellement élevée.
+    indicators:
+      - Flux d'exploitation déconnecté du résultat et du BFR
+      - Reclassements inhabituels entre catégories vs N-1
+      - Cash conversion anormalement élevé
+    response:
+      - Analyser la classification des flux par catégorie
+      - Recalculer le flux d'exploitation à partir des données comptables
+      - Comparer la ventilation des flux à N-1 et à la norme applicable
+    sourceIds: ["isa-240", "isa-315", "isa-330"]
+  - name: Flux non cash inclus à tort
+    category: RISQUE_INHERENT
+    description: >
+      Inclusion d'éléments sans incidence de trésorerie (dotations, variations de
+      juste valeur, opérations sans flux) dans les flux du tableau.
+    indicators:
+      - Présence d'éléments non décaissés dans les flux
+      - Écart entre variation du tableau et trésorerie au bilan
+      - Opérations sans contrepartie de trésorerie
+    response:
+      - Identifier et neutraliser les éléments non cash
+      - Rapprocher la variation du tableau et la trésorerie au bilan
+      - Vérifier le traitement des opérations sans flux
+    sourceIds: ["isa-500", "ias-7"]
+  - name: Incohérence dette / trésorerie
+    category: RISQUE_CONTROLE
+    description: >
+      Flux de financement incohérents avec la variation de l'endettement au bilan,
+      faute de rapprochement des mouvements d'emprunts.
+    indicators:
+      - Variation des emprunts au bilan non reflétée dans les flux de financement
+      - Absence de rapprochement des mouvements de dette
+      - Écart entre intérêts décaissés et charges financières
+    response:
+      - Rapprocher les flux de financement et la variation des dettes financières
+      - Vérifier la cohérence des intérêts décaissés
+      - Tester la réconciliation des mouvements d'emprunts
+    sourceIds: ["isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Modèle et classification du tableau des flux de trésorerie
+    ifrsTreatment: >
+      IAS 7 autorise la méthode directe ou indirecte et offre une certaine
+      flexibilité de classification des intérêts et dividendes (exploitation,
+      investissement ou financement) avec permanence des méthodes.
+    pcgTreatment: >
+      En référentiel français, le tableau des flux relève d'un modèle ANC plus normé
+      pour les comptes consolidés ; il n'est pas obligatoire dans les comptes
+      individuels.
+    auditImpact: >
+      Vérifier la méthode retenue, la permanence du classement des intérêts et
+      dividendes et la conformité au modèle applicable (IAS 7 ou modèle ANC).
+    sourceIds: ["ias-7", "anc-flux-tresorerie"]
+
+officialSources:
+  - id: ias-7
+    label: IAS 7 — Statement of Cash Flows
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows.html
+    status: OBLIGATOIRE
+  - id: anc-flux-tresorerie
+    label: ANC — Tableau des flux de trésorerie (comptes consolidés)
+    type: ANC
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Analytical Procedures
+    type: ISA
+    url: https://www.iaasb.org/publications/2009-handbook-international-standards-auditing-and-quality-control
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Recalculer intégralement le tableau et rapprocher la variation nette de la trésorerie au bilan N/N-1.
+  - Analyser la classification des flux entre exploitation, investissement et financement (risque de fraude).
+  - Neutraliser et justifier les éléments non cash inclus dans les flux.
+  - Rapprocher les flux de financement de la variation des dettes financières.
+  - PROBANT signale automatiquement les incohérences de classification et les ruptures de cash conversion (silo flux).
+
+relatedCycles:
+  - disponibilites-banques
+  - dettes-financieres-emprunts
+  - capitaux-propres
+
+reviewStatus: REVIEW_REQUIRED

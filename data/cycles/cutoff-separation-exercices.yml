@@ -1,0 +1,212 @@
+slug: cutoff-separation-exercices
+family: TRANSVERSAL
+title: Cut-off et séparation des exercices
+summary: >
+  Cycle transversal relatif au rattachement des produits et charges à l'exercice
+  correct : ventes, achats, stocks, prestations, factures non parvenues (FNP),
+  charges et produits constatés d'avance (CCA/PCA) autour de la clôture. La
+  manipulation du cut-off est un vecteur privilégié de gestion du résultat
+  (présomption de fraude sur le revenu, ISA 240).
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["journaux"]
+
+applicableStandards:
+  - id: isa-240
+    label: ISA 240 — Fraude (manipulation du résultat par le cut-off)
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: ifrs-15
+    label: IFRS 15 — Transfert du contrôle et fait générateur du revenu
+    type: IFRS
+    status: OBLIGATOIRE
+  - id: pcg-rattachement
+    label: PCG — Principe de rattachement et séparation des exercices
+    type: PCG
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Rattachement à l'exercice
+    value: >
+      Produits et charges comptabilisés sur l'exercice de réalisation du fait
+      générateur, indépendamment de la date d'encaissement ou de paiement
+    status: OBLIGATOIRE
+    sourceIds: ["pcg-rattachement", "ifrs-15"]
+  - label: Risque de fraude sur le cut-off du revenu
+    value: Risque significatif présumé sauf justification contraire documentée
+    status: OBLIGATOIRE
+    sourceIds: ["isa-240"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou chiffre d'affaires
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt, ou 0,5 % à 1 % du chiffre d'affaires
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Réduire en présence d'un risque de fraude sur le cut-off du revenu.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Poids du chiffre d'affaires du dernier mois
+    formula: CA du dernier mois / CA annuel
+    alertThreshold: Concentration anormale en fin d'exercice
+    interpretation: Indice d'anticipation de ventes (channel stuffing) ou de cut-off forcé.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240", "isa-520"]
+  - name: Factures non parvenues / Achats
+    formula: Total FNP / Achats de l'exercice
+    alertThreshold: Variation significative vs N-1 à investiguer
+    interpretation: Une FNP faible vs N-1 peut révéler des charges non rattachées (résultat surévalué).
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Avoirs post-clôture / Chiffre d'affaires
+    formula: Avoirs émis en N+1 sur ventes N / Chiffre d'affaires N
+    alertThreshold: Avoirs post-clôture significatifs sur ventes N
+    interpretation: Avoirs élevés en N+1 = ventes N anticipées ou fictives.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520", "isa-240"]
+
+analyticalProcedures:
+  - name: Revue analytique des dernières et premières transactions
+    objective: Détecter les ruptures de rattachement autour de la date de clôture.
+    method: >
+      Comparer le profil mensuel des ventes, achats et FNP/CCA/PCA N vs N-1 et
+      analyser la concentration des écritures sur les jours encadrant la clôture.
+    expectedVariation: Profil cohérent avec l'activité et la saisonnalité.
+    anomalyTrigger: Pic de fin d'exercice, FNP/CCA en forte variation, avoirs massifs en N+1.
+    benchmark: ["N-1", "Budget", "Saisonnalité"]
+    assertions: ["Rattachement", "Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-520", "isa-240"]
+
+detailTests:
+  - name: Test de cut-off des ventes
+    nature: Test de détail
+    extent: Transactions autour de la clôture (avant/après)
+    timing: Clôture et post-clôture
+    samplingMethod: Sélection ciblée sur les dernières et premières factures et livraisons
+    evidenceRequired:
+      - Bons de livraison
+      - Factures de vente
+      - Dates de transfert de contrôle
+      - Avoirs post-clôture
+    assertions: ["Rattachement", "Existence"]
+    sourceIds: ["isa-240", "isa-500", "ifrs-15"]
+  - name: Test de cut-off des achats et charges
+    nature: Test de détail
+    extent: Dernières réceptions et premières factures fournisseurs de N+1
+    timing: Clôture et post-clôture
+    samplingMethod: Sélection ciblée et revue des paiements postérieurs
+    evidenceRequired:
+      - Bons de réception
+      - Factures fournisseurs et FNP
+      - Paiements postérieurs à la clôture
+      - Contrats de prestations en cours
+    assertions: ["Rattachement", "Exhaustivité"]
+    sourceIds: ["isa-330", "isa-500"]
+
+risks:
+  - name: Manipulation du résultat par anticipation de produits
+    category: RISQUE_FRAUDE
+    description: >
+      Comptabilisation de ventes ou prestations avant le transfert du contrôle
+      pour atteindre des objectifs (présomption ISA 240 sur le revenu).
+    indicators:
+      - Pic de CA en fin d'exercice
+      - Avoirs massifs en début d'exercice suivant
+      - Livraisons antidatées ou factures sans bon de livraison
+    response:
+      - Tester le cut-off des ventes (BL, factures, dates de transfert)
+      - Analyser les avoirs post-clôture
+      - Examiner les écritures de revenu de fin d'exercice
+    sourceIds: ["isa-240", "ifrs-15", "isa-330"]
+  - name: Retard de comptabilisation des charges
+    category: RISQUE_CONTROLE
+    description: >
+      Charges de l'exercice non provisionnées en FNP du fait d'un circuit de
+      rattachement défaillant, conduisant à un résultat surévalué.
+    indicators:
+      - FNP en baisse inexpliquée vs N-1
+      - Factures de N+1 portant sur des prestations de N
+    response:
+      - Rechercher les passifs non enregistrés (paiements postérieurs)
+      - Tester l'exhaustivité des FNP par sondage des factures N+1
+    sourceIds: ["isa-330", "isa-315"]
+  - name: Erreur de rattachement des CCA / PCA
+    category: RISQUE_INHERENT
+    description: >
+      Charges et produits constatés d'avance mal calculés ou omis, faussant la
+      séparation des exercices.
+    indicators:
+      - Contrats à cheval sur deux exercices (assurances, abonnements, loyers)
+      - Prestations facturées d'avance non étalées
+    response:
+      - Recalculer les CCA/PCA au prorata temporis
+      - Rapprocher les contrats pluriannuels des écritures de régularisation
+    sourceIds: ["pcg-rattachement", "isa-500"]
+
+ifrsVsPcg:
+  - topic: Principe de séparation des exercices et rattachement
+    ifrsTreatment: >
+      Rattachement fondé sur le cadre conceptuel (comptabilité d'engagement) et,
+      pour le revenu, sur le transfert du contrôle au client (IFRS 15).
+    pcgTreatment: >
+      Principe de rattachement des charges aux produits et de séparation des
+      exercices (comptabilité d'engagement, FNP/CCA/PCA).
+    auditImpact: >
+      Vérifier que le fait générateur et la date de transfert retenus sont
+      cohérents avec le référentiel applicable de part et d'autre de la clôture.
+    sourceIds: ["ifrs-15", "pcg-rattachement"]
+
+officialSources:
+  - id: isa-240
+    label: ISA 240 — The Auditor's Responsibilities Relating to Fraud
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: ifrs-15
+    label: IFRS 15 — Revenue from Contracts with Customers
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers.html
+    status: OBLIGATOIRE
+  - id: pcg-rattachement
+    label: PCG — Principe de rattachement et séparation des exercices
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Tester le cut-off des ventes et des achats de part et d'autre de la clôture (BL, factures, dates).
+  - Traiter l'anticipation de produits comme un risque de fraude présumé (ISA 240).
+  - Analyser les avoirs post-clôture et les paiements postérieurs pour détecter les anomalies de rattachement.
+  - Recalculer FNP, CCA et PCA pour assurer la séparation des exercices.
+
+relatedCycles:
+  - chiffre-affaires-ifrs15
+  - achats-charges-externes
+  - stocks-en-cours
+  - evenements-posterieurs
+
+reviewStatus: REVIEW_REQUIRED

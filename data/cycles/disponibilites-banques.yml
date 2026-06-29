@@ -1,0 +1,178 @@
+slug: disponibilites-banques
+family: TRESORERIE
+title: Disponibilités et banques
+summary: >
+  Cycle relatif à l'existence, l'exhaustivité et l'évaluation des disponibilités,
+  à la qualité des rapprochements bancaires, à la séparation des tâches et au
+  cut-off des encaissements/décaissements.
+
+pcgAccounts: ["512", "514", "53", "58"]
+probantSiloIds: ["autres-creances-tresorerie"]
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: ias-7
+    label: IAS 7 — Tableau des flux de trésorerie
+    type: IAS
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Comptes 512, 514, 53
+    type: PCG
+    status: OBLIGATOIRE
+  - id: isa-505
+    label: ISA 505 — Confirmations externes (banques)
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-240
+    label: ISA 240 — Fraude (détournement de trésorerie)
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Rapprochement bancaire
+    value: Rapprochement périodique revu et justifié pour chaque compte
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-500"]
+    caveat: Bonne pratique de contrôle interne ; modalités à adapter à l'entité.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. La trésorerie est souvent auditée à
+      100 % indépendamment du seuil.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Pourcentage relevant du jugement professionnel.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Trésorerie / Dettes court terme
+    formula: Disponibilités / Dettes financières à moins d'un an
+    alertThreshold: Ratio faible à rapprocher de la continuité d'exploitation
+    interpretation: Apprécie la couverture des échéances de court terme.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Suspens de rapprochement
+    formula: Montant des écritures en rapprochement non apurées / Solde bancaire
+    alertThreshold: Suspens anciens ou significatifs à investiguer
+    interpretation: Des suspens anciens peuvent masquer des erreurs ou un détournement.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-500"]
+
+analyticalProcedures:
+  - name: Revue des soldes de trésorerie et des suspens
+    objective: Identifier comptes inhabituels, découverts et suspens anciens.
+    method: Comparer N/N-1, analyser les rapprochements bancaires et les suspens.
+    expectedVariation: Soldes cohérents avec l'activité et les flux.
+    anomalyTrigger: Compte bancaire non rapproché, suspens ancien, découvert non documenté.
+    benchmark: ["N-1"]
+    assertions: ["Existence", "Exhaustivité"]
+    sourceIds: ["isa-520", "isa-500"]
+
+detailTests:
+  - name: Confirmation bancaire (circularisation)
+    nature: Confirmation externe
+    extent: Tous les comptes bancaires ouverts sur l'exercice
+    timing: Clôture
+    samplingMethod: Exhaustif sur les établissements bancaires
+    evidenceRequired:
+      - Réponses de confirmation bancaire
+      - Liste des comptes (y compris clôturés dans l'exercice)
+    assertions: ["Existence", "Droits et obligations", "Exhaustivité"]
+    sourceIds: ["isa-505", "isa-500"]
+  - name: Revue des rapprochements bancaires
+    nature: Test de détail
+    extent: Comptes significatifs à la clôture
+    timing: Clôture
+    samplingMethod: Sélection ciblée + apurement post-clôture des suspens
+    evidenceRequired:
+      - États de rapprochement
+      - Relevés bancaires
+      - Justificatifs des suspens
+    assertions: ["Existence", "Exactitude"]
+    sourceIds: ["isa-500"]
+
+risks:
+  - name: Détournement de trésorerie
+    category: RISQUE_FRAUDE
+    description: Risque de détournement facilité par une séparation des tâches insuffisante.
+    indicators:
+      - Même personne gère encaissements et rapprochements
+      - Suspens anciens non apurés
+    response:
+      - Circulariser les banques
+      - Examiner les rapprochements et l'apurement des suspens
+      - Tester la séparation des tâches
+    sourceIds: ["isa-240", "isa-315"]
+  - name: Comptes bancaires omis
+    category: RISQUE_INHERENT
+    description: Existence de comptes non comptabilisés (exhaustivité).
+    indicators:
+      - Flux vers des établissements non confirmés
+    response:
+      - Confirmer auprès de tous les établissements
+      - Examiner les frais bancaires pour détecter des comptes inconnus
+    sourceIds: ["isa-505"]
+  - name: Rapprochements non revus
+    category: RISQUE_CONTROLE
+    description: Absence de revue indépendante des rapprochements bancaires.
+    indicators:
+      - Rapprochements non datés/non signés
+    response:
+      - Tester le contrôle de revue des rapprochements
+    sourceIds: ["isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Définition des équivalents de trésorerie
+    ifrsTreatment: Placements très liquides à échéance ≤ 3 mois et risque négligeable (IAS 7).
+    pcgTreatment: Notion de disponibilités ; VMP présentées distinctement selon leur nature.
+    auditImpact: Vérifier le classement des placements en trésorerie vs VMP selon le référentiel.
+    sourceIds: ["ias-7", "pcg"]
+
+officialSources:
+  - id: isa-505
+    label: ISA 505 — External Confirmations
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: ias-7
+    label: IAS 7 — Statement of Cash Flows
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows.html
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Comptes de trésorerie
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Circulariser l'ensemble des établissements bancaires (y compris comptes clôturés).
+  - Examiner les rapprochements bancaires et l'apurement des suspens anciens.
+  - Apprécier la séparation des tâches (encaissement / comptabilisation / rapprochement).
+  - Le cut-off des chèques et virements en transit doit être vérifié.
+
+relatedCycles:
+  - vmp
+  - tableau-flux-tresorerie
+  - controle-interne-fraude
+
+reviewStatus: REVIEW_REQUIRED

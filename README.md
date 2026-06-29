@@ -57,6 +57,36 @@ Sans base ni credentials : `lib/demo/dataset.ts` fournit la société fictive
 **DEMO SA** avec des constats préchargés couvrant immobilisations, provisions,
 chiffre d'affaires, CCA et stocks. Un bandeau « MODE DÉMO » l'indique.
 
+## Audit Normatif 360
+
+Second module, complémentaire au moteur d'analyse FEC : une **base de
+connaissance normative** des cycles d'audit financier, accessible sous
+`/normatif`. Données versionnées en **YAML** dans `data/` (lues côté serveur
+via `lib/audit-cycles/`).
+
+- **35 cycles d'audit** (`data/cycles/*.yml`) couvrant actif immobilisé, actif
+  circulant, trésorerie, capitaux propres & financement, passif & engagements,
+  compte de résultat et cycles transversaux. Chaque fiche : normes applicables,
+  seuils, **matérialité** (toujours paramétrable, jamais imposée), ratios &
+  bornes, procédures analytiques, tests de détail, matrice des risques
+  (inhérent / contrôle / **fraude**), différences **IFRS vs PCG**, sources.
+- **Registre de sources** (`data/sources/*.yml`) : ISA, NEP, IAS/IFRS, PCG/ANC,
+  UE, Code de commerce, CGI, AFA/Sapin II — référencées par identifiant.
+- **Méthodologie** (`data/methodology/*.yml`) : matérialité, échantillonnage,
+  assertions, procédures analytiques, fraude, éléments probants.
+- **Fiabilité** : chaque élément porte un statut (`OBLIGATOIRE`, `RECOMMANDE`,
+  `BONNE_PRATIQUE`, `PARAMETRABLE`, `A_VALIDER`). Les pourcentages de matérialité
+  sont systématiquement `BONNE_PRATIQUE` avec un caveat ISA/NEP. Un contrôle
+  qualité (`lib/audit-cycles/validation.ts`, route `/api/normatif/validate`,
+  tests Vitest) échoue si une borne chiffrée est marquée obligatoire sans source,
+  si un cycle sensible n'a pas de risque de fraude, etc.
+- **Recherche** (Fuse.js), **export** JSON / CSV / Markdown (`/normatif/export`),
+  et **cross-link** depuis chaque fiche vers le silo PROBANT correspondant.
+
+> Tout le contenu est en statut « revue requise » : **citations, paragraphes et
+> seuils doivent être validés par un expert audit avant toute utilisation
+> opposable.**
+
 ## Stack
 
 Next.js 15 (App Router) · TypeScript strict · Tailwind CSS 4 · Zod · lucide-react.

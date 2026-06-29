@@ -1,0 +1,187 @@
+slug: evenements-posterieurs
+family: TRANSVERSAL
+title: Événements postérieurs à la clôture
+summary: >
+  Cycle transversal relatif aux événements survenus entre la date de clôture et
+  la date d'arrêté des comptes : distinction entre événements ajustants et non
+  ajustants, incidence sur la continuité d'exploitation, litiges nés et
+  défaillances de clients, et informations à fournir en annexe.
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["annexe"]
+
+applicableStandards:
+  - id: ias-10
+    label: IAS 10 — Événements postérieurs à la date de clôture
+    type: IAS
+    status: OBLIGATOIRE
+  - id: isa-560
+    label: ISA 560 — Événements postérieurs à la clôture
+    type: ISA
+    status: OBLIGATOIRE
+  - id: nep-560
+    label: NEP 560 — Événements postérieurs à la clôture
+    type: NEP
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Événement ajustant
+    value: >
+      Événement confirmant une situation existant à la clôture : ajustement des
+      comptes obligatoire (ex. défaillance d'un client, issue d'un litige)
+    status: OBLIGATOIRE
+    sourceIds: ["ias-10"]
+  - label: Événement non ajustant
+    value: >
+      Événement révélateur d'une situation née après la clôture : information en
+      annexe si significatif, sans ajustement des comptes
+    status: OBLIGATOIRE
+    sourceIds: ["ias-10"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total bilan
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Réduire en présence d'événements postérieurs significatifs.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Encaissements post-clôture / Créances clients
+    formula: Encaissements de N+1 sur créances N / Créances clients à la clôture
+    alertThreshold: Faible taux d'encaissement post-clôture sur créances anciennes
+    interpretation: Indice d'un événement ajustant (dépréciation de créances confirmée après la clôture).
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-560", "isa-520"]
+  - name: Avoirs et retours post-clôture / Chiffre d'affaires
+    formula: Avoirs émis en N+1 sur ventes N / Chiffre d'affaires N
+    alertThreshold: Avoirs post-clôture significatifs sur ventes N
+    interpretation: Confirme ou infirme la valeur des produits comptabilisés à la clôture.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-560"]
+
+analyticalProcedures:
+  - name: Revue des opérations de la période subséquente
+    objective: Identifier les événements postérieurs ajustants ou à mentionner en annexe.
+    method: >
+      Analyser les encaissements, paiements, avoirs et écritures significatives
+      de la période subséquente et les rapprocher des estimations de clôture.
+    expectedVariation: Opérations subséquentes confirmant les estimations retenues à la clôture.
+    anomalyTrigger: Défaillance de client, règlement de litige, retour important, baisse d'activité marquée.
+    benchmark: ["Période subséquente", "Estimations de clôture"]
+    assertions: ["Évaluation", "Présentation"]
+    sourceIds: ["isa-560", "isa-520"]
+
+detailTests:
+  - name: Revue des procès-verbaux et situations post-clôture
+    nature: Test de détail
+    extent: Période entre la clôture et la date d'arrêté des comptes
+    timing: Post-clôture
+    samplingMethod: Revue exhaustive des PV et situations intermédiaires
+    evidenceRequired:
+      - PV de conseils et d'assemblées post-clôture
+      - Situations comptables intermédiaires
+      - Déclarations écrites de la direction
+    assertions: ["Exhaustivité", "Présentation"]
+    sourceIds: ["isa-560", "nep-560", "isa-580"]
+  - name: Confirmations externes subséquentes (avocats, banques)
+    nature: Confirmation externe
+    extent: Litiges et engagements significatifs en cours
+    timing: Proche de la date d'arrêté des comptes
+    samplingMethod: Sélection ciblée sur les dossiers significatifs
+    evidenceRequired:
+      - Réponses des avocats
+      - Confirmations bancaires
+      - Documentation des litiges nés ou dénoués après la clôture
+    assertions: ["Évaluation", "Exhaustivité"]
+    sourceIds: ["isa-560", "isa-505", "isa-501"]
+
+risks:
+  - name: Absence d'ajustement d'un événement ajustant
+    category: RISQUE_INHERENT
+    description: >
+      Événement confirmant une situation existant à la clôture (défaillance
+      client, issue de litige) non répercuté dans les comptes (IAS 10).
+    indicators:
+      - Défaillance de client connue après la clôture
+      - Issue défavorable d'un litige provisionné de façon insuffisante
+    response:
+      - Analyser les encaissements et événements de la période subséquente
+      - Recalculer les dépréciations et provisions à la lumière des faits postérieurs
+    sourceIds: ["ias-10", "isa-560"]
+  - name: Annexe incomplète sur les événements non ajustants
+    category: RISQUE_CONTROLE
+    description: >
+      Événement non ajustant significatif (acquisition, sinistre, restructuration)
+      non mentionné en annexe faute de procédure de recensement.
+    indicators:
+      - Absence de revue formalisée des événements post-clôture
+      - Opérations majeures de N+1 non documentées dans le dossier
+    response:
+      - Tester le processus de recensement des événements postérieurs
+      - Rapprocher les PV et la communication financière de l'annexe
+    sourceIds: ["ias-10", "nep-560"]
+
+ifrsVsPcg:
+  - topic: Traitement des événements postérieurs
+    ifrsTreatment: >
+      IAS 10 distingue les événements ajustants (ajustement des comptes) des non
+      ajustants (information en annexe si significatifs).
+    pcgTreatment: >
+      Approche convergente : ajustement des comptes pour les événements liés à
+      des situations existant à la clôture, information en annexe pour les autres.
+    auditImpact: >
+      Vérifier la qualification ajustant / non ajustant et la cohérence des
+      ajustements et mentions d'annexe ; nuances de présentation à apprécier.
+    sourceIds: ["ias-10", "nep-560"]
+
+officialSources:
+  - id: ias-10
+    label: IAS 10 — Events after the Reporting Period
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-10-events-after-the-reporting-period.html
+    status: OBLIGATOIRE
+  - id: isa-560
+    label: ISA 560 — Subsequent Events
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: nep-560
+    label: NEP 560 — Événements postérieurs à la clôture
+    type: NEP
+    url: https://www.cncc.fr
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Distinguer événements ajustants (ajustement des comptes) et non ajustants (annexe).
+  - Couvrir la période jusqu'à la date d'arrêté via PV, situations intermédiaires et confirmations.
+  - Recouper les encaissements et avoirs post-clôture avec les estimations de clôture.
+  - Apprécier l'incidence des événements postérieurs sur la continuité d'exploitation.
+
+relatedCycles:
+  - provisions-risques-charges
+  - continuite-exploitation
+  - creances-clients
+  - cutoff-separation-exercices
+
+reviewStatus: REVIEW_REQUIRED
