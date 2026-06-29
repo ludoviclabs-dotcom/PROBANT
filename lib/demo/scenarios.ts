@@ -524,7 +524,7 @@ const findCliniqueCP: Finding = {
   ruleId: "R-PCG-PROV-CP",
   ruleVersion: "1.0.0",
   cloison: "resultat",
-  siloId: "charges-de-personnel",
+  siloId: "charges-personnel",
   titre: "Provision congés payés calculée sans charges patronales",
   constat:
     "La provision pour congés payés (87 000 €, cpt. 4282) est calculée sur la base des salaires bruts uniquement, sans intégrer les charges sociales patronales afférentes (taux moyen 42 %). La sous-évaluation est estimée à 34 000 €.",
@@ -633,7 +633,7 @@ const scenarioClinique: ScenarioMeta = {
   risquesDominants: ["Coût employeur incomplet", "Provision réglementaire ARS", "Amortissements équipements"],
   silos: [
     {
-      siloId: "charges-de-personnel",
+      siloId: "charges-personnel",
       statement: stmt({
         titre: "Charges de personnel",
         unite: "EUR",
