@@ -14,6 +14,8 @@ export const LIVE_FINDINGS_KEY = "probant:live-findings";
 export const LIVE_FEC_KEY = "probant:live-fec";
 /** Méta du dépôt courant (société, exercice, fichier). */
 export const LIVE_META_KEY = "probant:live-meta";
+/** Constats d'admissibilité du dépôt courant (conforme / alerte / rejeté). */
+export const LIVE_ADMISSIBILITE_KEY = "probant:live-admissibilite";
 
 interface LiveMeta {
   societe: string;
@@ -38,10 +40,12 @@ function LiveInner({
   findings,
   entries,
   meta,
+  admissibilite,
 }: {
   findings: Finding[];
   entries: FecEntry[];
   meta: LiveMeta | null;
+  admissibilite: Finding[];
 }) {
   const byCloison = groupByCloison(findings);
   const cloisonsPresentes = CLOISONS.filter((c) => byCloison.has(c.id));
@@ -61,9 +65,10 @@ function LiveInner({
         origine: "upload",
         entries,
         findings,
+        admissibilite,
       }),
     ];
-  }, [documentDisponible, entries, findings, meta]);
+  }, [documentDisponible, entries, findings, meta, admissibilite]);
 
   return (
     <div className="space-y-4">
@@ -221,6 +226,7 @@ export function CloisonsViewLive() {
   const [findings, setFindings] = useState<Finding[] | null>(null);
   const [entries, setEntries] = useState<FecEntry[]>([]);
   const [meta, setMeta] = useState<LiveMeta | null>(null);
+  const [admissibilite, setAdmissibilite] = useState<Finding[]>([]);
 
   useEffect(() => {
     try {
@@ -234,6 +240,8 @@ export function CloisonsViewLive() {
       if (rawFec) setEntries(JSON.parse(rawFec) as FecEntry[]);
       const rawMeta = sessionStorage.getItem(LIVE_META_KEY);
       if (rawMeta) setMeta(JSON.parse(rawMeta) as LiveMeta);
+      const rawAdm = sessionStorage.getItem(LIVE_ADMISSIBILITE_KEY);
+      if (rawAdm) setAdmissibilite(JSON.parse(rawAdm) as Finding[]);
     } catch {
       /* écritures indisponibles : on retombe sur la vue par cloison */
     }
@@ -271,5 +279,5 @@ export function CloisonsViewLive() {
     );
   }
 
-  return <LiveInner findings={findings} entries={entries} meta={meta} />;
+  return <LiveInner findings={findings} entries={entries} meta={meta} admissibilite={admissibilite} />;
 }

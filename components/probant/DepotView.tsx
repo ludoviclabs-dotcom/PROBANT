@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
-import { LIVE_FINDINGS_KEY, LIVE_FEC_KEY, LIVE_META_KEY } from "./CloisonsViewLive";
+import { LIVE_FINDINGS_KEY, LIVE_FEC_KEY, LIVE_META_KEY, LIVE_ADMISSIBILITE_KEY } from "./CloisonsViewLive";
 import type { FecEntry, Finding, Severity } from "@/lib/canonical-model";
 import { buildFecDocument } from "@/lib/canonical-model";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
@@ -151,11 +151,22 @@ export function DepotView() {
           try {
             const exercice = exerciceFromEntries(data.entries);
             sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify(data.analyse));
-            // On borne les écritures stockées (quota sessionStorage).
-            sessionStorage.setItem(
-              LIVE_FEC_KEY,
-              JSON.stringify(data.entries.slice(0, 8000)),
+            sessionStorage.setItem(LIVE_ADMISSIBILITE_KEY, JSON.stringify(data.admissibilite));
+            // On préserve toutes les lignes référencées par les constats et
+            // on complète jusqu'à CAP avec des lignes saines, pour ne jamais
+            // perdre de flags dans le grand-livre annoté.
+            const SESSION_ENTRIES_CAP = 8000;
+            const referencedLignes = new Set(
+              data.analyse.flatMap((f) => f.lignesSource),
             );
+            const priorityRows = data.entries.filter((e) => referencedLignes.has(e.ligne));
+            const otherRows = data.entries.filter((e) => !referencedLignes.has(e.ligne));
+            const cap = Math.max(0, SESSION_ENTRIES_CAP - priorityRows.length);
+            const sessionEntries = [
+              ...priorityRows,
+              ...otherRows.slice(0, cap),
+            ].sort((a, b) => a.ligne - b.ligne);
+            sessionStorage.setItem(LIVE_FEC_KEY, JSON.stringify(sessionEntries));
             sessionStorage.setItem(
               LIVE_META_KEY,
               JSON.stringify({
