@@ -12,7 +12,12 @@ import {
   Fingerprint,
   AlertTriangle,
   Scale,
+  Play,
+  ChevronUp,
 } from "lucide-react";
+import { SCENARIOS } from "@/lib/demo/scenarios";
+import { SimulationPanel } from "./SimulationPanel";
+import { LIVE_FINDINGS_KEY } from "./CloisonsViewLive";
 import type { Finding, Severity } from "@/lib/canonical-model";
 import type {
   BalanceValidation,
@@ -79,6 +84,7 @@ export function DepotView() {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showSim, setShowSim] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -120,6 +126,9 @@ export function DepotView() {
           setStep(FEC_PIPELINE.length - 1);
           setResult({ kind: "fec", data });
           setStatus("done");
+          try {
+            sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify(data.analyse));
+          } catch { /* ignore si sessionStorage indisponible */ }
         } catch (e) {
           timers.forEach(clearTimeout);
           throw e;
@@ -277,6 +286,50 @@ export function DepotView() {
           est préchargée avec la société de démonstration DEMO SA.
         </div>
       )}
+
+      {/* Simulation */}
+      {status === "idle" && (
+        <div className="space-y-3">
+          {/* Séparateur */}
+          <div className="flex items-center gap-3">
+            <div className="h-px flex-1 bg-[var(--pb-border)]" />
+            <span className="text-[11px] uppercase tracking-wider text-[var(--pb-text-faint)]">
+              ou
+            </span>
+            <div className="h-px flex-1 bg-[var(--pb-border)]" />
+          </div>
+
+          {/* Bouton / Panel */}
+          {!showSim ? (
+            <button
+              onClick={() => setShowSim(true)}
+              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-6 py-4 text-sm font-semibold text-[var(--pb-text)] transition-all hover:border-[var(--pb-accent)]/60 hover:bg-[var(--pb-accent)]/6"
+            >
+              <Play className="h-4 w-4 text-[var(--pb-accent)]" />
+              Lancer une simulation
+              <span className="ml-1 rounded border border-[var(--pb-border)] px-1.5 py-0.5 text-[10px] font-normal text-[var(--pb-text-faint)]">
+                5 scénarios disponibles
+              </span>
+            </button>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h2 className="text-sm font-semibold text-[var(--pb-text)]">
+                  Choisissez un scénario de simulation
+                </h2>
+                <button
+                  onClick={() => setShowSim(false)}
+                  className="flex items-center gap-1 text-[12px] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]"
+                >
+                  <ChevronUp className="h-3.5 w-3.5" />
+                  Réduire
+                </button>
+              </div>
+              <SimulationPanel scenarios={SCENARIOS} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -349,7 +402,7 @@ function FecResult({ data }: { data: DepotResult }) {
           constat(s) analytique(s) détecté(s) hors admissibilité.
         </p>
         <Link
-          href="/dashboard/cloisons"
+          href="/dashboard/cloisons?mode=live"
           className="rounded-lg bg-[var(--pb-accent)] px-4 py-2 text-[13px] font-semibold text-[#06122a] hover:opacity-90"
         >
           Voir la revue par cloison →
