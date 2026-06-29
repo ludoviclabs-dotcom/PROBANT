@@ -31,7 +31,13 @@ type SourceKey =
   | "ISA_330"
   | "ISA_500"
   | "ISA_520"
-  | "ISRE_2400";
+  | "ISRE_2400"
+  | "ISA_505"
+  | "PCG_IMMO_INCORP"
+  | "PCG_TITRES"
+  | "PCG_CREANCES"
+  | "CCOM_CAPITAL"
+  | "PCG_ENGAGEMENTS";
 
 export const SOURCES: Record<SourceKey, SourceNormative> = {
   LPF_A47A1: {
@@ -131,6 +137,43 @@ export const SOURCES: Record<SourceKey, SourceNormative> = {
     citation:
       "La mission d'examen limité fournit une assurance limitée, obtenue principalement par des demandes d'informations et des procédures analytiques. Tout élément laissant penser à une anomalie significative déclenche des procédures complémentaires.",
     effectiveDate: "2013-12-31",
+  },
+  ISA_505: {
+    ref: "ISA 505",
+    citation:
+      "Les confirmations externes sont des éléments probants obtenus sous forme de réponse écrite directe d'un tiers (banque, client, fournisseur). L'auditeur garde la maîtrise des demandes et apprécie la fiabilité des réponses, notamment en cas d'absence de réponse ou d'anomalie relevée.",
+    effectiveDate: "2009-12-15",
+  },
+  PCG_IMMO_INCORP: {
+    ref: "PCG art. 212-3 / 612-1",
+    citation:
+      "Les frais de développement ne peuvent être inscrits à l'actif que si les conditions de faisabilité technique, d'intention et de capacité d'achever, de ressources et d'avantages économiques futurs probables sont réunies et démontrées. À défaut, ils sont comptabilisés en charges.",
+    effectiveDate: "2024-01-01",
+  },
+  PCG_TITRES: {
+    ref: "PCG art. 221-3 / 332-3",
+    citation:
+      "Les titres de participation sont évalués au coût d'acquisition puis, à l'inventaire, à leur valeur d'utilité (quote-part de capitaux propres, perspectives de rentabilité). Une dépréciation est constatée lorsque la valeur d'utilité devient inférieure à la valeur comptable.",
+    effectiveDate: "2024-01-01",
+  },
+  PCG_CREANCES: {
+    ref: "PCG art. 214-17",
+    citation:
+      "Une dépréciation des créances est constatée à hauteur du risque de non-recouvrement apprécié à la clôture (ancienneté, litige, situation du débiteur). Les créances dont le recouvrement est incertain sont classées en créances douteuses.",
+    effectiveDate: "2024-01-01",
+  },
+  CCOM_CAPITAL: {
+    ref: "C. com. art. L.225-248",
+    citation:
+      "Lorsque, du fait de pertes, les capitaux propres deviennent inférieurs à la moitié du capital social, l'assemblée générale est consultée dans les quatre mois sur la dissolution éventuelle ; à défaut, la situation doit être régularisée au plus tard à la clôture du deuxième exercice suivant.",
+    effectiveDate: "2024-01-01",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006825098",
+  },
+  PCG_ENGAGEMENTS: {
+    ref: "PCG art. 831-2 / 531-2",
+    citation:
+      "Les engagements financiers donnés et reçus (cautions, avals, garanties, crédit-bail, engagements de retraite) qui ne figurent pas au bilan font l'objet d'une information en annexe, par catégorie et pour leur montant, lorsqu'ils sont significatifs.",
+    effectiveDate: "2024-01-01",
   },
 };
 

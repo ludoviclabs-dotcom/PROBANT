@@ -204,11 +204,27 @@ export const SILOS: Silo[] = [
     description: "Dotations et reprises sur amortissements et provisions.",
   },
   {
+    id: "resultat-financier",
+    label: "Résultat financier",
+    cloison: "resultat",
+    comptes: ["66", "76", "686", "786"],
+    description: "Charges et produits financiers : intérêts, dividendes, change.",
+  },
+  {
     id: "resultat-exceptionnel",
     label: "Résultat exceptionnel",
     cloison: "resultat",
     comptes: ["67", "77"],
     description: "Charges et produits exceptionnels.",
+  },
+  // --- Annexe ---
+  {
+    id: "engagements-hors-bilan",
+    label: "Engagements hors bilan",
+    cloison: "annexe",
+    comptes: ["80", "801", "802", "8016"],
+    description:
+      "Engagements donnés et reçus : cautions, avals, garanties, crédit-bail, retraites.",
   },
 ];
 
