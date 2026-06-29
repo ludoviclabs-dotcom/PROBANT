@@ -33,3 +33,5 @@ yarn-error.log*
 # playwright / screenshots
 .playwright-mcp
 *.png
+
+.vercel

@@ -1,0 +1,242 @@
+slug: resultat-fiscal-is
+family: COMPTE_RESULTAT
+title: Résultat fiscal et impôt sur les sociétés
+summary: >
+  Cycle relatif au résultat fiscal et à l'impôt sur les sociétés : passage du résultat
+  comptable au résultat fiscal (réintégrations / déductions), calcul de l'IS, déficits
+  reportables et, en référentiel IFRS, impôts différés. Appréciation des positions fiscales
+  incertaines et de la recouvrabilité des actifs d'impôt différé.
+
+pcgAccounts: ["69", "444"]
+probantSiloIds: ["dettes-fiscales-sociales"]
+probantCloisons: ["tva-fiscalite"]
+
+applicableStandards:
+  - id: ias-12
+    label: IAS 12 — Impôts sur le résultat
+    type: IAS
+    status: OBLIGATOIRE
+    note: Comptabilisation des impôts différés sur les différences temporelles.
+  - id: legifrance-cgi
+    label: Code général des impôts (CGI)
+    type: CGI
+    status: OBLIGATOIRE
+    note: Détermination du résultat fiscal et de l'impôt sur les sociétés.
+  - id: pcg
+    label: PCG — Impôt sur les bénéfices et État (comptes 69 et 444)
+    type: PCG
+    status: OBLIGATOIRE
+  - id: isa-250
+    label: ISA 250 — Prise en compte des textes légaux et réglementaires
+    type: ISA
+    status: OBLIGATOIRE
+    note: Conformité aux obligations fiscales.
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Recouvrabilité des impôts différés actifs et positions fiscales incertaines.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Détermination du résultat fiscal et de l'IS
+    value: Passage du résultat comptable au résultat fiscal et calcul de l'IS selon le CGI
+    status: OBLIGATOIRE
+    sourceIds: ["legifrance-cgi"]
+  - label: Comptabilisation des impôts différés (référentiel IFRS)
+    value: Impôts différés sur toutes les différences temporelles, sous réserve de recouvrabilité (IAS 12)
+    status: OBLIGATOIRE
+    sourceIds: ["ias-12"]
+  - label: Écart du taux effectif d'impôt vs taux théorique
+    value: Seuil d'alerte interne PROBANT déclenchant l'analyse de la preuve d'impôt, à adapter au mandat
+    status: PARAMETRABLE
+    sourceIds: ["isa-540"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Réduire en présence de positions fiscales incertaines ou d'impôts différés significatifs.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Taux effectif d'impôt
+    formula: Charge d'impôt / Résultat avant impôt
+    alertThreshold: Écart significatif vs taux théorique d'IS sans justification (preuve d'impôt)
+    interpretation: Un écart inexpliqué révèle des erreurs fiscales ou des positions à analyser.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520", "isa-540"]
+  - name: Impôt courant / Résultat fiscal
+    formula: Impôt sur les sociétés courant / Résultat fiscal
+    alertThreshold: Incohérence avec le taux légal d'IS applicable
+    interpretation: Détecte une erreur de calcul de l'IS ou d'application des taux.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Impôts différés actifs / Capitaux propres
+    formula: Impôts différés actifs / Capitaux propres
+    alertThreshold: Poids élevé des IDA, notamment ceux fondés sur des déficits reportables
+    interpretation: Un poids élevé d'IDA pose la question de leur recouvrabilité.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-540", "ias-12"]
+
+analyticalProcedures:
+  - name: Preuve d'impôt (rapprochement taux effectif / taux théorique)
+    objective: Expliquer l'écart entre la charge d'impôt réelle et la charge théorique.
+    method: Rapprocher la charge d'impôt du produit du résultat comptable par le taux d'IS et analyser les écarts.
+    expectedVariation: Écart expliqué par les réintégrations, déductions et différences permanentes.
+    anomalyTrigger: Écart résiduel inexpliqué entre taux effectif et taux théorique.
+    benchmark: ["Taux théorique d'IS", "N-1"]
+    assertions: ["Exactitude", "Exhaustivité", "Présentation"]
+    sourceIds: ["isa-520", "isa-540"]
+  - name: Revue analytique de la charge d'impôt
+    objective: Détecter une charge d'impôt incohérente avec le résultat et l'activité.
+    method: Comparer la charge d'impôt N/N-1 au regard de l'évolution du résultat et des taux.
+    expectedVariation: Charge cohérente avec le résultat fiscal et le taux d'IS applicable.
+    anomalyTrigger: Charge d'impôt déconnectée de l'évolution du résultat.
+    benchmark: ["N-1", "Taux d'IS"]
+    assertions: ["Exactitude", "Rattachement"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Vérification de la liasse fiscale et du passage résultat comptable / fiscal
+    nature: Test de détail
+    extent: Tableau de détermination du résultat fiscal et liasse fiscale
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les réintégrations et déductions significatives
+    evidenceRequired:
+      - Liasse fiscale
+      - Tableau des réintégrations et déductions
+      - Justification des retraitements fiscaux
+    assertions: ["Exactitude", "Exhaustivité", "Présentation"]
+    sourceIds: ["isa-500", "legifrance-cgi"]
+  - name: Recalcul de l'IS et vérification du paiement
+    nature: Test substantif
+    extent: Calcul de l'IS, acomptes et solde ; preuve de paiement
+    timing: Clôture
+    samplingMethod: Recalcul global + rapprochement des décaissements
+    evidenceRequired:
+      - Calcul de l'IS et application des taux
+      - Avis d'acomptes et de solde
+      - Preuves de paiement
+    assertions: ["Exactitude", "Existence", "Droits et obligations"]
+    sourceIds: ["isa-500", "legifrance-cgi"]
+  - name: Test des impôts différés et des positions fiscales incertaines
+    nature: Test de détail
+    extent: Impôts différés (en IFRS), déficits reportables et positions fiscales incertaines
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les principales différences temporelles et positions à risque
+    evidenceRequired:
+      - Détail des différences temporelles
+      - Justification de la recouvrabilité des IDA (perspectives de bénéfices)
+      - Documentation des positions fiscales incertaines et litiges
+    assertions: ["Évaluation", "Exhaustivité", "Présentation"]
+    sourceIds: ["isa-540", "ias-12"]
+
+risks:
+  - name: Erreur de détermination du résultat fiscal et de l'IS
+    category: RISQUE_INHERENT
+    description: Réintégrations / déductions erronées ou omises, application incorrecte des taux et règles du CGI.
+    indicators:
+      - Taux effectif d'impôt incohérent avec le taux théorique
+      - Retraitements fiscaux non documentés
+    response:
+      - Vérifier le passage du résultat comptable au résultat fiscal
+      - Recalculer l'IS et établir la preuve d'impôt
+    sourceIds: ["isa-500", "legifrance-cgi", "isa-540"]
+  - name: Actifs d'impôt différé non recouvrables
+    category: RISQUE_INHERENT
+    description: Comptabilisation d'impôts différés actifs (notamment sur déficits) sans perspectives de bénéfices suffisantes.
+    indicators:
+      - IDA significatifs fondés sur des déficits reportables
+      - Historique de pertes récurrentes
+    response:
+      - Examiner les perspectives de bénéfices imposables
+      - Apprécier la justification de la recouvrabilité des IDA
+    sourceIds: ["isa-540", "ias-12"]
+  - name: Positions fiscales incertaines et litiges (défaillance du contrôle)
+    category: RISQUE_CONTROLE
+    description: Positions fiscales agressives ou litiges en cours insuffisamment provisionnés ou non identifiés.
+    indicators:
+      - Contrôles fiscaux ou contentieux en cours
+      - Positions fiscales non revues par un spécialiste
+    response:
+      - Examiner les notifications et contentieux fiscaux
+      - Apprécier les provisions pour risques fiscaux
+    sourceIds: ["isa-250", "isa-540"]
+
+ifrsVsPcg:
+  - topic: Comptabilisation des impôts différés
+    ifrsTreatment: >
+      IAS 12 impose la comptabilisation d'impôts différés sur l'ensemble des différences temporelles,
+      les actifs d'impôt différé n'étant reconnus que dans la mesure où leur recouvrabilité est probable.
+    pcgTreatment: >
+      Les comptes sociaux établis selon le PCG ne comptabilisent pas d'impôts différés ; ceux-ci sont
+      réservés aux comptes consolidés. L'impôt comptabilisé correspond à l'impôt exigible (courant).
+    auditImpact: >
+      Vérifier le périmètre : en comptes sociaux PCG, l'impôt exigible et l'information en annexe ;
+      en IFRS / consolidé, l'exhaustivité des impôts différés et la recouvrabilité des IDA.
+    sourceIds: ["ias-12", "pcg"]
+
+officialSources:
+  - id: ias-12
+    label: IAS 12 — Income Taxes
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-12-income-taxes.html
+    status: OBLIGATOIRE
+  - id: legifrance-cgi
+    label: Code général des impôts (CGI)
+    type: CGI
+    url: https://www.legifrance.gouv.fr
+    status: OBLIGATOIRE
+  - id: pcg
+    label: PCG — Impôt sur les bénéfices (compte 69) et État (compte 444)
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: isa-250
+    label: ISA 250 — Consideration of Laws and Regulations
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Vérifier le passage du résultat comptable au résultat fiscal (réintégrations / déductions) et recalculer l'IS.
+  - Établir la preuve d'impôt pour expliquer l'écart entre taux effectif et taux théorique.
+  - Apprécier la recouvrabilité des impôts différés actifs et les positions fiscales incertaines.
+  - En comptes sociaux PCG, pas d'impôts différés (réservés aux comptes consolidés) ; IAS 12 les impose en IFRS.
+
+relatedCycles:
+  - provisions-risques-charges
+  - estimations-jugements
+  - consolidation-perimetre
+
+reviewStatus: REVIEW_REQUIRED

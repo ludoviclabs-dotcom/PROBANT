@@ -1,0 +1,67 @@
+# Document méthodologique — Assertions d'audit
+# Référentiel « Audit Normatif 360 ». Les assertions (ISA 315 / NEP 315,
+# ISA 500) orientent la conception des procédures substantives.
+title: "Assertions d'audit"
+description: >
+  Assertions sous-tendant les états financiers, utilisées pour identifier les
+  risques d'anomalies significatives et concevoir les procédures d'audit
+  répondant à chaque assertion.
+status: OBLIGATOIRE
+sourceIds: [isa-315, nep-315, isa-500]
+content:
+  note: >
+    Les assertions orientent la conception des procédures substantives : à
+    chaque risque d'anomalie significative identifié au niveau d'une assertion
+    doit répondre une procédure appropriée (ISA 315 / NEP 315 et ISA 500). Une
+    même procédure peut couvrir plusieurs assertions.
+  assertions:
+    - name: Existence
+      definition: >
+        Les actifs, passifs et capitaux propres enregistrés existent réellement
+        à la date de clôture.
+      tests:
+        - Confirmation externe des créances clients et des soldes bancaires.
+        - Observation physique des stocks et des immobilisations (inventaire).
+    - name: Exhaustivité
+      definition: >
+        Toutes les opérations, tous les actifs, passifs et informations qui
+        devaient être enregistrés l'ont été ; rien n'est omis.
+      tests:
+        - Recherche de passifs non comptabilisés (factures et avoirs postérieurs).
+        - Rapprochements (banque, fournisseurs, stocks) et revue de séquence.
+    - name: Exactitude
+      definition: >
+        Les montants et données relatifs aux opérations et événements ont été
+        enregistrés pour leur montant correct, sans erreur.
+      tests:
+        - Recalcul (amortissements, intérêts, conversions de devises).
+        - Rapprochement des montants enregistrés avec les pièces justificatives.
+    - name: Évaluation
+      definition: >
+        Les actifs, passifs et capitaux propres sont inscrits pour une valeur
+        appropriée, et les ajustements de valorisation sont correctement
+        enregistrés.
+      tests:
+        - Test des dépréciations de créances, de stocks et des provisions.
+        - Revue des estimations comptables et des hypothèses retenues.
+    - name: Droits et obligations
+      definition: >
+        L'entité détient ou contrôle les droits sur les actifs, et les passifs
+        correspondent bien à ses obligations.
+      tests:
+        - Examen des titres de propriété, contrats et actes de financement.
+        - Revue des nantissements, sûretés et engagements hors bilan.
+    - name: Présentation
+      definition: >
+        Les éléments sont correctement classés, décrits et présentés, et les
+        informations à fournir en annexe sont pertinentes et compréhensibles.
+      tests:
+        - Revue de la classification des postes et de l'annexe (disclosure).
+        - Vérification des informations sur les parties liées et engagements.
+    - name: Rattachement
+      definition: >
+        Les opérations et événements ont été enregistrés sur la bonne période
+        comptable (séparation des exercices / cut-off).
+      tests:
+        - Tests de césure des achats, ventes et stocks autour de la clôture.
+        - Examen des charges à payer, produits à recevoir et comptes de régularisation.

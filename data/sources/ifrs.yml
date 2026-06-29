@@ -1,0 +1,161 @@
+# Normes comptables internationales IAS / IFRS — IFRS Foundation
+# Source maîtresse : https://www.ifrs.org/issued-standards/list-of-standards/
+# Application UE : règlement CE 1606/2002 (cf. eu.yml) après adoption EFRAG.
+sources:
+  - id: ifrs-standards-master
+    label: IFRS Foundation — Liste des normes en vigueur
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/
+    status: OBLIGATOIRE
+    summary: Recueil officiel des normes IAS/IFRS publiées par l'IFRS Foundation.
+
+  - id: ias-1
+    label: IAS 1 — Présentation des états financiers
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements.html
+    status: OBLIGATOIRE
+
+  - id: ias-2
+    label: IAS 2 — Stocks
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-2-inventories.html
+    status: OBLIGATOIRE
+    summary: Évaluation au plus faible du coût et de la valeur nette de réalisation.
+
+  - id: ias-7
+    label: IAS 7 — Tableau des flux de trésorerie
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-7-statement-of-cash-flows.html
+    status: OBLIGATOIRE
+
+  - id: ias-8
+    label: IAS 8 — Méthodes comptables, changements d'estimations et erreurs
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-8-accounting-policies-changes-in-accounting-estimates-and-errors.html
+    status: OBLIGATOIRE
+
+  - id: ias-10
+    label: IAS 10 — Événements postérieurs à la période de reporting
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-10-events-after-the-reporting-period.html
+    status: OBLIGATOIRE
+
+  - id: ias-12
+    label: IAS 12 — Impôts sur le résultat
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-12-income-taxes.html
+    status: OBLIGATOIRE
+    summary: Impôts exigibles et différés.
+
+  - id: ias-16
+    label: IAS 16 — Immobilisations corporelles
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-16-property-plant-and-equipment.html
+    status: OBLIGATOIRE
+    summary: Approche par composants, durées d'utilité, modèle du coût ou de la réévaluation.
+
+  - id: ias-19
+    label: IAS 19 — Avantages du personnel
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-19-employee-benefits.html
+    status: OBLIGATOIRE
+    summary: Engagements de retraite, hypothèses actuarielles.
+
+  - id: ias-24
+    label: IAS 24 — Information relative aux parties liées
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-24-related-party-disclosures.html
+    status: OBLIGATOIRE
+
+  - id: ias-27
+    label: IAS 27 — États financiers individuels
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-27-separate-financial-statements.html
+    status: OBLIGATOIRE
+
+  - id: ias-28
+    label: IAS 28 — Participations dans des entreprises associées et coentreprises
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-28-investments-in-associates-and-joint-ventures.html
+    status: OBLIGATOIRE
+
+  - id: ias-32
+    label: "IAS 32 — Instruments financiers : présentation"
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-32-financial-instruments-presentation.html
+    status: OBLIGATOIRE
+
+  - id: ias-36
+    label: IAS 36 — Dépréciation d'actifs
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-36-impairment-of-assets.html
+    status: OBLIGATOIRE
+    summary: UGT, valeur recouvrable, valeur d'utilité (DCF), juste valeur diminuée des coûts.
+
+  - id: ias-37
+    label: IAS 37 — Provisions, passifs éventuels et actifs éventuels
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-37-provisions-contingent-liabilities-and-contingent-assets.html
+    status: OBLIGATOIRE
+    summary: Obligation actuelle, probabilité de sortie, estimation fiable.
+
+  - id: ias-38
+    label: IAS 38 — Immobilisations incorporelles
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-38-intangible-assets.html
+    status: OBLIGATOIRE
+    summary: Critères d'activation des frais de développement, durées d'utilité.
+
+  - id: ias-39
+    label: "IAS 39 — Instruments financiers : comptabilisation et évaluation"
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-39-financial-instruments-recognition-and-measurement.html
+    status: RECOMMANDE
+    note: Largement remplacée par IFRS 9 ; comptabilité de couverture résiduelle possible.
+
+  - id: ifrs-3
+    label: IFRS 3 — Regroupements d'entreprises
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-3-business-combinations.html
+    status: OBLIGATOIRE
+    summary: Goodwill, affectation du prix d'acquisition (PPA).
+
+  - id: ifrs-7
+    label: "IFRS 7 — Instruments financiers : informations à fournir"
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-7-financial-instruments-disclosures.html
+    status: OBLIGATOIRE
+
+  - id: ifrs-9
+    label: IFRS 9 — Instruments financiers
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-9-financial-instruments.html
+    status: OBLIGATOIRE
+    summary: Classement/évaluation, dépréciation par pertes de crédit attendues (ECL).
+
+  - id: ifrs-10
+    label: IFRS 10 — États financiers consolidés
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-10-consolidated-financial-statements.html
+    status: OBLIGATOIRE
+    summary: Notion de contrôle, périmètre de consolidation.
+
+  - id: ifrs-12
+    label: IFRS 12 — Informations sur les intérêts détenus dans d'autres entités
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-12-disclosure-of-interests-in-other-entities.html
+    status: OBLIGATOIRE
+
+  - id: ifrs-15
+    label: IFRS 15 — Produits des activités ordinaires tirés de contrats clients
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-15-revenue-from-contracts-with-customers.html
+    status: OBLIGATOIRE
+    summary: Modèle en 5 étapes, obligations de performance, prix de transaction.
+
+  - id: ifrs-16
+    label: IFRS 16 — Contrats de location
+    type: IFRS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-16-leases.html
+    status: OBLIGATOIRE
+    summary: Droit d'utilisation et dette de location au bilan du preneur.

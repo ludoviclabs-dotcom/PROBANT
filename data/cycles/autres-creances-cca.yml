@@ -1,0 +1,248 @@
+slug: autres-creances-cca
+family: ACTIF_CIRCULANT
+title: Autres créances et charges constatées d'avance
+summary: >
+  Cycle relatif à la réalité, au rattachement à l'exercice (prorata temporis), à
+  la recouvrabilité et à la justification des autres créances et des charges
+  constatées d'avance (CCA), incluant le contrôle de l'apurement post-clôture.
+
+pcgAccounts: ["486", "44", "46"]
+probantSiloIds: ["cca"]
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: pcg-cpt-486-487
+    label: PCG cpt. 486-487 — Charges constatées d'avance et produits à recevoir
+    type: PCG
+    status: OBLIGATOIRE
+  - id: ias-1
+    label: IAS 1 — Présentation des états financiers
+    type: IAS
+    status: OBLIGATOIRE
+    note: Cadre de présentation des charges payées d'avance en référentiel IFRS.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Rattachement des charges à l'exercice (prorata temporis)
+    value: Constatation en CCA de la quote-part de charges afférente à l'exercice suivant
+    status: OBLIGATOIRE
+    sourceIds: ["pcg-cpt-486-487"]
+  - label: Variation des CCA vs N-1
+    value: 20 % de variation (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Seuil indicatif interne, non opposable.
+  - label: Ancienneté d'une autre créance non apurée
+    value: Créance sans apurement > 12 mois à investiguer (paramètre interne PROBANT)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Borne indicative interne, à adapter au contexte du mandat.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Plutôt 60 % en cas de risque élevé ou d'anomalies historiques.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: CCA / charges externes
+    formula: Charges constatées d'avance / Charges externes de l'exercice
+    alertThreshold: Ratio en forte hausse vs N-1 à investiguer
+    interpretation: >
+      Une part de CCA croissante peut traduire un report abusif de charges destiné
+      à améliorer le résultat de l'exercice.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Variation des autres créances et CCA N/N-1
+    formula: (Solde N - Solde N-1) / Solde N-1
+    alertThreshold: Variation > 20 % vs N-1 sans justification à investiguer
+    interpretation: >
+      Une variation inexpliquée signale un risque de cut-off ou d'accumulation de
+      postes non apurés.
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+  - name: Antériorité des autres créances
+    formula: Part des autres créances non apurées depuis plus de 12 mois / Total autres créances
+    alertThreshold: Part significative de créances anciennes à investiguer
+    interpretation: >
+      L'accumulation de créances anciennes traduit un risque de non-recouvrabilité
+      et de dépréciation insuffisante.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Analyse de la variation des CCA et autres créances
+    objective: Identifier les variations inhabituelles et les postes accumulés.
+    method: Comparer les soldes N/N-1 par nature et rapprocher des charges concernées.
+    expectedVariation: Variation cohérente avec l'évolution des charges sous-jacentes.
+    anomalyTrigger: Hausse inexpliquée des CCA ou créances non apurées d'un exercice sur l'autre.
+    benchmark: ["N-1", "Budget"]
+    assertions: ["Existence", "Rattachement", "Évaluation"]
+    sourceIds: ["isa-520", "nep-520"]
+  - name: Revue du ratio CCA / charges externes
+    objective: Détecter un report abusif de charges sur l'exercice suivant.
+    method: Comparer le ratio CCA / charges externes N vs N-1.
+    expectedVariation: Stabilité hors évolution justifiée des contrats pluriannuels.
+    anomalyTrigger: Hausse significative du ratio sans justification contractuelle.
+    benchmark: ["N-1"]
+    assertions: ["Rattachement", "Exactitude"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Justification des charges constatées d'avance
+    nature: Test de détail
+    extent: Postes significatifs + échantillon sur le solde restant
+    timing: Clôture
+    samplingMethod: Sélection ciblée + échantillonnage selon ISA 530
+    evidenceRequired:
+      - Factures fournisseurs
+      - Contrats pluriannuels
+      - Échéanciers contractuels
+      - Détail des soldes par nature
+    assertions: ["Existence", "Rattachement"]
+    sourceIds: ["isa-500", "isa-530"]
+  - name: Recalcul du prorata temporis
+    nature: Recalcul
+    extent: CCA significatives à étalement contractuel
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les contrats à cheval sur deux exercices
+    evidenceRequired:
+      - Contrats et dates de période couverte
+      - Calcul de la quote-part rattachée à l'exercice suivant
+      - Base de répartition prorata temporis
+    assertions: ["Rattachement", "Exactitude"]
+    sourceIds: ["isa-500", "pcg-cpt-486-487"]
+  - name: Contrôle de l'apurement post-clôture
+    nature: Test substantif
+    extent: Autres créances significatives et anciennes
+    timing: Après la clôture (revue des événements post-clôture)
+    samplingMethod: Sélection ciblée sur les soldes anciens et significatifs
+    evidenceRequired:
+      - Justificatifs d'apurement après clôture
+      - Encaissements ou imputations ultérieurs
+      - Analyse de l'antériorité des soldes
+    assertions: ["Existence", "Évaluation"]
+    sourceIds: ["isa-500", "isa-330"]
+
+risks:
+  - name: Charges reportées abusivement en CCA
+    category: RISQUE_FRAUDE
+    description: >
+      Amélioration artificielle du résultat par le report en charges constatées
+      d'avance de dépenses afférentes à l'exercice clos.
+    indicators:
+      - Hausse inhabituelle des CCA en fin d'exercice
+      - CCA sans contrat ou justificatif d'étalement
+      - Résultat proche d'un seuil cible
+    response:
+      - Tester la nature et la justification des CCA significatives
+      - Recalculer le prorata temporis
+      - Comparer le ratio CCA / charges externes à N-1
+    sourceIds: ["isa-240", "isa-315", "isa-330"]
+  - name: Erreurs de cut-off (rattachement des charges)
+    category: RISQUE_CONTROLE
+    description: >
+      Rattachement incorrect des charges à l'exercice par défaut de constatation
+      ou par étalement erroné des CCA.
+    indicators:
+      - Absence de procédure de revue des CCA en clôture
+      - Quote-part rattachée non recalculée
+      - Écarts entre période couverte et exercice
+    response:
+      - Tester le cut-off des charges autour de la clôture
+      - Vérifier le recalcul de la quote-part rattachée
+      - Rapprocher contrats et périodes couvertes
+    sourceIds: ["isa-315", "isa-330"]
+  - name: Autres créances anciennes non dépréciées
+    category: RISQUE_INHERENT
+    description: >
+      Maintien à l'actif d'autres créances anciennes ou litigieuses sans
+      dépréciation alors que leur recouvrabilité est compromise.
+    indicators:
+      - Créances non apurées depuis plus de 12 mois
+      - Absence d'analyse de recouvrabilité
+      - Soldes débiteurs anormaux sur comptes de tiers
+    response:
+      - Analyser l'antériorité des autres créances
+      - Apprécier la recouvrabilité et le besoin de dépréciation
+      - Contrôler l'apurement post-clôture
+    sourceIds: ["isa-540", "isa-500"]
+
+ifrsVsPcg:
+  - topic: Charges payées d'avance (prepaid expenses) et CCA
+    ifrsTreatment: >
+      Les charges payées d'avance (prepaid expenses) sont comptabilisées à l'actif
+      au titre du rattachement des charges (accrual basis) sous IAS 1, sans poste
+      dédié normé.
+    pcgTreatment: >
+      Le PCG prévoit un compte spécifique de charges constatées d'avance (486) pour
+      la quote-part de charges afférente à l'exercice suivant.
+    auditImpact: >
+      Divergence essentiellement de présentation ; vérifier dans les deux cas le
+      rattachement à l'exercice et la justification du prorata temporis.
+    sourceIds: ["ias-1", "pcg-cpt-486-487"]
+
+officialSources:
+  - id: pcg-cpt-486-487
+    label: PCG comptes 486-487 — Charges constatées d'avance / produits à recevoir
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: ias-1
+    label: IAS 1 — Presentation of Financial Statements
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements.html
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Audit Evidence
+    type: ISA
+    url: https://www.iaasb.org/publications/2009-handbook-international-standards-auditing-and-quality-control
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Justifier chaque charge constatée d'avance par un contrat et recalculer le prorata temporis.
+  - Vérifier le rattachement des charges à l'exercice (cut-off) autour de la clôture.
+  - Apprécier la recouvrabilité des autres créances anciennes et le besoin de dépréciation.
+  - Contrôler l'apurement post-clôture des soldes significatifs.
+  - PROBANT signale automatiquement les CCA en forte variation et les autres créances non apurées (silo cca).
+
+relatedCycles:
+  - achats-charges-externes
+  - cutoff-separation-exercices
+  - creances-clients
+
+reviewStatus: REVIEW_REQUIRED

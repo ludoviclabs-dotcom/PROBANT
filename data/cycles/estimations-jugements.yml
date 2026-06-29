@@ -1,0 +1,209 @@
+slug: estimations-jugements
+family: TRANSVERSAL
+title: Estimations comptables et jugements
+summary: >
+  Cycle transversal relatif aux estimations comptables et aux jugements
+  significatifs : incertitude d'estimation, méthodes, données et hypothèses
+  retenues, et risque de biais de la direction. Couvre dépréciations,
+  provisions, pertes attendues et engagements de retraite. Domaine sensible à la
+  fraude via la manipulation des hypothèses.
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["annexe"]
+
+applicableStandards:
+  - id: isa-540
+    label: ISA 540 (révisée) — Audit des estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+  - id: ias-8
+    label: IAS 8 — Changements d'estimation comptable
+    type: IAS
+    status: OBLIGATOIRE
+  - id: ias-36
+    label: IAS 36 — Dépréciation d'actifs (estimations)
+    type: IAS
+    status: OBLIGATOIRE
+  - id: ias-37
+    label: IAS 37 — Provisions (estimations fiables)
+    type: IAS
+    status: OBLIGATOIRE
+  - id: ifrs-9
+    label: IFRS 9 — Pertes de crédit attendues (estimations)
+    type: IFRS
+    status: OBLIGATOIRE
+  - id: ias-19
+    label: IAS 19 — Avantages du personnel (hypothèses actuarielles)
+    type: IAS
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Approche par les risques sur les estimations
+    value: >
+      Évaluation des risques selon le degré d'incertitude d'estimation, la
+      complexité, la subjectivité et la sensibilité aux biais de la direction
+    status: OBLIGATOIRE
+    sourceIds: ["isa-540"]
+  - label: Indicateurs possibles de biais de la direction
+    value: >
+      Appréciation du caractère raisonnable des estimations et recherche
+      d'indicateurs de partialité dans le choix des hypothèses
+    status: OBLIGATOIRE
+    sourceIds: ["isa-540", "isa-240"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total bilan
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Réduire en présence d'estimations à forte incertitude ou sensibles aux biais.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Écart estimation / réalisation historique
+    formula: (Estimation N-1 - Réalisation effective) / Estimation N-1
+    alertThreshold: Écarts récurrents et orientés dans le même sens à investiguer
+    interpretation: Des écarts systématiquement favorables révèlent un biais possible de la direction.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-540", "isa-520"]
+  - name: Sensibilité des estimations significatives
+    formula: Variation de l'estimation pour une variation donnée d'une hypothèse clé
+    alertThreshold: Forte sensibilité à une hypothèse peu étayée
+    interpretation: Mesure l'exposition du résultat aux hypothèses de la direction.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-540"]
+
+analyticalProcedures:
+  - name: Revue rétrospective des estimations (look-back)
+    objective: Apprécier la fiabilité du processus d'estimation et détecter les biais.
+    method: >
+      Comparer les estimations des exercices antérieurs aux réalisations
+      effectives et analyser le sens et la récurrence des écarts.
+    expectedVariation: Écarts non significatifs et non orientés systématiquement.
+    anomalyTrigger: Écarts récurrents favorables, changements d'hypothèses opportuns en clôture.
+    benchmark: ["N-1", "Réalisations historiques"]
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-540", "isa-520"]
+
+detailTests:
+  - name: Recalcul et appréciation des méthodes et hypothèses
+    nature: Test de détail
+    extent: Estimations significatives (dépréciations, provisions, pertes attendues, retraites)
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur les estimations à forte incertitude
+    evidenceRequired:
+      - Méthodes et modèles de calcul
+      - Données sources et hypothèses (taux, durées, probabilités)
+      - Analyses de sensibilité
+      - Travaux d'un expert le cas échéant
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-540", "isa-500", "isa-620"]
+  - name: Confirmation par les événements postérieurs
+    nature: Test de détail
+    extent: Estimations confirmables après la clôture
+    timing: Post-clôture
+    samplingMethod: Sélection ciblée
+    evidenceRequired:
+      - Encaissements et règlements postérieurs
+      - Issue des litiges et dénouements d'opérations
+      - Réponses des avocats et experts
+    assertions: ["Évaluation"]
+    sourceIds: ["isa-540", "isa-560"]
+
+risks:
+  - name: Manipulation des hypothèses (biais de la direction)
+    category: RISQUE_FRAUDE
+    description: >
+      Choix d'hypothèses orientées pour piloter le résultat ou atteindre des
+      objectifs, exploitant l'incertitude d'estimation (ISA 540 / ISA 240).
+    indicators:
+      - Changements d'hypothèses opportuns en clôture
+      - Écarts d'estimation historiques systématiquement favorables
+    response:
+      - Réaliser une revue rétrospective (look-back) des estimations
+      - Tester la sensibilité et le caractère raisonnable des hypothèses
+    sourceIds: ["isa-540", "isa-240"]
+  - name: Modèles ou méthodes erronés
+    category: RISQUE_INHERENT
+    description: >
+      Méthode d'estimation inadaptée ou modèle comportant des erreurs de
+      conception ou de paramétrage.
+    indicators:
+      - Modèles complexes non documentés
+      - Données sources de qualité insuffisante
+    response:
+      - Recalculer l'estimation de façon indépendante
+      - Apprécier la pertinence de la méthode et recourir à un expert si nécessaire
+    sourceIds: ["isa-540", "isa-620"]
+  - name: Absence de revue des estimations
+    category: RISQUE_CONTROLE
+    description: >
+      Défaut de contrôle interne sur la validation des hypothèses et la revue
+      périodique des estimations.
+    indicators:
+      - Pas de revue formalisée des hypothèses par la direction
+      - Estimations reconduites sans réexamen
+    response:
+      - Tester le processus de revue et de validation des estimations
+      - Vérifier la traçabilité des hypothèses retenues
+    sourceIds: ["isa-540", "isa-315"]
+
+ifrsVsPcg:
+  - topic: Changements d'estimation comptable
+    ifrsTreatment: >
+      IAS 8 traite les changements d'estimation de manière prospective, distincts
+      des corrections d'erreurs et des changements de méthode.
+    pcgTreatment: >
+      Le PCG (art. 122) distingue de même changements d'estimation (prospectif)
+      et changements de méthode comptable.
+    auditImpact: >
+      Vérifier la qualification du changement et son traitement prospectif ou
+      rétrospectif, ainsi que l'information fournie.
+    sourceIds: ["ias-8", "pcg-122-x"]
+
+officialSources:
+  - id: isa-540
+    label: ISA 540 (Revised) — Auditing Accounting Estimates and Related Disclosures
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: ias-8
+    label: IAS 8 — Accounting Policies, Changes in Accounting Estimates and Errors
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-8-accounting-policies-changes-in-accounting-estimates-and-errors.html
+    status: OBLIGATOIRE
+  - id: pcg-122-x
+    label: PCG art. 122 — Changements d'estimation et de méthode
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Évaluer les estimations selon le degré d'incertitude, la complexité et la subjectivité (ISA 540).
+  - Réaliser une revue rétrospective (look-back) pour détecter les biais de la direction.
+  - Recalculer les estimations, tester la sensibilité et recourir à un expert si nécessaire.
+  - Confirmer les estimations par les événements postérieurs à la clôture.
+
+relatedCycles:
+  - provisions-risques-charges
+  - impairment-goodwill-actifs
+  - retraites-avantages-personnel
+  - evenements-posterieurs
+
+reviewStatus: REVIEW_REQUIRED

@@ -1,0 +1,69 @@
+# Document méthodologique — Risque de fraude
+# Référentiel « Audit Normatif 360 ». Les présomptions et procédures relèvent de
+# l'ISA 240 / NEP 240 ; le volet anticorruption renvoie à l'AFA / Sapin II.
+title: "Risque de fraude"
+description: >
+  Prise en compte du risque de fraude dans l'audit : présomptions normatives,
+  facteurs de risque (triangle de la fraude), procédures de réponse et
+  articulation avec le dispositif anticorruption Sapin II.
+status: OBLIGATOIRE
+sourceIds: [isa-240, nep-240, afa-sapin2]
+content:
+  presumptions:
+    title: Présomptions de risque de fraude
+    status: OBLIGATOIRE
+    sourceIds: [isa-240, nep-240]
+    items:
+      - >
+        Présomption de risque de fraude sur la reconnaissance du revenu : sauf
+        à la réfuter de manière documentée, l'auditeur considère qu'il existe un
+        risque de fraude affectant la comptabilisation du chiffre d'affaires.
+      - >
+        Risque de contournement des contrôles par la direction : toujours
+        présent, car la direction est en mesure d'outrepasser des contrôles qui
+        paraissent fonctionner efficacement. Des procédures spécifiques sont
+        donc mises en oeuvre quel que soit le risque par ailleurs évalué.
+  fraudTriangle:
+    title: Triangle de la fraude
+    sourceIds: [isa-240, nep-240]
+    factors:
+      - name: Incitation / pression
+        description: >
+          Pression financière ou opérationnelle (objectifs, covenants,
+          rémunération variable) créant une motivation à commettre la fraude.
+      - name: Opportunité
+        description: >
+          Circonstances permettant la fraude : contrôles déficients,
+          concentration des pouvoirs, opérations complexes ou non encadrées.
+      - name: Rationalisation
+        description: >
+          Attitude ou état d'esprit conduisant l'auteur à justifier l'acte
+          frauduleux à ses propres yeux.
+  procedures:
+    title: Procédures de réponse au risque de fraude
+    status: OBLIGATOIRE
+    sourceIds: [isa-240, nep-240]
+    items:
+      - >
+        Tests des écritures comptables (journal entry testing), notamment des
+        écritures inhabituelles, manuelles ou passées en fin de période.
+      - >
+        Revue des estimations comptables à la recherche de biais éventuels de la
+        direction, y compris par un examen rétrospectif.
+      - >
+        Tests des transactions inhabituelles ou sortant de l'activité courante,
+        et des opérations avec les parties liées.
+      - >
+        Caractère inopiné de certaines procédures (effet de surprise sur la
+        nature, le calendrier ou l'étendue des tests).
+  anticorruption:
+    title: Dispositif anticorruption (Sapin II)
+    status: RECOMMANDE
+    sourceIds: [afa-sapin2]
+    description: >
+      Pour les entités assujetties à la loi Sapin II, prise en compte du
+      dispositif anticorruption attendu par l'Agence française anticorruption
+      (cartographie des risques, code de conduite, procédures d'évaluation des
+      tiers, contrôles comptables anticorruption). Référence pour apprécier
+      l'environnement de contrôle et les risques de fraude liés à la corruption,
+      sans se substituer aux diligences d'audit financier.

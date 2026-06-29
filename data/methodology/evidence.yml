@@ -1,0 +1,62 @@
+# Document méthodologique — Éléments probants
+# Référentiel « Audit Normatif 360 ». Caractère suffisant et approprié des
+# éléments probants (ISA 500 / NEP 500) et éléments probants spécifiques.
+title: "Éléments probants"
+description: >
+  Collecte d'éléments probants suffisants et appropriés : principe général,
+  hiérarchie de fiabilité des sources et éléments probants spécifiques
+  (confirmations externes, stocks et litiges, déclarations de la direction).
+status: OBLIGATOIRE
+sourceIds: [isa-500, nep-500, isa-505, isa-501, isa-580]
+content:
+  principle:
+    title: Caractère suffisant et approprié des éléments probants
+    status: OBLIGATOIRE
+    sourceIds: [isa-500, nep-500]
+    description: >
+      L'auditeur recueille des éléments probants suffisants et appropriés pour
+      fonder son opinion. Le caractère suffisant renvoie à la quantité (fonction
+      du risque évalué et de la qualité des éléments) et le caractère approprié à
+      la qualité, c'est-à-dire la pertinence et la fiabilité de l'élément au
+      regard de l'assertion concernée.
+  reliabilityHierarchy:
+    title: Hiérarchie de fiabilité des éléments probants
+    status: OBLIGATOIRE
+    sourceIds: [isa-500, nep-500]
+    note: >
+      Hiérarchie indicative : la fiabilité s'apprécie au cas par cas et croît
+      lorsque les éléments sont concordants.
+    levels:
+      - Une source externe à l'entité est plus fiable qu'une source interne.
+      - >
+        Un élément obtenu directement par l'auditeur (inspection, observation,
+        recalcul) est plus fiable qu'un élément obtenu de manière indirecte ou
+        déclarative.
+      - Un élément sous forme écrite est plus fiable qu'un élément oral.
+      - Un document original est plus fiable qu'une photocopie ou un scan.
+  specificEvidence:
+    title: Éléments probants spécifiques
+    items:
+      - name: Confirmations externes
+        status: OBLIGATOIRE
+        sourceIds: [isa-505]
+        description: >
+          Demandes de confirmation directe auprès de tiers (banques, clients,
+          fournisseurs, avocats) ; l'auditeur garde la maîtrise des demandes et
+          des réponses, et traite les absences de réponse par des procédures
+          alternatives.
+      - name: Stocks et litiges
+        status: OBLIGATOIRE
+        sourceIds: [isa-501]
+        description: >
+          Éléments probants spécifiques : assistance à la prise d'inventaire
+          physique des stocks, et identification des litiges et procédures
+          judiciaires (notamment via les demandes aux avocats de l'entité).
+      - name: Déclarations de la direction
+        status: OBLIGATOIRE
+        sourceIds: [isa-580]
+        description: >
+          Lettre d'affirmation par laquelle la direction confirme ses
+          responsabilités et certaines assertions. Elle constitue un élément
+          probant mais n'est pas suffisante à elle seule : elle ne remplace pas
+          les autres éléments probants attendus.

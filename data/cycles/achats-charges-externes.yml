@@ -1,0 +1,262 @@
+slug: achats-charges-externes
+family: COMPTE_RESULTAT
+title: Achats et charges externes
+summary: >
+  Cycle relatif aux achats et charges externes : exhaustivité des charges et des
+  passifs, cut-off, factures non parvenues, sélection et suivi des fournisseurs
+  sensibles. Zone à fort risque de fraude (fractionnement de factures, dépenses
+  non autorisées, corruption), à examiner au regard des dispositifs anticorruption
+  (AFA / loi Sapin II).
+
+pcgAccounts: ["60", "61", "62"]
+probantSiloIds: ["achats-charges-externes"]
+probantCloisons: ["resultat"]
+
+applicableStandards:
+  - id: isa-240
+    label: ISA 240 — Fraude
+    type: ISA
+    status: OBLIGATOIRE
+    note: Risque de fraude sur les décaissements et les fournisseurs.
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: pcg-cpt-408-486
+    label: PCG — Charges à payer et factures non parvenues (comptes 408 / 486)
+    type: PCG
+    status: OBLIGATOIRE
+  - id: afa-sapin2
+    label: AFA — Recommandations anticorruption (loi Sapin II)
+    type: AFA
+    status: BONNE_PRATIQUE
+    note: Cadre de prévention et de détection de la corruption.
+  - id: loi-sapin2
+    label: Loi Sapin II — Transparence et lutte contre la corruption
+    type: OTHER_OFFICIAL
+    status: OBLIGATOIRE
+    note: Obligations applicables aux entités assujetties.
+
+thresholds:
+  - label: Comptabilisation des charges à payer / factures non parvenues
+    value: Rattachement à l'exercice des charges engagées non encore facturées (FNP)
+    status: OBLIGATOIRE
+    sourceIds: ["pcg-cpt-408-486"]
+  - label: Dispositif anticorruption (entités assujetties Sapin II)
+    value: Cartographie des risques, évaluation des tiers et contrôles comptables anticorruption
+    status: OBLIGATOIRE
+    sourceIds: ["loi-sapin2", "afa-sapin2"]
+  - label: Détection des factures à montants ronds / fractionnées
+    value: Seuil d'alerte interne PROBANT, à adapter au mandat et au profil de risque
+    status: PARAMETRABLE
+    sourceIds: ["isa-240"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total des charges d'exploitation
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt normalisé, ou 1 % à 2 % du total des charges
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Réduire en présence d'un risque de fraude aux décaissements ou de corruption.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Achats / Chiffre d'affaires
+    formula: Achats consommés (classe 60) / Chiffre d'affaires
+    alertThreshold: Variation inexpliquée > 5 %-10 % vs N-1 ou incohérence sectorielle
+    interpretation: Détecte une omission d'achats, un cut-off erroné ou une variation de marge.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Charges externes / Chiffre d'affaires
+    formula: Charges externes (classes 61 et 62) / Chiffre d'affaires
+    alertThreshold: Variation atypique vs N-1 ou budget
+    interpretation: Identifie une dérive des charges externes ou des dépenses non récurrentes.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Concentration des principaux fournisseurs
+    formula: Achats des 10 premiers fournisseurs / Total des achats
+    alertThreshold: Concentration élevée ou apparition d'un nouveau fournisseur majeur
+    interpretation: Une forte concentration accroît le risque de dépendance et de fraude fournisseur.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240", "isa-520"]
+  - name: Part des factures à montants ronds
+    formula: Nombre de factures à montants ronds / Nombre total de factures
+    alertThreshold: Proportion anormale de montants ronds ou proches d'un seuil d'autorisation
+    interpretation: Indice de factures fictives ou de fractionnement pour contourner un seuil.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240"]
+
+analyticalProcedures:
+  - name: Revue analytique des achats et charges externes par poste
+    objective: Détecter ruptures de tendance, postes atypiques et omissions de charges.
+    method: Décomposer les charges par nature et comparer N/N-1, budget et activité.
+    expectedVariation: Variation cohérente avec le volume d'activité et les contrats en cours.
+    anomalyTrigger: Poste en forte baisse en fin d'exercice, charge récurrente absente, nouveau fournisseur majeur.
+    benchmark: ["N-1", "Budget", "Activité"]
+    assertions: ["Exhaustivité", "Rattachement", "Exactitude"]
+    sourceIds: ["isa-520", "isa-240"]
+  - name: Analyse des paiements et fournisseurs sensibles
+    objective: Identifier les décaissements inhabituels et les tiers à risque (corruption).
+    method: Analyser les paiements par fournisseur, montants ronds, fréquences et tiers nouveaux ou non référencés.
+    expectedVariation: Paiements cohérents avec les contrats et le référencement fournisseurs.
+    anomalyTrigger: Fractionnement de factures, paiements à des tiers non référencés, intermédiaires inhabituels.
+    benchmark: ["N-1", "Référentiel fournisseurs", "Cartographie des risques anticorruption"]
+    assertions: ["Existence", "Exactitude", "Présentation"]
+    sourceIds: ["isa-240", "afa-sapin2", "loi-sapin2"]
+
+detailTests:
+  - name: Test des factures d'achats et rapprochement à trois éléments
+    nature: Test de détail
+    extent: Échantillon de factures significatives + sélection ciblée sur le solde
+    timing: Clôture ou intérim avec roll-forward
+    samplingMethod: Sélection ciblée + échantillonnage selon ISA 530
+    evidenceRequired:
+      - Factures fournisseurs
+      - Bons de commande
+      - Bons de réception
+      - Preuves de paiement
+    assertions: ["Existence", "Exactitude", "Droits et obligations"]
+    sourceIds: ["isa-500", "isa-530"]
+  - name: Test de cut-off des achats et recherche de passifs omis
+    nature: Test de détail
+    extent: Factures et réceptions autour de la clôture ; décaissements post-clôture
+    timing: Clôture et post-clôture
+    samplingMethod: Sélection ciblée sur les dernières réceptions et les paiements de la période suivante
+    evidenceRequired:
+      - Bons de réception
+      - Factures et factures non parvenues (FNP)
+      - Relevés bancaires post-clôture
+      - Contrats et engagements en cours
+    assertions: ["Exhaustivité", "Rattachement"]
+    sourceIds: ["isa-500", "isa-240", "pcg-cpt-408-486"]
+  - name: Revue des nouveaux fournisseurs et des paiements sensibles
+    nature: Test de détail (data analytics)
+    extent: Nouveaux fournisseurs de l'exercice, paiements à montants ronds ou fractionnés
+    timing: Sur l'exercice
+    samplingMethod: Sélection ciblée fondée sur des critères de risque de fraude
+    evidenceRequired:
+      - Fiche de référencement fournisseur
+      - Justification de l'autorisation de la dépense
+      - Pièces justificatives des paiements
+      - Évaluation du tiers (diligences anticorruption)
+    assertions: ["Existence", "Présentation", "Droits et obligations"]
+    sourceIds: ["isa-240", "afa-sapin2", "loi-sapin2"]
+
+risks:
+  - name: Passifs et charges omis (exhaustivité)
+    category: RISQUE_INHERENT
+    description: Charges engagées non comptabilisées ou décalées pour améliorer le résultat de l'exercice.
+    indicators:
+      - Baisse inexpliquée de charges récurrentes en fin d'exercice
+      - Factures de la période suivante relatives à l'exercice clos
+      - Absence ou faiblesse des factures non parvenues (FNP)
+    response:
+      - Tester le cut-off des achats
+      - Examiner les décaissements post-clôture
+      - Rapprocher les FNP des engagements connus
+    sourceIds: ["isa-500", "isa-330", "pcg-cpt-408-486"]
+  - name: Fraude fournisseurs, corruption et fractionnement de factures
+    category: RISQUE_FRAUDE
+    description: >
+      Factures fictives, fournisseurs de complaisance, fractionnement pour contourner un seuil
+      d'autorisation, ou versements indus à des tiers (corruption) au sens de la loi Sapin II.
+    indicators:
+      - Fournisseurs non référencés ou créés en cours d'exercice
+      - Factures à montants ronds ou proches d'un seuil d'autorisation
+      - Paiements à des intermédiaires ou tiers inhabituels
+    response:
+      - Examiner les nouveaux fournisseurs et leurs diligences
+      - Analyser les montants ronds et le fractionnement de factures
+      - Confronter aux dispositifs anticorruption (cartographie, évaluation des tiers)
+    sourceIds: ["isa-240", "afa-sapin2", "loi-sapin2"]
+  - name: Dépenses non autorisées (défaillance du contrôle)
+    category: RISQUE_CONTROLE
+    description: Engagements ou décaissements réalisés hors du circuit de validation et d'autorisation.
+    indicators:
+      - Séparation des tâches insuffisante (commande / réception / paiement)
+      - Absence de bon de commande ou de validation hiérarchique
+    response:
+      - Walkthrough du processus achats
+      - Tester les contrôles d'autorisation des engagements et paiements
+    sourceIds: ["isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Comptabilisation des achats et charges externes
+    ifrsTreatment: >
+      Charges constatées en résultat selon le rattachement aux produits ; classement par nature
+      ou par fonction (IAS 1). Pas de divergence de principe significative pour ces charges courantes.
+    pcgTreatment: >
+      Comptabilisation des charges par nature (classes 60 à 62) avec rattachement à l'exercice
+      via les factures non parvenues ; convergence de principe avec le référentiel IFRS.
+    auditImpact: >
+      L'enjeu d'audit porte moins sur le référentiel comptable que sur l'exhaustivité, le cut-off
+      et la conformité anticorruption (AFA / loi Sapin II) des décaissements et fournisseurs.
+    sourceIds: ["pcg", "afa-sapin2", "loi-sapin2"]
+
+officialSources:
+  - id: isa-240
+    label: ISA 240 — Fraud
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Audit Evidence
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: afa-sapin2
+    label: AFA — Recommandations relatives à la prévention et à la détection de la corruption
+    type: AFA
+    url: https://www.agence-francaise-anticorruption.gouv.fr/fr
+    status: BONNE_PRATIQUE
+  - id: loi-sapin2
+    label: Loi n° 2016-1691 du 9 décembre 2016 (Sapin II)
+    type: OTHER_OFFICIAL
+    url: https://www.legifrance.gouv.fr
+    status: OBLIGATOIRE
+  - id: pcg-cpt-408-486
+    label: PCG — Charges à payer et charges constatées d'avance (comptes 408 / 486)
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Tester le cut-off des achats et rechercher activement les passifs omis (FNP, décaissements post-clôture).
+  - Analyser les montants ronds, le fractionnement de factures et les fournisseurs nouveaux ou non référencés.
+  - Confronter les dépenses sensibles aux dispositifs anticorruption (cartographie des risques, évaluation des tiers).
+  - PROBANT détecte les anomalies de paiements et la concentration fournisseurs (silo achats-charges-externes).
+
+relatedCycles:
+  - dettes-fournisseurs
+  - cutoff-separation-exercices
+  - controle-interne-fraude
+
+reviewStatus: REVIEW_REQUIRED

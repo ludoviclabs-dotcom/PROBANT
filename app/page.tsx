@@ -5,6 +5,7 @@ import {
   Microscope,
   SlidersHorizontal,
   ArrowRight,
+  BookMarked,
 } from "lucide-react";
 
 export default function Home() {
@@ -44,14 +45,24 @@ export default function Home() {
         />
       </div>
 
-      <Link
-        href="/dashboard/synthese"
-        className="mt-10 inline-flex items-center gap-2 rounded-xl bg-[var(--pb-accent)] px-6 py-3 text-sm font-semibold text-[#06122a] transition-opacity hover:opacity-90"
-      >
-        Ouvrir la démo <ArrowRight className="h-4 w-4" />
-      </Link>
+      <div className="mt-10 flex flex-col items-center gap-3 sm:flex-row">
+        <Link
+          href="/dashboard/synthese"
+          className="inline-flex items-center gap-2 rounded-xl bg-[var(--pb-accent)] px-6 py-3 text-sm font-semibold text-[#06122a] transition-opacity hover:opacity-90"
+        >
+          Ouvrir la démo d'analyse FEC <ArrowRight className="h-4 w-4" />
+        </Link>
+        <Link
+          href="/normatif"
+          className="inline-flex items-center gap-2 rounded-xl border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-6 py-3 text-sm font-semibold text-[var(--pb-text)] transition-colors hover:bg-[var(--pb-surface-2)]"
+        >
+          <BookMarked className="h-4 w-4 text-[#a78bfa]" />
+          Audit Normatif 360
+        </Link>
+      </div>
       <p className="mt-3 text-[11px] text-[var(--pb-text-faint)]">
-        Société fictive DEMO SA · données de démonstration
+        Démo : société fictive DEMO SA · Normatif 360 : 35 cycles d'audit (ISA,
+        NEP, IFRS, PCG) — contenu à valider par un expert.
       </p>
     </div>
   );

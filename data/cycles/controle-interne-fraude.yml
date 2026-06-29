@@ -1,0 +1,219 @@
+slug: controle-interne-fraude
+family: TRANSVERSAL
+title: Contrôle interne et fraude
+summary: >
+  Cycle transversal relatif à la compréhension de l'environnement de contrôle,
+  à l'identification des risques significatifs et à la réponse à la fraude :
+  écritures de journal manuelles, contournement des contrôles par la direction
+  (management override), corruption et fraudes au revenu. Le contrôle interne et
+  la fraude relèvent des normes d'audit (ISA/NEP).
+
+pcgAccounts: []
+probantSiloIds: []
+probantCloisons: ["journaux"]
+
+applicableStandards:
+  - id: isa-315
+    label: ISA 315 (révisée) — Identification et évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-240
+    label: ISA 240 — Responsabilités de l'auditeur relatives à la fraude
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-330
+    label: ISA 330 — Réponses aux risques évalués
+    type: ISA
+    status: OBLIGATOIRE
+  - id: nep-315
+    label: NEP 315 — Connaissance de l'entité et évaluation des risques
+    type: NEP
+    status: OBLIGATOIRE
+  - id: nep-240
+    label: NEP 240 — Prise en compte de la fraude
+    type: NEP
+    status: OBLIGATOIRE
+  - id: afa-sapin2
+    label: Recommandations AFA (loi Sapin II) — Dispositif anticorruption
+    type: AFA
+    status: OBLIGATOIRE
+
+thresholds:
+  - label: Présomption de contournement des contrôles par la direction
+    value: >
+      Risque de contournement des contrôles présumé sur toutes les missions :
+      tests des écritures de journal et des estimations obligatoires (ISA 240)
+    status: OBLIGATOIRE
+    sourceIds: ["isa-240"]
+  - label: Identification des risques significatifs
+    value: >
+      Compréhension du contrôle interne pertinent et identification des risques
+      significatifs, y compris de fraude (ISA 315 / ISA 240)
+    status: OBLIGATOIRE
+    sourceIds: ["isa-315", "isa-240"]
+
+materiality:
+  globalMateriality:
+    benchmark: Résultat avant impôt normalisé ou total bilan
+    formula: Méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 5 % à 10 % du résultat avant impôt, ou 1 % à 2 % du total bilan
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: Réduire en présence de risques de fraude élevés ou de contrôle interne déficient.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Part des écritures manuelles
+    formula: Nombre (ou montant) d'écritures manuelles / Total des écritures
+    alertThreshold: Proportion élevée ou en forte progression vs N-1
+    interpretation: Un volume élevé d'écritures manuelles accroît le risque de contournement des contrôles.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240", "isa-330"]
+  - name: Écritures hors heures ouvrées / week-end
+    formula: Écritures passées hors heures ouvrées ou le week-end / Total des écritures
+    alertThreshold: Écritures significatives passées en dehors des plages normales
+    interpretation: Les écritures passées hors plage habituelle sont un indice de manipulation.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240"]
+  - name: Écritures à contrepartie inhabituelle
+    formula: Écritures sur combinaisons de comptes atypiques / Total des écritures
+    alertThreshold: Contreparties inhabituelles (ex. produits / trésorerie sans tiers)
+    interpretation: Les contreparties inattendues peuvent révéler des écritures fictives.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-240", "isa-330"]
+
+analyticalProcedures:
+  - name: Profilage des écritures de journal
+    objective: Détecter les écritures à risque de fraude (management override).
+    method: >
+      Stratifier l'ensemble des écritures par auteur, date, heure, comptes de
+      contrepartie et montants ronds, et isoler les écritures répondant à des
+      critères de risque.
+    expectedVariation: Écritures conformes aux processus et plages d'activité normaux.
+    anomalyTrigger: Écritures manuelles en clôture, hors heures, à contrepartie atypique ou montants ronds.
+    benchmark: ["N-1", "Processus normaux"]
+    assertions: ["Exactitude", "Rattachement", "Présentation"]
+    sourceIds: ["isa-240", "isa-330"]
+
+detailTests:
+  - name: Walkthroughs et tests de conception et d'implémentation (D&I)
+    nature: Test de procédures
+    extent: Processus significatifs et contrôles clés
+    timing: Planification et intérim
+    samplingMethod: Suivi d'une à quelques transactions par processus (walkthrough)
+    evidenceRequired:
+      - Descriptifs de processus et matrices de contrôles
+      - Pièces suivies de bout en bout (walkthrough)
+      - Documentation de la conception et de l'implémentation des contrôles
+    assertions: ["Existence", "Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-315", "nep-315", "isa-330"]
+  - name: Analyse des écritures manuelles (journal entry testing)
+    nature: Test de détail (data analytics)
+    extent: Écritures manuelles et inhabituelles sur l'exercice
+    timing: Sur l'exercice et en clôture
+    samplingMethod: Sélection fondée sur des critères de risque (auteur, date, heure, contrepartie, montant)
+    evidenceRequired:
+      - Extraction exhaustive du journal (fichier des écritures comptables)
+      - Pièces justificatives des écritures sélectionnées
+      - Identification de l'auteur et de la date de saisie
+    assertions: ["Exactitude", "Rattachement", "Présentation"]
+    sourceIds: ["isa-240", "isa-330", "isa-500"]
+
+risks:
+  - name: Contournement des contrôles par la direction (management override)
+    category: RISQUE_FRAUDE
+    description: >
+      Capacité de la direction à passer outre les contrôles en place pour
+      manipuler les comptes (risque présumé sur toutes les missions, ISA 240).
+    indicators:
+      - Écritures manuelles significatives en clôture
+      - Ajustements non documentés du résultat
+      - Estimations orientées
+    response:
+      - Tester les écritures de journal selon des critères de risque
+      - Réaliser une revue rétrospective des estimations
+      - Examiner les opérations inhabituelles hors activité normale
+    sourceIds: ["isa-240", "nep-240", "isa-330"]
+  - name: Corruption et trafic d'influence
+    category: RISQUE_FRAUDE
+    description: >
+      Versements illicites, commissions occultes ou avantages indus, en
+      contradiction avec le dispositif anticorruption (loi Sapin II / AFA).
+    indicators:
+      - Paiements à des intermédiaires sans substance
+      - Notes de frais ou cadeaux anormaux
+      - Flux vers des juridictions à risque
+    response:
+      - Apprécier le dispositif anticorruption et la cartographie des risques
+      - Tester les paiements sensibles et les intermédiaires
+    sourceIds: ["afa-sapin2", "isa-240"]
+  - name: Faux fournisseurs et fraude au revenu
+    category: RISQUE_FRAUDE
+    description: >
+      Création de fournisseurs fictifs détournant des fonds, ou enregistrement de
+      ventes fictives pour gonfler le revenu.
+    indicators:
+      - Fournisseurs sans coordonnées vérifiables
+      - Doublons de RIB entre fournisseurs et salariés
+      - Ventes fictives ou clients sans substance
+    response:
+      - Rapprocher la base fournisseurs des référentiels et des RIB salariés
+      - Tester la réalité des ventes et des tiers (confirmations, livraisons)
+    sourceIds: ["isa-240", "isa-330", "isa-500"]
+
+ifrsVsPcg:
+  - topic: Référentiel applicable au contrôle interne et à la fraude
+    ifrsTreatment: >
+      Le contrôle interne et la fraude relèvent des normes d'audit (ISA/NEP) et
+      non du référentiel comptable : aucun impact sur le choix IFRS.
+    pcgTreatment: >
+      De même, ces sujets relèvent des normes d'audit (ISA/NEP) et n'affectent
+      pas le choix du référentiel comptable PCG.
+    auditImpact: >
+      Appliquer les diligences ISA/NEP (contrôle interne, écritures de journal,
+      fraude) indépendamment du référentiel comptable retenu.
+    sourceIds: ["isa-315", "isa-240"]
+
+officialSources:
+  - id: isa-315
+    label: ISA 315 (Revised) — Identifying and Assessing the Risks of Material Misstatement
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: isa-240
+    label: ISA 240 — The Auditor's Responsibilities Relating to Fraud
+    type: ISA
+    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    status: OBLIGATOIRE
+  - id: afa-sapin2
+    label: Agence française anticorruption — Recommandations (loi Sapin II)
+    type: AFA
+    url: https://www.agence-francaise-anticorruption.gouv.fr
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Comprendre l'environnement de contrôle et identifier les risques significatifs (ISA 315 / NEP 315).
+  - Traiter le contournement des contrôles par la direction comme un risque de fraude présumé (ISA 240).
+  - Analyser les écritures de journal manuelles et inhabituelles (journal entry testing).
+  - Apprécier le dispositif anticorruption (loi Sapin II / AFA) et tester les paiements sensibles.
+
+relatedCycles:
+  - chiffre-affaires-ifrs15
+  - cutoff-separation-exercices
+  - estimations-jugements
+  - parties-liees
+
+reviewStatus: REVIEW_REQUIRED

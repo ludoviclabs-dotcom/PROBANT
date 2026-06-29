@@ -1,0 +1,275 @@
+slug: stocks-en-cours
+family: ACTIF_CIRCULANT
+title: Stocks et en-cours
+summary: >
+  Cycle relatif à l'existence, l'exhaustivité, la valorisation au coût et à la
+  valeur nette de réalisation, à la dépréciation pour obsolescence et au cut-off
+  des entrées/sorties des stocks et en-cours de production (matières premières,
+  marchandises, produits finis, travaux en cours).
+
+pcgAccounts: ["3", "39"]
+probantSiloIds: ["stocks"]
+probantCloisons: ["bilan-actif"]
+
+applicableStandards:
+  - id: ias-2
+    label: IAS 2 — Stocks
+    type: IAS
+    status: OBLIGATOIRE
+    note: Applicable aux entités en référentiel IFRS.
+  - id: pcg-221-x
+    label: PCG art. 221-x — Évaluation des stocks et en-cours
+    type: PCG
+    status: OBLIGATOIRE
+  - id: isa-501
+    label: ISA 501 — Éléments probants (inventaire physique)
+    type: ISA
+    status: OBLIGATOIRE
+    note: Assistance à la prise d'inventaire physique des stocks.
+  - id: isa-315
+    label: ISA 315 (révisée) — Évaluation des risques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-500
+    label: ISA 500 — Éléments probants
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-520
+    label: ISA 520 — Procédures analytiques
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-530
+    label: ISA 530 — Sondages en audit
+    type: ISA
+    status: OBLIGATOIRE
+  - id: isa-540
+    label: ISA 540 (révisée) — Estimations comptables
+    type: ISA
+    status: OBLIGATOIRE
+    note: Pertinent pour l'estimation des dépréciations pour obsolescence.
+
+thresholds:
+  - label: Assistance à l'inventaire physique des stocks significatifs
+    value: Présence de l'auditeur lorsque les stocks sont significatifs
+    status: OBLIGATOIRE
+    sourceIds: ["isa-501"]
+  - label: Évaluation au plus bas du coût et de la valeur nette de réalisation
+    value: Stock évalué au plus faible du coût et de la valeur nette de réalisation
+    status: OBLIGATOIRE
+    sourceIds: ["ias-2", "pcg-221-x"]
+  - label: Variation de rotation des stocks vs N-1
+    value: 15 % à 20 % de variation (paramètre interne PROBANT, à adapter au mandat)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Seuil indicatif interne, non opposable.
+  - label: Ancienneté d'un stock dormant
+    value: Stock sans mouvement > 12 mois à investiguer (paramètre interne PROBANT)
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+    caveat: Borne indicative interne, à adapter au cycle d'exploitation du secteur.
+
+materiality:
+  globalMateriality:
+    benchmark: Total bilan ou résultat avant impôt normalisé selon le profil de l'entité
+    formula: Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycle
+    recommendedRange: 1 % à 2 % du total bilan, ou 5 % à 10 % du résultat avant impôt normalisé
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Les ISA/NEP imposent le principe et la documentation du jugement, mais ne
+      fixent pas de pourcentage universel. Fourchette à adapter au secteur et au risque.
+  performanceMateriality:
+    formula: 60 % à 75 % du seuil de signification global
+    recommendedRange: 60 %-75 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-320", "nep-320"]
+    caveat: >
+      Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugement.
+      Plutôt 60 % en cas de risque élevé de survalorisation ou d'obsolescence.
+  clearlyTrivialThreshold:
+    formula: 3 % à 5 % du seuil de signification global
+    recommendedRange: 3 %-5 %
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-450", "nep-450"]
+    caveat: Borne opérationnelle non fixée par les normes.
+
+ratios:
+  - name: Rotation des stocks (jours de stock)
+    formula: (Stock moyen / Coût des ventes) x 360
+    alertThreshold: Variation > 15-20 % vs N-1 ou stock dormant > 12 mois à investiguer
+    interpretation: >
+      Une rotation qui ralentit signale un risque de surstockage, d'obsolescence
+      non provisionnée ou de survalorisation.
+    status: PARAMETRABLE
+    sourceIds: ["isa-520"]
+  - name: Taux de marge brute
+    formula: (Chiffre d'affaires - Coût des ventes) / Chiffre d'affaires
+    alertThreshold: Variation significative vs N-1 ou vs secteur à investiguer
+    interpretation: >
+      Une marge brute anormale peut révéler une erreur de valorisation du stock
+      final, un cut-off défaillant ou un coût de revient mal calculé.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+  - name: Taux de provision pour obsolescence
+    formula: Dépréciation des stocks / Valeur brute des stocks
+    alertThreshold: Taux en forte baisse alors que la rotation se dégrade à investiguer
+    interpretation: >
+      Un taux de provision faible malgré un stock vieillissant traduit une
+      sous-évaluation probable de la dépréciation pour obsolescence.
+    status: BONNE_PRATIQUE
+    sourceIds: ["isa-520"]
+
+analyticalProcedures:
+  - name: Analyse de la rotation et de l'ancienneté des stocks
+    objective: Identifier les références à rotation lente, dormantes ou obsolètes.
+    method: Comparer la rotation N/N-1 par famille et établir un échéancier d'ancienneté.
+    expectedVariation: Rotation stable et cohérente avec le cycle d'exploitation.
+    anomalyTrigger: Variation > 15-20 % vs N-1 ou stock sans mouvement > 12 mois.
+    benchmark: ["N-1", "Secteur", "Budget"]
+    assertions: ["Évaluation", "Exhaustivité"]
+    sourceIds: ["isa-520", "nep-520"]
+  - name: Revue analytique de la marge brute
+    objective: Détecter une erreur de valorisation du stock final ou un cut-off défaillant.
+    method: Comparer le taux de marge brute N vs N-1 et vs données sectorielles.
+    expectedVariation: Stabilité hors évolution justifiée de la politique tarifaire.
+    anomalyTrigger: Variation de marge inexpliquée ou incohérente avec le mix produit.
+    benchmark: ["N-1", "Secteur"]
+    assertions: ["Évaluation", "Exactitude", "Rattachement"]
+    sourceIds: ["isa-520"]
+
+detailTests:
+  - name: Assistance à l'inventaire physique
+    nature: Observation physique
+    extent: Présence aux comptages des stocks significatifs ; contre-comptages ciblés
+    timing: Date de l'inventaire physique (clôture ou roll-forward)
+    samplingMethod: Sélection ciblée sur les références à forte valeur + sondage aléatoire
+    evidenceRequired:
+      - Instructions d'inventaire de l'entité
+      - Feuilles de comptage
+      - Contre-comptages de l'auditeur
+      - Procédures de cut-off de l'inventaire
+    assertions: ["Existence", "Exhaustivité", "Exactitude"]
+    sourceIds: ["isa-501", "isa-500"]
+  - name: Test de valorisation et du coût de revient
+    nature: Test de détail
+    extent: Échantillon de références significatives + sondage sur le solde
+    timing: Clôture
+    samplingMethod: Sélection ciblée + échantillonnage selon ISA 530
+    evidenceRequired:
+      - Factures d'achat
+      - Fiches de coût de revient
+      - Gammes et nomenclatures de production
+      - Méthode FIFO ou CMP appliquée
+    assertions: ["Évaluation", "Exactitude"]
+    sourceIds: ["isa-500", "isa-530", "ias-2"]
+  - name: Test de dépréciation pour obsolescence
+    nature: Test substantif
+    extent: Références à rotation lente, dormantes ou à valeur nette de réalisation faible
+    timing: Clôture
+    samplingMethod: Sélection ciblée sur l'échéancier d'ancienneté et les ventes post-clôture
+    evidenceRequired:
+      - Échéancier d'ancienneté des stocks
+      - Prix de vente post-clôture
+      - Calcul de la valeur nette de réalisation
+      - Politique de dépréciation de l'entité
+    assertions: ["Évaluation", "Exhaustivité"]
+    sourceIds: ["isa-540", "isa-500", "ias-2"]
+
+risks:
+  - name: Stocks inexistants ou survalorisés
+    category: RISQUE_FRAUDE
+    description: >
+      Majoration du résultat via la comptabilisation de stocks fictifs ou la
+      survalorisation des quantités ou du coût unitaire du stock final.
+    indicators:
+      - Écarts importants entre inventaire physique et comptabilité
+      - Marge brute anormalement élevée
+      - Stocks détenus chez des tiers non confirmés
+    response:
+      - Assister à l'inventaire physique et réaliser des contre-comptages
+      - Confirmer les stocks détenus par des tiers
+      - Tester la valorisation des références significatives
+    sourceIds: ["isa-240", "isa-501", "isa-330"]
+  - name: Obsolescence non provisionnée
+    category: RISQUE_INHERENT
+    description: >
+      Stocks techniquement ou commercialement obsolètes maintenus au coût sans
+      dépréciation à la valeur nette de réalisation.
+    indicators:
+      - Stock dormant sans mouvement > 12 mois
+      - Rotation des stocks en dégradation
+      - Prix de vente post-clôture inférieurs au coût
+    response:
+      - Établir l'échéancier d'ancienneté des stocks
+      - Recalculer la valeur nette de réalisation
+      - Apprécier la politique de dépréciation
+    sourceIds: ["isa-540", "ias-2"]
+  - name: Cut-off des entrées et sorties de stock
+    category: RISQUE_CONTROLE
+    description: >
+      Rattachement incorrect des mouvements de stock à l'exercice (réceptions et
+      expéditions enregistrées dans la mauvaise période).
+    indicators:
+      - Absence de procédure de cut-off à l'inventaire
+      - Réceptions ou expéditions non bloquées en fin d'exercice
+      - Écarts entre bons de livraison et enregistrement comptable
+    response:
+      - Tester le cut-off des dernières réceptions et expéditions
+      - Rapprocher bons de livraison et factures de la période
+      - Vérifier la séparation des exercices à l'inventaire
+    sourceIds: ["isa-501", "isa-315", "isa-330"]
+
+ifrsVsPcg:
+  - topic: Méthodes de valorisation autorisées
+    ifrsTreatment: >
+      FIFO (premier entré, premier sorti) ou coût moyen pondéré autorisés ; la
+      méthode LIFO est interdite par IAS 2.
+    pcgTreatment: >
+      FIFO ou coût moyen pondéré (CMP) autorisés par le PCG ; la méthode LIFO est
+      également interdite en comptes individuels français.
+    auditImpact: >
+      Vérifier la permanence de la méthode retenue et l'absence d'application de
+      LIFO ; documenter tout changement de méthode.
+    sourceIds: ["ias-2", "pcg-221-x"]
+  - topic: Dépréciation à la valeur nette de réalisation
+    ifrsTreatment: >
+      Stocks évalués au plus faible du coût et de la valeur nette de réalisation
+      (net realisable value) ; reprise possible si la valeur se redresse.
+    pcgTreatment: >
+      Stocks dépréciés lorsque la valeur d'inventaire (valeur actuelle) est
+      inférieure au coût d'entrée, selon les règles du PCG.
+    auditImpact: >
+      Apprécier la méthode d'estimation de la valeur nette de réalisation et la
+      cohérence des reprises de dépréciation.
+    sourceIds: ["ias-2", "pcg-221-x"]
+
+officialSources:
+  - id: ias-2
+    label: IAS 2 — Inventories
+    type: IAS
+    url: https://www.ifrs.org/issued-standards/list-of-standards/ias-2-inventories.html
+    status: OBLIGATOIRE
+  - id: pcg-221-x
+    label: PCG art. 221-x — Évaluation des stocks
+    type: PCG
+    url: https://www.anc.gouv.fr/fr/reglementation
+    status: OBLIGATOIRE
+  - id: isa-501
+    label: ISA 501 — Audit Evidence (Specific Considerations for Selected Items)
+    type: ISA
+    url: https://www.iaasb.org/publications/2009-handbook-international-standards-auditing-and-quality-control
+    status: OBLIGATOIRE
+
+keyPoints:
+  - Planifier et documenter l'assistance à l'inventaire physique des stocks significatifs (ISA 501).
+  - Vérifier la valorisation au plus bas du coût et de la valeur nette de réalisation.
+  - Tester le cut-off des dernières réceptions et expéditions autour de la clôture.
+  - Alerter si la rotation des stocks varie de plus de 15-20 % vs N-1 ou si un stock dort depuis plus de 12 mois.
+  - PROBANT signale automatiquement les stocks dormants et les ruptures de rotation (silo stocks).
+
+relatedCycles:
+  - chiffre-affaires-ifrs15
+  - achats-charges-externes
+  - dotations-amortissements-depreciations
+
+reviewStatus: REVIEW_REQUIRED
