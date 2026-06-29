@@ -5,22 +5,53 @@ import {
   SEUILS_INTERNES,
   SOURCES,
 } from "@/lib/referentiel/sources";
+import {
+  REGISTRY_META,
+  registryOf,
+  type Registry,
+} from "@/components/referentiel/themes";
+import { ThemeDistribution } from "@/components/referentiel/ThemeDistribution";
+import { VersionTimeline } from "@/components/referentiel/VersionTimeline";
+import { ReferentielExplorer } from "@/components/referentiel/ReferentielExplorer";
 
 export default function ReferentielPage() {
   const sources = Object.values(SOURCES);
-  const droitDur = sources.filter((s) => /LPF|PCG/u.test(s.ref));
-  const methode = sources.filter((s) => /ISA|ISRE/u.test(s.ref));
+  const droitDur = sources.filter((s) => registryOf(s.theme) === "droit-dur").length;
+  const methode = sources.filter((s) => registryOf(s.theme) === "methode").length;
 
   return (
     <div className="p-6">
       <PageHeader
         title="Seuils & référentiel"
-        subtitle={`Référentiel versionné (v.${REFERENTIEL_VERSION}). Le droit dur et la méthode professionnelle sont distingués des paramètres internes PROBANT.`}
+        subtitle="Sources normatives versionnées et paramètres internes. Le droit dur (opposable) et la méthode professionnelle sont distingués ; les citations sont des paraphrases d'affichage."
       />
 
-      <div className="mb-4 flex items-start gap-3 rounded-xl border border-[#eab308]/40 bg-[#292207] p-4 text-[12px] text-[#eab308]">
-        <AlertTriangle className="h-5 w-5 shrink-0" />
-        <p>
+      {/* Version + registres */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="inline-flex items-center gap-2 rounded-lg border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-3 py-1.5 text-[12px] text-[var(--pb-text-muted)]">
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[var(--pb-accent)] opacity-60" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-[var(--pb-accent)]" />
+          </span>
+          Référentiel{" "}
+          <span className="tnum font-semibold text-[var(--pb-text)]">
+            v.{REFERENTIEL_VERSION}
+          </span>
+        </span>
+        <RegistryPill registry="droit-dur" count={droitDur} />
+        <RegistryPill registry="methode" count={methode} />
+      </div>
+
+      {/* Infographies */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <ThemeDistribution sources={sources} />
+        <VersionTimeline sources={sources} />
+      </div>
+
+      {/* Avertissement fiabilité */}
+      <div className="mt-4 flex items-start gap-3 rounded-xl border border-[#eab308]/40 bg-[#292207] p-4">
+        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-[#eab308]" />
+        <p className="text-[12px] leading-relaxed text-[var(--pb-text-muted)]">
           Les citations sont des paraphrases destinées à l'affichage et ne se
           substituent pas au texte officiel opposable. Les seuils chiffrés
           externes (catégories d'entreprises, nomination CAC…) doivent être
@@ -29,22 +60,18 @@ export default function ReferentielPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <SourceGroup title="Droit dur — LPF / PCG" color="#f87171" items={droitDur} />
-        <SourceGroup
-          title="Méthode professionnelle — ISA / ISRE"
-          color="#a78bfa"
-          items={methode}
-        />
+      {/* Filtres + cartes */}
+      <div className="mt-4">
+        <ReferentielExplorer sources={sources} />
       </div>
 
-      {/* Seuils internes */}
+      {/* Paramètres internes (préservés, restylés) */}
       <div className="mt-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
         <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
           <span className="h-2 w-2 rounded-full bg-[#38bdf8]" />
           Paramètres internes PROBANT
-          <span className="text-[11px] font-normal text-[var(--pb-text-faint)]">
-            (non opposables, versionnés)
+          <span className="ml-1 rounded-full border border-[var(--pb-border)] px-2 py-0.5 text-[10px] font-normal text-[var(--pb-text-faint)]">
+            non opposables
           </span>
         </h3>
         <div className="tnum mt-3 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-3">
@@ -72,42 +99,16 @@ export default function ReferentielPage() {
   );
 }
 
-function SourceGroup({
-  title,
-  color,
-  items,
-}: {
-  title: string;
-  color: string;
-  items: { ref: string; citation: string; effectiveDate: string }[];
-}) {
+function RegistryPill({ registry, count }: { registry: Registry; count: number }) {
+  const m = REGISTRY_META[registry];
   return (
-    <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-      <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
-        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />
-        {title}
-      </h3>
-      <div className="mt-3 space-y-3">
-        {items.map((s) => (
-          <div
-            key={s.ref}
-            className="rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-3"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[12px] font-semibold" style={{ color }}>
-                {s.ref}
-              </span>
-              <span className="tnum text-[10px] text-[var(--pb-text-faint)]">
-                v.{s.effectiveDate}
-              </span>
-            </div>
-            <p className="mt-1 text-[11px] leading-relaxed text-[var(--pb-text-muted)]">
-              {s.citation}
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
+    <span
+      className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[12px] font-medium"
+      style={{ color: m.hex, backgroundColor: `${m.hex}1f` }}
+    >
+      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: m.hex }} />
+      {m.short} <span className="tnum opacity-80">{count}</span>
+    </span>
   );
 }
 

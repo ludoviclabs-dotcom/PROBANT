@@ -1,4 +1,4 @@
-import type { SourceNormative } from "@/lib/canonical-model";
+import type { SourceNormative, SourceTheme } from "@/lib/canonical-model";
 
 /**
  * Référentiel normatif versionné.
@@ -39,7 +39,7 @@ type SourceKey =
   | "CCOM_CAPITAL"
   | "PCG_ENGAGEMENTS";
 
-export const SOURCES: Record<SourceKey, SourceNormative> = {
+const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
   LPF_A47A1: {
     ref: "LPF art. A.47 A-1",
     citation:
@@ -176,6 +176,48 @@ export const SOURCES: Record<SourceKey, SourceNormative> = {
     effectiveDate: "2024-01-01",
   },
 };
+
+/**
+ * Thème normatif de chaque source (classification pour la page Référentiel).
+ * Les thèmes « droit dur » relèvent du registre obligatoire (LPF / PCG / Code
+ * de commerce) ; les thèmes « méthode » relèvent des normes d'exercice
+ * professionnel (ISA / ISRE). Aucune norme inventée : il s'agit d'un simple
+ * étiquetage des sources existantes selon leur contenu réel.
+ */
+export const SOURCE_THEME: Record<SourceKey, SourceTheme> = {
+  LPF_A47A1: "Admissibilité",
+  PCG_STRUCTURE: "Présentation",
+  PCG_PERMANENCE: "Présentation",
+  PCG_CUTOFF_418: "Rattachement",
+  PCG_CCA_PCA: "Rattachement",
+  PCG_AMORTISSEMENT: "Comptabilisation",
+  PCG_DEPRECIATION_STOCK: "Comptabilisation",
+  PCG_PROVISIONS: "Comptabilisation",
+  PCG_ERREURS: "Présentation",
+  ISA_240: "Fraude",
+  ISA_315: "Risque",
+  ISA_320: "Matérialité",
+  ISA_330: "Risque",
+  ISA_500: "Éléments probants",
+  ISA_520: "Procédures analytiques",
+  ISRE_2400: "Examen limité",
+  ISA_505: "Éléments probants",
+  PCG_IMMO_INCORP: "Comptabilisation",
+  PCG_TITRES: "Comptabilisation",
+  PCG_CREANCES: "Comptabilisation",
+  CCOM_CAPITAL: "Présentation",
+  PCG_ENGAGEMENTS: "Présentation",
+};
+
+/**
+ * Registre des sources enrichi de leur thème — seule source de vérité exposée.
+ */
+export const SOURCES: Record<SourceKey, SourceNormative> = Object.fromEntries(
+  (Object.keys(RAW_SOURCES) as SourceKey[]).map((k) => [
+    k,
+    { ...RAW_SOURCES[k], theme: SOURCE_THEME[k] },
+  ]),
+) as Record<SourceKey, SourceNormative>;
 
 /**
  * Seuils internes versionnés (registre house-style).
