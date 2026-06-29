@@ -17,8 +17,10 @@ import {
 } from "lucide-react";
 import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
-import { LIVE_FINDINGS_KEY } from "./CloisonsViewLive";
-import type { Finding, Severity } from "@/lib/canonical-model";
+import { LIVE_FINDINGS_KEY, LIVE_FEC_KEY, LIVE_META_KEY } from "./CloisonsViewLive";
+import type { FecEntry, Finding, Severity } from "@/lib/canonical-model";
+import { buildFecDocument } from "@/lib/canonical-model";
+import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
 import type {
   BalanceValidation,
   ParsedBalance,
@@ -45,6 +47,8 @@ interface DepotResult {
   admissibilite: Finding[];
   analyse: Finding[];
   parseErrors: string[];
+  entries: FecEntry[];
+  entriesTruncated: boolean;
 }
 
 type Result =
@@ -74,6 +78,24 @@ const SEVERITY_HEX: Record<Severity, string> = {
 
 const fmtEUR = (n: number) =>
   n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
+
+/** Exercice dominant déduit des dates d'écriture du FEC (AAAA). */
+function exerciceFromEntries(entries: FecEntry[]): string {
+  const years = new Map<string, number>();
+  for (const e of entries) {
+    const y = e.ecritureDate?.slice(0, 4);
+    if (y && /^\d{4}$/u.test(y)) years.set(y, (years.get(y) ?? 0) + 1);
+  }
+  let best = "";
+  let bestN = 0;
+  for (const [y, n] of years) {
+    if (n > bestN) {
+      best = y;
+      bestN = n;
+    }
+  }
+  return best || "—";
+}
 
 export function DepotView() {
   const [drag, setDrag] = useState(false);
@@ -127,7 +149,21 @@ export function DepotView() {
           setResult({ kind: "fec", data });
           setStatus("done");
           try {
+            const exercice = exerciceFromEntries(data.entries);
             sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify(data.analyse));
+            // On borne les écritures stockées (quota sessionStorage).
+            sessionStorage.setItem(
+              LIVE_FEC_KEY,
+              JSON.stringify(data.entries.slice(0, 8000)),
+            );
+            sessionStorage.setItem(
+              LIVE_META_KEY,
+              JSON.stringify({
+                societe: data.siren ?? data.nomFichier,
+                exercice,
+                nomFichier: data.nomFichier,
+              }),
+            );
           } catch { /* ignore si sessionStorage indisponible */ }
         } catch (e) {
           timers.forEach(clearTimeout);
@@ -408,6 +444,33 @@ function FecResult({ data }: { data: DepotResult }) {
           Voir la revue par cloison →
         </Link>
       </div>
+
+      {/* Document annoté : grand-livre réel avec flags posés sur les lignes */}
+      {data.entries.length > 0 && (
+        <div className="space-y-2">
+          <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
+            <FileText className="h-4 w-4 text-[var(--pb-accent)]" />
+            Document déposé — anomalies marquées sur les écritures
+          </h3>
+          {data.entriesTruncated && (
+            <p className="text-[11px] text-[var(--pb-text-faint)]">
+              Aperçu limité aux premières écritures du fichier.
+            </p>
+          )}
+          <FinancialDocumentViewer
+            docs={[
+              buildFecDocument({
+                societe: data.siren ?? data.nomFichier,
+                exercice: exerciceFromEntries(data.entries),
+                origine: "upload",
+                entries: data.entries,
+                findings: data.analyse,
+                admissibilite: data.admissibilite,
+              }),
+            ]}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -7,6 +7,12 @@ import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
 export const runtime = "nodejs";
 
 /**
+ * Plafond d'écritures renvoyées au client pour le rendu du grand-livre annoté.
+ * Borne la taille de la réponse (les FEC de démonstration sont petits).
+ */
+const MAX_ENTRIES_RETURNED = 20000;
+
+/**
  * Pipeline d'ingestion : upload → fingerprint → parsing → validation
  * réglementaire (hardLaw) → exécution des règles → restitution.
  */
@@ -38,6 +44,11 @@ export async function POST(req: Request) {
 
   const { admissibilite, analyse } = splitAdmissibilite(findings);
 
+  const entriesTruncated = parsed.entries.length > MAX_ENTRIES_RETURNED;
+  const entries = entriesTruncated
+    ? parsed.entries.slice(0, MAX_ENTRIES_RETURNED)
+    : parsed.entries;
+
   return NextResponse.json({
     nomFichier: file.name,
     fingerprint: shortHash(fingerprint),
@@ -53,5 +64,9 @@ export async function POST(req: Request) {
     admissibilite,
     analyse,
     parseErrors: parsed.parseErrors.slice(0, 20),
+    // Écritures pour le rendu du grand-livre annoté (référencées par les
+    // constats via leur n° de ligne). Plafonnées pour borner la réponse.
+    entries,
+    entriesTruncated,
   });
 }

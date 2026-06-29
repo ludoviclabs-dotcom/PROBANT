@@ -125,3 +125,62 @@ body {
     stroke-dashoffset: -12;
   }
 }
+
+@keyframes pb-drawer-in {
+  from {
+    transform: translateX(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pb-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/*
+  Impression « support de preuve » : on isole le document annoté
+  ([data-pb-print]) et on neutralise les conteneurs scrollables/clippés de la
+  coquille (sidebar, header, hauteur d'écran fixe). Activez « graphiques
+  d'arrière-plan » dans le navigateur pour conserver les fonds de gravité.
+*/
+@media print {
+  * {
+    overflow: visible !important;
+  }
+  html,
+  body {
+    height: auto !important;
+    background: #ffffff;
+  }
+  body * {
+    visibility: hidden;
+  }
+  [data-pb-print],
+  [data-pb-print] * {
+    visibility: visible;
+  }
+  [data-pb-print] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    border: 0 !important;
+  }
+  [data-pb-print] .pb-scroll {
+    max-height: none !important;
+  }
+  @page {
+    margin: 12mm;
+  }
+}

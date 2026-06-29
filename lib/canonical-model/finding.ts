@@ -18,6 +18,32 @@ export type Severity = "bloquant" | "majeur" | "mineur" | "informatif";
 
 export type StatutRevue = "en_attente" | "valide" | "ecarte";
 
+/**
+ * Risque que le constat soit un faux positif. Aide explicite à la décision du
+ * réviseur (le réviseur garde la main : ce champ n'écarte jamais un constat,
+ * il le qualifie). « faible » = signal robuste, « élevé » = à confirmer avant
+ * d'alerter sur une fraude éventuelle.
+ */
+export type FauxPositifRisk = "faible" | "moyen" | "eleve";
+
+export const FAUX_POSITIF_LABEL: Record<FauxPositifRisk, string> = {
+  faible: "Faux positif improbable",
+  moyen: "Faux positif possible",
+  eleve: "Faux positif à confirmer",
+};
+
+export const FAUX_POSITIF_SHORT: Record<FauxPositifRisk, string> = {
+  faible: "Risque faible",
+  moyen: "Risque moyen",
+  eleve: "Risque élevé",
+};
+
+export const FAUX_POSITIF_HEX: Record<FauxPositifRisk, string> = {
+  faible: "#22c55e",
+  moyen: "#eab308",
+  eleve: "#f97316",
+};
+
 export const FAMILY_LABEL: Record<FindingFamily, string> = {
   hardLaw: "Obligatoire",
   methodology: "Présomption d'audit",
@@ -63,6 +89,28 @@ export interface SourceNormative {
   url?: string;
   /** Thème normatif (classification d'affichage du référentiel). */
   theme?: SourceTheme;
+}
+
+/**
+ * Seuil de matérialité (ISA 320) appliqué à un constat chiffré, pour pondérer
+ * la décision et écarter les faux positifs sous le seuil de signification.
+ */
+export interface SeuilApplique {
+  type: "significativite" | "performance" | "trivialite";
+  base:
+    | "total_bilan"
+    | "chiffre_affaires"
+    | "resultat_net"
+    | "total_charges"
+    | "total_produits";
+  /** Taux appliqué à la base (ex. 0.05 = 5 %). */
+  tauxApplique: number;
+  /** Montant absolu du seuil résultant. */
+  montantCalcule: number;
+  /** Référentiel du seuil (ex. "ISA 320"). */
+  source: string;
+  /** L'écart chiffré du constat dépasse-t-il ce seuil ? */
+  depasse: boolean;
 }
 
 /** Une grandeur chiffrée constatée vs son seuil de référence. */
@@ -145,6 +193,19 @@ export interface Finding {
 
   statutRevue: StatutRevue;
   commentaireRevue?: string;
+
+  /**
+   * Risque de faux positif (aide à la décision). Optionnel : peut être
+   * renseigné par la règle/le scénario, ou dérivé au moment de l'analyse
+   * (cf. lib/audit/materiality).
+   */
+  fauxPositifRisk?: FauxPositifRisk;
+
+  /**
+   * Seuil de matérialité appliqué pour pondérer le constat. Optionnel :
+   * calculé à la volée lors de la construction du document annoté.
+   */
+  seuilApplique?: SeuilApplique;
 }
 
 /** Détermine si un constat relève d'une non-conformité réglementaire dure. */
