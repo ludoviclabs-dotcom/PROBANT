@@ -37,7 +37,8 @@ type SourceKey =
   | "PCG_TITRES"
   | "PCG_CREANCES"
   | "CCOM_CAPITAL"
-  | "PCG_ENGAGEMENTS";
+  | "PCG_ENGAGEMENTS"
+  | "PCG_FNP";
 
 const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
   LPF_A47A1: {
@@ -175,6 +176,12 @@ const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
       "Les engagements financiers donnés et reçus (cautions, avals, garanties, crédit-bail, engagements de retraite) qui ne figurent pas au bilan font l'objet d'une information en annexe, par catégorie et pour leur montant, lorsqu'ils sont significatifs.",
     effectiveDate: "2024-01-01",
   },
+  PCG_FNP: {
+    ref: "PCG cpt. 408",
+    citation:
+      "Le compte 408 « Fournisseurs - Factures non parvenues » enregistre, à la clôture, les dettes relatives à des biens ou services reçus dont la facture n'est pas encore parvenue, afin de rattacher la charge à l'exercice. Il est contre-passé à l'ouverture de l'exercice suivant.",
+    effectiveDate: "2024-01-01",
+  },
 };
 
 /**
@@ -207,6 +214,7 @@ export const SOURCE_THEME: Record<SourceKey, SourceTheme> = {
   PCG_CREANCES: "Comptabilisation",
   CCOM_CAPITAL: "Présentation",
   PCG_ENGAGEMENTS: "Présentation",
+  PCG_FNP: "Rattachement",
 };
 
 /**

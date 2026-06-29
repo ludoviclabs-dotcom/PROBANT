@@ -651,7 +651,7 @@ const findFourn: Finding = {
   explication:
     "Les charges de la période dont la facture n'est pas parvenue doivent être rattachées via le compte 408. Leur sous-évaluation minore les charges et surévalue le résultat de l'exercice.",
   mesure: { constate: 12000, seuil: 95000, unite: "EUR", libelle: "FNP à constater" },
-  source: SOURCES.PCG_CUTOFF_418,
+  source: SOURCES.PCG_FNP,
   comptesConcernes: ["401", "408", "607"],
   lignesSource: [2540, 2541],
   faisceau: ["réceptions déc. non facturées", "FNP figées vs N-1", "rattachement des charges"],
@@ -659,7 +659,7 @@ const findFourn: Finding = {
   cibleRowId: "fourn-fnp",
   preuve: [
     { etape: "Source", detail: "Bons de réception déc. + grand-livre 408" },
-    { etape: "Règle", detail: "Rattachement des charges à l'exercice (cut-off)" },
+    { etape: "Règle", detail: "Rattachement des charges — factures non parvenues (PCG cpt. 408)" },
     { etape: "Résultat", detail: "FNP constatées 12 k€ vs ~95 k€ attendues" },
   ],
   statutRevue: "en_attente",
