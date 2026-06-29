@@ -6,6 +6,13 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/**": ["./data/**/*"],
   },
+  webpack: (config) => {
+    // pdfjs-dist référence le module Node optionnel « canvas », inutile côté
+    // navigateur ; on l'exclut pour éviter un échec de bundle.
+    config.resolve = config.resolve ?? {};
+    config.resolve.alias = { ...(config.resolve.alias ?? {}), canvas: false };
+    return config;
+  },
 };
 
 export default nextConfig;
