@@ -1,5 +1,5 @@
 import { PageHeader } from "@/components/probant/PageHeader";
-import { CloisonsView } from "@/components/probant/CloisonsView";
+import { CloisonsWorkspace } from "@/components/probant/CloisonsWorkspace";
 import { CloisonsViewLive } from "@/components/probant/CloisonsViewLive";
 import { DEMO_DOSSIER } from "@/lib/demo/dataset";
 import { SCENARIO_MAP } from "@/lib/demo/scenarios";
@@ -27,6 +27,12 @@ export default async function CloisonsPage({
   /* ── Mode scénario de simulation ── */
   const scenario = params.scenario ? SCENARIO_MAP[params.scenario] : null;
   const silos = scenario?.silos ?? DEMO_DOSSIER.silos;
+  const meta = scenario
+    ? { label: scenario.label, exercice: scenario.exercice }
+    : {
+        label: DEMO_DOSSIER.societe.raisonSociale,
+        exercice: DEMO_DOSSIER.societe.exercice,
+      };
 
   return (
     <div className="p-6">
@@ -56,7 +62,7 @@ export default async function CloisonsPage({
         </div>
       )}
 
-      <CloisonsView silos={silos} />
+      <CloisonsWorkspace silos={silos} meta={meta} />
     </div>
   );
 }
