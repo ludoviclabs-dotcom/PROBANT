@@ -38,6 +38,19 @@ export const SEVERITY_LABEL: Record<Severity, string> = {
   informatif: "Informatif",
 };
 
+/** Thème normatif d'une source (classification pour la page Référentiel). */
+export type SourceTheme =
+  | "Admissibilité"
+  | "Comptabilisation"
+  | "Rattachement"
+  | "Présentation"
+  | "Fraude"
+  | "Risque"
+  | "Matérialité"
+  | "Procédures analytiques"
+  | "Éléments probants"
+  | "Examen limité";
+
 /** Référence normative opposable rattachée à un constat. */
 export interface SourceNormative {
   /** Référence courte affichée en badge : "PCG art. 214-13", "LPF A.47 A-1". */
@@ -48,6 +61,8 @@ export interface SourceNormative {
   effectiveDate: string;
   /** URL ou identifiant de la source si disponible. */
   url?: string;
+  /** Thème normatif (classification d'affichage du référentiel). */
+  theme?: SourceTheme;
 }
 
 /** Une grandeur chiffrée constatée vs son seuil de référence. */
