@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import { DemoLauncher } from "@/components/probant/DemoLauncher";
 
 /* ─── canvas animation types ──────────────────────────────────────────────── */
 
@@ -226,8 +227,13 @@ export default function Home() {
           />
         </div>
 
+        {/* CTA principal — visite guidée (pour découvrir sans rien connaître à l'audit) */}
+        <div style={{ marginTop: 40, display: "flex", justifyContent: "center", animation: "pb-fade-in 0.7s 0.18s ease both" }}>
+          <DemoLauncher variant="hero" />
+        </div>
+
         {/* CTA buttons */}
-        <div style={{ marginTop: 40, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 14, animation: "pb-fade-in 0.7s 0.22s ease both" }}>
+        <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", alignItems: "center", justifyContent: "center", gap: 14, animation: "pb-fade-in 0.7s 0.22s ease both" }}>
           <Link
             href="/dashboard/synthese"
             style={{ display: "inline-flex", alignItems: "center", gap: 9, borderRadius: 13, background: "#5b9dff", padding: "13px 24px", fontSize: 14, fontWeight: 600, color: "#06122a", textDecoration: "none", boxShadow: "0 8px 30px rgba(91,157,255,0.35)", transition: "transform .2s, box-shadow .2s" }}

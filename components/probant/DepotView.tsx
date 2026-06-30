@@ -208,6 +208,7 @@ export function DepotView() {
     <div className="space-y-4">
       {/* Zone de dépôt */}
       <div
+        data-tour="depot-dropzone"
         onDragOver={(e) => {
           e.preventDefault();
           setDrag(true);

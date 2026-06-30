@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { GuidedTour } from "@/components/probant/GuidedTour";
 
 export const metadata: Metadata = {
   title: "PROBANT — Revue analytique des états financiers",
@@ -12,7 +13,10 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="fr" className="dark">
-      <body>{children}</body>
+      <body>
+        {children}
+        <GuidedTour />
+      </body>
     </html>
   );
 }
