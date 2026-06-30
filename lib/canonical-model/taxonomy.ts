@@ -118,6 +118,14 @@ export const SILOS: Silo[] = [
     description: "Clients, effets à recevoir, douteux, factures à établir.",
   },
   {
+    id: "rapprochement-clients",
+    label: "Rapprochement créances clients",
+    cloison: "bilan-actif",
+    comptes: ["411"],
+    description:
+      "Confrontation balance âgée ↔ grand-livre auxiliaire : écarts de solde, périmètre et dépréciation.",
+  },
+  {
     id: "cca",
     label: "Charges constatées d'avance",
     cloison: "bilan-actif",

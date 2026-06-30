@@ -5,6 +5,8 @@ import type {
   SiloView,
 } from "@/lib/canonical-model";
 import { REFERENTIEL_VERSION, SOURCES } from "@/lib/referentiel/sources";
+import { computeMateriality } from "@/lib/audit/materiality";
+import { buildClientsRapprochementSilo } from "@/lib/rapprochement/demo/clients";
 
 /**
  * Dataset de démonstration — société fictive DEMO SA.
@@ -1142,6 +1144,14 @@ const admissibilite: Finding[] = [
   },
 ];
 
+/* ───────────────────── Rapprochement créances clients ───────────────────── */
+/* Silo issu du module multi-documents (balance âgée ↔ grand-livre 411).      */
+/* Seuil ISA 320 calculé sur le CA pour pondérer le risque de faux positif.   */
+
+const siloRapproClients: SiloView = buildClientsRapprochementSilo(
+  computeMateriality({ chiffreAffaires: 6340000 }),
+);
+
 export const DEMO_DOSSIER: Dossier = {
   id: "demo-sa-2024",
   societe: {
@@ -1162,6 +1172,7 @@ export const DEMO_DOSSIER: Dossier = {
     siloImmoFin,
     siloStock,
     siloClients,
+    siloRapproClients,
     siloCCA,
     siloTreso,
     // Bilan — Passif

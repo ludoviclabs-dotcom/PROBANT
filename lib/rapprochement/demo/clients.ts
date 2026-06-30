@@ -48,8 +48,8 @@ export const GRAND_LIVRE_411: DocumentSource = {
 
 /** Configuration du rapprochement Clients (unique point d'extension cycle). */
 export const CONFIG_CLIENTS: RapprochementConfig = {
-  cycleSlug: "creances-clients",
-  siloId: "creances-clients",
+  cycleSlug: "creances-clients", // lien vers la fiche cycle (base normative)
+  siloId: "rapprochement-clients", // silo d'affichage dédié (distinct du silo Créances)
   cloison: "bilan-actif",
   cles: ["tiers", "montant", "periode"],
   toleranceEur: 500,

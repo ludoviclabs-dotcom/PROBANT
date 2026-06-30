@@ -106,7 +106,7 @@ describe("resultToFindings — conversion canonique", () => {
 describe("buildClientsRapprochementSilo", () => {
   it("assemble un silo avec état de rapprochement et constats", () => {
     const silo = buildClientsRapprochementSilo();
-    expect(silo.siloId).toBe("creances-clients");
+    expect(silo.siloId).toBe("rapprochement-clients");
     expect(silo.statement.rows).toHaveLength(3);
     expect(silo.findings.length).toBe(4);
     const ecartRow = silo.statement.rows.find((r) => r.id === "rappro-ecart");
