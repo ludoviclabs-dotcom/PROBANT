@@ -19,6 +19,9 @@ export function buildRapprochementSilo(
   const result = rapprocher(source, cible, config, options);
   const findings = resultToFindings(result, th);
 
+  // Relie le 1er constat à la ligne « écart de rapprochement » (connecteur visuel).
+  if (findings[0]) findings[0] = { ...findings[0], cibleRowId: "rappro-ecart" };
+
   const labelS = config.labelSource ?? source.label;
   const labelC = config.labelCible ?? cible.label;
 

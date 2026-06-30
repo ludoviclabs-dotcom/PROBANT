@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
 import { ChevronDown, Search, X, FileText, LayoutGrid } from "lucide-react";
 import type {
   SiloView,
@@ -541,6 +541,226 @@ function RailPanel({
   );
 }
 
+/* ── SiloBody (Zone A | Zone B + connecteur flaggé→constat) ──────────────────── */
+
+interface ArrowPath { id: string; sx: number; sy: number; ex: number; ey: number; hex: string; label?: string }
+
+function SiloBody({
+  siloView,
+  findings,
+  filtered,
+  hasFilters,
+  selId,
+  setSelId,
+  decisions,
+}: {
+  siloView: SiloView;
+  findings: Finding[];
+  filtered: Finding[];
+  hasFilters: boolean;
+  selId: string | null;
+  setSelId: (id: string | null) => void;
+  decisions: Record<string, UserDecision>;
+}) {
+  const findingsToShow = hasFilters ? filtered : findings;
+
+  const containerRef = useRef<HTMLDivElement>(null);
+  const rowRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
+  const [arrows, setArrows] = useState<ArrowPath[]>([]);
+  const [dims, setDims] = useState({ w: 0, h: 0 });
+  const [wide, setWide] = useState(true);
+
+  const compute = useCallback(() => {
+    const cont = containerRef.current;
+    if (!cont) return;
+    const cr = cont.getBoundingClientRect();
+    setDims({ w: cr.width, h: cr.height });
+    const isWide = cr.width >= 680;
+    setWide(isWide);
+    if (!isWide) { setArrows([]); return; }
+    const next: ArrowPath[] = [];
+    for (const f of findingsToShow) {
+      if (!f.cibleRowId) continue;
+      const rowEl = rowRefs.current.get(f.cibleRowId);
+      const cardEl = cardRefs.current.get(f.id);
+      if (!rowEl || !cardEl) continue;
+      const rr = rowEl.getBoundingClientRect();
+      const pr = cardEl.getBoundingClientRect();
+      next.push({
+        id: f.id,
+        sx: rr.right - cr.left,
+        sy: rr.top - cr.top + rr.height / 2,
+        ex: pr.left - cr.left,
+        ey: pr.top - cr.top + 22,
+        hex: SEV[f.severity].hex,
+        label: f.annotation,
+      });
+    }
+    setArrows(next);
+  }, [findingsToShow]);
+
+  useLayoutEffect(() => {
+    compute();
+    const cont = containerRef.current;
+    const ro = new ResizeObserver(() => compute());
+    if (cont) ro.observe(cont);
+    window.addEventListener("resize", compute);
+    const raf = requestAnimationFrame(compute);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", compute);
+      cancelAnimationFrame(raf);
+    };
+  }, [compute]);
+
+  return (
+    <div style={{ padding: "2px 18px 20px 38px" }}>
+      <div ref={containerRef} style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1.04fr) minmax(0,1fr)", gap: 26, alignItems: "start" }}>
+
+        {/* Connecteurs SVG (overlay, derrière le contenu) */}
+        {wide && arrows.length > 0 && (
+          <svg style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", overflow: "visible" }} width={dims.w} height={dims.h}>
+            <defs>
+              {arrows.map((a) => (
+                <marker key={`m-${a.id}`} id={`clo-arrow-${a.id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+                  <path d="M 0 0 L 10 5 L 0 10 z" fill={a.hex} />
+                </marker>
+              ))}
+            </defs>
+            {arrows.map((a) => {
+              const cp = Math.max(40, Math.abs(a.ex - a.sx) * 0.5);
+              return (
+                <path
+                  key={a.id}
+                  d={`M ${a.sx} ${a.sy} C ${a.sx + cp} ${a.sy}, ${a.ex - cp} ${a.ey}, ${a.ex} ${a.ey}`}
+                  fill="none" stroke={a.hex} strokeWidth={1.75} strokeDasharray="5 4"
+                  markerEnd={`url(#clo-arrow-${a.id})`}
+                  style={{ animation: "pb-dash 0.8s linear infinite" }}
+                  opacity={0.9}
+                />
+              );
+            })}
+          </svg>
+        )}
+
+        {/* Étiquettes d'annotation le long des connecteurs */}
+        {wide && arrows.map((a) => a.label ? (
+          <div
+            key={`lbl-${a.id}`}
+            style={{ position: "absolute", zIndex: 3, left: a.sx + (a.ex - a.sx) * 0.5, top: a.sy + (a.ey - a.sy) * 0.5, transform: "translate(-50%,-50%)", maxWidth: 168, pointerEvents: "none", borderRadius: 6, border: `1px solid ${a.hex}66`, background: SURFACE, padding: "3px 7px", fontSize: 9.5, fontWeight: 500, lineHeight: 1.25, textAlign: "center" as const, color: a.hex, boxShadow: "0 6px 16px -6px rgba(0,0,0,.7)" }}
+          >
+            {a.label}
+          </div>
+        ) : null)}
+
+        {/* Zone A: reconstruction comptable */}
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
+            <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace" }}>
+              Reconstruction comptable
+            </span>
+          </div>
+          <div style={{ fontSize: 11, color: FAINT, marginBottom: 9 }}>{siloView.statement.titre}</div>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
+            <tbody>
+              {siloView.statement.rows.map((row) => {
+                const isFlagged = !!row.flaggedBy;
+                const rowSev = row.severity ? SEV[row.severity] : null;
+                const isLinked = isFlagged && row.flaggedBy === selId;
+                return (
+                  <tr
+                    key={row.id}
+                    ref={isFlagged ? (el) => { if (el) rowRefs.current.set(row.id, el); else rowRefs.current.delete(row.id); } : undefined}
+                    onClick={() => isFlagged && setSelId(row.flaggedBy ?? null)}
+                    style={{
+                      cursor: isFlagged ? "pointer" : "default",
+                      background: isLinked ? `${rowSev?.hex ?? "#ef4444"}14` : isFlagged ? "rgba(255,255,255,0.02)" : "transparent",
+                      borderLeft: `2px solid ${rowSev ? rowSev.hex : "transparent"}`,
+                      transition: "background .15s",
+                    }}
+                  >
+                    <td style={{ padding: "8px 11px", verticalAlign: "baseline" }}>
+                      <span style={{
+                        color: row.kind === "total" ? TEXT : row.kind === "sous-total" ? "#cdd6e2" : isFlagged && rowSev ? rowSev.hex : "#9aa6b6",
+                        fontWeight: row.kind === "total" ? 700 : row.kind === "sous-total" ? 600 : 400,
+                      }}>
+                        {row.label}
+                      </span>
+                      {row.compte && (
+                        <code style={{ marginLeft: 7, fontSize: 10, color: FAINT, fontFamily: "monospace" }}>{row.compte}</code>
+                      )}
+                    </td>
+                    <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
+                      {eurRow(row.valeur)}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Zone B: constat cards */}
+        <div style={{ position: "relative", zIndex: 2 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace", marginBottom: 9 }}>
+            Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
+            {findingsToShow.map((f) => {
+              const fSev = SEV[f.severity];
+              const fFam = FAM[f.family];
+              const isSelected = f.id === selId;
+              const dec = decisions[f.id];
+              return (
+                <div
+                  key={f.id}
+                  ref={(el) => { if (el) cardRefs.current.set(f.id, el); else cardRefs.current.delete(f.id); }}
+                  style={{
+                    padding: "10px 13px", borderRadius: 9,
+                    border: `1px solid ${isSelected ? fSev.hex + "50" : BORDER}`,
+                    background: isSelected ? fSev.bg : "rgba(13,18,28,0.7)",
+                    transition: "border-color .15s, background .15s",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
+                    <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, paddingTop: 2 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: fSev.hex, flexShrink: 0 }} />
+                      <span style={{ fontFamily: "monospace", fontSize: 11, color: fFam.hex, lineHeight: 1 }}>{fFam.mark}</span>
+                    </div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, lineHeight: 1.35 }}>{f.titre}</div>
+                      {dec && (
+                        <span style={{ display: "inline-block", marginTop: 4, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: dec === "valide" ? "#22c55e" : dec === "accepte" ? ACCENT : MUTED, border: `1px solid ${dec === "valide" ? "rgba(34,197,94,0.3)" : dec === "accepte" ? "rgba(91,157,255,0.3)" : "#333"}`, padding: "2px 7px", borderRadius: 5 }}>
+                          {dec === "valide" ? "Validé" : dec === "accepte" ? "Accepté" : "Écarté"}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => setSelId(isSelected ? null : f.id)}
+                      style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isSelected ? fSev.hex : ACCENT, background: "none", border: "none", cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap", flexShrink: 0 }}
+                    >
+                      {isSelected ? "Fermer" : "Analyser"}
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
+                        <path d={isSelected ? "M18 6 6 18M6 6l12 12" : "m9 18 6-6-6-6"} />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+            {findingsToShow.length === 0 && (
+              <div style={{ padding: "20px 0", textAlign: "center" as const, fontSize: 12, color: FAINT }}>
+                Aucun constat correspondant aux filtres.
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ── CloisonsWorkspace ──────────────────────────────────────────────────────── */
 
 export function CloisonsWorkspace({
@@ -826,111 +1046,15 @@ export function CloisonsWorkspace({
                             </button>
 
                             {isOpen && (
-                              <div style={{ padding: "2px 18px 20px 38px" }}>
-                                <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1.04fr) minmax(0,1fr)", gap: 26, alignItems: "start" }}>
-
-                                  {/* Zone A: reconstruction comptable */}
-                                  <div>
-                                    <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
-                                      <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace" }}>
-                                        Reconstruction comptable
-                                      </span>
-                                    </div>
-                                    <div style={{ fontSize: 11, color: FAINT, marginBottom: 9 }}>{siloView.statement.titre}</div>
-                                    <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-                                      <tbody>
-                                        {siloView.statement.rows.map((row) => {
-                                          const isFlagged = !!row.flaggedBy;
-                                          const rowSev = row.severity ? SEV[row.severity] : null;
-                                          const isLinked = isFlagged && row.flaggedBy === selId;
-                                          return (
-                                            <tr
-                                              key={row.id}
-                                              onClick={() => isFlagged && setSelId(row.flaggedBy ?? null)}
-                                              style={{
-                                                cursor: isFlagged ? "pointer" : "default",
-                                                background: isLinked ? `${rowSev?.hex ?? "#ef4444"}14` : isFlagged ? "rgba(255,255,255,0.02)" : "transparent",
-                                                borderLeft: `2px solid ${rowSev ? rowSev.hex : "transparent"}`,
-                                                transition: "background .15s",
-                                              }}
-                                            >
-                                              <td style={{ padding: "8px 11px", verticalAlign: "baseline" }}>
-                                                <span style={{
-                                                  color: row.kind === "total" ? TEXT : row.kind === "sous-total" ? "#cdd6e2" : isFlagged && rowSev ? rowSev.hex : "#9aa6b6",
-                                                  fontWeight: row.kind === "total" ? 700 : row.kind === "sous-total" ? 600 : 400,
-                                                }}>
-                                                  {row.label}
-                                                </span>
-                                                {row.compte && (
-                                                  <code style={{ marginLeft: 7, fontSize: 10, color: FAINT, fontFamily: "monospace" }}>{row.compte}</code>
-                                                )}
-                                              </td>
-                                              <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
-                                                {eurRow(row.valeur)}
-                                              </td>
-                                            </tr>
-                                          );
-                                        })}
-                                      </tbody>
-                                    </table>
-                                  </div>
-
-                                  {/* Zone B: constat cards */}
-                                  <div>
-                                    <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace", marginBottom: 9 }}>
-                                      Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
-                                    </div>
-                                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
-                                      {(hasFilters ? filtered : findings).map((f) => {
-                                        const fSev = SEV[f.severity];
-                                        const fFam = FAM[f.family];
-                                        const isSelected = f.id === selId;
-                                        const dec = decisions[f.id];
-                                        return (
-                                          <div
-                                            key={f.id}
-                                            style={{
-                                              padding: "10px 13px", borderRadius: 9,
-                                              border: `1px solid ${isSelected ? fSev.hex + "50" : BORDER}`,
-                                              background: isSelected ? fSev.bg : "rgba(13,18,28,0.7)",
-                                              transition: "border-color .15s, background .15s",
-                                            }}
-                                          >
-                                            <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                                              <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, paddingTop: 2 }}>
-                                                <span style={{ width: 8, height: 8, borderRadius: "50%", background: fSev.hex, flexShrink: 0 }} />
-                                                <span style={{ fontFamily: "monospace", fontSize: 11, color: fFam.hex, lineHeight: 1 }}>{fFam.mark}</span>
-                                              </div>
-                                              <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, lineHeight: 1.35 }}>{f.titre}</div>
-                                                {dec && (
-                                                  <span style={{ display: "inline-block", marginTop: 4, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: dec === "valide" ? "#22c55e" : dec === "accepte" ? ACCENT : MUTED, border: `1px solid ${dec === "valide" ? "rgba(34,197,94,0.3)" : dec === "accepte" ? "rgba(91,157,255,0.3)" : "#333"}`, padding: "2px 7px", borderRadius: 5 }}>
-                                                    {dec === "valide" ? "Validé" : dec === "accepte" ? "Accepté" : "Écarté"}
-                                                  </span>
-                                                )}
-                                              </div>
-                                              <button
-                                                onClick={() => setSelId(isSelected ? null : f.id)}
-                                                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isSelected ? fSev.hex : ACCENT, background: "none", border: "none", cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap", flexShrink: 0 }}
-                                              >
-                                                {isSelected ? "Fermer" : "Analyser"}
-                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                                                  <path d={isSelected ? "M18 6 6 18M6 6l12 12" : "m9 18 6-6-6-6"} />
-                                                </svg>
-                                              </button>
-                                            </div>
-                                          </div>
-                                        );
-                                      })}
-                                      {(hasFilters ? filtered : findings).length === 0 && (
-                                        <div style={{ padding: "20px 0", textAlign: "center" as const, fontSize: 12, color: FAINT }}>
-                                          Aucun constat correspondant aux filtres.
-                                        </div>
-                                      )}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
+                              <SiloBody
+                                siloView={siloView}
+                                findings={findings}
+                                filtered={filtered}
+                                hasFilters={hasFilters}
+                                selId={selId}
+                                setSelId={setSelId}
+                                decisions={decisions}
+                              />
                             )}
                           </div>
                         );
