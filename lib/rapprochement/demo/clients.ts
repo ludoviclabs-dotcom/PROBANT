@@ -1,7 +1,7 @@
-import type { ReconstitutedStatement, SiloView } from "@/lib/canonical-model";
+import type { SiloView } from "@/lib/canonical-model";
 import type { MaterialityThresholds } from "@/lib/audit/materiality";
 import { rapprocher } from "../engine";
-import { resultToFindings } from "../to-findings";
+import { buildRapprochementSilo } from "../build";
 import type { DocumentSource, RapprochementConfig, ResultatRapprochement } from "../types";
 
 /**
@@ -54,6 +54,8 @@ export const CONFIG_CLIENTS: RapprochementConfig = {
   cles: ["tiers", "montant", "periode"],
   toleranceEur: 500,
   seuilAncienneteJours: 360,
+  detecterProvision: true, // cycle à créances : dépréciation des postes anciens
+  sources: { provision_insuffisante: "PCG_CREANCES", anteriorite: "PCG_CREANCES" },
 };
 
 /** Exécute le rapprochement Clients de démo. */
@@ -64,32 +66,12 @@ export function runClientsRapprochement(): ResultatRapprochement {
 }
 
 /**
- * Assemble une `SiloView` prête à afficher dans Cloisons / Synthèse :
- * état de rapprochement (Zone A) + constats d'écarts (Zone B).
+ * Assemble la `SiloView` Clients prête à afficher (Zone A état + Zone B constats).
  */
 export function buildClientsRapprochementSilo(
   th: MaterialityThresholds | null = null,
 ): SiloView {
-  const result = runClientsRapprochement();
-  const findings = resultToFindings(result, th);
-
-  const statement: ReconstitutedStatement = {
-    titre: "Rapprochement créances clients — balance âgée ↔ grand-livre 411",
-    unite: "EUR",
-    note: "Confrontation du détail par client (balance âgée) aux soldes comptables (compte 411).",
-    rows: [
-      { id: "rappro-source", label: "Solde balance âgée clients", compte: "411", valeur: Math.round(result.totalSource), kind: "ligne" },
-      { id: "rappro-cible", label: "Solde grand-livre auxiliaire 411", compte: "411", valeur: Math.round(result.totalCible), kind: "ligne" },
-      {
-        id: "rappro-ecart",
-        label: "Écart de rapprochement",
-        valeur: Math.round(result.ecartGlobal),
-        kind: "total",
-        flaggedBy: findings[0]?.id,
-        severity: findings[0]?.severity,
-      },
-    ],
-  };
-
-  return { siloId: CONFIG_CLIENTS.siloId, statement, findings };
+  return buildRapprochementSilo(BALANCE_AGEE_CLIENTS, GRAND_LIVRE_411, CONFIG_CLIENTS, th, {
+    dateReference: CLOTURE_DEMO,
+  });
 }

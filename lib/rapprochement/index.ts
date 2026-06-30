@@ -10,3 +10,9 @@ export * from "./types";
 export { rapprocher, joursEntre, type EngineOptions } from "./engine";
 export { resultToFindings } from "./to-findings";
 export { refineEcart } from "./qualify";
+export { buildRapprochementSilo } from "./build";
+export {
+  lignesDepuisTableur,
+  documentDepuisTableur,
+  type MappageColonnes,
+} from "./adapters/tabular";

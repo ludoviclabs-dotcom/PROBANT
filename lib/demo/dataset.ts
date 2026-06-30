@@ -6,7 +6,7 @@ import type {
 } from "@/lib/canonical-model";
 import { REFERENTIEL_VERSION, SOURCES } from "@/lib/referentiel/sources";
 import { computeMateriality } from "@/lib/audit/materiality";
-import { buildClientsRapprochementSilo } from "@/lib/rapprochement/demo/clients";
+import { buildAllRapprochementSilos } from "@/lib/rapprochement/demo";
 
 /**
  * Dataset de démonstration — société fictive DEMO SA.
@@ -1144,11 +1144,12 @@ const admissibilite: Finding[] = [
   },
 ];
 
-/* ───────────────────── Rapprochement créances clients ───────────────────── */
-/* Silo issu du module multi-documents (balance âgée ↔ grand-livre 411).      */
-/* Seuil ISA 320 calculé sur le CA pour pondérer le risque de faux positif.   */
+/* ──────────────────── Rapprochements multi-documents (8 cycles) ──────────── */
+/* Silos issus du module rapprochement (balance âgée ↔ GL, inventaire ↔ compta,*/
+/* relevés ↔ 512, CA3 ↔ TVA, etc.). Seuil ISA 320 calculé sur le CA pour       */
+/* pondérer le risque de faux positif de chaque écart.                        */
 
-const siloRapproClients: SiloView = buildClientsRapprochementSilo(
+const silosRapprochement: SiloView[] = buildAllRapprochementSilos(
   computeMateriality({ chiffreAffaires: 6340000 }),
 );
 
@@ -1172,7 +1173,6 @@ export const DEMO_DOSSIER: Dossier = {
     siloImmoFin,
     siloStock,
     siloClients,
-    siloRapproClients,
     siloCCA,
     siloTreso,
     // Bilan — Passif
@@ -1191,5 +1191,7 @@ export const DEMO_DOSSIER: Dossier = {
     siloResExc,
     // Annexe
     siloEngag,
+    // Rapprochements multi-documents (8 cycles)
+    ...silosRapprochement,
   ],
 };

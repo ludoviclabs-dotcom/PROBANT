@@ -78,8 +78,23 @@ export interface RapprochementConfig {
   cles: CleRapprochement[];
   /** Tolérance d'écart en euros sous laquelle on ne signale rien. */
   toleranceEur: number;
-  /** Seuil d'antériorité (jours) au-delà duquel une créance/dette est ancienne. */
+  /** Seuil d'antériorité (jours) au-delà duquel un poste est ancien. */
   seuilAncienneteJours?: number;
+  /**
+   * Active la détection de dépréciation insuffisante sur les postes anciens
+   * non lettrés (pertinent pour les créances ; faux pour les autres cycles).
+   */
+  detecterProvision?: boolean;
+  /**
+   * Surcharge de la clé de source normative par qualification (sinon défaut :
+   * provision/antériorité → PCG_CREANCES, reste → ISA_500). Permet d'aligner
+   * la référence sur le cycle (ex. trésorerie → ISA_505).
+   */
+  sources?: Partial<Record<QualificationEcart, string>>;
+  /** Libellé court de l'état source (affichage). */
+  labelSource?: string;
+  /** Libellé court de l'état de contrôle (affichage). */
+  labelCible?: string;
 }
 
 /** Niveau auquel un écart est détecté. */
