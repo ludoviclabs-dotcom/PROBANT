@@ -716,6 +716,7 @@ function SiloBody({
                 <div
                   key={f.id}
                   data-tour={fi === 0 ? (siloView.siloId === "rapprochement-clients" ? "cloison-rappro" : "cloison-constat") : undefined}
+                  data-tour-flag={fi === 0 ? f.severity : undefined}
                   ref={(el) => { if (el) cardRefs.current.set(f.id, el); else cardRefs.current.delete(f.id); }}
                   style={{
                     padding: "10px 13px", borderRadius: 9,
