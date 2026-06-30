@@ -63,29 +63,55 @@ function findingInc(f: Finding): number {
 // ── Sub-components ─────────────────────────────────────────────────────
 
 function GaugeSVG({ score, hex }: { score: number; hex: string }) {
-  const cx = 110, cy = 105, r = 84;
+  const cx = 120, cy = 108, r = 82;
   const circ = Math.PI * r;
   const filled = (score / 100) * circ;
   const path = `M${cx - r},${cy} A${r},${r} 0 0,1 ${cx + r},${cy}`;
+
+  // angle on semicircle: score=0 → left (π), score=100 → right (0)
+  const sAngle = (s: number) => Math.PI * (1 - s / 100);
+  const needleA = sAngle(score);
+  const needleR = r - 10;
+  const nx = cx + needleR * Math.cos(needleA);
+  const ny = cy - needleR * Math.sin(needleA);  // subtract: SVG y goes down
+
+  const TICKS = [0, 25, 50, 75, 100];
+
   return (
-    <svg viewBox="0 0 220 112" width={216} height={112}>
+    <svg viewBox="0 0 240 122" width={236} height={122}>
       <defs>
         <filter id="gauge-glow" x="-20%" y="-20%" width="140%" height="140%">
-          <feGaussianBlur stdDeviation="4" result="blur" />
-          <feMerge>
-            <feMergeNode in="blur" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
+          <feGaussianBlur stdDeviation="3.5" result="b" />
+          <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
         </filter>
       </defs>
-      <path d={path} fill="none" stroke={SURF3} strokeWidth={13} strokeLinecap="round" />
-      <path
-        d={path} fill="none" stroke={hex} strokeWidth={13} strokeLinecap="round"
-        strokeDasharray={`${filled} ${circ}`}
-        filter="url(#gauge-glow)"
-      />
-      <text x={cx} y={cy - 16} textAnchor="middle" fontSize={38} fontWeight={700} fill={TEXT} fontFamily="inherit">{score}</text>
-      <text x={cx} y={cy + 2} textAnchor="middle" fontSize={9} fontWeight={600} fill={FAINT} fontFamily="inherit" letterSpacing={2}>SCORE DE RISQUE</text>
+      {/* Track */}
+      <path d={path} fill="none" stroke={SURF3} strokeWidth={12} strokeLinecap="round" />
+      {/* Fill */}
+      <path d={path} fill="none" stroke={hex} strokeWidth={12} strokeLinecap="round"
+        strokeDasharray={`${filled} ${circ}`} filter="url(#gauge-glow)" />
+      {/* Tick marks + labels */}
+      {TICKS.map(t => {
+        const a  = sAngle(t);
+        const ca = Math.cos(a), sa = Math.sin(a);
+        const x0 = cx + (r - 4) * ca, y0 = cy - (r - 4) * sa;
+        const x1 = cx + (r + 4) * ca, y1 = cy - (r + 4) * sa;
+        const lx = cx + (r + 16) * ca, ly = cy - (r + 16) * sa;
+        return (
+          <g key={t}>
+            <line x1={x0.toFixed(1)} y1={y0.toFixed(1)} x2={x1.toFixed(1)} y2={y1.toFixed(1)} stroke={BORDER} strokeWidth={1.5} />
+            <text x={lx.toFixed(1)} y={ly.toFixed(1)} textAnchor="middle" dominantBaseline="middle"
+              fontSize={7.5} fill={FAINT} fontFamily="inherit">{t}</text>
+          </g>
+        );
+      })}
+      {/* Needle */}
+      <line x1={cx} y1={cy} x2={nx.toFixed(1)} y2={ny.toFixed(1)}
+        stroke="#c8d4e8" strokeWidth={2} strokeLinecap="round" />
+      <circle cx={cx} cy={cy} r={5} fill="#c8d4e8" />
+      {/* Score + label */}
+      <text x={cx} y={cy - 20} textAnchor="middle" fontSize={34} fontWeight={700} fill={TEXT} fontFamily="inherit">{score}</text>
+      <text x={cx} y={cy - 3} textAnchor="middle" fontSize={8} fontWeight={500} fill={FAINT} fontFamily="inherit" letterSpacing={1}>indice</text>
     </svg>
   );
 }
@@ -345,59 +371,77 @@ export default function SynthesePage() {
         marginBottom: 16,
       }}>
         <div style={{ position: "absolute", inset: 0, background: `radial-gradient(680px 320px at 18% -10%,${vHex}26,transparent 70%)`, pointerEvents: "none" }} />
-        <div style={{ position: "relative", padding: "28px 32px", display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 36, alignItems: "center" }}>
-          {/* Gauge */}
-          <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center" }}>
+        <div style={{ position: "relative", padding: "22px 26px", display: "flex", flexWrap: "wrap" as const, gap: 24, alignItems: "center" }}>
+
+          {/* ── Gauge + badge ── */}
+          <div style={{ flex: "0 0 216px", display: "flex", flexDirection: "column" as const, alignItems: "center" }}>
             <GaugeSVG score={score} hex={vHex} />
+            <span style={{ marginTop: 4, display: "inline-flex", alignItems: "center", gap: 6, borderRadius: 999, border: `1px solid ${vHex}50`, background: `${vHex}18`, padding: "3px 11px", fontSize: 11, fontWeight: 600, color: vHex }}>
+              <span style={{ width: 7, height: 7, borderRadius: "50%", background: vHex }} />
+              Exposition {vLabel.toLowerCase()}
+            </span>
           </div>
 
-          {/* Verdict text */}
-          <div>
-            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT }}>État du dossier</div>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-              <h3 style={{ fontSize: 28, fontWeight: 700, color: vHex, margin: 0 }}>{vLabel}</h3>
-              {c.bloquantesAdmissibilite > 0 && (
-                <span style={{ background: "#ef444420", border: "1px solid #ef444440", borderRadius: 999, padding: "2px 10px", fontSize: 10, fontWeight: 600, color: "#ef4444" }}>
-                  ⚠ {c.bloquantesAdmissibilite} alerte{c.bloquantesAdmissibilite > 1 ? "s" : ""} bloquante{c.bloquantesAdmissibilite > 1 ? "s" : ""}
+          {/* ── Verdict text + metrics ── */}
+          <div style={{ flex: "1 1 340px", minWidth: 280 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".1em", color: FAINT }}>État du dossier</div>
+            <div style={{ marginTop: 7, display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" as const }}>
+              {c.bloquantesAdmissibilite > 0 ? (
+                <>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 9, border: "1px solid rgba(239,68,68,.45)", background: "#2a1416", padding: "5px 11px", fontSize: 12, fontWeight: 600, color: "#ef4444" }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7.86 2h8.28L22 7.86v8.28L16.14 22H7.86L2 16.14V7.86z" /><path d="M12 8v4" /><path d="M12 16h.01" /></svg>
+                    {c.bloquantesAdmissibilite} alerte{c.bloquantesAdmissibilite > 1 ? "s" : ""} bloquante{c.bloquantesAdmissibilite > 1 ? "s" : ""}
+                  </span>
+                  <span style={{ fontSize: 13, color: MUTED }}>à traiter avant de conclure l'analyse.</span>
+                </>
+              ) : (
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 9, border: "1px solid rgba(34,197,94,.35)", background: "#07271a", padding: "5px 11px", fontSize: 12, fontWeight: 600, color: "#22c55e" }}>
+                  Aucune alerte bloquante
                 </span>
               )}
             </div>
-            <p style={{ marginTop: 8, fontSize: 13, color: MUTED, maxWidth: 420 }}>
-              {score >= 75
-                ? "Des non-conformités critiques requièrent une intervention immédiate avant tout dépôt."
+            <p style={{ margin: "12px 0 0", maxWidth: 520, fontSize: 13.5, lineHeight: 1.55, color: TEXT }}>
+              {c.bloquantesAdmissibilite > 0
+                ? `Le dossier reste exploitable, mais ${c.bloquantesAdmissibilite} alerte${c.bloquantesAdmissibilite > 1 ? "s" : ""} bloquante${c.bloquantesAdmissibilite > 1 ? "s" : ""} doivent être traitées avant de conclure. ${c.totalFindings} constats restent en revue pour ${formatEur(totalInc)} d'incidence potentielle.`
                 : score >= 50
-                ? "Le niveau d'exposition est élevé. La revue cloison par cloison est prioritaire."
-                : score >= 25
-                ? "Des écarts modérés ont été détectés. Un examen ciblé des constats majeurs est recommandé."
-                : "Le dossier présente un profil de risque faible. Vérification de routine suffisante."}
+                ? `${formatEur(totalInc)} d'incidence potentielle ont été identifiés sur ${c.totalFindings} constats. La revue par cloison est recommandée en priorité.`
+                : `${c.totalFindings} constats ont été relevés sans alerte bloquante. La revue peut être conduite normalement.`}
             </p>
-            <div style={{ marginTop: 16, display: "flex", gap: 10, flexWrap: "wrap" as const }}>
-              <Link
-                href="/dashboard/cloisons"
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, background: ACCENT, borderRadius: 9, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#06122a", textDecoration: "none" }}
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" /></svg>
-                Ouvrir revue cloison
-              </Link>
-              <button style={{ display: "inline-flex", alignItems: "center", gap: 6, border: `1px solid ${BORDER}`, borderRadius: 9, padding: "8px 16px", fontSize: 13, fontWeight: 500, color: MUTED, background: SURF2, cursor: "pointer" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /></svg>
-                Générer note synthèse
-              </button>
+            {/* 3 metrics */}
+            <div style={{ marginTop: 16, display: "flex", gap: 26, flexWrap: "wrap" as const }}>
+              {([
+                { label: "incidence potentielle retenue", value: formatEur(totalInc) },
+                { label: "revue traitée",                  value: `${reviewPct} %` },
+                { label: "constats actifs",               value: String(c.totalFindings) },
+              ] as const).map((m, i) => (
+                <div key={i} style={{ display: "flex", gap: 26 }}>
+                  {i > 0 && <div style={{ width: 1, background: BORDER }} />}
+                  <div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: TEXT, fontVariantNumeric: "tabular-nums", fontFamily: "monospace" }}>{m.value}</div>
+                    <div style={{ fontSize: 11, color: FAINT }}>{m.label}</div>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* 3 big numbers */}
-          <div style={{ display: "flex" }}>
-            {([
-              { label: "Incidence potentielle", value: formatEur(totalInc), color: "#f97316" },
-              { label: "Revue traitée",          value: `${reviewPct}%`,     color: "#22c55e" },
-              { label: "Constats actifs",        value: String(c.totalFindings), color: ACCENT },
-            ] as const).map((item, i) => (
-              <div key={i} style={{ padding: "0 22px", borderLeft: i > 0 ? `1px solid ${SEP}` : "none", textAlign: "center" as const }}>
-                <div style={{ fontSize: 26, fontWeight: 700, color: item.color, fontVariantNumeric: "tabular-nums" }}>{item.value}</div>
-                <div style={{ fontSize: 10, color: FAINT, marginTop: 3, whiteSpace: "nowrap" as const }}>{item.label}</div>
-              </div>
-            ))}
+          {/* ── Action buttons ── */}
+          <div style={{ flex: "1 1 210px", display: "flex", flexDirection: "column" as const, gap: 9, minWidth: 196 }}>
+            <Link
+              href="/dashboard/cloisons"
+              style={{ display: "inline-flex", alignItems: "center", justifyContent: "space-between", gap: 8, border: "none", borderRadius: 11, background: ACCENT, color: "#06122a", padding: "12px 16px", fontSize: 13, fontWeight: 700, textDecoration: "none" }}
+            >
+              Ouvrir la revue par cloison
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
+            </Link>
+            <button style={{ display: "inline-flex", alignItems: "center", gap: 9, border: `1px solid ${BORDER}`, borderRadius: 11, background: SURF2, color: TEXT, padding: "11px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" /><path d="M9 13h6" /><path d="M9 17h3" /></svg>
+              Générer la note de synthèse
+            </button>
+            <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, border: `1px dashed ${MUTED}`, borderRadius: 11, background: "transparent", color: MUTED, padding: "9px 16px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
+              Réinitialiser la simulation
+            </button>
           </div>
         </div>
       </section>
@@ -421,7 +465,13 @@ export default function SynthesePage() {
 
       {/* ── Nature des règles ────────────────────────────────────────── */}
       <section style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: SURF2, padding: "16px 18px", marginBottom: 16 }}>
-        <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT, marginBottom: 10 }}>Nature des règles</div>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" as const, marginBottom: 14 }}>
+          <div>
+            <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT }}>Nature des règles · poids juridique</div>
+            <h3 style={{ margin: "3px 0 0", fontSize: 14, fontWeight: 600, color: TEXT }}>Ce qui est opposable vs ce qui appelle une investigation</h3>
+          </div>
+          <span style={{ fontSize: 11, color: FAINT, flexShrink: 0 }}>cliquer pour filtrer le journal des constats ↓</span>
+        </div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))", gap: 14 }}>
           {(["hardLaw", "methodology", "internal"] as const).map(nat => {
             const count  = c.parFamille[nat] ?? 0;
@@ -432,22 +482,24 @@ export default function SynthesePage() {
               <button
                 key={nat}
                 onClick={() => setNatFilter(active ? null : nat)}
-                style={{ textAlign: "left" as const, cursor: "pointer", border: `1px solid ${active ? `${color}60` : BORDER}`, borderRadius: 12, background: active ? `${color}14` : SURFACE, padding: "14px 16px" }}
+                style={{ textAlign: "left" as const, cursor: "pointer", border: `1px solid ${active ? `${color}60` : BORDER}`, borderRadius: 12, background: active ? `${color}14` : SURFACE, padding: "14px" }}
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-                  <span style={{ width: 8, height: 8, borderRadius: 2, background: color, display: "inline-block" }} />
-                  <span style={{ fontSize: 11, fontWeight: 600, color: MUTED, textTransform: "uppercase" as const, letterSpacing: ".06em" }}>{NAT_LABEL[nat]}</span>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                  <span style={{ display: "inline-flex", alignItems: "center", gap: 8, fontSize: 12, fontWeight: 600, color }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 3, background: color, display: "inline-block" }} />
+                    {nat === "hardLaw" ? "Droit dur (opposable)" : nat === "methodology" ? "Présomption d'audit" : "Paramètre interne"}
+                  </span>
+                  <span style={{ fontSize: 26, fontWeight: 800, color, fontVariantNumeric: "tabular-nums" }}>{count}</span>
                 </div>
-                <div style={{ fontSize: 30, fontWeight: 700, color, fontVariantNumeric: "tabular-nums" }}>{count}</div>
-                <div style={{ marginTop: 10, height: 7, borderRadius: 4, background: SURF3, overflow: "hidden" }}>
-                  <div style={{ height: "100%", borderRadius: 4, background: color, width: `${pct}%` }} />
+                <div style={{ marginTop: 11, height: 7, borderRadius: 5, background: SURF3, overflow: "hidden" }}>
+                  <div style={{ height: "100%", borderRadius: 5, background: color, width: `${pct}%` }} />
                 </div>
-                <p style={{ margin: "8px 0 0", fontSize: 11, color: FAINT, lineHeight: 1.5 }}>
+                <p style={{ margin: "9px 0 0", fontSize: 11, lineHeight: 1.45, color: MUTED }}>
                   {nat === "hardLaw"
-                    ? "Non-conformités au droit dur (LPF, PCG, Code de commerce)."
+                    ? "Contrainte réglementaire opposable — LPF, PCG, Code de commerce. Une non-conformité fonde directement un constat."
                     : nat === "methodology"
-                    ? "Présomptions selon les normes d'audit (ISA, ISRE)."
-                    : "Heuristiques internes du référentiel PROBANT."}
+                    ? "Procédure ou présomption issue des normes d'audit (ISA, ISRE) : signal qui appelle une investigation."
+                    : "Heuristique ou seuil propre à PROBANT, non opposable : vigilance analytique à corroborer."}
                 </p>
               </button>
             );
