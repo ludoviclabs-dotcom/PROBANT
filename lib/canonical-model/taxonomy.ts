@@ -126,6 +126,27 @@ export const SILOS: Silo[] = [
       "Confrontation balance âgée ↔ grand-livre auxiliaire : écarts de solde, périmètre et dépréciation.",
   },
   {
+    id: "rapprochement-stocks",
+    label: "Rapprochement stocks",
+    cloison: "bilan-actif",
+    comptes: ["3"],
+    description: "Confrontation inventaire physique ↔ comptabilité : écarts de quantité/valeur.",
+  },
+  {
+    id: "rapprochement-immobilisations",
+    label: "Rapprochement immobilisations",
+    cloison: "bilan-actif",
+    comptes: ["21", "28"],
+    description: "Confrontation tableau des immobilisations & amortissements ↔ balance.",
+  },
+  {
+    id: "rapprochement-tresorerie",
+    label: "Rapprochement bancaire",
+    cloison: "bilan-actif",
+    comptes: ["512"],
+    description: "Confrontation soldes comptables ↔ relevés bancaires (confirmations).",
+  },
+  {
     id: "cca",
     label: "Charges constatées d'avance",
     cloison: "bilan-actif",
@@ -233,6 +254,35 @@ export const SILOS: Silo[] = [
     comptes: ["80", "801", "802", "8016"],
     description:
       "Engagements donnés et reçus : cautions, avals, garanties, crédit-bail, retraites.",
+  },
+  // --- Silos de rapprochement multi-documents (module rapprochement) ---
+  {
+    id: "rapprochement-fournisseurs",
+    label: "Rapprochement fournisseurs",
+    cloison: "bilan-passif",
+    comptes: ["401"],
+    description: "Confrontation balance âgée fournisseurs ↔ grand-livre auxiliaire 401.",
+  },
+  {
+    id: "rapprochement-capitaux",
+    label: "Rapprochement capitaux propres",
+    cloison: "bilan-passif",
+    comptes: ["10"],
+    description: "Confrontation tableau de variation des CP ↔ comptabilité (classe 10).",
+  },
+  {
+    id: "rapprochement-paie",
+    label: "Rapprochement paie",
+    cloison: "resultat",
+    comptes: ["64"],
+    description: "Confrontation livre de paie / DSN ↔ comptabilité (64/43).",
+  },
+  {
+    id: "rapprochement-fiscal",
+    label: "Rapprochement TVA & fiscalité",
+    cloison: "tva-fiscalite",
+    comptes: ["445"],
+    description: "Confrontation déclarations CA3 ↔ comptabilité TVA, et CA déclaré ↔ comptable.",
   },
 ];
 

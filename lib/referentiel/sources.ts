@@ -38,7 +38,8 @@ type SourceKey =
   | "PCG_CREANCES"
   | "CCOM_CAPITAL"
   | "PCG_ENGAGEMENTS"
-  | "PCG_FNP";
+  | "PCG_FNP"
+  | "CGI_TVA";
 
 const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
   LPF_A47A1: {
@@ -182,6 +183,13 @@ const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
       "Le compte 408 « Fournisseurs - Factures non parvenues » enregistre, à la clôture, les dettes relatives à des biens ou services reçus dont la facture n'est pas encore parvenue, afin de rattacher la charge à l'exercice. Il est contre-passé à l'ouverture de l'exercice suivant.",
     effectiveDate: "2024-01-01",
   },
+  CGI_TVA: {
+    ref: "CGI art. 271",
+    citation:
+      "La taxe sur la valeur ajoutée qui a grevé les éléments du prix d'une opération imposable est déductible de la taxe applicable à cette opération. Le droit à déduction prend naissance lorsque la taxe déductible devient exigible chez le redevable. La TVA collectée et déductible comptabilisée doit concorder avec les déclarations souscrites (CA3).",
+    effectiveDate: "2024-01-01",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000044989902",
+  },
 };
 
 /**
@@ -215,6 +223,7 @@ export const SOURCE_THEME: Record<SourceKey, SourceTheme> = {
   CCOM_CAPITAL: "Présentation",
   PCG_ENGAGEMENTS: "Présentation",
   PCG_FNP: "Rattachement",
+  CGI_TVA: "Comptabilisation",
 };
 
 /**

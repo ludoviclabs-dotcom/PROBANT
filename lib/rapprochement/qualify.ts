@@ -1,9 +1,18 @@
-import type { Severity } from "@/lib/canonical-model/finding";
+import type { QualificationEcart, Severity } from "@/lib/canonical-model/finding";
 import type {
   DocumentLigne,
   EcartRapprochement,
   RapprochementConfig,
 } from "./types";
+
+/** Clé de source : surcharge du cycle sinon défaut normatif. */
+function sourceFor(
+  config: RapprochementConfig,
+  qualif: QualificationEcart,
+  fallback: string,
+): string {
+  return config.sources?.[qualif] ?? fallback;
+}
 
 /**
  * Raffinement de la qualification d'un écart structurel produit par le moteur.
@@ -36,17 +45,18 @@ export function refineEcart(
   const seuilAnc = config.seuilAncienneteJours ?? 360;
   const ancien = base.ancienneteJours != null && base.ancienneteJours > seuilAnc;
   const nonDeprecie = rep?.lettre !== true; // lettre=true ⇒ déjà déprécié/lettré
+  const provisionActive = config.detecterProvision === true;
 
   // 1) Créance ancienne non dépréciée → dépréciation insuffisante (PCG 214-17).
-  // L'enjeu n'est pas l'écart A/B mais la créance à risque : on l'exprime en
-  // « constaté = créance / attendu = dépréciation (0) ».
-  if (ancien && nonDeprecie && base.qualification !== "perimetre") {
+  // Réservé aux cycles à créances (config.detecterProvision). L'enjeu n'est pas
+  // l'écart A/B mais la créance à risque : « constaté = créance / attendu = 0 ».
+  if (provisionActive && ancien && nonDeprecie && base.qualification !== "perimetre") {
     const creance = base.montantSource || base.montantCible;
     return {
       ...base,
       qualification: "provision_insuffisante",
       severite: "majeur",
-      sourceKey: "PCG_CREANCES",
+      sourceKey: sourceFor(config, "provision_insuffisante", "PCG_CREANCES"),
       montantSource: creance,
       montantCible: 0,
       ecart: creance,
@@ -54,7 +64,7 @@ export function refineEcart(
     };
   }
 
-  // 2) Présent dans un seul document → écart de périmètre (ISA 500).
+  // 2) Présent dans un seul document → écart de périmètre (exhaustivité).
   if (base.qualification === "perimetre") {
     const sens =
       base.montantSource !== 0
@@ -63,39 +73,39 @@ export function refineEcart(
     return {
       ...base,
       severite: graviteParMagnitude(ecartAbs, tol, "majeur"),
-      sourceKey: "ISA_500",
+      sourceKey: sourceFor(config, "perimetre", "ISA_500"),
       constat: `${base.libelle} : ${eur(base.montantSource || base.montantCible)} ${sens} — à rapprocher ou justifier (exhaustivité).`,
     };
   }
 
-  // 3) Créance ancienne (mais traitée) → écart d'antériorité (PCG 214-17).
-  if (ancien) {
+  // 3) Poste ancien (cycle à créances, déjà traité) → écart d'antériorité.
+  if (provisionActive && ancien) {
     return {
       ...base,
       qualification: "anteriorite",
       severite: graviteParMagnitude(ecartAbs, tol, "mineur"),
-      sourceKey: "PCG_CREANCES",
+      sourceKey: sourceFor(config, "anteriorite", "PCG_CREANCES"),
       constat: `${base.libelle} : poste échu depuis ${base.ancienneteJours} jours, écart de ${eur(base.ecart)} entre les deux documents.`,
     };
   }
 
-  // 4) Écart de solde rapprochable mais non lettré → lettrage (ISA 500).
+  // 4) Écart de solde rapprochable mais non lettré → lettrage.
   if (rep?.piece && nonDeprecie && ecartAbs <= tol * 8) {
     return {
       ...base,
       qualification: "lettrage",
       severite: "mineur",
-      sourceKey: "ISA_500",
+      sourceKey: sourceFor(config, "lettrage", "ISA_500"),
       constat: `${base.libelle} : montant de ${eur(base.ecart)} non rapproché (pièce ${rep.piece}). À lettrer ou justifier.`,
     };
   }
 
-  // 5) Défaut : écart de rapprochement de solde (ISA 500).
+  // 5) Défaut : écart de rapprochement de solde.
   return {
     ...base,
     qualification: "rapprochement_solde",
     severite: graviteParMagnitude(ecartAbs, tol, "mineur"),
-    sourceKey: "ISA_500",
+    sourceKey: sourceFor(config, "rapprochement_solde", "ISA_500"),
     constat: `${base.libelle} : écart de ${eur(base.ecart)} entre ${eur(base.montantSource)} (source) et ${eur(base.montantCible)} (contrôle).`,
   };
 }
