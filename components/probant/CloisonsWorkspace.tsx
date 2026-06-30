@@ -30,17 +30,17 @@ export interface ScenarioInfo {
 
 /* ── design constants ───────────────────────────────────────────────────────── */
 
-const SEV: Record<Severity, { hex: string; bg: string; label: string }> = {
-  bloquant:   { hex: "#ef4444", bg: "rgba(239,68,68,0.12)",   label: "Bloquant"   },
-  majeur:     { hex: "#f97316", bg: "rgba(249,115,22,0.12)",  label: "Majeur"     },
-  mineur:     { hex: "#eab308", bg: "rgba(234,179,8,0.12)",   label: "Mineur"     },
-  informatif: { hex: "#3b82f6", bg: "rgba(59,130,246,0.12)",  label: "Informatif" },
+const SEV: Record<Severity, { hex: string; bg: string; line: string; label: string }> = {
+  bloquant:   { hex: "#ef4d5a", bg: "rgba(239,77,90,.13)",    line: "rgba(239,77,90,.4)",   label: "Bloquant"   },
+  majeur:     { hex: "#f0923f", bg: "rgba(240,146,63,.13)",   line: "rgba(240,146,63,.36)", label: "Majeur"     },
+  mineur:     { hex: "#e3bd4d", bg: "rgba(227,189,77,.12)",   line: "rgba(227,189,77,.34)", label: "Mineur"     },
+  informatif: { hex: "#8a96a6", bg: "rgba(138,150,166,.12)",  line: "rgba(138,150,166,.32)", label: "Informatif" },
 };
 
 const FAM: Record<FindingFamily, { mark: string; hex: string; label: string; desc: string }> = {
-  hardLaw:     { mark: "§",  hex: "#ef4444", label: "Obligatoire",       desc: "Contrainte réglementaire dure (LPF, PCG). Non négociable." },
-  methodology: { mark: "⊙", hex: "#a78bfa", label: "Méthode d'audit",   desc: "Présomption d'anomalie selon les procédures analytiques (ISA)." },
-  internal:    { mark: "≈",  hex: "#38bdf8", label: "Paramètre interne", desc: "Heuristique ou seuil propre à PROBANT." },
+  hardLaw:     { mark: "§",  hex: "#ef4d5a", label: "Obligatoire",        desc: "Nature : norme à application obligatoire (LPF, PCG). Non négociable." },
+  methodology: { mark: "≈",  hex: "#a78bfa", label: "Présomption d'audit", desc: "Nature : diligence et jugement professionnel (ISA, ISRE)." },
+  internal:    { mark: "±",  hex: "#38bdf8", label: "Paramètre interne",   desc: "Nature : seuil interne paramétrable propre à PROBANT." },
 };
 
 const ACCENT  = "#5b9dff";
@@ -53,13 +53,24 @@ const SEP     = "#1a2029";
 
 /* ── utilities ──────────────────────────────────────────────────────────────── */
 
+/** Euros pleins, valeur absolue : "85 000 €" (jamais compacté en k€). */
 function formatEur(n: number): string {
+  const v = Math.round(Math.abs(n));
+  return `${v.toLocaleString("fr-FR").replace(/ /g, " ")} €`;
+}
+
+/** Ligne d'état : négatif entre parenthèses "(55 000 €)", zéro "—". */
+function eurRow(n: number): string {
+  if (Math.round(n) === 0) return "—";
+  return n < 0 ? `(${formatEur(n)})` : formatEur(n);
+}
+
+/** Montant compact : "2,50 M€" au-delà du million, sinon euros pleins. */
+function compactEur(n: number): string {
   const abs = Math.abs(n);
-  const sign = n < 0 ? "−" : "";
   if (abs === 0) return "—";
-  if (abs >= 1_000_000) return `${sign}${(abs / 1_000_000).toFixed(1).replace(".", ",")} M€`;
-  if (abs >= 1_000)     return `${sign}${Math.round(abs / 1_000)} k€`;
-  return `${sign}${abs.toLocaleString("fr-FR")} €`;
+  if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(2).replace(".", ",")} M€`;
+  return formatEur(n);
 }
 
 function formatMesure(f: Finding): string {
@@ -81,9 +92,10 @@ function formatSeuil(f: Finding): string {
 function formatEcart(f: Finding): string {
   const { constate, seuil, unite } = f.mesure;
   const e = constate - seuil;
-  if (unite === "EUR") return formatEur(e);
-  if (unite === "%")   return `${(e * 100).toFixed(1)} pp`;
-  return e.toFixed(2);
+  const sign = e > 0 ? "+" : e < 0 ? "−" : "";
+  if (unite === "EUR") return `${sign}${formatEur(e)}`;
+  if (unite === "%")   return `${e > 0 ? "+" : ""}${(e * 100).toFixed(1)} pp`;
+  return `${e > 0 ? "+" : ""}${e.toFixed(2)}`;
 }
 
 function worstSev(findings: Finding[]): Severity | null {
@@ -93,9 +105,11 @@ function worstSev(findings: Finding[]): Severity | null {
   ).severity;
 }
 
+/** Score d'exposition fixe selon la gravité dominante du silo (design Claude). */
 function computeScore(findings: Finding[]): number {
-  const w: Record<Severity, number> = { bloquant: 30, majeur: 15, mineur: 5, informatif: 1 };
-  return Math.min(100, findings.reduce((s, f) => s + w[f.severity], 0));
+  const worst = worstSev(findings);
+  if (!worst) return 0;
+  return ({ bloquant: 96, majeur: 72, mineur: 44, informatif: 20 } as Record<Severity, number>)[worst];
 }
 
 function computeExpo(findings: Finding[]): number {
@@ -104,16 +118,22 @@ function computeExpo(findings: Finding[]): number {
     .reduce((s, f) => s + Math.abs(f.mesure.constate - f.mesure.seuil), 0);
 }
 
+/** 5 segments ; n remplis selon le risque de faux positif (faible 4, moyen 3, élevé 2). */
 function confBarSegs(risk?: FauxPositifRisk): string[] {
-  if (!risk || risk === "faible") return ["#22c55e", "#22c55e", "#1b2230", "#1b2230", "#1b2230"];
-  if (risk === "moyen")           return ["#eab308", "#eab308", "#eab308", "#1b2230", "#1b2230"];
-  return                                 ["#f97316", "#f97316", "#f97316", "#f97316", "#f97316"];
+  const n = !risk || risk === "faible" ? 4 : risk === "moyen" ? 3 : 2;
+  return [1, 2, 3, 4, 5].map((i) => (i <= n ? "#aeb8c6" : "#2a3340"));
 }
 
 function confBarLabel(risk?: FauxPositifRisk): string {
-  if (!risk || risk === "faible") return "Risque faible";
-  if (risk === "moyen")           return "Risque moyen";
-  return "Risque élevé";
+  if (!risk || risk === "faible") return "Confiance élevée";
+  if (risk === "moyen")           return "Confiance modérée";
+  return "Confiance à conforter";
+}
+
+function confBarProb(risk?: FauxPositifRisk): string {
+  if (!risk || risk === "faible") return "faible";
+  if (risk === "moyen")           return "possible";
+  return "à confirmer";
 }
 
 function groupByCloison(silos: SiloView[]) {
@@ -265,6 +285,8 @@ function RailPanel({
 
   const segs = confBarSegs(finding.fauxPositifRisk);
   const riskLabel = confBarLabel(finding.fauxPositifRisk);
+  const riskProb = confBarProb(finding.fauxPositifRisk);
+  const contextCaption = `${finding.mesure.libelle ? finding.mesure.libelle.charAt(0).toUpperCase() + finding.mesure.libelle.slice(1) : "Mesure"} · réf. ${finding.source.ref}`;
 
   function decStyle(d: UserDecision) {
     const active = decision === d;
@@ -334,6 +356,7 @@ function RailPanel({
                 </div>
               ))}
             </div>
+            <div style={{ marginTop: 8, fontSize: 10.5, color: FAINT }}>{contextCaption}</div>
           </div>
         ) : (
           <div style={{ marginTop: 13 }}>
@@ -359,10 +382,13 @@ function RailPanel({
         <div style={{ marginTop: 13, display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 9, background: SURFACE }}>
           <div style={{ display: "flex", gap: 3 }}>
             {segs.map((color, i) => (
-              <span key={i} style={{ width: 24, height: 5, borderRadius: 3, background: color }} />
+              <span key={i} style={{ width: 15, height: 6, borderRadius: 2, background: color }} />
             ))}
           </div>
-          <span style={{ fontSize: 10.5, color: MUTED }}>{riskLabel}</span>
+          <div style={{ minWidth: 0 }}>
+            <div style={{ fontSize: 11, fontWeight: 600, color: "#cdd6e2" }}>{riskLabel}</div>
+            <div style={{ fontSize: 10, color: "#6a7587" }}>Probabilité de faux positif : {riskProb}</div>
+          </div>
         </div>
       </div>
 
@@ -654,7 +680,7 @@ export function CloisonsWorkspace({
                 <span style={{ width: 1, height: 14, background: "#222a36" }} />
                 <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
                   <span style={{ fontSize: 11, color: MUTED }}>Exposition cumulée</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>{formatEur(totalExpo)}</span>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>{compactEur(totalExpo)}</span>
                 </div>
               </>
             )}
@@ -714,7 +740,7 @@ export function CloisonsWorkspace({
                 onClick={() => setVue("silo")}
                 style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, border: "none", borderRadius: 6, cursor: "pointer", background: vue === "silo" ? "#1a2435" : "transparent", color: vue === "silo" ? TEXT : MUTED }}
               >
-                <LayoutGrid size={13} /> Cloisons
+                <LayoutGrid size={13} /> Par cloison
               </button>
               <button
                 onClick={() => documentDisponible && setVue("document")}
@@ -779,7 +805,7 @@ export function CloisonsWorkspace({
                                   {siloMeta?.label ?? siloView.siloId}
                                 </div>
                                 <div style={{ marginTop: 2, fontSize: 10.5, letterSpacing: ".02em", color: FAINT, fontFamily: "monospace" }}>
-                                  {siloMeta?.comptes.join(", ") ?? ""}
+                                  {siloMeta?.comptes.join(" · ") ?? ""}
                                 </div>
                               </div>
                               {sevStyle && findings.length > 0 && (
@@ -794,7 +820,7 @@ export function CloisonsWorkspace({
                               )}
                               {expo > 0 && (
                                 <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>
-                                  {formatEur(expo)}
+                                  {compactEur(expo)}
                                 </span>
                               )}
                             </button>
@@ -840,7 +866,7 @@ export function CloisonsWorkspace({
                                                 )}
                                               </td>
                                               <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
-                                                {formatEur(row.valeur)}
+                                                {eurRow(row.valeur)}
                                               </td>
                                             </tr>
                                           );
