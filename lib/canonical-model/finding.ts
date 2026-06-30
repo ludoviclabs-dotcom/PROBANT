@@ -50,6 +50,42 @@ export const FAMILY_LABEL: Record<FindingFamily, string> = {
   internal: "Paramètre interne",
 };
 
+/**
+ * Origine d'un constat :
+ *  - analyse        : détecté sur un document unique (FEC) par le moteur de règles.
+ *  - rapprochement  : issu de la confrontation de deux documents (module rapprochement).
+ */
+export type FindingOrigine = "analyse" | "rapprochement";
+
+/**
+ * Qualification normée d'un écart issu du rapprochement multi-documents.
+ * Chaque qualification s'appuie sur une source sourcée (cf. lib/referentiel/
+ * sources) — aucune base inventée. Distincte de `FindingFamily` (qui qualifie
+ * la force normative) : ici on qualifie la NATURE de l'écart constaté.
+ */
+export type QualificationEcart =
+  | "rapprochement_solde"
+  | "perimetre"
+  | "lettrage"
+  | "anteriorite"
+  | "provision_insuffisante"
+  | "cutoff"
+  | "valorisation"
+  | "fiscal"
+  | "a_justifier";
+
+export const QUALIFICATION_LABEL: Record<QualificationEcart, string> = {
+  rapprochement_solde: "Écart de rapprochement",
+  perimetre: "Écart de périmètre",
+  lettrage: "Écart de lettrage",
+  anteriorite: "Écart d'antériorité",
+  provision_insuffisante: "Dépréciation insuffisante",
+  cutoff: "Rattachement / cut-off",
+  valorisation: "Écart de valorisation",
+  fiscal: "Incidence fiscale",
+  a_justifier: "À justifier",
+};
+
 export const SEVERITY_ORDER: Record<Severity, number> = {
   bloquant: 0,
   majeur: 1,
@@ -206,6 +242,25 @@ export interface Finding {
    * calculé à la volée lors de la construction du document annoté.
    */
   seuilApplique?: SeuilApplique;
+
+  /**
+   * Origine du constat. Absent = "analyse" (rétro-compatible). Renseigné à
+   * "rapprochement" par le moteur de rapprochement multi-documents.
+   */
+  origine?: FindingOrigine;
+
+  /**
+   * Qualification de l'écart, renseignée pour les constats issus du
+   * rapprochement multi-documents. Optionnelle.
+   */
+  qualification?: QualificationEcart;
+
+  /**
+   * Slug de la fiche cycle (lib/audit-cycles) qui fonde la justification
+   * normative de ce constat. Permet le cross-linking vers la base de
+   * connaissance sourcée. Optionnel.
+   */
+  cycleSlug?: string;
 }
 
 /** Détermine si un constat relève d'une non-conformité réglementaire dure. */
