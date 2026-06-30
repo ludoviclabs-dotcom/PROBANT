@@ -426,7 +426,7 @@ export default function SynthesePage() {
         <div style={{ position: "relative", display: "flex", flexWrap: "wrap" as const, gap: 24, alignItems: "center", padding: "22px 26px" }}>
 
           {/* Gauge + badge */}
-          <div style={{ flex: "0 0 216px", display: "flex", flexDirection: "column" as const, alignItems: "center" }}>
+          <div data-tour="synthese-gauge" style={{ flex: "0 0 216px", display: "flex", flexDirection: "column" as const, alignItems: "center" }}>
             <div style={{ width: "100%", maxWidth: 244, minHeight: 150 }}>
               <Gauge idx={calc.idx} lvl={lvl} t={t} />
             </div>
@@ -647,7 +647,7 @@ export default function SynthesePage() {
         </section>
 
         {/* Flow / Sankey */}
-        <section style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: SURF2, padding: "16px 18px" }}>
+        <section data-tour="synthese-sankey" style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: SURF2, padding: "16px 18px" }}>
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10 }}>
             <div>
               <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT }}>Cheminement</div>

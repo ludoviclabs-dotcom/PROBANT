@@ -12,6 +12,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { DemoLauncher } from "@/components/probant/DemoLauncher";
 
 const NAV = [
   { href: "/dashboard/depot", label: "Dépôt & ingestion", icon: Upload },
@@ -79,6 +80,10 @@ export function Sidebar({
           );
         })}
       </nav>
+
+      <div className="px-3 pb-2 pt-1">
+        <DemoLauncher variant="sidebar" />
+      </div>
 
       <div className="border-t border-[var(--pb-border)] px-4 py-3 text-[10px] leading-relaxed text-[var(--pb-text-faint)]">
         Socle normatif · moteur de constat · restitution.

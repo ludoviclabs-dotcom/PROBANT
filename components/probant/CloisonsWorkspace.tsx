@@ -707,7 +707,7 @@ function SiloBody({
             Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
           </div>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
-            {findingsToShow.map((f) => {
+            {findingsToShow.map((f, fi) => {
               const fSev = SEV[f.severity];
               const fFam = FAM[f.family];
               const isSelected = f.id === selId;
@@ -715,6 +715,8 @@ function SiloBody({
               return (
                 <div
                   key={f.id}
+                  data-tour={fi === 0 ? (siloView.siloId === "rapprochement-clients" ? "cloison-rappro" : "cloison-constat") : undefined}
+                  data-tour-flag={fi === 0 ? f.severity : undefined}
                   ref={(el) => { if (el) cardRefs.current.set(f.id, el); else cardRefs.current.delete(f.id); }}
                   style={{
                     padding: "10px 13px", borderRadius: 9,
@@ -776,7 +778,13 @@ export function CloisonsWorkspace({
   const documentDisponible = docs.length > 0;
 
   const [vue, setVue] = useState<"silo" | "document">("silo");
-  const [openSilos, setOpenSilos] = useState<Set<string>>(() => new Set(silos[0]?.siloId ? [silos[0].siloId] : []));
+  const [openSilos, setOpenSilos] = useState<Set<string>>(() => {
+    const ids = new Set<string>();
+    if (silos[0]?.siloId) ids.add(silos[0].siloId);
+    // Ouvre aussi le rapprochement Clients : c'est la vitrine de la visite guidée.
+    if (silos.some((s) => s.siloId === "rapprochement-clients")) ids.add("rapprochement-clients");
+    return ids;
+  });
   const [selId, setSelId] = useState<string | null>(null);
   const [decisions, setDecisions] = useState<Record<string, UserDecision>>({});
 
