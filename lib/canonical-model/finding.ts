@@ -174,6 +174,13 @@ export interface StatementRow {
   severity?: Severity;
 }
 
+/** Document croisé dans un rapprochement, pour affichage en chip de statut. */
+export interface StatementDocument {
+  label: string;
+  /** Toujours "analyse" en mode démo : les 2 documents du cycle sont déjà chargés. */
+  statut: "analyse";
+}
+
 /** État financier reconstruit présenté dans le silo, avec lignes annotées. */
 export interface ReconstitutedStatement {
   titre: string;
@@ -181,6 +188,8 @@ export interface ReconstitutedStatement {
   /** Note méthodologique courte sur la reconstitution. */
   note?: string;
   rows: StatementRow[];
+  /** Documents croisés (rapprochement) — absent pour les silos analytiques classiques. */
+  documents?: StatementDocument[];
 }
 
 /** Étape de la chaîne de preuve (source → transformation → règle → résultat). */

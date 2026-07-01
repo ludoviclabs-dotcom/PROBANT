@@ -29,6 +29,10 @@ export function buildRapprochementSilo(
     titre: `Rapprochement — ${labelS} ↔ ${labelC}`,
     unite: "EUR",
     note: `Confrontation de « ${labelS} » et « ${labelC} ».`,
+    documents: [
+      { label: labelS, statut: "analyse" },
+      { label: labelC, statut: "analyse" },
+    ],
     rows: [
       { id: "rappro-source", label: `Solde ${labelS}`, valeur: Math.round(result.totalSource), kind: "ligne" },
       { id: "rappro-cible", label: `Solde ${labelC}`, valeur: Math.round(result.totalCible), kind: "ligne" },
