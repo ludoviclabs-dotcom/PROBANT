@@ -228,8 +228,8 @@ describe("composite = null SSI evaluation = non_évalué", () => {
         makeFinding({ id: `F-${i}` }),
       );
       const score = scoreCycle(cycle, findings, MATERIALITY);
-      // composite === null  <=>  evaluation === "non_évalué"
-      expect(score.composite === null).toBe(score.evaluation === "non_évalué");
+      // composite === null  <=>  evaluation !== "évalué" (partiel ET non_évalué)
+      expect(score.composite === null).toBe(score.evaluation !== "évalué");
     }
   });
 });
@@ -250,13 +250,16 @@ describe("non évalué ≠ 0 vert", () => {
     expect(score.composite).not.toBe(0);
   });
 
-  it("un cycle sans constat mais avec standard obligatoire est partiel, pas non_évalué", () => {
+  it("un cycle partiel (standard obligatoire, 0 constat) a composite=null — jamais 0 vert", () => {
     const cycle = makeCycle({
       applicableStandards: [{ id: "S", label: "Obligatoire", status: "OBLIGATOIRE" }],
     });
     const score = scoreCycle(cycle, [], MATERIALITY);
     expect(score.evaluation).toBe("partiel");
-    expect(score.composite).not.toBeNull();
+    // Sans constat, le composite ne peut pas être chiffré sans risquer d'afficher
+    // un faux "risque faible / vert" ; composite=null, même si l'exposition est réelle.
+    expect(score.composite).toBeNull();
+    expect(score.criticityBand).toBe("non_évalué");
   });
 });
 

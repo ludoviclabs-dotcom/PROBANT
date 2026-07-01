@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { BookOpen, ExternalLink, Info } from "lucide-react";
+import { BookOpen, ExternalLink, History, Info } from "lucide-react";
 import type { Finding } from "@/lib/canonical-model";
 import type { AuditCycle } from "@/lib/audit-cycles/types";
 import type {
@@ -14,8 +15,10 @@ import type {
 } from "@/lib/risk-mapping";
 import { RISK_AXES, type AdjustmentPatch } from "@/lib/risk-mapping";
 import { RiskMatrix } from "@/components/normatif/RiskMatrix";
-import { cn } from "@/lib/utils";
+import { cn, wcagColoredTextOrFallback } from "@/lib/utils";
 import { AdjustmentSliders } from "./AdjustmentSliders";
+import { AdjustmentHistoryPanel } from "./AdjustmentHistoryPanel";
+import type { AdjustmentSaveStatus } from "./useRiskAdjustments";
 
 /**
  * Panneau détail d'un cycle : les quatre axes de risque en barres de progression,
@@ -25,12 +28,14 @@ import { AdjustmentSliders } from "./AdjustmentSliders";
  * fiche normative, et expose les curseurs d'ajustement.
  *
  * Le composite est une heuristique interne jamais opposable : disclaimer
- * explicite + mention que les ajustements ne sont qu'en mémoire de session.
+ * explicite + mention que la sauvegarde des ajustements est une persistance
+ * serveur SIMULÉE (store en mémoire process, cf. lib/server-store), non
+ * durable au redémarrage — jamais présentée comme une vraie base de données.
  */
 
 /** Couleur d'une bande de criticité (palette gravité alignée sur `--pb-*`). */
 const BAND_STYLE: Record<CriticityBand, { label: string; hex: string }> = {
-  faible: { label: "Faible", hex: "#22c55e" },
+  faible: { label: "Faible", hex: "#3b82f6" },
   modéré: { label: "Modéré", hex: "#eab308" },
   élevé: { label: "Élevé", hex: "#f97316" },
   critique: { label: "Critique", hex: "#ef4444" },
@@ -43,6 +48,43 @@ function axisColor(value: number): string {
   if (value >= 50) return "#f97316";
   if (value >= 25) return "#eab308";
   return "#22c55e";
+}
+
+/**
+ * Badge de statut discret à côté du titre d'un constat cité dans un driver.
+ * Basé uniquement sur des champs déjà présents du `Finding` canonique :
+ * - « Source » (neutre) si `source.ref` existe et diffère de INTERNE ;
+ * - « Non source » (ambre) si `source.ref` vaut INTERNE ;
+ * - « Maîtrisé » (bleu) si `statutRevue` est une valeur de clôture
+ *   (`valide` ou `ecarte`, voir `StatutRevue` dans `lib/canonical-model/finding.ts`).
+ * Un même constat peut cumuler les deux informations : le badge « Maîtrisé »
+ * prime visuellement, le badge de source reste affiché à côté.
+ */
+function FindingStatusBadge({ finding }: { finding: Finding }) {
+  const isClosed = finding.statutRevue === "valide" || finding.statutRevue === "ecarte";
+  const isInterne = finding.source.ref === "INTERNE";
+
+  return (
+    <span className="inline-flex items-center gap-1">
+      {isClosed && (
+        <span
+          className="rounded border border-sky-500/40 px-1 py-[1px] text-[9px] font-medium leading-none text-sky-400"
+          title={`statutRevue : ${finding.statutRevue}`}
+        >
+          Maîtrisé
+        </span>
+      )}
+      {isInterne ? (
+        <span className="rounded border border-amber-500/40 px-1 py-[1px] text-[9px] font-medium leading-none text-amber-400">
+          Non source
+        </span>
+      ) : (
+        <span className="rounded border border-[var(--pb-border)] px-1 py-[1px] text-[9px] font-medium leading-none text-[var(--pb-text-faint)]">
+          Source
+        </span>
+      )}
+    </span>
+  );
 }
 
 function DriverList({
@@ -80,6 +122,9 @@ function DriverList({
                         <span className="font-medium">{f.titre}</span>
                         <span className="ml-1.5 font-mono text-[10px] text-[var(--pb-accent)] group-hover:underline">
                           {f.source.ref}
+                        </span>
+                        <span className="ml-1.5 align-middle">
+                          <FindingStatusBadge finding={f} />
                         </span>
                       </span>
                     </Link>
@@ -138,6 +183,22 @@ function AxisBar({
   );
 }
 
+/** Libellé/style de l'indicateur de sauvegarde, aligné sur `AdjustmentSaveStatus`. */
+const SAVE_STATUS_STYLE: Record<Exclude<AdjustmentSaveStatus, "idle">, { label: string; className: string }> = {
+  saving: {
+    label: "Sauvegarde en cours",
+    className: "animate-pulse text-[var(--pb-text-faint)]",
+  },
+  saved: {
+    label: "Sauvegardé",
+    className: "text-emerald-400",
+  },
+  error: {
+    label: "Erreur de sauvegarde",
+    className: "text-red-400",
+  },
+};
+
 export function CycleRiskPanel({
   cycle,
   score,
@@ -145,6 +206,7 @@ export function CycleRiskPanel({
   adjustment,
   onAdjust,
   onReset,
+  saveStatus = "idle",
 }: {
   cycle: AuditCycle;
   score: CycleRiskScore;
@@ -152,8 +214,53 @@ export function CycleRiskPanel({
   adjustment: RiskAdjustment | undefined;
   onAdjust: (patch: AdjustmentPatch) => void;
   onReset: () => void;
+  saveStatus?: AdjustmentSaveStatus;
 }) {
   const band = BAND_STYLE[score.criticityBand];
+
+  // Brouillon de commentaire de jugement + ajustement en attente de validation :
+  // tant qu'un commentaire non vide n'est pas fourni, le patch n'est PAS transmis
+  // à `onAdjust` (traçabilité obligatoire de tout jugement d'auditeur).
+  const [commentDraft, setCommentDraft] = useState("");
+  const [pendingPatch, setPendingPatch] = useState<AdjustmentPatch | null>(null);
+  const [commentError, setCommentError] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const currentNote = adjustment?.note ?? "";
+
+  function handleSliderChange(patch: AdjustmentPatch) {
+    // Une valeur identique à l'ajustement courant (ex: relâcher le curseur sans
+    // le bouger) ne déclenche aucune exigence de commentaire.
+    const unchanged =
+      (patch.probabilite === undefined || patch.probabilite === (adjustment?.probabilite ?? 0)) &&
+      (patch.detectabilite === undefined || patch.detectabilite === (adjustment?.detectabilite ?? 0));
+    if (unchanged) {
+      setPendingPatch(null);
+      setCommentError(false);
+      return;
+    }
+
+    const comment = commentDraft.trim();
+    if (comment === "") {
+      // Mémorise le geste pour pouvoir le rejouer dès qu'un commentaire est saisi.
+      setPendingPatch(patch);
+      setCommentError(true);
+      return;
+    }
+
+    setCommentError(false);
+    setPendingPatch(null);
+    onAdjust({ ...patch, note: comment });
+  }
+
+  function handleCommentChange(value: string) {
+    setCommentDraft(value);
+    if (value.trim() !== "" && pendingPatch) {
+      setCommentError(false);
+      onAdjust({ ...pendingPatch, note: value.trim() });
+      setPendingPatch(null);
+    }
+  }
 
   return (
     <div className="space-y-5">
@@ -163,10 +270,23 @@ export function CycleRiskPanel({
           <h3 className="text-[15px] font-semibold text-[var(--pb-text)]">{cycle.title}</h3>
           <span
             className="rounded-md px-2 py-0.5 text-[11px] font-semibold"
-            style={{ color: band.hex, backgroundColor: `color-mix(in srgb, ${band.hex} 18%, transparent)` }}
+            style={{
+              // Le texte reste teinté (`band.hex`) uniquement quand son contraste
+              // sur ce fond à 18% atteint AA (≥ 4.5:1) ; sinon bascule sur le
+              // token clair `--pb-text` pour rester lisible (ex: bandes « faible »,
+              // « critique », « non évalué » dont le fond à cette opacité reste
+              // trop proche de la teinte du texte pour un contraste suffisant).
+              color: wcagColoredTextOrFallback(band.hex, 18, undefined, "var(--pb-text)"),
+              backgroundColor: `color-mix(in srgb, ${band.hex} 18%, transparent)`,
+            }}
           >
             {band.label}
           </span>
+          {score.evaluation === "partiel" && (
+            <span className="rounded-md border border-amber-500/40 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              Exposition seule — aucun constat rattaché
+            </span>
+          )}
         </div>
         <p className="mt-1 text-[12px] leading-relaxed text-[var(--pb-text-muted)]">
           {cycle.summary}
@@ -200,18 +320,67 @@ export function CycleRiskPanel({
         <AdjustmentSliders
           cycleSlug={cycle.slug}
           adjustment={adjustment}
-          onChange={onAdjust}
+          onChange={handleSliderChange}
         />
-        <div className="flex items-center justify-between text-[10px] text-[var(--pb-text-faint)]">
-          <span>Ajustements en mémoire de session, non persistés.</span>
-          <button
-            type="button"
-            onClick={onReset}
-            className="rounded-md border border-[var(--pb-border)] px-2 py-1 text-[10px] font-medium text-[var(--pb-text-muted)] transition-colors hover:border-[var(--pb-border-strong)] hover:text-[var(--pb-text)]"
+
+        {/* Commentaire obligatoire pour tracer tout jugement d'ajustement */}
+        <div className="rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-2.5">
+          <label
+            htmlFor="adjustment-comment"
+            className="text-[10px] font-medium text-[var(--pb-text-muted)]"
           >
-            Réinitialiser ce cycle
-          </button>
+            Commentaire de jugement
+          </label>
+          <textarea
+            id="adjustment-comment"
+            value={commentDraft}
+            onChange={(e) => handleCommentChange(e.target.value)}
+            placeholder={currentNote || "Justifiez l'ajustement (historique, contrôle interne…)"}
+            rows={2}
+            className={cn(
+              "mt-1 w-full resize-none rounded-md border bg-[var(--pb-surface)] p-1.5 text-[11px] text-[var(--pb-text)] outline-none",
+              commentError
+                ? "border-red-500/60 focus:border-red-500"
+                : "border-[var(--pb-border)] focus:border-[var(--pb-accent)]",
+            )}
+          />
+          {commentError && (
+            <p className="mt-1 text-[10px] text-red-400">
+              Un commentaire est requis pour tracer ce jugement.
+            </p>
+          )}
         </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] text-[var(--pb-text-faint)]">
+          <div className="flex flex-wrap items-center gap-2">
+            <span>Sauvegarde serveur simulée — non durable (perdue au redémarrage).</span>
+            {saveStatus !== "idle" && (
+              <span className={cn("font-medium", SAVE_STATUS_STYLE[saveStatus].className)}>
+                {SAVE_STATUS_STYLE[saveStatus].label}
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setHistoryOpen((v) => !v)}
+              aria-expanded={historyOpen}
+              className="inline-flex items-center gap-1 rounded-md border border-[var(--pb-border)] px-2 py-1 text-[10px] font-medium text-[var(--pb-text-muted)] transition-colors hover:border-[var(--pb-border-strong)] hover:text-[var(--pb-text)]"
+            >
+              <History className="h-3 w-3" />
+              Historique des jugements
+            </button>
+            <button
+              type="button"
+              onClick={onReset}
+              className="rounded-md border border-[var(--pb-border)] px-2 py-1 text-[10px] font-medium text-[var(--pb-text-muted)] transition-colors hover:border-[var(--pb-border-strong)] hover:text-[var(--pb-text)]"
+            >
+              Réinitialiser ce cycle
+            </button>
+          </div>
+        </div>
+
+        {historyOpen && <AdjustmentHistoryPanel cycleSlug={cycle.slug} />}
       </div>
 
       {/* Risques déclarés — matrice normative réutilisée */}

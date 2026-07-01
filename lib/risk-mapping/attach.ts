@@ -4,9 +4,11 @@
  * Les constats démo ne portent pas `cycleSlug`. Le rattachement repose donc,
  * dans l'ordre, sur trois faits vérifiables :
  *   1. `cycle.probantSiloIds` contient `finding.siloId` ;
- *   2. sinon `cycle.probantCloisons` contient `finding.cloison` ;
- *   3. sinon, pour chaque compte de `finding.comptesConcernes`,
- *      `siloForCompte(compte)` puis rapprochement de ce silo à `probantSiloIds`.
+ *   2. sinon, pour chaque compte de `finding.comptesConcernes`,
+ *      `siloForCompte(compte)` puis rapprochement de ce silo à `probantSiloIds`
+ *      (précision fine : un compte 411 identifie creances-clients avec certitude) ;
+ *   3. sinon `cycle.probantCloisons` contient `finding.cloison` (repli large —
+ *      bilan-actif est partagé par ~10 cycles ; cloison = dernier recours).
  *
  * Un même constat peut alimenter plusieurs cycles (aucun rattachement exclusif).
  * Les constats sans rattachement sont conservés dans un bucket dédié : ils ne
@@ -32,9 +34,9 @@ export interface AttachmentResult {
 
 /**
  * Retourne l'ensemble des slugs de cycles auxquels un constat se rattache.
- * L'ordre des règles (silo, puis cloison, puis compte) reflète la précision
- * décroissante du lien ; on cumule néanmoins tous les cycles concernés pour ne
- * pas masquer un rattachement transversal.
+ * L'ordre des règles (silo → compte PCG → cloison) va du plus précis au plus
+ * large ; on s'arrête dès qu'une règle trouve un ou plusieurs cycles pour éviter
+ * qu'une cloison partagée (ex. bilan-actif) gonfle artificiellement les scores.
  */
 export function cyclesForFinding(f: Finding, cycles: AuditCycle[]): string[] {
   const slugs = new Set<string>();
@@ -42,14 +44,6 @@ export function cyclesForFinding(f: Finding, cycles: AuditCycle[]): string[] {
   for (const cycle of cycles) {
     if (cycle.probantSiloIds.includes(f.siloId)) {
       slugs.add(cycle.slug);
-    }
-  }
-
-  if (slugs.size === 0) {
-    for (const cycle of cycles) {
-      if (cycle.probantCloisons.includes(f.cloison)) {
-        slugs.add(cycle.slug);
-      }
     }
   }
 
@@ -64,6 +58,14 @@ export function cyclesForFinding(f: Finding, cycles: AuditCycle[]): string[] {
         if (cycle.probantSiloIds.some((id) => silosViaComptes.has(id))) {
           slugs.add(cycle.slug);
         }
+      }
+    }
+  }
+
+  if (slugs.size === 0) {
+    for (const cycle of cycles) {
+      if (cycle.probantCloisons.includes(f.cloison)) {
+        slugs.add(cycle.slug);
       }
     }
   }

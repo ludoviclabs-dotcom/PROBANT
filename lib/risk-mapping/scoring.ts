@@ -468,7 +468,7 @@ export function scoreCycle(
           exposition,
         };
 
-  const comp = evaluation === "non_évalué" ? null : composite(axes);
+  const comp = evaluation !== "évalué" ? null : composite(axes);
 
   return {
     cycleSlug: cycle.slug,
