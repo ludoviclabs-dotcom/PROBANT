@@ -30,7 +30,7 @@ import { AdjustmentSliders } from "./AdjustmentSliders";
 
 /** Couleur d'une bande de criticité (palette gravité alignée sur `--pb-*`). */
 const BAND_STYLE: Record<CriticityBand, { label: string; hex: string }> = {
-  faible: { label: "Faible", hex: "#22c55e" },
+  faible: { label: "Faible", hex: "#3b82f6" },
   modéré: { label: "Modéré", hex: "#eab308" },
   élevé: { label: "Élevé", hex: "#f97316" },
   critique: { label: "Critique", hex: "#ef4444" },
@@ -167,6 +167,11 @@ export function CycleRiskPanel({
           >
             {band.label}
           </span>
+          {score.evaluation === "partiel" && (
+            <span className="rounded-md border border-amber-500/40 px-2 py-0.5 text-[10px] font-medium text-amber-400">
+              Exposition seule — aucun constat rattaché
+            </span>
+          )}
         </div>
         <p className="mt-1 text-[12px] leading-relaxed text-[var(--pb-text-muted)]">
           {cycle.summary}

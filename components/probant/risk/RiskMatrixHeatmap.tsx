@@ -114,7 +114,7 @@ export function RiskMatrixHeatmap({ scores, selected, onSelect }: RiskMatrixHeat
 
         {/* Lignes */}
         {rows.map((s) => {
-          const evaluated = s.evaluation !== "non_évalué";
+          const evaluated = s.evaluation === "évalué";
           const isSelected = s.cycleSlug === selected;
           return (
             <div key={s.cycleSlug} className="contents">
