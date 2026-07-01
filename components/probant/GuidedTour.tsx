@@ -16,6 +16,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Pause, Play, ChevronLeft, ChevronRight, X, RotateCcw, Flag } from "lucide-react";
 import { TOUR_STEPS, type TourPlacement } from "@/lib/demo/tour";
 import { DEMO_DOSSIER } from "@/lib/demo/dataset";
+import { computeCounts } from "@/lib/canonical-model";
 import { DemoDocumentIcon, type DemoDocVariant } from "@/components/demo/DemoDocumentIcon";
 
 const ACCENT = "#5b9dff";
@@ -33,15 +34,24 @@ const SEV_TOUR: Record<string, { hex: string; label: string }> = {
  * Verdict du dossier démo, illustré par les icônes de la séquence finale.
  * Seuil d'alerte relevé : « risque seul » est réservé au dossier intégralement
  * critique ; dès qu'un majeur/bloquant CO-EXISTE avec des éléments traçables
- * (cas DEMO SA), on montre les DEUX natures.
+ * (cas DEMO SA), on montre les DEUX natures. Les sous-lignes viennent de vrais
+ * compteurs du dossier (`computeCounts`) — jamais un chiffre inventé.
  */
-const FINAL_VERDICT: DemoDocVariant[] = (() => {
-  const sev = DEMO_DOSSIER.silos.flatMap((s) => s.findings.map((f) => f.severity));
-  const hasAlert = sev.some((s) => s === "bloquant" || s === "majeur");
-  const allCritical = sev.length > 0 && sev.every((s) => s === "bloquant");
-  if (allCritical) return ["risk"];
-  if (!hasAlert) return ["ok"];
-  return ["ok", "risk"];
+const FINAL_COUNTS = computeCounts(DEMO_DOSSIER);
+const FINAL_VERDICT: { variant: DemoDocVariant; detail: string }[] = (() => {
+  const { bloquant, majeur } = FINAL_COUNTS.parSeverite;
+  const hasAlert = bloquant > 0 || majeur > 0;
+  const allCritical = FINAL_COUNTS.totalFindings > 0 && FINAL_COUNTS.parSeverite.bloquant === FINAL_COUNTS.totalFindings;
+
+  const ok = { variant: "ok" as const, detail: `${FINAL_COUNTS.totalFindings} constats sourcés et documentés` };
+  const risk = {
+    variant: "risk" as const,
+    detail: `${bloquant} bloquant${bloquant > 1 ? "s" : ""} · ${majeur} majeur${majeur > 1 ? "s" : ""} relevés`,
+  };
+
+  if (allCritical) return [risk];
+  if (!hasAlert) return [ok];
+  return [ok, risk];
 })();
 const CARD_W = 360;
 const GAP = 18;
@@ -270,10 +280,14 @@ function GuidedTourInner() {
   // Sur la conclusion, la carte n'apparaît qu'après l'entrée des icônes verdict.
   const cardVisible = !isLast || finaleReady;
   const narrow = vp.w < 860;
-  // Icônes verdict : colonne à gauche de la carte (large) ou rangée au-dessus (étroit).
+  const veryNarrow = vp.w < 620;
+  // Icônes verdict (mini-cards 232px) : colonne à gauche de la carte sur grand écran ;
+  // rangée au-dessus sur écran moyen ; empilées au-dessus sur mobile étroit.
   const finaleIconsStyle: React.CSSProperties = narrow
-    ? { top: "calc(50% - 250px)", left: "50%", transform: "translateX(-50%)", flexDirection: "row", gap: 30 }
-    : { top: "50%", left: "calc(50% - 352px)", transform: "translateY(-50%)", flexDirection: "column", gap: 22 };
+    ? veryNarrow
+      ? { top: "calc(50% - 230px)", left: "50%", transform: "translateX(-50%)", flexDirection: "column", gap: 12 }
+      : { top: "calc(50% - 190px)", left: "50%", transform: "translateX(-50%)", flexDirection: "row", gap: 20 }
+    : { top: "50%", left: `calc(50% - ${CARD_W / 2 + GAP}px)`, transform: "translate(-100%, -50%)", flexDirection: "column", gap: 16 };
 
   return createPortal(
     <div aria-live="polite" style={{ position: "fixed", inset: 0, zIndex: Z, pointerEvents: "none" }}>
@@ -359,7 +373,7 @@ function GuidedTourInner() {
       {isLast && (
         <div style={{ position: "fixed", display: "flex", alignItems: "center", pointerEvents: "none", ...finaleIconsStyle }}>
           {FINAL_VERDICT.map((v, i) => (
-            <DemoDocumentIcon key={v} variant={v} delay={i * 160} />
+            <DemoDocumentIcon key={v.variant} variant={v.variant} detail={v.detail} delay={i * 160} />
           ))}
         </div>
       )}
