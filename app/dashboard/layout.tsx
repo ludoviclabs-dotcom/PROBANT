@@ -1,4 +1,5 @@
 import { Sidebar } from "@/components/probant/Sidebar";
+import { OnboardingCta } from "@/components/probant/OnboardingCta";
 import { DEMO_DOSSIER } from "@/lib/demo/dataset";
 import { computeCounts } from "@/lib/canonical-model";
 import { shortHash } from "@/lib/evidence/hash";
@@ -33,6 +34,7 @@ export default function DashboardLayout({
                   Mode démo · données fictives
                 </span>
               )}
+              <OnboardingCta variant="banner" />
             </div>
             <div className="tnum mt-0.5 flex items-center gap-3 text-[11px] text-[var(--pb-text-faint)]">
               <span>SIREN {d.societe.siren}</span>
@@ -56,6 +58,7 @@ export default function DashboardLayout({
 
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
+      <OnboardingCta variant="floating" />
     </div>
   );
 }
