@@ -190,7 +190,7 @@ export default function Home() {
             }
             color="#f87171"
             title="Socle normatif"
-            text="LPF, PCG, ISA — versionnés et cités."
+            text="LPF, PCG, ISA, CGI — versionnés et cités."
           />
           <FeatureCard
             icon={
@@ -205,7 +205,7 @@ export default function Home() {
             }
             color="#a78bfa"
             title="Moteur de constat"
-            text="Calcule, compare, classe, documente."
+            text="Empreinte FEC, rapprochements par cycle, scoring des anomalies."
           />
           <FeatureCard
             icon={
@@ -223,7 +223,7 @@ export default function Home() {
             }
             color="#38bdf8"
             title="Restitution par cloison"
-            text="Silos visuels, preuve et validation humaine."
+            text="Synthèse par gravité, dossier de preuve, validation par l'auditeur."
           />
         </div>
 

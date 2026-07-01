@@ -230,6 +230,10 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
   const Rn: Record<string, { y: number; h: number; cy: number }> = {};
   SEVK.forEach((k) => { const hh = Math.max(18, (sevTot[k] / grand) * availR); Rn[k] = { y: yR, h: hh, cy: yR + hh / 2 }; yR += hh + 10; });
 
+  // Sous ce seuil, une boîte est trop basse pour 2 lignes empilées (libellé + compteur)
+  // sans déborder : on bascule alors sur une ligne compacte unique.
+  const TWO_LINE_MIN = 30;
+
   const x1 = pad + nodeW, x2 = W - pad - nodeW;
   const cloCursor: Record<string, number> = {};
   const sevCursor: Record<string, number> = {};
@@ -263,20 +267,42 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
       {links}
-      {clos.map((c) => (
-        <g key={`ln${c.id}`} style={{ cursor: "pointer" }} onClick={() => toggleClo(c.id)}>
-          <rect x={pad} y={L[c.id].y} width={nodeW} height={L[c.id].h} rx={7} fill={NODE_BG} stroke={fClo === c.id ? ACCENT : BORDERS} strokeWidth={1} />
-          <text x={pad + 11} y={L[c.id].cy - 2} fill={TEXT} fontSize={11} fontWeight={600}>{c.short}</text>
-          <text x={pad + 11} y={L[c.id].cy + 12} fill={MUTED} fontSize={9.5} fontFamily="monospace">{cloTot[c.id]} constats</text>
-        </g>
-      ))}
+      {clos.map((c) => {
+        const compact = L[c.id].h < TWO_LINE_MIN;
+        return (
+          <g key={`ln${c.id}`} style={{ cursor: "pointer" }} onClick={() => toggleClo(c.id)}>
+            <rect x={pad} y={L[c.id].y} width={nodeW} height={L[c.id].h} rx={7} fill={NODE_BG} stroke={fClo === c.id ? ACCENT : BORDERS} strokeWidth={1} />
+            {compact ? (
+              <text x={pad + 11} y={L[c.id].cy + 3.5} fontSize={10} fontWeight={600}>
+                <tspan fill={TEXT}>{c.short}</tspan>
+                <tspan fill={MUTED} fontSize={9} fontFamily="monospace" dx={5}>· {cloTot[c.id]}</tspan>
+              </text>
+            ) : (
+              <>
+                <text x={pad + 11} y={L[c.id].cy - 2} fill={TEXT} fontSize={11} fontWeight={600}>{c.short}</text>
+                <text x={pad + 11} y={L[c.id].cy + 12} fill={MUTED} fontSize={9.5} fontFamily="monospace">{cloTot[c.id]} constats</text>
+              </>
+            )}
+          </g>
+        );
+      })}
       {SEVK.map((k) => {
         const s = SEV[k];
+        const compact = Rn[k].h < TWO_LINE_MIN;
         return (
           <g key={`rn${k}`} style={{ cursor: "pointer" }} onClick={() => toggleSev(k)}>
             <rect x={x2} y={Rn[k].y} width={nodeW} height={Rn[k].h} rx={7} fill={s.bg} stroke={fSev === k ? s.hex : BORDERS} strokeWidth={1} />
-            <text x={x2 + nodeW - 10} y={Rn[k].cy - 1} fill={s.hex} fontSize={11} fontWeight={700} textAnchor="end">{s.label}</text>
-            <text x={x2 + nodeW - 10} y={Rn[k].cy + 12} fill={MUTED} fontSize={9.5} fontFamily="monospace" textAnchor="end">{sevTot[k]}</text>
+            {compact ? (
+              <text x={x2 + nodeW - 10} y={Rn[k].cy + 3.5} textAnchor="end" fontSize={10} fontWeight={700}>
+                <tspan fill={MUTED} fontSize={9} fontFamily="monospace">{sevTot[k]} · </tspan>
+                <tspan fill={s.hex}>{s.label}</tspan>
+              </text>
+            ) : (
+              <>
+                <text x={x2 + nodeW - 10} y={Rn[k].cy - 1} fill={s.hex} fontSize={11} fontWeight={700} textAnchor="end">{s.label}</text>
+                <text x={x2 + nodeW - 10} y={Rn[k].cy + 12} fill={MUTED} fontSize={9.5} fontFamily="monospace" textAnchor="end">{sevTot[k]}</text>
+              </>
+            )}
           </g>
         );
       })}

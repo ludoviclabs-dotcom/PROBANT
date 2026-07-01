@@ -661,7 +661,24 @@ function SiloBody({
               Reconstruction comptable
             </span>
           </div>
-          <div style={{ fontSize: 11, color: FAINT, marginBottom: 9 }}>{siloView.statement.titre}</div>
+          <div style={{ fontSize: 11, color: FAINT, marginBottom: siloView.statement.documents ? 6 : 9 }}>{siloView.statement.titre}</div>
+          {siloView.statement.documents && (
+            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 9 }}>
+              {siloView.statement.documents.map((doc) => (
+                <span
+                  key={doc.label}
+                  style={{
+                    display: "inline-flex", alignItems: "center", gap: 4,
+                    borderRadius: 999, border: "1px solid rgba(34,197,94,0.35)",
+                    background: "rgba(34,197,94,0.1)", color: "#4ade80",
+                    fontSize: 10, fontWeight: 600, padding: "2px 8px",
+                  }}
+                >
+                  ✓ {doc.label}
+                </span>
+              ))}
+            </div>
+          )}
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
             <tbody>
               {siloView.statement.rows.map((row) => {
