@@ -10,6 +10,7 @@ import {
   FlaskConical,
   Scale,
   ShieldCheck,
+  Network,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { DemoLauncher } from "@/components/probant/DemoLauncher";
@@ -17,6 +18,7 @@ import { DemoLauncher } from "@/components/probant/DemoLauncher";
 const NAV = [
   { href: "/dashboard/depot", label: "Dépôt & ingestion", icon: Upload },
   { href: "/dashboard/synthese", label: "Synthèse", icon: LayoutDashboard },
+  { href: "/dashboard/risques", label: "Cartographie des risques", icon: Network },
   { href: "/dashboard/cloisons", label: "Revue par cloison", icon: Columns3 },
   { href: "/dashboard/dossier", label: "Dossier & preuve", icon: FileCheck2 },
   { href: "/dashboard/tests", label: "Tests complémentaires", icon: FlaskConical },
