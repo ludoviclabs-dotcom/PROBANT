@@ -31,6 +31,7 @@ import { validateBalance } from "@/lib/balance/validate";
 import { parseLiasseFile } from "@/lib/pdf/parse-liasse";
 import { cn } from "@/lib/utils";
 import { SeverityBadge } from "./Badges";
+import { CycleUploadPanel } from "./CycleUploadPanel";
 
 interface DepotResult {
   nomFichier: string;
@@ -107,6 +108,7 @@ export function DepotView() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSim, setShowSim] = useState(false);
+  const [showCycleUpload, setShowCycleUpload] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -378,6 +380,45 @@ export function DepotView() {
           )}
         </div>
       )}
+
+      {/* Dépôt par cycle */}
+      <div className="space-y-3">
+        {/* Séparateur */}
+        <div className="flex items-center gap-3">
+          <div className="h-px flex-1 bg-[var(--pb-border)]" />
+          <span className="text-[11px] uppercase tracking-wider text-[var(--pb-text-faint)]">
+            ou
+          </span>
+          <div className="h-px flex-1 bg-[var(--pb-border)]" />
+        </div>
+
+        {/* Bouton / Panel */}
+        {!showCycleUpload ? (
+          <button
+            onClick={() => setShowCycleUpload(true)}
+            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-6 py-4 text-sm font-semibold text-[var(--pb-text)] transition-all hover:border-[var(--pb-accent)]/60 hover:bg-[var(--pb-accent)]/6"
+          >
+            <FileSpreadsheet className="h-4 w-4 text-[var(--pb-accent)]" />
+            Déposer les documents d'un cycle de rapprochement
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-[var(--pb-text)]">
+                Dépôt par cycle
+              </h2>
+              <button
+                onClick={() => setShowCycleUpload(false)}
+                className="flex items-center gap-1 text-[12px] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]"
+              >
+                <ChevronUp className="h-3.5 w-3.5" />
+                Réduire
+              </button>
+            </div>
+            <CycleUploadPanel />
+          </div>
+        )}
+      </div>
     </div>
   );
 }

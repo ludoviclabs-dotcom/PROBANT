@@ -16,3 +16,18 @@ export {
   documentDepuisTableur,
   type MappageColonnes,
 } from "./adapters/tabular";
+export {
+  AUDIT_CYCLES,
+  DOCUMENT_TYPES,
+  documentTypesForCycle,
+  cycleById,
+  type AuditCycle,
+  type DocumentFormatAccepte,
+  type ChampMappage,
+  type DocumentType,
+} from "./catalog";
+export { parseTabularDocument, type ParseTabularResult } from "./parse-upload";
+export {
+  buildRapprochementDepuisDepot,
+  buildRapprochementImmos,
+} from "./build-from-upload";
