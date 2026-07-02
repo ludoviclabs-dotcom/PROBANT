@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   useReactTable,
@@ -239,6 +239,29 @@ export function RiskMatrixHeatmap({
   useEffect(() => {
     persistSort(sorting);
   }, [sorting]);
+
+  // Flash des cellules composite dont la BANDE vient de changer (simulateur
+  // ISA 320, ajustements de jugement) : la bande précédente est mémorisée par
+  // cycle et un overlay `pbBandFlash` est rejoué quand elle diffère — jamais au
+  // premier rendu (prev inconnu), pour ne pas flasher toute la matrice au montage.
+  const prevBandsRef = useRef<Map<string, CriticityBand>>(new Map());
+  const [bandFlash, setBandFlash] = useState<Record<string, number>>({});
+  useEffect(() => {
+    const prev = prevBandsRef.current;
+    const changed: string[] = [];
+    for (const s of scores) {
+      const p = prev.get(s.cycleSlug);
+      if (p !== undefined && p !== s.criticityBand) changed.push(s.cycleSlug);
+      prev.set(s.cycleSlug, s.criticityBand);
+    }
+    if (changed.length > 0) {
+      setBandFlash((m) => {
+        const next = { ...m };
+        for (const slug of changed) next[slug] = (next[slug] ?? 0) + 1;
+        return next;
+      });
+    }
+  }, [scores]);
 
   const showDelta = !!comparisonExercise && isSimulatedExercise(comparisonExercise);
 
@@ -497,7 +520,7 @@ export function RiskMatrixHeatmap({
         </button>
       </div>
 
-      <div className="max-h-[600px] overflow-y-auto rounded-[10px]">
+      <div data-tour="risk-matrix" className="max-h-[600px] overflow-y-auto rounded-[10px]">
       <div
         role="grid"
         aria-label="Matrice thermique des cycles"
@@ -547,10 +570,16 @@ export function RiskMatrixHeatmap({
         </div>
 
         {/* Lignes */}
-        {rows.map((s) => {
+        {rows.map((s, rowIdx) => {
           const evaluated = s.evaluation === "évalué";
           const isSelected = s.cycleSlug === selected;
           const bandColor = BAND_HEX[s.criticityBand];
+          // Entrée en cascade ligne par ligne (stagger 60 ms, plafonné pour que
+          // les lignes sous le pli n'apparaissent pas en retard au scroll).
+          const rowEntry: React.CSSProperties = {
+            animation: "pbRowIn .4s ease both",
+            animationDelay: `${Math.min(rowIdx, 16) * 60}ms`,
+          };
 
           let deltaContent: React.ReactNode = null;
           if (showDelta && comparisonExercise) {
@@ -617,7 +646,7 @@ export function RiskMatrixHeatmap({
 
           return (
             <div key={s.cycleSlug} role="row" className="contents">
-              <div className="flex min-w-0 items-center gap-1">
+              <div className="flex min-w-0 items-center gap-1" style={rowEntry}>
                 <button
                   type="button"
                   role="rowheader"
@@ -692,7 +721,7 @@ export function RiskMatrixHeatmap({
                         ? "border-[var(--pb-accent)]"
                         : "border-[var(--pb-border-soft)] hover:border-[var(--pb-border-strong)]",
                     )}
-                    style={{ background: axisCellBg(axis.id, score.value, evaluated) }}
+                    style={{ background: axisCellBg(axis.id, score.value, evaluated), ...rowEntry }}
                   >
                     {!evaluated && (
                       <span
@@ -747,6 +776,7 @@ export function RiskMatrixHeatmap({
                 )}
                 style={{
                   background: compositeCellBg(s.criticityBand, s.composite),
+                  ...rowEntry,
                 }}
               >
                 {s.composite === null && (
@@ -756,6 +786,18 @@ export function RiskMatrixHeatmap({
                     style={{ background: HATCH, animation: "pbHatchBurst 2.4s ease both" }}
                   />
                 )}
+                {/* Flash amber → couleur de bande quand la criticité vient de basculer. */}
+                {bandFlash[s.cycleSlug] ? (
+                  <span
+                    key={`flash-${bandFlash[s.cycleSlug]}`}
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{
+                      background: `linear-gradient(90deg, color-mix(in srgb, var(--pb-warn) 60%, transparent), color-mix(in srgb, ${bandColor} 70%, transparent))`,
+                      animation: "pbBandFlash .35s ease both",
+                    }}
+                  />
+                ) : null}
                 <svg width="22" height="22" viewBox="0 0 22 22" className="relative shrink-0" aria-hidden>
                   <circle
                     cx="11"
@@ -801,6 +843,7 @@ export function RiskMatrixHeatmap({
                 <div
                   role="gridcell"
                   className="flex h-9 items-center justify-center rounded-md border border-[var(--pb-border-soft)] bg-[var(--pb-surface-inset)] text-sm font-bold"
+                  style={rowEntry}
                 >
                   {deltaContent}
                 </div>

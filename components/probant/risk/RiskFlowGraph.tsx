@@ -246,6 +246,20 @@ export function RiskFlowGraph({
     return map;
   }, [graph.edges]);
 
+  // Rang de connectivité : les 5 nœuds les plus liés reçoivent un halo
+  // séquentiel à l'entrée (delay 100 ms/rang). Pur fait de relation (degré
+  // dans graph.edges), aucune propagation chiffrée suggérée.
+  const pulseRank = useMemo(() => {
+    const ranked = placed
+      .map((p) => ({ id: p.node.id, deg: neighbors.get(p.node.id)?.size ?? 0 }))
+      .filter((r) => r.deg > 0)
+      .sort((a, b) => b.deg - a.deg)
+      .slice(0, 5);
+    const map = new Map<string, number>();
+    ranked.forEach((r, i) => map.set(r.id, i));
+    return map;
+  }, [placed, neighbors]);
+
   const focus = hovered ?? selected;
   const focusSet = useMemo(() => {
     if (!focus) return null;
@@ -321,6 +335,7 @@ export function RiskFlowGraph({
 
   return (
     <div
+      data-tour="risk-flow-graph"
       style={{
         position: "relative",
         borderRadius: 12,
@@ -365,9 +380,11 @@ export function RiskFlowGraph({
           ))}
         </g>
 
-        {/* Arêtes (animées pour les comptes PCG partagés) */}
+        {/* Arêtes : les relations déclarées SE DESSINENT progressivement
+            (stroke-dashoffset normalisé par pathLength, ~800 ms, stagger) ;
+            les comptes PCG partagés gardent leur pointillé défilant. */}
         <g style={{ animation: "pbFadeIn .9s ease .25s both" }}>
-          {drawableEdges.map(({ edge, a, b }) => {
+          {drawableEdges.map(({ edge, a, b }, i) => {
             const isComptes = edge.source === "comptes";
             return (
               <path
@@ -376,12 +393,15 @@ export function RiskFlowGraph({
                 fill="none"
                 stroke={isComptes ? "var(--pb-text-faint)" : "var(--pb-accent)"}
                 strokeWidth={isComptes ? 1 : 1.8}
-                strokeDasharray={isComptes ? "4 4" : undefined}
+                pathLength={isComptes ? undefined : 1}
+                strokeDasharray={isComptes ? "4 4" : 1}
                 strokeLinecap="round"
                 opacity={edgeOpacity(edge)}
                 style={{
                   transition: "opacity .2s",
-                  animation: isComptes ? "pbDashFlow 1.1s linear infinite" : undefined,
+                  animation: isComptes
+                    ? "pbDashFlow 1.1s linear infinite"
+                    : `pbDraw .8s ease ${(0.25 + (i % 12) * 0.05).toFixed(2)}s both`,
                 }}
               />
             );
@@ -434,6 +454,9 @@ export function RiskFlowGraph({
             return (
               <g
                 key={node.id}
+                data-tour={
+                  node.cycleSlug.startsWith("immobilisations-corp") ? "risk-node-immo" : undefined
+                }
                 transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}
                 opacity={nodeOpacity(node.id)}
                 style={{ cursor: "pointer", transition: "opacity .2s" }}
@@ -502,6 +525,19 @@ export function RiskFlowGraph({
                   opacity={isFocus ? 0.9 : 0.5}
                   style={{ transition: "opacity .2s" }}
                 />
+                {/* Halo séquentiel des nœuds les plus connectés (2 pulsations). */}
+                {pulseRank.has(node.id) && (
+                  <circle
+                    r={r + 9}
+                    fill="none"
+                    stroke={evaluated ? bandColor : "var(--pb-text-faint)"}
+                    strokeWidth={2}
+                    opacity={0}
+                    style={{
+                      animation: `pbNodePulse 1.1s ease ${(0.9 + pulseRank.get(node.id)! * 0.1).toFixed(2)}s 2`,
+                    }}
+                  />
+                )}
                 {/* Libellé affiché UNIQUEMENT pour le nœud survolé/sélectionné :
                     avec 35 nœuds et des titres longs, un libellé permanent sous
                     chaque nœud se chevauchait massivement (comme la maquette, on

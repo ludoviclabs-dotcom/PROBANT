@@ -505,6 +505,7 @@ export function RiskMappingView({
                     type="button"
                     role="tab"
                     aria-selected={view === mode}
+                    data-tour-tab={mode}
                     onClick={() => setView(mode)}
                     className={cn(
                       "relative z-[1] rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",

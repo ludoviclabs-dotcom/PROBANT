@@ -576,7 +576,10 @@ function SiloBody({
     if (!cont) return;
     const cr = cont.getBoundingClientRect();
     setDims({ w: cr.width, h: cr.height });
-    const isWide = cr.width >= 680;
+    // Seuil d'affichage des connecteurs : sous ~620px les étiquettes
+    // d'annotation deviennent illisibles. 620 (et non 680) pour que la courbe
+    // reste visible à 1440px de viewport (colonne ≈ 656px avec le rail droit).
+    const isWide = cr.width >= 620;
     setWide(isWide);
     if (!isWide) { setArrows([]); return; }
     const next: ArrowPath[] = [];
@@ -616,7 +619,19 @@ function SiloBody({
 
   return (
     <div style={{ padding: "2px 18px 20px 38px" }}>
-      <div ref={containerRef} style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1.04fr) minmax(0,1fr)", gap: 26, alignItems: "start" }}>
+      {/* Le silo vitrine du rapprochement Clients porte l'ancre `bezier-link`
+          de la visite guidée sur le CONTENEUR (toujours rendu quand le silo est
+          ouvert, même quand les connecteurs sont masqués sous 620px) : le
+          spotlight couvre la chaîne complète ligne flaggée → courbe → constat,
+          teinté par la gravité du premier constat via data-tour-flag. */}
+      <div
+        ref={containerRef}
+        data-tour={siloView.siloId === "rapprochement-clients" ? "bezier-link" : undefined}
+        data-tour-flag={
+          siloView.siloId === "rapprochement-clients" ? findingsToShow[0]?.severity : undefined
+        }
+        style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1.04fr) minmax(0,1fr)", gap: 26, alignItems: "start" }}
+      >
 
         {/* Connecteurs SVG (overlay, derrière le contenu) */}
         {wide && arrows.length > 0 && (
@@ -644,10 +659,12 @@ function SiloBody({
           </svg>
         )}
 
-        {/* Étiquettes d'annotation le long des connecteurs */}
+        {/* Étiquettes d'annotation le long des connecteurs (pulse léger pendant
+            la visite guidée, via body[data-pb-guide] + data-tour-anno). */}
         {wide && arrows.map((a) => a.label ? (
           <div
             key={`lbl-${a.id}`}
+            data-tour-anno={siloView.siloId === "rapprochement-clients" ? "" : undefined}
             style={{ position: "absolute", zIndex: 3, left: a.sx + (a.ex - a.sx) * 0.5, top: a.sy + (a.ey - a.sy) * 0.5, transform: "translate(-50%,-50%)", maxWidth: 168, pointerEvents: "none", borderRadius: 6, border: `1px solid ${a.hex}66`, background: SURFACE, padding: "3px 7px", fontSize: 9.5, fontWeight: 500, lineHeight: 1.25, textAlign: "center" as const, color: a.hex, boxShadow: "0 6px 16px -6px rgba(0,0,0,.7)" }}
           >
             {a.label}

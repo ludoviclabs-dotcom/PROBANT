@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { loadAllCycles, loadCycle, loadAllSources } from "../loader";
 import type { AuditCycle, NormativeSource } from "../types";
+import { TOUR_CYCLE_COUNT } from "@/lib/demo/tour";
 
 describe("loadAllCycles", () => {
   let cycles: AuditCycle[];
@@ -11,6 +12,13 @@ describe("loadAllCycles", () => {
 
   it("charge au moins 5 cycles", () => {
     expect(cycles.length).toBeGreaterThanOrEqual(5);
+  });
+
+  it("compte exactement les fiches annoncées par la visite guidée (miroir client TOUR_CYCLE_COUNT)", () => {
+    // Le chargeur YAML est serveur-only : la visite guidée affiche un miroir
+    // client (`TOUR_CYCLE_COUNT`). Ce test échoue si la base évolue sans que
+    // le chiffre annoncé dans la démo soit mis à jour.
+    expect(cycles).toHaveLength(TOUR_CYCLE_COUNT);
   });
 
   it("chaque cycle a les champs structurants", () => {
