@@ -6,7 +6,7 @@ import type {
   RapprochementConfig,
   ResultatRapprochement,
 } from "./types";
-import { refineEcart } from "./qualify";
+import { refineEcart, sourceFor } from "./qualify";
 
 /**
  * Moteur de rapprochement à 3 niveaux (total → groupe → granulaire).
@@ -121,7 +121,7 @@ export function rapprocher(
       montantCible,
       ecart,
       ancienneteJours,
-      sourceKey: "ISA_500",
+      sourceKey: sourceFor(config, "rapprochement_solde", "ISA_500"),
       constat: "",
     };
 
@@ -142,7 +142,7 @@ export function rapprocher(
         montantSource: totalSource,
         montantCible: totalCible,
         ecart: residuel,
-        sourceKey: "ISA_500",
+        sourceKey: sourceFor(config, "rapprochement_solde", "ISA_500"),
         constat: `Le solde global de « ${source.label} » (${Math.round(totalSource).toLocaleString("fr-FR")} €) ne se rapproche pas de « ${cible.label} » (${Math.round(totalCible).toLocaleString("fr-FR")} €) : écart résiduel de ${Math.round(residuel).toLocaleString("fr-FR")} €.`,
       });
     }

@@ -3,28 +3,30 @@ import type { MaterialityThresholds } from "@/lib/audit/materiality";
 import { buildRapprochementSilo } from "../build";
 import type { DocumentSource, RapprochementConfig } from "../types";
 
-/** Cycle PAIE — livre de paie / DSN ↔ comptabilité (641/645/43). */
+/** Cycle PAIE & PERSONNEL — journal de paie / DSN ↔ grand-livre 43x/64x. */
 
-export const LIVRE_DE_PAIE: DocumentSource = {
-  id: "demo-livre-de-paie",
-  label: "Livre de paie / DSN",
+export const JOURNAL_PAIE_DSN: DocumentSource = {
+  id: "demo-journal-paie-dsn",
+  label: "Journal de paie / DSN",
   type: "etat_paie",
   format: "demo",
   lignes: [
-    { tiers: "SALAIRES-BRUTS", compte: "641", montant: 1850000, libelle: "Salaires bruts" },
-    { tiers: "CHARGES-PATRONALES", compte: "645", montant: 720000, libelle: "Charges patronales" },
-    { tiers: "PRIME-EXCEPTIONNELLE", compte: "641", montant: 35000, libelle: "Prime exceptionnelle déc." },
+    { tiers: "URSSAF", compte: "437", piece: "DSN-2024-11", montant: 28400, libelle: "Cotisations URSSAF novembre" },
+    { tiers: "CHARGES SOCIALES", compte: "64", piece: "OD-PAIE-11", montant: 104000, libelle: "Charges de personnel novembre" },
+    { tiers: "CAISSE RETRAITE AGIRC-ARRCO", compte: "437", piece: "DSN-2024-11", montant: 9800, libelle: "Cotisations retraite complémentaire novembre" },
+    { tiers: "MUTUELLE SANTE PLUS", compte: "431", piece: "DSN-2024-11", montant: 3200, libelle: "Cotisations mutuelle novembre" },
   ],
 };
 
-export const COMPTABILITE_PAIE: DocumentSource = {
-  id: "demo-comptabilite-paie",
-  label: "Comptabilité paie (64/43)",
-  type: "balance_generale",
+export const GRAND_LIVRE_421_64: DocumentSource = {
+  id: "demo-grand-livre-421-64",
+  label: "Grand-livre 421/64",
+  type: "grand_livre",
   format: "demo",
   lignes: [
-    { tiers: "SALAIRES-BRUTS", compte: "641", montant: 1850000, libelle: "Salaires bruts" },
-    { tiers: "CHARGES-PATRONALES", compte: "645", montant: 695000, libelle: "Charges patronales" },
+    { tiers: "URSSAF", compte: "437", montant: 28400, libelle: "Cotisations URSSAF novembre" },
+    { tiers: "CHARGES SOCIALES", compte: "64", montant: 104000, libelle: "Charges de personnel novembre" },
+    { tiers: "CAISSE RETRAITE AGIRC-ARRCO", compte: "437", montant: 8900, libelle: "Cotisations retraite complémentaire novembre" },
   ],
 };
 
@@ -39,5 +41,5 @@ export const CONFIG_PAIE: RapprochementConfig = {
 export function buildPaieRapprochementSilo(
   th: MaterialityThresholds | null = null,
 ): SiloView {
-  return buildRapprochementSilo(LIVRE_DE_PAIE, COMPTABILITE_PAIE, CONFIG_PAIE, th);
+  return buildRapprochementSilo(JOURNAL_PAIE_DSN, GRAND_LIVRE_421_64, CONFIG_PAIE, th);
 }

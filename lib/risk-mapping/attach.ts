@@ -1,8 +1,10 @@
 /**
  * Rattachement factuel constat → cycle d'audit.
  *
- * Les constats démo ne portent pas `cycleSlug`. Le rattachement repose donc,
- * dans l'ordre, sur trois faits vérifiables :
+ * Si le constat porte déjà `cycleSlug` (posé avec certitude par le moteur de
+ * rapprochement — cf. `cyclesForFinding`, règle 0), il est utilisé tel quel.
+ * Les constats du moteur d'analyse FEC classique n'ont pas ce champ : le
+ * rattachement repose alors, dans l'ordre, sur trois faits vérifiables :
  *   1. `cycle.probantSiloIds` contient `finding.siloId` ;
  *   2. sinon, pour chaque compte de `finding.comptesConcernes`,
  *      `siloForCompte(compte)` puis rapprochement de ce silo à `probantSiloIds`
@@ -10,8 +12,9 @@
  *   3. sinon `cycle.probantCloisons` contient `finding.cloison` (repli large —
  *      bilan-actif est partagé par ~10 cycles ; cloison = dernier recours).
  *
- * Un même constat peut alimenter plusieurs cycles (aucun rattachement exclusif).
- * Les constats sans rattachement sont conservés dans un bucket dédié : ils ne
+ * Un même constat peut alimenter plusieurs cycles (aucun rattachement exclusif),
+ * sauf via `cycleSlug` qui est par nature exclusif (un seul cycle). Les
+ * constats sans rattachement sont conservés dans un bucket dédié : ils ne
  * sont jamais perdus silencieusement.
  *
  * Module isomorphe : aucun import React ni `fs`, aucun appel `loader.ts`.
@@ -34,11 +37,40 @@ export interface AttachmentResult {
 
 /**
  * Retourne l'ensemble des slugs de cycles auxquels un constat se rattache.
- * L'ordre des règles (silo → compte PCG → cloison) va du plus précis au plus
- * large ; on s'arrête dès qu'une règle trouve un ou plusieurs cycles pour éviter
- * qu'une cloison partagée (ex. bilan-actif) gonfle artificiellement les scores.
+ *
+ * Règle 0 (prioritaire, exclusive) : si `f.cycleSlug` est renseigné et
+ * correspond au `slug` d'un des cycles fournis, on le retourne seul aussitôt.
+ * Un constat issu du moteur de rapprochement (lib/rapprochement/to-findings.ts)
+ * connaît déjà avec certitude son cycle cible — c'est le moteur qui l'a posé
+ * au moment de produire le constat — donc inutile (et risqué) de le
+ * redécouvrir par heuristique : cela évite un rattachement erroné ou multiple
+ * via la règle 3 (cloison), large et partagée par ~10 cycles, quand le
+ * `siloId` du rapprochement (ex. "rapprochement-clients") ne figure pas dans
+ * `probantSiloIds` du cycle cible et que `comptesConcernes` ne contient pas de
+ * compte PCG numérique exploitable (ex. seulement un nom de tiers).
+ *
+ * Sinon (pas de `cycleSlug`, ou `cycleSlug` ne correspondant à aucun cycle
+ * fourni — ex. constats du moteur FEC classique), on applique les trois
+ * règles heuristiques historiques, du plus précis au plus large ; on s'arrête
+ * dès qu'une règle trouve un ou plusieurs cycles pour éviter qu'une cloison
+ * partagée (ex. bilan-actif) gonfle artificiellement les scores :
+ *   1. `cycle.probantSiloIds` contient `finding.siloId` ;
+ *   2. sinon, pour chaque compte de `finding.comptesConcernes`,
+ *      `siloForCompte(compte)` puis rapprochement de ce silo à `probantSiloIds`
+ *      (précision fine : un compte 411 identifie creances-clients avec certitude) ;
+ *   3. sinon `cycle.probantCloisons` contient `finding.cloison` (repli large —
+ *      bilan-actif est partagé par ~10 cycles ; cloison = dernier recours).
+ *
+ * Un même constat peut alimenter plusieurs cycles (aucun rattachement exclusif),
+ * sauf via la règle 0 qui est par construction exclusive (un seul cycle, le
+ * plus précis possible). Les constats sans rattachement sont conservés dans un
+ * bucket dédié : ils ne sont jamais perdus silencieusement.
  */
 export function cyclesForFinding(f: Finding, cycles: AuditCycle[]): string[] {
+  if (f.cycleSlug && cycles.some((cycle) => cycle.slug === f.cycleSlug)) {
+    return [f.cycleSlug];
+  }
+
   const slugs = new Set<string>();
 
   for (const cycle of cycles) {

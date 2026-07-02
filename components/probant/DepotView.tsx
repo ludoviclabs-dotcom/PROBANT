@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   UploadCloud,
@@ -99,6 +100,15 @@ function exerciceFromEntries(entries: FecEntry[]): string {
 }
 
 export function DepotView() {
+  return (
+    <Suspense fallback={null}>
+      <DepotViewInner />
+    </Suspense>
+  );
+}
+
+function DepotViewInner() {
+  const searchParams = useSearchParams();
   const [drag, setDrag] = useState(false);
   const [status, setStatus] = useState<"idle" | "processing" | "done" | "error">(
     "idle",
@@ -108,7 +118,7 @@ export function DepotView() {
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showSim, setShowSim] = useState(false);
-  const [showCycleUpload, setShowCycleUpload] = useState(false);
+  const [showCycleUpload, setShowCycleUpload] = useState(() => searchParams.get("cycle") !== null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -152,7 +162,27 @@ export function DepotView() {
           setStatus("done");
           try {
             const exercice = exerciceFromEntries(data.entries);
-            sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify(data.analyse));
+            // Fusion, pas écrasement : un dépôt FEC remplace ses propres constats
+            // d'analyse mais PRÉSERVE les constats issus d'un dépôt par cycle
+            // (origine "rapprochement"), qui écrivent dans la même clé de session.
+            // Sans cela, déposer un FEC après un rapprochement effacerait
+            // silencieusement ce dernier (et le ferait disparaître de la
+            // cartographie des risques qui lit cette même clé).
+            let previousLive: Finding[] = [];
+            try {
+              const raw = sessionStorage.getItem(LIVE_FINDINGS_KEY);
+              const parsed: unknown = raw ? JSON.parse(raw) : [];
+              if (Array.isArray(parsed)) previousLive = parsed as Finding[];
+            } catch { /* clé absente ou illisible : on repart d'une liste vide */ }
+            const mergedById = new Map<string, Finding>();
+            for (const f of previousLive) {
+              if (f.origine === "rapprochement") mergedById.set(f.id, f);
+            }
+            for (const f of data.analyse) mergedById.set(f.id, f);
+            sessionStorage.setItem(
+              LIVE_FINDINGS_KEY,
+              JSON.stringify([...mergedById.values()]),
+            );
             sessionStorage.setItem(LIVE_ADMISSIBILITE_KEY, JSON.stringify(data.admissibilite));
             // On préserve toutes les lignes référencées par les constats et
             // on complète jusqu'à CAP avec des lignes saines, pour ne jamais
