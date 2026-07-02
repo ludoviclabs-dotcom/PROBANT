@@ -67,6 +67,61 @@ const CREANCES_CYCLE = makeCycle({
   probantCloisons: ["bilan-actif"],
 });
 
+describe("règle 0 : cycleSlug prioritaire et exclusif", () => {
+  it("un finding avec cycleSlug='creances-clients' se rattache exclusivement à ce cycle même si son siloId ne figure pas dans probantSiloIds", () => {
+    const cibleCycle = makeCycle({
+      slug: "creances-clients",
+      probantSiloIds: ["creances-clients"],
+      probantCloisons: ["bilan-actif"],
+    });
+    // Cycle partageant la même cloison large : sans la règle 0, le repli
+    // par cloison rattacherait aussi (voire uniquement) ce constat ici.
+    const autreCycleMemeCloison = makeCycle({
+      slug: "autre-cycle-bilan-actif",
+      probantSiloIds: [],
+      probantCloisons: ["bilan-actif"],
+    });
+    const f = makeFinding({
+      cycleSlug: "creances-clients",
+      siloId: "rapprochement-clients",
+      cloison: "bilan-actif",
+      comptesConcernes: ["Client Dupont"],
+    });
+
+    const slugs = cyclesForFinding(f, [cibleCycle, autreCycleMemeCloison]);
+    expect(slugs).toEqual(["creances-clients"]);
+
+    const { byCycle, unattached } = attachFindingsToCycles(
+      [cibleCycle, autreCycleMemeCloison],
+      [f],
+    );
+    expect(byCycle.get("creances-clients")).toEqual([f]);
+    expect(byCycle.has("autre-cycle-bilan-actif")).toBe(false);
+    expect(unattached).toHaveLength(0);
+  });
+
+  it("un finding sans cycleSlug continue de suivre les règles 1/2/3 (non-régression)", () => {
+    const f = makeFinding({ siloId: "creances-clients" });
+    const slugs = cyclesForFinding(f, [CREANCES_CYCLE]);
+    expect(slugs).toContain("creances-clients");
+
+    const { byCycle, unattached } = attachFindingsToCycles([CREANCES_CYCLE], [f]);
+    expect(byCycle.get("creances-clients")).toEqual([f]);
+    expect(unattached).toHaveLength(0);
+  });
+
+  it("un finding avec cycleSlug ne correspondant à aucun cycle fourni retombe sur les règles 1/2/3", () => {
+    const f = makeFinding({
+      cycleSlug: "cycle-inexistant",
+      siloId: "silo-inconnu",
+      cloison: "tva-fiscalite",
+    });
+    const cycle = makeCycle({ slug: "fiscal", probantCloisons: ["tva-fiscalite"] });
+    const slugs = cyclesForFinding(f, [cycle]);
+    expect(slugs).toEqual(["fiscal"]);
+  });
+});
+
 describe("rattachement par silo (règle prioritaire)", () => {
   it("un finding siloId='creances-clients' se rattache au cycle 'creances-clients'", () => {
     const f = makeFinding({ siloId: "creances-clients" });

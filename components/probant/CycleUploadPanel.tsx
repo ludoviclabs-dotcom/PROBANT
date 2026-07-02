@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   UploadCloud,
   CheckCircle2,
@@ -18,8 +19,9 @@ import {
 import { parseTabularDocument } from "@/lib/rapprochement/parse-upload";
 import { buildRapprochementDepuisDepot } from "@/lib/rapprochement/build-from-upload";
 import type { DocumentSource } from "@/lib/rapprochement/types";
-import type { SiloView } from "@/lib/canonical-model";
+import type { Finding, SiloView } from "@/lib/canonical-model";
 import { SeverityBadge } from "./Badges";
+import { LIVE_FINDINGS_KEY } from "./CloisonsViewLive";
 import { cn } from "@/lib/utils";
 
 export const LIVE_RAPPROCHEMENT_KEY = "probant:live-rapprochement";
@@ -99,7 +101,16 @@ function reducer(state: PanelState, action: Action): PanelState {
 }
 
 export function CycleUploadPanel() {
+  return (
+    <Suspense fallback={null}>
+      <CycleUploadPanelInner />
+    </Suspense>
+  );
+}
+
+function CycleUploadPanelInner() {
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
+  const searchParams = useSearchParams();
   const cycle = state.cycleId
     ? AUDIT_CYCLES.find((c) => c.id === state.cycleId) ?? null
     : null;
@@ -110,6 +121,15 @@ export function CycleUploadPanel() {
     () => (cycle ? documentTypesForCycle(cycle.id) : []),
     [cycle],
   );
+
+  // Deep-link : ?cycle=<id> sélectionne automatiquement le cycle au montage.
+  useEffect(() => {
+    const cycleParam = searchParams.get("cycle");
+    if (cycleParam && AUDIT_CYCLES.some((c) => c.id === cycleParam)) {
+      dispatch({ type: "SELECT_CYCLE", cycleId: cycleParam });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleFile(documentType: DocumentType, fichier: File) {
     dispatch({ type: "START_PARSE", documentTypeId: documentType.id, fichier });
@@ -163,6 +183,17 @@ export function CycleUploadPanel() {
       } catch {
         /* ignore si sessionStorage indisponible */
       }
+      try {
+        const brutFindings = sessionStorage.getItem(LIVE_FINDINGS_KEY);
+        const parsed: unknown = brutFindings ? JSON.parse(brutFindings) : [];
+        const existants: Finding[] = Array.isArray(parsed) ? (parsed as Finding[]) : [];
+        const byId = new Map<string, Finding>();
+        for (const f of existants) byId.set(f.id, f);
+        for (const f of silo.findings) byId.set(f.id, f);
+        sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify([...byId.values()]));
+      } catch {
+        /* ignore si sessionStorage indisponible */
+      }
     } catch (e) {
       dispatch({
         type: "SET_SILO",
@@ -174,7 +205,7 @@ export function CycleUploadPanel() {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {AUDIT_CYCLES.map((c) => (
           <CycleCard
             key={c.id}

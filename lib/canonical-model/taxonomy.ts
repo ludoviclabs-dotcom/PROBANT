@@ -93,7 +93,7 @@ export const SILOS: Silo[] = [
     id: "immobilisations-corporelles",
     label: "Immobilisations corporelles",
     cloison: "bilan-actif",
-    comptes: ["21", "281", "291"],
+    comptes: ["21", "23", "281", "291"],
     description: "Terrains, constructions, installations, matériels.",
   },
   {
@@ -143,7 +143,7 @@ export const SILOS: Silo[] = [
     id: "rapprochement-tresorerie",
     label: "Rapprochement bancaire",
     cloison: "bilan-actif",
-    comptes: ["512"],
+    comptes: ["512", "514", "53", "58"],
     description: "Confrontation soldes comptables ↔ relevés bancaires (confirmations).",
   },
   {
@@ -157,7 +157,7 @@ export const SILOS: Silo[] = [
     id: "autres-creances-tresorerie",
     label: "Autres créances & trésorerie",
     cloison: "bilan-actif",
-    comptes: ["44", "46", "50", "51", "53", "54"],
+    comptes: ["44", "46", "50", "51", "53", "54", "58", "59"],
     description: "État, débiteurs divers, VMP et disponibilités.",
   },
   // --- Bilan passif ---
@@ -274,7 +274,7 @@ export const SILOS: Silo[] = [
     id: "rapprochement-paie",
     label: "Rapprochement paie",
     cloison: "resultat",
-    comptes: ["64"],
+    comptes: ["64", "43"],
     description: "Confrontation livre de paie / DSN ↔ comptabilité (64/43).",
   },
   {
@@ -283,6 +283,29 @@ export const SILOS: Silo[] = [
     cloison: "tva-fiscalite",
     comptes: ["445"],
     description: "Confrontation déclarations CA3 ↔ comptabilité TVA, et CA déclaré ↔ comptable.",
+  },
+  {
+    id: "rapprochement-dettes-financieres",
+    label: "Rapprochement dettes financières",
+    cloison: "bilan-passif",
+    comptes: ["16"],
+    description:
+      "Confrontation tableau d'amortissement des emprunts ↔ comptabilité (classe 16).",
+  },
+  {
+    id: "rapprochement-provisions",
+    label: "Rapprochement provisions",
+    cloison: "bilan-passif",
+    comptes: ["15"],
+    description: "Confrontation tableau des provisions ↔ comptabilité (classe 15).",
+  },
+  {
+    id: "rapprochement-resultat-exceptionnel",
+    label: "Rapprochement résultat exceptionnel",
+    cloison: "resultat",
+    comptes: ["67", "77"],
+    description:
+      "Confrontation détail des charges/produits exceptionnels ↔ comptabilité (67/77).",
   },
 ];
 

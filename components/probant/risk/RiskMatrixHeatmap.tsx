@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   useReactTable,
   getCoreRowModel,
@@ -9,7 +10,13 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { ChevronUp, ChevronDown, ChevronsUpDown, TriangleAlert } from "lucide-react";
+import {
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
+  TriangleAlert,
+  CheckCircle2,
+} from "lucide-react";
 import type { CycleRiskScore, CriticityBand, RiskAxisId } from "@/lib/risk-mapping";
 import {
   RISK_AXES,
@@ -48,6 +55,16 @@ interface RiskMatrixHeatmapProps {
   onSelect: (slug: string) => void;
   /** Exercice de comparaison pour la colonne delta ; absent = colonne masquée. */
   comparisonExercise?: HistoricalExercise | null;
+  /**
+   * `cycleSlug` (fiche normative) des cycles éligibles au dépôt multi-documents
+   * — signal indépendant de `evaluation`/`composite`, purement documentaire.
+   * Optionnel et rétro-compatible : absent = aucun badge de couverture affiché.
+   */
+  depositCycleSlugs?: string[];
+  /** Sous-ensemble de `depositCycleSlugs` pour lequel un dépôt a déjà réussi. */
+  coveredCycleSlugs?: string[];
+  /** `cycleSlug` → id du cycle de dépôt correspondant, pour le lien de dépôt. */
+  depositIdByCycleSlug?: Map<string, string>;
 }
 
 /** Couleur d'accent par axe, pour l'intensité color-mix des cellules. */
@@ -165,6 +182,9 @@ export function RiskMatrixHeatmap({
   selected,
   onSelect,
   comparisonExercise = null,
+  depositCycleSlugs,
+  coveredCycleSlugs,
+  depositIdByCycleSlug,
 }: RiskMatrixHeatmapProps) {
   const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORT);
   const [cycleQuery, setCycleQuery] = useState("");
@@ -189,6 +209,17 @@ export function RiskMatrixHeatmap({
   }, [sorting]);
 
   const showDelta = !!comparisonExercise && isSimulatedExercise(comparisonExercise);
+
+  // Couverture documentaire du dépôt : signal ADDITIF, indépendant de
+  // `evaluation`/`composite`. Sets dérivés une seule fois par rendu des props.
+  const depositEligibleSlugs = useMemo(
+    () => new Set(depositCycleSlugs ?? []),
+    [depositCycleSlugs],
+  );
+  const depositCoveredSlugs = useMemo(
+    () => new Set(coveredCycleSlugs ?? []),
+    [coveredCycleSlugs],
+  );
 
   const filteredByBand = useMemo(
     () => scores.filter((s) => visibleBands[s.criticityBand]),
@@ -505,27 +536,54 @@ export function RiskMatrixHeatmap({
             }
           }
 
+          const isDepositCovered = depositCoveredSlugs.has(s.cycleSlug);
+          const isDepositEligible = depositEligibleSlugs.has(s.cycleSlug);
+          const depositId = depositIdByCycleSlug?.get(s.cycleSlug);
+
           return (
             <div key={s.cycleSlug} role="row" className="contents">
-              <button
-                type="button"
-                role="rowheader"
-                onClick={() => onSelect(s.cycleSlug)}
-                title={s.cycleSlug}
-                className={cn(
-                  "flex min-w-0 items-center gap-2 truncate rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors",
-                  isSelected
-                    ? "bg-[var(--pb-surface-3)] text-[var(--pb-text)]"
-                    : "text-[var(--pb-text-muted)] hover:bg-[var(--pb-surface-2)]",
+              <div className="flex min-w-0 items-center gap-1">
+                <button
+                  type="button"
+                  role="rowheader"
+                  onClick={() => onSelect(s.cycleSlug)}
+                  title={s.cycleSlug}
+                  className={cn(
+                    "flex min-w-0 flex-1 items-center gap-2 truncate rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors",
+                    isSelected
+                      ? "bg-[var(--pb-surface-3)] text-[var(--pb-text)]"
+                      : "text-[var(--pb-text-muted)] hover:bg-[var(--pb-surface-2)]",
+                  )}
+                >
+                  <span
+                    aria-hidden
+                    className="h-2 w-2 shrink-0 rounded-full"
+                    style={{ background: bandColor }}
+                  />
+                  <span className="truncate">{s.cycleSlug}</span>
+                </button>
+                {isDepositCovered && (
+                  <CheckCircle2
+                    className="h-3 w-3 shrink-0 text-[#22c55e]"
+                    aria-hidden
+                  >
+                    <title>Documents déposés pour ce cycle</title>
+                  </CheckCircle2>
                 )}
-              >
-                <span
-                  aria-hidden
-                  className="h-2 w-2 shrink-0 rounded-full"
-                  style={{ background: bandColor }}
-                />
-                <span className="truncate">{s.cycleSlug}</span>
-              </button>
+                {!isDepositCovered && isDepositEligible && (
+                  <Link
+                    href={
+                      depositId
+                        ? `/dashboard/depot?cycle=${encodeURIComponent(depositId)}`
+                        : "/dashboard/depot"
+                    }
+                    title="Cliquer pour déposer les documents de ce cycle"
+                    className="shrink-0 rounded-full border border-amber-500/40 bg-amber-500/10 px-1.5 py-0.5 text-[9px] font-medium text-amber-400 transition-colors hover:bg-amber-500/20"
+                  >
+                    Fichier manquant
+                  </Link>
+                )}
+              </div>
 
               {RISK_AXES.map((axis) => {
                 const score = s.axes[axis.id];

@@ -28,6 +28,8 @@ import { RiskTemporalChart } from "./RiskTemporalChart";
 import { ThresholdSimulator } from "./ThresholdSimulator";
 import { CycleRiskPanel } from "./CycleRiskPanel";
 import { useRiskAdjustments } from "./useRiskAdjustments";
+import { useDepositCoverage } from "./useDepositCoverage";
+import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
 
 /**
  * Shell client de la cartographie des risques. Il assemble le moteur pur
@@ -144,6 +146,19 @@ export function RiskMappingView({
   }, []);
 
   const { adjustments, setAdjustment, resetCycle, resetAll, saveStatus } = useRiskAdjustments();
+  const coverage = useDepositCoverage();
+
+  // Cycles de dépôt éligibles pour la matrice : slug (base normative) → id de
+  // dépôt, pour le lien "Fichier manquant" et pour distinguer les cycles liés
+  // à un dépôt de ceux qui ne le sont pas (la majorité des 35 fiches YAML).
+  const depositCycleSlugs = useMemo(
+    () => AUDIT_CYCLES.map((c) => c.config.cycleSlug),
+    [],
+  );
+  const depositIdByCycleSlug = useMemo(
+    () => new Map(AUDIT_CYCLES.map((c) => [c.config.cycleSlug, c.id])),
+    [],
+  );
 
   // Constats démo + live. Sentinelle `null` = pas encore hydraté (pattern
   // CloisonsViewLive) : on ne fige pas un premier rendu qui ignorerait des
@@ -358,6 +373,33 @@ export function RiskMappingView({
                   </span>
                 </>
               )}
+              {coverage && (
+                <>
+                  <span>·</span>
+                  <span
+                    className="flex items-center gap-1.5"
+                    title="Cycles couverts par un dépôt de documents rapproché"
+                  >
+                    {coverage.coveredCycleSlugs.length}/{coverage.total} cycles
+                    couverts (dépôt)
+                    <span
+                      aria-hidden
+                      className="inline-block h-1 w-[60px] overflow-hidden rounded-full bg-[var(--pb-surface-3)]"
+                    >
+                      <span
+                        className="block h-full rounded-full bg-[var(--pb-accent)]"
+                        style={{
+                          width: `${
+                            coverage.total > 0
+                              ? (coverage.coveredCycleSlugs.length / coverage.total) * 100
+                              : 0
+                          }%`,
+                        }}
+                      />
+                    </span>
+                  </span>
+                </>
+              )}
             </div>
           </div>
 
@@ -511,6 +553,9 @@ export function RiskMappingView({
                 selected={selected}
                 onSelect={setSelected}
                 comparisonExercise={comparisonExercise}
+                depositCycleSlugs={depositCycleSlugs}
+                coveredCycleSlugs={coverage?.coveredCycleSlugs ?? []}
+                depositIdByCycleSlug={depositIdByCycleSlug}
               />
             )}
             {view === "flow" && (

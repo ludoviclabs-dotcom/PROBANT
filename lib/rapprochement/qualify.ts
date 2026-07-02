@@ -6,7 +6,7 @@ import type {
 } from "./types";
 
 /** Clé de source : surcharge du cycle sinon défaut normatif. */
-function sourceFor(
+export function sourceFor(
   config: RapprochementConfig,
   qualif: QualificationEcart,
   fallback: string,
