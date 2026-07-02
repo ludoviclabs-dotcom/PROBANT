@@ -436,11 +436,7 @@ export function RiskFlowGraph({
                 key={node.id}
                 transform={`translate(${x.toFixed(1)} ${y.toFixed(1)})`}
                 opacity={nodeOpacity(node.id)}
-                style={{
-                  cursor: "pointer",
-                  transition: "opacity .2s",
-                  animation: `pbNodeIn .5s cubic-bezier(.34,1.56,.64,1) ${(0.2 + i * 0.03).toFixed(2)}s both`,
-                }}
+                style={{ cursor: "pointer", transition: "opacity .2s" }}
                 onMouseEnter={() => onHover(node.id)}
                 onMouseLeave={() => onHover(null)}
                 onClick={() => onSelect(node.id)}
@@ -454,6 +450,18 @@ export function RiskFlowGraph({
                     (neighbors.get(node.id)?.size ?? 0) > 1 ? "s" : ""
                   }`}
                 </title>
+                {/* Animation d'entrée sur un <g> INTERNE : le scale pivote autour
+                    du centre local (0,0 = centre du nœud) et ne touche PAS le
+                    translate de positionnement porté par le <g> parent. Les avoir
+                    sur le même élément faisait écraser l'attribut `transform`
+                    (translate) par le `transform: scale` de l'animation CSS, ce
+                    qui tirait les nœuds vers l'origine (coin haut-gauche) pendant
+                    l'animation. */}
+                <g
+                  style={{
+                    animation: `pbNodeIn .5s cubic-bezier(.34,1.56,.64,1) ${(0.2 + i * 0.03).toFixed(2)}s both`,
+                  }}
+                >
                 {/* Halo */}
                 <circle
                   r={r + (isFocus ? 12 : 7)}
@@ -515,6 +523,7 @@ export function RiskFlowGraph({
                     {node.label}
                   </text>
                 )}
+                </g>
               </g>
             );
           })}
