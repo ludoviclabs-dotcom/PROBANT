@@ -283,31 +283,36 @@ export function RiskBubbleChart({ scores, onSelect }: RiskBubbleChartProps) {
           );
         })}
 
-        {/* Labels de bulles (au-dessus, halo stroke pour lisibilité) */}
-        {bubbles.map((s) => {
-          const cx = xOf(s.axes.probabilite.value);
-          const cy = yOf(s.axes.gravite.value);
-          const r = rOf(s.axes.exposition.value);
-          return (
-            <text
-              key={`lbl-${s.cycleSlug}`}
-              x={cx}
-              y={cy + r + 13}
-              textAnchor="middle"
-              fontSize={9.5}
-              fontWeight={600}
-              fill="var(--pb-text-bright)"
-              style={{
-                pointerEvents: "none",
-                paintOrder: "stroke",
-                stroke: "var(--pb-surface-inset)",
-                strokeWidth: "3px",
-              }}
-            >
-              {s.cycleSlug}
-            </text>
-          );
-        })}
+        {/* Label affiché UNIQUEMENT pour la bulle survolée : les positions
+            (probabilité × gravité) des cycles réels se regroupent fortement, si
+            bien qu'un label permanent par bulle se chevauchait (24 collisions).
+            L'identité complète reste donnée par le tooltip au survol. */}
+        {bubbles
+          .filter((s) => hovered === s.cycleSlug)
+          .map((s) => {
+            const cx = xOf(s.axes.probabilite.value);
+            const cy = yOf(s.axes.gravite.value);
+            const r = rOf(s.axes.exposition.value);
+            return (
+              <text
+                key={`lbl-${s.cycleSlug}`}
+                x={cx}
+                y={cy + r + 13}
+                textAnchor="middle"
+                fontSize={10}
+                fontWeight={600}
+                fill="var(--pb-text-bright)"
+                style={{
+                  pointerEvents: "none",
+                  paintOrder: "stroke",
+                  stroke: "var(--pb-surface-inset)",
+                  strokeWidth: "3px",
+                }}
+              >
+                {s.cycleSlug}
+              </text>
+            );
+          })}
 
         <text x={PLOT_X} y={PLOT_Y - 12} fontSize={9.5} fill="var(--pb-text-faint)">
           Rayon ∝ exposition normative · heuristique interne, non opposable

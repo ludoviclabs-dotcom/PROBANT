@@ -121,22 +121,41 @@ export function RiskFlowGraph({
   // pas les particules du tout si l'utilisateur a demandé moins de mouvement.
   const reducedMotion = usePrefersReducedMotion();
 
-  // Projection du repère layout (640×520) vers le viewBox v2 (960×560) : une
-  // homothétie uniforme centrée. On ne recalcule aucun angle ni rayon — on
-  // transporte fidèlement les positions décidées par `layout.ts`.
+  // Projection du repère layout (disque radial ~640×520) vers le viewBox v2
+  // (960×560). Une homothétie UNIFORME laissait le disque circulaire au centre
+  // d'un canevas 16:9 → ~40 % de largeur utilisée, gros vides latéraux. On
+  // ajuste donc la bounding-box des positions au viewBox avec des échelles X/Y
+  // INDÉPENDANTES (le disque devient une ellipse qui remplit le canevas, comme
+  // la maquette). Les POSITIONS sont étirées ; les RAYONS des nœuds utilisent
+  // une échelle uniforme (`rScale`) pour rester des cercles ronds. Aucun angle
+  // ni relation n'est inventé : on ne fait que redistribuer les positions déjà
+  // décidées par `layout.ts` pour occuper l'espace disponible.
   const project = useMemo(() => {
-    const scale = Math.min(VIEW_W / SRC_W, VIEW_H / SRC_H);
-    const offsetX = (VIEW_W - SRC_W * scale) / 2;
-    const offsetY = (VIEW_H - SRC_H * scale) / 2;
+    const PAD_X = 150; // marge latérale : place pour les labels de famille
+    const PAD_Y = 64;
+    const positioned = graph.nodes.filter((n) => n.position !== undefined);
+    const xs = positioned.map((n) => n.position!.x);
+    const ys = positioned.map((n) => n.position!.y);
+    const minX = xs.length ? Math.min(...xs) : 0;
+    const maxX = xs.length ? Math.max(...xs) : SRC_W;
+    const minY = ys.length ? Math.min(...ys) : 0;
+    const maxY = ys.length ? Math.max(...ys) : SRC_H;
+    const srcW = Math.max(1, maxX - minX);
+    const srcH = Math.max(1, maxY - minY);
+    const scaleX = (VIEW_W - 2 * PAD_X) / srcW;
+    const scaleY = (VIEW_H - 2 * PAD_Y) / srcH;
+    const rScale = Math.min(scaleX, scaleY);
+    const x = (v: number) => PAD_X + (v - minX) * scaleX;
+    const y = (v: number) => PAD_Y + (v - minY) * scaleY;
     return {
-      scale,
-      x: (x: number) => offsetX + x * scale,
-      y: (y: number) => offsetY + y * scale,
-      // Centre du disque source projeté (SRC_W/2, SRC_H/2), utile aux guides.
-      cx: offsetX + (SRC_W / 2) * scale,
-      cy: offsetY + (SRC_H / 2) * scale,
+      x,
+      y,
+      rScale,
+      // Centre de la bounding-box projetée, référence des guides de famille.
+      cx: x((minX + maxX) / 2),
+      cy: y((minY + maxY) / 2),
     };
-  }, []);
+  }, [graph.nodes]);
 
   const placed = useMemo<PlacedNode[]>(
     () =>
@@ -250,9 +269,13 @@ export function RiskFlowGraph({
   );
 
   const edgeOpacity = (edge: RiskEdge): number => {
-    if (!focus) return 0.3 * Math.max(0.15, t);
+    // Au repos, les ~89 relations forment un maillage dense qui écrasait les
+    // nœuds : on garde les arêtes discrètes (0.16) pour que les nœuds colorés
+    // priment (comme la maquette), et on les renforce nettement au survol pour
+    // révéler le voisinage du nœud focalisé.
+    if (!focus) return 0.16 * Math.max(0.15, t);
     const touches = edge.from === focus || edge.to === focus;
-    return (touches ? 0.72 : 0.05) * Math.max(0.15, t);
+    return (touches ? 0.75 : 0.04) * Math.max(0.15, t);
   };
 
   const nodeOpacity = (id: string): number => {
@@ -397,7 +420,7 @@ export function RiskFlowGraph({
         {/* Nœuds : halo + cercle + anneau + label */}
         <g>
           {placed.map(({ node, x, y }, i) => {
-            const r = nodeRadius(node) * (0.62 + 0.38 * Math.max(0.15, t));
+            const r = nodeRadius(node) * project.rScale * (0.62 + 0.38 * Math.max(0.15, t));
             const band = node.scores.criticityBand;
             const evaluated = node.scores.evaluation !== "non_évalué";
             const bandColor = BAND_VAR[band];
@@ -471,23 +494,27 @@ export function RiskFlowGraph({
                   opacity={isFocus ? 0.9 : 0.5}
                   style={{ transition: "opacity .2s" }}
                 />
-                <text
-                  y={r + 15}
-                  textAnchor="middle"
-                  fontSize={9.5}
-                  fontWeight={600}
-                  fill={isFocus ? "var(--pb-text-bright)" : "var(--pb-text-muted)"}
-                  style={{
-                    pointerEvents: "none",
-                    paintOrder: "stroke",
-                    stroke: "var(--pb-bg)",
-                    strokeWidth: 3,
-                    opacity: isFocus ? 1 : 0.85,
-                    transition: "opacity .2s, fill .2s",
-                  }}
-                >
-                  {node.label}
-                </text>
+                {/* Libellé affiché UNIQUEMENT pour le nœud survolé/sélectionné :
+                    avec 35 nœuds et des titres longs, un libellé permanent sous
+                    chaque nœud se chevauchait massivement (comme la maquette, on
+                    s'appuie sur la carte d'info au survol pour l'identité). */}
+                {isFocus && (
+                  <text
+                    y={r + 15}
+                    textAnchor="middle"
+                    fontSize={10}
+                    fontWeight={600}
+                    fill="var(--pb-text-bright)"
+                    style={{
+                      pointerEvents: "none",
+                      paintOrder: "stroke",
+                      stroke: "var(--pb-bg)",
+                      strokeWidth: 3,
+                    }}
+                  >
+                    {node.label}
+                  </text>
+                )}
               </g>
             );
           })}

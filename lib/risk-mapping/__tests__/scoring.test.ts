@@ -190,6 +190,29 @@ describe("bornes [0,100] des scores d'axe", () => {
     };
     expect(composite(min)).toBe(0);
   });
+
+  it("exploite la pleine échelle : des facteurs élevés atteignent les hautes bandes", () => {
+    // Agrégation géométrique pondérée : un cycle réellement risqué (gravité et
+    // probabilité fortes, détection moyenne) doit dépasser « modéré », sinon la
+    // formule est revenue au produit brut compressé (tout en « faible »).
+    const eleve: Record<RiskAxisId, AxisScore> = {
+      gravite: axis("gravite", 85),
+      probabilite: axis("probabilite", 70),
+      detectabilite: axis("detectabilite", 40),
+      exposition: axis("exposition", 60),
+    };
+    expect(composite(eleve)).toBeGreaterThan(50);
+
+    // Un profil médian sur tous les axes ne doit pas rester coincé en « faible »
+    // (< 25) — la borne haute de la compression précédente.
+    const median: Record<RiskAxisId, AxisScore> = {
+      gravite: axis("gravite", 50),
+      probabilite: axis("probabilite", 50),
+      detectabilite: axis("detectabilite", 50),
+      exposition: axis("exposition", 50),
+    };
+    expect(composite(median)).toBeGreaterThan(25);
+  });
 });
 
 function axis(id: RiskAxisId, value: number): AxisScore {
@@ -363,7 +386,11 @@ describe("criticityBand", () => {
     expect(criticityBand(0)).toBe("faible");
     expect(criticityBand(24.9)).toBe("faible");
     expect(criticityBand(25)).toBe("modéré");
-    expect(criticityBand(50)).toBe("élevé");
+    // Seuil « élevé » remonté à 55 : un composite médian (50-54) reste « modéré ».
+    expect(criticityBand(50)).toBe("modéré");
+    expect(criticityBand(54.9)).toBe("modéré");
+    expect(criticityBand(55)).toBe("élevé");
+    expect(criticityBand(74.9)).toBe("élevé");
     expect(criticityBand(75)).toBe("critique");
     expect(criticityBand(100)).toBe("critique");
   });

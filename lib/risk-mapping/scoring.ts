@@ -370,9 +370,30 @@ export function scoreExposition(cycle: AuditCycle): AxisScore {
 }
 
 /**
- * Composite heuristique borné [0,100] :
- *   100 · (R^0.9 · P^0.7 · (1−D)^0.6 · (0.5+0.5·E))
- * Les axes sont ramenés de [0,100] à [0,1] via leur `value` (auto + ajustement).
+ * Composite heuristique borné [0,100] — MOYENNE GÉOMÉTRIQUE PONDÉRÉE des quatre
+ * facteurs de risque (exposants sommant à 1) :
+ *   100 · R^0.35 · P^0.25 · (1−D)^0.25 · Ê^0.15   avec Ê = 0.5 + 0.5·E
+ *
+ * Pourquoi pas un produit brut. La version précédente,
+ * `100·R^0.9·P^0.7·(1−D)^0.6·(0.5+0.5E)`, avait des exposants dont la somme
+ * dépassait 1 : multiplier quatre facteurs < 1 compressait mécaniquement le
+ * résultat vers le bas (sur le dossier démo, aucun cycle ne dépassait ~21/100,
+ * donc tous en bande « faible » — l'outil, censé HIÉRARCHISER le risque, ne
+ * hiérarchisait plus rien). Une moyenne géométrique pondérée (agrégation
+ * multicritère standard, exposants normalisés à 1) reste MONOTONE en chaque
+ * facteur de risque et bornée [0,100], mais exploite toute l'échelle.
+ *
+ * Poids doctrinaux (somme = 1) : gravité 0.35 (impact, ISA 320), probabilité
+ * 0.25 (risque inhérent, ISA 315), non-détection 0.25 (ISA 330, via 1−D car la
+ * détectabilité est inversée), exposition 0.15. L'exposition passe par un
+ * plancher `Ê = 0.5 + 0.5·E` : l'exposition structurelle contribue toujours
+ * sans jamais annuler le composite à elle seule.
+ *
+ * Ces poids et cette forme relèvent du JUGEMENT : le composite est une
+ * heuristique interne jamais opposable (`isHeuristic`). La calibration n'a PAS
+ * été ajustée pour reproduire une distribution cible ; elle vise seulement une
+ * agrégation défendable exploitant la pleine échelle. Extrêmes préservés :
+ * tous facteurs au maximum → 100 ; gravité ou probabilité nulle → 0.
  */
 export function composite(scores: Record<RiskAxisId, AxisScore>): number {
   const r = clamp(scores.gravite.value / 100, 0, 1);
@@ -380,21 +401,33 @@ export function composite(scores: Record<RiskAxisId, AxisScore>): number {
   const d = clamp(scores.detectabilite.value / 100, 0, 1);
   const e = clamp(scores.exposition.value / 100, 0, 1);
 
+  const eFloored = 0.5 + 0.5 * e;
   const raw =
     100 *
-    Math.pow(r, 0.9) *
-    Math.pow(p, 0.7) *
-    Math.pow(1 - d, 0.6) *
-    (0.5 + 0.5 * e);
+    Math.pow(r, 0.35) *
+    Math.pow(p, 0.25) *
+    Math.pow(1 - d, 0.25) *
+    Math.pow(eFloored, 0.15);
 
   return clamp(raw, 0, 100);
 }
 
-/** Bande de criticité dérivée d'un composite (null → « non_évalué »). */
+/**
+ * Bande de criticité dérivée d'un composite (null → « non_évalué »).
+ * Bornes : faible [0,25[, modéré [25,55[, élevé [55,75[, critique [75,100].
+ *
+ * Le seuil « élevé » est à 55 (et non 50) : les composites d'un profil de
+ * risque médian (facteurs ~50, détection moyenne) se situent autour de 50-54.
+ * Les classer « élevé » sur-alarmerait ; « élevé » est réservé aux cycles dont
+ * le composite dépasse nettement la médiane. Les bornes de bande relèvent du
+ * jugement (le composite reste une heuristique interne non opposable) : ce
+ * choix vise une hiérarchisation utile — une pyramide modéré > élevé — plutôt
+ * qu'un classement massif en « élevé ».
+ */
 export function criticityBand(comp: number | null): CriticityBand {
   if (comp === null) return "non_évalué";
   if (comp >= 75) return "critique";
-  if (comp >= 50) return "élevé";
+  if (comp >= 55) return "élevé";
   if (comp >= 25) return "modéré";
   return "faible";
 }
