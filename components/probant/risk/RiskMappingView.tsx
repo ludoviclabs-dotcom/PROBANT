@@ -14,6 +14,7 @@ import {
   buildPageAggregates,
   buildRiskGraph,
   layoutRadialByFamily,
+  criticityBand,
   CURRENT_EXERCISE,
   isSimulatedExercise,
   simulateHistoricalComposite,
@@ -301,17 +302,14 @@ export function RiskMappingView({
         selectedExercise,
       );
       if (simulatedComposite === s.composite) return s;
-      const band: CriticityBand =
-        simulatedComposite === null
-          ? "non_évalué"
-          : simulatedComposite >= 75
-            ? "critique"
-            : simulatedComposite >= 50
-              ? "élevé"
-              : simulatedComposite >= 25
-                ? "modéré"
-                : "faible";
-      return { ...s, composite: simulatedComposite, criticityBand: band };
+      // Réutilise `criticityBand` (source unique des bornes) plutôt qu'une
+      // logique inline : garantit la cohérence avec le reste des vues si les
+      // seuils de bande évoluent.
+      return {
+        ...s,
+        composite: simulatedComposite,
+        criticityBand: criticityBand(simulatedComposite),
+      };
     });
   }, [scores, selectedExercise]);
 

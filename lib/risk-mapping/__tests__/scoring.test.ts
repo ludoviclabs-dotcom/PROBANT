@@ -386,7 +386,11 @@ describe("criticityBand", () => {
     expect(criticityBand(0)).toBe("faible");
     expect(criticityBand(24.9)).toBe("faible");
     expect(criticityBand(25)).toBe("modéré");
-    expect(criticityBand(50)).toBe("élevé");
+    // Seuil « élevé » remonté à 55 : un composite médian (50-54) reste « modéré ».
+    expect(criticityBand(50)).toBe("modéré");
+    expect(criticityBand(54.9)).toBe("modéré");
+    expect(criticityBand(55)).toBe("élevé");
+    expect(criticityBand(74.9)).toBe("élevé");
     expect(criticityBand(75)).toBe("critique");
     expect(criticityBand(100)).toBe("critique");
   });

@@ -56,13 +56,13 @@ const BAND_HEX: Record<CriticityBand, string> = {
 
 /**
  * Bandes de criticité tracées en fond du graphe : bornes alignées sur
- * `criticityBand` (scoring.ts) — faible [0,25[, modéré [25,50[, élevé [50,75[,
+ * `criticityBand` (scoring.ts) — faible [0,25[, modéré [25,55[, élevé [55,75[,
  * critique [75,100].
  */
 const CRITICITY_BANDS: { band: CriticityBand; from: number; to: number; label: string }[] = [
   { band: "critique", from: 75, to: 100, label: "critique" },
-  { band: "élevé", from: 50, to: 75, label: "élevé" },
-  { band: "modéré", from: 25, to: 50, label: "modéré" },
+  { band: "élevé", from: 55, to: 75, label: "élevé" },
+  { band: "modéré", from: 25, to: 55, label: "modéré" },
   { band: "faible", from: 0, to: 25, label: "faible" },
 ];
 

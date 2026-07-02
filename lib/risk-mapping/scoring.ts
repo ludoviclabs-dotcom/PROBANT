@@ -412,11 +412,22 @@ export function composite(scores: Record<RiskAxisId, AxisScore>): number {
   return clamp(raw, 0, 100);
 }
 
-/** Bande de criticité dérivée d'un composite (null → « non_évalué »). */
+/**
+ * Bande de criticité dérivée d'un composite (null → « non_évalué »).
+ * Bornes : faible [0,25[, modéré [25,55[, élevé [55,75[, critique [75,100].
+ *
+ * Le seuil « élevé » est à 55 (et non 50) : les composites d'un profil de
+ * risque médian (facteurs ~50, détection moyenne) se situent autour de 50-54.
+ * Les classer « élevé » sur-alarmerait ; « élevé » est réservé aux cycles dont
+ * le composite dépasse nettement la médiane. Les bornes de bande relèvent du
+ * jugement (le composite reste une heuristique interne non opposable) : ce
+ * choix vise une hiérarchisation utile — une pyramide modéré > élevé — plutôt
+ * qu'un classement massif en « élevé ».
+ */
 export function criticityBand(comp: number | null): CriticityBand {
   if (comp === null) return "non_évalué";
   if (comp >= 75) return "critique";
-  if (comp >= 50) return "élevé";
+  if (comp >= 55) return "élevé";
   if (comp >= 25) return "modéré";
   return "faible";
 }

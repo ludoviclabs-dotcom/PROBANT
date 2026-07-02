@@ -101,10 +101,10 @@ const BAND_LABEL: Record<CriticityBand, string> = {
 
 /** Légende de pied de tableau : plages de composite par bande + non évalué. */
 const LEGEND_BANDS: { band: CriticityBand; range: string }[] = [
-  { band: "faible", range: "0-25" },
-  { band: "modéré", range: "26-50" },
-  { band: "élevé", range: "51-75" },
-  { band: "critique", range: "76-100" },
+  { band: "faible", range: "0-24" },
+  { band: "modéré", range: "25-54" },
+  { band: "élevé", range: "55-74" },
+  { band: "critique", range: "75-100" },
 ];
 
 /**
@@ -298,32 +298,24 @@ export function RiskMatrixHeatmap({
       ...RISK_AXES.map(
         (axis): ColumnDef<CycleRiskScore, unknown> => ({
           id: axis.id,
+          // `undefined` (et non `null`) pour les non-évalués : c'est la seule
+          // valeur que `sortUndefined` sait placer HORS du comparateur inversé
+          // par `desc`. Avec `null` + un sortingFn qui renvoie ±1, `desc`
+          // inversait le placement et faisait remonter les non-évalués en tête.
           accessorFn: (row) =>
-            row.evaluation === "évalué" ? row.axes[axis.id].value : null,
+            row.evaluation === "évalué" ? row.axes[axis.id].value : undefined,
           sortUndefined: "last",
-          sortingFn: (rowA, rowB, columnId) => {
-            const a = rowA.getValue<number | null>(columnId);
-            const b = rowB.getValue<number | null>(columnId);
-            if (a === null && b === null) return 0;
-            if (a === null) return 1;
-            if (b === null) return -1;
-            return a - b;
-          },
+          sortingFn: "basic",
         }),
       ),
       {
         id: "composite",
-        accessorFn: (row) => row.composite,
-        // Les non-évalués/partiels (composite null) restent TOUJOURS en fin de
-        // liste, quelle que soit la direction du tri — jamais traités comme 0.
-        sortingFn: (rowA, rowB, columnId) => {
-          const a = rowA.getValue<number | null>(columnId);
-          const b = rowB.getValue<number | null>(columnId);
-          if (a === null && b === null) return 0;
-          if (a === null) return 1;
-          if (b === null) return -1;
-          return a - b;
-        },
+        // Non-évalués/partiels (composite null) → `undefined` + `sortUndefined:
+        // "last"` : TOUJOURS en fin de liste quelle que soit la direction du
+        // tri, jamais traités comme 0 ni remontés en tête sous tri décroissant.
+        accessorFn: (row) => row.composite ?? undefined,
+        sortUndefined: "last",
+        sortingFn: "basic",
       },
     ];
     return base;
@@ -335,11 +327,9 @@ export function RiskMatrixHeatmap({
     state: { sorting },
     onSortingChange: (updater) => {
       setSorting((old) => {
-        const next = typeof updater === "function" ? updater(old) : updater;
-        // Toujours forcer les null en fin, peu importe la direction demandée :
-        // on n'inverse pas manuellement l'ordre des null, sortingFn s'en charge
-        // déjà (asc/desc), mais on garde une seule colonne de tri active à la fois.
-        return next;
+        // Les non-évalués (undefined) restent en fin via `sortUndefined: "last"`
+        // sur chaque colonne, quelle que soit la direction — rien à forcer ici.
+        return typeof updater === "function" ? updater(old) : updater;
       });
     },
     getCoreRowModel: getCoreRowModel(),
