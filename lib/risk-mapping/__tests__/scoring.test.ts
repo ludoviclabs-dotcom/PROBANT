@@ -190,6 +190,29 @@ describe("bornes [0,100] des scores d'axe", () => {
     };
     expect(composite(min)).toBe(0);
   });
+
+  it("exploite la pleine échelle : des facteurs élevés atteignent les hautes bandes", () => {
+    // Agrégation géométrique pondérée : un cycle réellement risqué (gravité et
+    // probabilité fortes, détection moyenne) doit dépasser « modéré », sinon la
+    // formule est revenue au produit brut compressé (tout en « faible »).
+    const eleve: Record<RiskAxisId, AxisScore> = {
+      gravite: axis("gravite", 85),
+      probabilite: axis("probabilite", 70),
+      detectabilite: axis("detectabilite", 40),
+      exposition: axis("exposition", 60),
+    };
+    expect(composite(eleve)).toBeGreaterThan(50);
+
+    // Un profil médian sur tous les axes ne doit pas rester coincé en « faible »
+    // (< 25) — la borne haute de la compression précédente.
+    const median: Record<RiskAxisId, AxisScore> = {
+      gravite: axis("gravite", 50),
+      probabilite: axis("probabilite", 50),
+      detectabilite: axis("detectabilite", 50),
+      exposition: axis("exposition", 50),
+    };
+    expect(composite(median)).toBeGreaterThan(25);
+  });
 });
 
 function axis(id: RiskAxisId, value: number): AxisScore {
