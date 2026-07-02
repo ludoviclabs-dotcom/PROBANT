@@ -79,6 +79,12 @@ function formatStep(value: number): string {
   return `${value}`;
 }
 
+/** `#rrggbb` → `rgba(r,g,b,a)` pour les dégradés/halos de barres. */
+function rgbaHex(hex: string, a: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
+}
+
 /**
  * Badge de statut discret à côté du titre d'un constat cité dans un driver.
  * Basé uniquement sur des champs déjà présents du `Finding` canonique :
@@ -319,7 +325,9 @@ function AxisCard({
           className="h-full rounded-full"
           style={{
             width: `${clamped}%`,
-            backgroundColor: color,
+            // Dégradé + halo (comme la maquette v2) plutôt qu'un aplat.
+            background: `linear-gradient(90deg, ${rgbaHex(color, 0.45)}, ${color})`,
+            boxShadow: `0 0 6px ${rgbaHex(color, 0.35)}`,
             transformOrigin: "left",
             animation: "pbGrowX .5s cubic-bezier(.16,1,.3,1) both",
           }}

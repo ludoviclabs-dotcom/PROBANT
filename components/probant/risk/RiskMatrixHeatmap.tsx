@@ -128,19 +128,34 @@ function axisRisk(axis: RiskAxisId, value: number): number {
   return axis === "detectabilite" ? 100 - value : value;
 }
 
-function axisCellPct(axis: RiskAxisId, value: number): number {
-  return 12 + (axisRisk(axis, value) / 100) * 72;
+/** `#rrggbb` → `rgba(r,g,b,a)` (les hex d'axe/bande sont statiques et valides). */
+function rgbaHex(hex: string, a: number): string {
+  const n = parseInt(hex.replace("#", ""), 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${a})`;
 }
 
+/**
+ * Fond d'une cellule d'axe : dégradé horizontal fonction du RISQUE
+ * (détectabilité inversée via `axisRisk`) — teinté à faible alpha à gauche,
+ * sombre à droite, exactement comme la maquette v2. Non évalué → hachures.
+ */
 function axisCellBg(axis: RiskAxisId, value: number, evaluated: boolean): string {
   if (!evaluated) return HATCH;
-  const pct = axisCellPct(axis, value);
-  return `color-mix(in srgb, ${AXIS_HEX[axis]} ${pct.toFixed(0)}%, transparent)`;
+  const risk = axisRisk(axis, value);
+  return `linear-gradient(90deg, ${rgbaHex(AXIS_HEX[axis], 0.04 + (risk / 100) * 0.14)}, rgba(14,20,31,.6))`;
 }
 
-/** Couleur de texte lisible (AA) pour une cellule d'axe donnée. */
-function axisTextColor(axis: RiskAxisId, value: number): string {
-  return wcagTextOnMix(AXIS_HEX[axis], axisCellPct(axis, value));
+/**
+ * Barre de remplissage d'une cellule d'axe : dégradé `rgba(hex,.45) → hex` +
+ * halo (`box-shadow`), largeur = valeur brute de l'axe (le fond encode le
+ * risque, la barre encode la valeur — double codage de la maquette v2).
+ */
+function axisBarFill(axis: RiskAxisId): { background: string; boxShadow: string } {
+  const hex = AXIS_HEX[axis];
+  return {
+    background: `linear-gradient(90deg, ${rgbaHex(hex, 0.45)}, ${hex})`,
+    boxShadow: `0 0 6px ${rgbaHex(hex, 0.35)}`,
+  };
 }
 
 function compositeCellPct(composite: number): number {
@@ -655,7 +670,6 @@ export function RiskMatrixHeatmap({
 
               {RISK_AXES.map((axis) => {
                 const score = s.axes[axis.id];
-                const risk = axisRisk(axis.id, score.value);
                 return (
                   <button
                     key={axis.id}
@@ -673,15 +687,12 @@ export function RiskMatrixHeatmap({
                         : `Score ${axis.label} : non évalué, cycle ${s.cycleSlug}`
                     }
                     className={cn(
-                      "relative flex h-9 items-center gap-1.5 overflow-hidden rounded-md border px-2 transition-colors",
+                      "relative flex h-9 items-center gap-2 overflow-hidden rounded-md border px-2.5 transition-colors",
                       isSelected
                         ? "border-[var(--pb-accent)]"
-                        : "border-[var(--pb-border)] hover:border-[var(--pb-border-strong)]",
+                        : "border-[var(--pb-border-soft)] hover:border-[var(--pb-border-strong)]",
                     )}
-                    style={{
-                      background: axisCellBg(axis.id, score.value, evaluated),
-                      color: evaluated ? axisTextColor(axis.id, score.value) : "#3a4761",
-                    }}
+                    style={{ background: axisCellBg(axis.id, score.value, evaluated) }}
                   >
                     {!evaluated && (
                       <span
@@ -690,7 +701,10 @@ export function RiskMatrixHeatmap({
                         style={{ background: HATCH, animation: "pbHatchBurst 2.4s ease both" }}
                       />
                     )}
-                    <span className="relative font-mono text-xs font-bold">
+                    <span
+                      className="relative shrink-0 text-right font-mono text-xs font-bold tabular-nums"
+                      style={{ width: 22, color: evaluated ? AXIS_HEX[axis.id] : "#3a4761" }}
+                    >
                       {evaluated ? Math.round(score.value) : "·"}
                     </span>
                     {evaluated && (
@@ -702,9 +716,9 @@ export function RiskMatrixHeatmap({
                         <span
                           className="block h-full rounded-full"
                           style={{
-                            width: `${risk}%`,
-                            background: AXIS_HEX[axis.id],
-                            animation: "pbGrowX .5s cubic-bezier(.16,1,.3,1) both",
+                            width: `${Math.max(0, Math.min(100, score.value))}%`,
+                            ...axisBarFill(axis.id),
+                            animation: "pbGrowX .6s cubic-bezier(.16,1,.3,1) both",
                           }}
                         />
                       </span>
