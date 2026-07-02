@@ -35,7 +35,7 @@ export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "h
         }}
       >
         <PlayCircle size={18} /> Lancer la visite guidée
-        <span style={{ fontSize: 11.5, fontWeight: 500, opacity: 0.75 }}>· 90 s</span>
+        <span style={{ fontSize: 11.5, fontWeight: 500, opacity: 0.75 }}>· 95 s</span>
       </button>
     );
   }
@@ -63,7 +63,7 @@ export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "h
     >
       <PlayCircle size={16} />
       <span style={{ flex: 1, textAlign: "left" }}>Visite guidée</span>
-      <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>90 s</span>
+      <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>95 s</span>
     </button>
   );
 }

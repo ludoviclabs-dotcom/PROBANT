@@ -252,10 +252,16 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
       const key = `${c.id}-${k}`;
       const dim = hLink && hLink !== key;
       const d = `M ${x1} ${ya.toFixed(1)} C ${x1 + 78} ${ya.toFixed(1)}, ${x2 - 78} ${yb.toFixed(1)}, ${x2} ${yb.toFixed(1)}`;
+      // Les flux SE DESSINENT de gauche à droite à l'entrée (dashoffset
+      // normalisé par pathLength, stagger léger). `data-tour-flow` permet à la
+      // visite guidée de simuler le survol du flux « majeur » le plus épais.
+      const drawDelay = (links.length * 0.045).toFixed(3);
       links.push(
         <path key={key} d={d} fill="none" stroke={s.hex} strokeWidth={sw} strokeLinecap="round"
+          data-tour-flow={key}
+          pathLength={1} strokeDasharray={1}
           opacity={(dim ? 0.12 : 0.5) * Math.max(0.15, t)}
-          style={{ cursor: "pointer", transition: "opacity .2s" }}
+          style={{ cursor: "pointer", transition: "opacity .2s", animation: `pbDraw .7s ease ${drawDelay}s both` }}
           onClick={() => setBoth(c.id, k)}
           onMouseEnter={(e) => { setHLink(key); tip.show(e, `${c.label} → ${s.label}\n${cnt} constat${cnt > 1 ? "s" : ""}`); }}
           onMouseMove={tip.move}
@@ -267,10 +273,20 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}>
       {links}
-      {clos.map((c) => {
+      {clos.map((c, i) => {
         const compact = L[c.id].h < TWO_LINE_MIN;
         return (
-          <g key={`ln${c.id}`} style={{ cursor: "pointer" }} onClick={() => toggleClo(c.id)}>
+          <g
+            key={`ln${c.id}`}
+            style={{
+              cursor: "pointer",
+              // Léger bounce d'entrée des boîtes (spring, origine locale).
+              animation: `pbNodeIn .5s cubic-bezier(.34,1.56,.64,1) ${(i * 0.06).toFixed(2)}s both`,
+              transformBox: "fill-box",
+              transformOrigin: "center",
+            }}
+            onClick={() => toggleClo(c.id)}
+          >
             <rect x={pad} y={L[c.id].y} width={nodeW} height={L[c.id].h} rx={7} fill={NODE_BG} stroke={fClo === c.id ? ACCENT : BORDERS} strokeWidth={1} />
             {compact ? (
               <text x={pad + 11} y={L[c.id].cy + 3.5} fontSize={10} fontWeight={600}>
@@ -286,11 +302,20 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
           </g>
         );
       })}
-      {SEVK.map((k) => {
+      {SEVK.map((k, i) => {
         const s = SEV[k];
         const compact = Rn[k].h < TWO_LINE_MIN;
         return (
-          <g key={`rn${k}`} style={{ cursor: "pointer" }} onClick={() => toggleSev(k)}>
+          <g
+            key={`rn${k}`}
+            style={{
+              cursor: "pointer",
+              animation: `pbNodeIn .5s cubic-bezier(.34,1.56,.64,1) ${(0.18 + i * 0.06).toFixed(2)}s both`,
+              transformBox: "fill-box",
+              transformOrigin: "center",
+            }}
+            onClick={() => toggleSev(k)}
+          >
             <rect x={x2} y={Rn[k].y} width={nodeW} height={Rn[k].h} rx={7} fill={s.bg} stroke={fSev === k ? s.hex : BORDERS} strokeWidth={1} />
             {compact ? (
               <text x={x2 + nodeW - 10} y={Rn[k].cy + 3.5} textAnchor="end" fontSize={10} fontWeight={700}>

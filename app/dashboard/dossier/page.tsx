@@ -22,8 +22,11 @@ export default function DossierPage() {
         </a>
       </PageHeader>
 
-      {/* Bandeau traçabilité */}
-      <div className="mb-4 flex items-center gap-3 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 text-[12px] text-[var(--pb-text-muted)]">
+      {/* Bandeau traçabilité — ancre de la visite guidée (sourcé, horodaté). */}
+      <div
+        data-tour="dossier-panel"
+        className="mb-4 flex items-center gap-3 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 text-[12px] text-[var(--pb-text-muted)]"
+      >
         <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--pb-accent)]" />
         <span>
           Dossier <span className="tnum text-[var(--pb-text)]">{d.id}</span> ·
@@ -34,16 +37,32 @@ export default function DossierPage() {
       </div>
 
       <div className="space-y-3">
-        {findings.map((f) => (
+        {findings.map((f, i) => (
           <div
             key={f.id}
             className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4"
+            // Cascade d'entrée (stagger 80 ms, plafonné pour le bas de liste).
+            style={{
+              animation: "pb-fade-in .4s ease both",
+              animationDelay: `${Math.min(i, 15) * 80}ms`,
+            }}
           >
             <div className="flex flex-wrap items-center gap-2">
               <SeverityBadge severity={f.severity} />
               <FamilyBadge family={f.family} />
               <span className="text-sm font-semibold text-[var(--pb-text)]">
                 {f.titre}
+              </span>
+              {/* Vrai statut : seuls les constats avec chaîne de preuve sont listés ici. */}
+              <span
+                title="Chaîne de preuve complète : source → transformation → règle → résultat"
+                className="inline-flex items-center gap-1 rounded-full border border-[#22c55e]/40 bg-[#22c55e]/10 px-2 py-0.5 text-[10px] font-semibold text-[#22c55e]"
+                style={{
+                  animation: "pbFadeIn .3s ease both",
+                  animationDelay: `${Math.min(i, 15) * 80 + 260}ms`,
+                }}
+              >
+                ✓ Sourcé
               </span>
               <code className="tnum ml-auto text-[11px] text-[var(--pb-text-faint)]">
                 {f.id}

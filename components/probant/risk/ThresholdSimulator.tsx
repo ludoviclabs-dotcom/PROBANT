@@ -54,7 +54,10 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
   }
 
   return (
-    <div className="overflow-hidden rounded-[14px] border border-[var(--pb-border)] bg-[var(--pb-surface)]">
+    <div
+      data-tour="seuil-simulator"
+      className="overflow-hidden rounded-[14px] border border-[var(--pb-border)] bg-[var(--pb-surface)]"
+    >
       <button
         type="button"
         onClick={() => setExpanded((v) => !v)}
@@ -130,6 +133,7 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
             <div className="flex items-center gap-2">
               <button
                 type="button"
+                data-tour-action="simulate"
                 onClick={handleSimulate}
                 className="rounded-[9px] bg-[var(--pb-accent)] px-4 py-[7px] text-[11.5px] font-bold text-white transition-opacity hover:opacity-90"
               >
@@ -137,6 +141,7 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
               </button>
               <button
                 type="button"
+                data-tour-action="reset"
                 onClick={handleReset}
                 disabled={!active}
                 className="inline-flex items-center gap-1 rounded-[9px] border border-[var(--pb-border)] px-3 py-[7px] text-[11.5px] font-medium text-[var(--pb-text-muted)] transition-colors hover:bg-[var(--pb-surface-3)] hover:text-[var(--pb-text)] disabled:cursor-not-allowed disabled:opacity-50"

@@ -18,6 +18,13 @@ import { buildAllRapprochementSilos } from "@/lib/rapprochement/demo";
 
 const FECT = REFERENTIEL_VERSION;
 
+/**
+ * Base de matérialité ISA 320 du dossier démo (CA fictif DEMO SA). Source
+ * UNIQUE partagée par les silos de rapprochement, la page Cartographie des
+ * risques et la visite guidée — pour que le seuil affiché soit partout le même.
+ */
+export const DEMO_MATERIALITY_BASIS = { chiffreAffaires: 6_340_000 } as const;
+
 function stmt(s: ReconstitutedStatement): ReconstitutedStatement {
   return s;
 }
@@ -1150,7 +1157,7 @@ const admissibilite: Finding[] = [
 /* pondérer le risque de faux positif de chaque écart.                        */
 
 const silosRapprochement: SiloView[] = buildAllRapprochementSilos(
-  computeMateriality({ chiffreAffaires: 6340000 }),
+  computeMateriality(DEMO_MATERIALITY_BASIS),
 );
 
 export const DEMO_DOSSIER: Dossier = {
