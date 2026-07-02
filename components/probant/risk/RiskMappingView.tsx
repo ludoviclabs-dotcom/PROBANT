@@ -65,6 +65,9 @@ const VIEW_H = 520;
 
 type ViewMode = "matrix" | "flow" | "bubble" | "temporal";
 
+/** Ordre des onglets du contrôle segmenté — pilote la position de la pastille. */
+const VIEW_ORDER: ViewMode[] = ["matrix", "flow", "bubble", "temporal"];
+
 const VIEW_LABELS: Record<ViewMode, string> = {
   matrix: "Matrice",
   flow: "Flux",
@@ -72,7 +75,18 @@ const VIEW_LABELS: Record<ViewMode, string> = {
   temporal: "Temporel",
 };
 
-const BAND_LABELS = ["critique", "élevé", "modéré", "faible"] as const;
+/**
+ * Cartes de distribution cliquables : bandes de criticité « scorables » (hors
+ * non évalué), dans l'ordre décroissant de gravité. Le libellé est celui de la
+ * bande ; `hex` sert au point de couleur et à la mini-barre (mêmes teintes de
+ * sévérité que la matrice/panneau, jamais un hex recopié en dur ailleurs).
+ */
+const STAT_BANDS: { band: CriticityBand; label: string; hex: string }[] = [
+  { band: "critique", label: "Critique", hex: "#ef4444" },
+  { band: "élevé", label: "Élevé", hex: "#f97316" },
+  { band: "modéré", label: "Modéré", hex: "#eab308" },
+  { band: "faible", label: "Faible", hex: "#3b82f6" },
+];
 
 /** Options du sélecteur d'exercice — 2024 réel, 2022/2023 explicitement simulés. */
 const EXERCISE_OPTIONS: { value: HistoricalExercise; label: string }[] = [
@@ -117,6 +131,10 @@ export function RiskMappingView({
   const [familyFilter, setFamilyFilter] = useState<CycleFamily | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<HistoricalExercise>(CURRENT_EXERCISE);
   const [simulatedThreshold, setSimulatedThreshold] = useState<number | null>(null);
+  // Filtre de bande piloté par les cartes de distribution : un clic restreint la
+  // matrice à cette bande ; recliquer la même carte annule le filtre. Passé à
+  // `RiskMatrixHeatmap` via `activeBand`. Local au shell, jamais persisté.
+  const [activeBand, setActiveBand] = useState<CriticityBand | null>(null);
 
   // Tracking : une seule fois au montage, garde par ref pour ignorer le
   // double appel du Strict Mode en dev (l'effet s'exécute deux fois en dev).
@@ -324,11 +342,22 @@ export function RiskMappingView({
   const selectedAdjustment = selected ? adjustments[selected] : undefined;
   const hasAdjustments = Object.keys(adjustments).length > 0;
 
+  // Nombre total de cycles scorés — dénominateur du pourcentage des cartes de
+  // distribution. Toujours dérivé de `scores.length` (jamais codé en dur).
+  const totalCycles = scores.length;
+
+  // Clic sur une carte de distribution : bascule le filtre de bande (toggle sur
+  // reclic) ET force la vue Matrice — le filtre ne s'applique qu'à la matrice.
+  function handleBandCardClick(band: CriticityBand) {
+    setActiveBand((prev) => (prev === band ? null : band));
+    setView("matrix");
+  }
+
   return (
     <div className="flex min-h-0 flex-1 overflow-hidden">
       {/* Zone principale */}
       <div className="flex flex-1 flex-col overflow-y-auto">
-        <div className="p-6">
+        <div className="px-[26px] pb-[30px] pt-[22px]">
           {/* En-tête */}
           <div className="mb-4">
             <div className="flex flex-wrap items-center gap-2.5">
@@ -457,12 +486,22 @@ export function RiskMappingView({
                 </select>
               </label>
 
+              {/* Contrôle segmenté avec pastille glissante (transform animé) */}
               <div
                 role="tablist"
                 aria-label="Vue de la cartographie"
-                className="inline-flex rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-1"
+                className="relative grid grid-cols-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-1"
               >
-                {(Object.keys(VIEW_LABELS) as ViewMode[]).map((mode) => (
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute bottom-1 top-1 left-1 rounded-lg bg-[var(--pb-accent)]/15 ring-1 ring-inset ring-[var(--pb-accent)]/30"
+                  style={{
+                    width: "calc((100% - 8px) / 4)",
+                    transform: `translateX(${VIEW_ORDER.indexOf(view) * 100}%)`,
+                    transition: "transform .28s cubic-bezier(.16,1,.3,1)",
+                  }}
+                />
+                {VIEW_ORDER.map((mode) => (
                   <button
                     key={mode}
                     type="button"
@@ -470,9 +509,9 @@ export function RiskMappingView({
                     aria-selected={view === mode}
                     onClick={() => setView(mode)}
                     className={cn(
-                      "rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
+                      "relative z-[1] rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
                       view === mode
-                        ? "bg-[var(--pb-accent)]/15 text-[var(--pb-text)]"
+                        ? "text-[var(--pb-text)]"
                         : "text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]",
                     )}
                   >
@@ -528,25 +567,73 @@ export function RiskMappingView({
             </div>
           )}
 
-          {/* Statistiques par bande */}
-          <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {BAND_LABELS.map((band) => (
-              <div
-                key={band}
-                className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] px-4 py-3"
-              >
-                <div className="tnum text-[22px] font-bold text-[var(--pb-text)]">
-                  {aggregates.distribution[band]}
-                </div>
-                <div className="mt-0.5 text-[11px] capitalize text-[var(--pb-text-muted)]">
-                  {band}
-                </div>
-              </div>
-            ))}
+          {/* Cartes de distribution cliquables (filtre de bande → matrice) */}
+          <div className="mb-[18px] grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {STAT_BANDS.map(({ band, label, hex }) => {
+              const count = aggregates.distribution[band];
+              const pct = totalCycles > 0 ? (count / totalCycles) * 100 : 0;
+              const isActive = activeBand === band;
+              return (
+                <button
+                  key={band}
+                  type="button"
+                  onClick={() => handleBandCardClick(band)}
+                  aria-pressed={isActive}
+                  title={
+                    isActive
+                      ? `Filtre actif : ${label} — cliquer pour tout réafficher`
+                      : `Filtrer la matrice sur la bande ${label}`
+                  }
+                  className="group flex flex-col rounded-xl border bg-[var(--pb-surface)] px-4 py-3 text-left transition-all hover:-translate-y-px"
+                  style={{
+                    borderColor: isActive
+                      ? `color-mix(in srgb, ${hex} 60%, transparent)`
+                      : "var(--pb-border)",
+                    background: isActive
+                      ? `color-mix(in srgb, ${hex} 8%, var(--pb-surface))`
+                      : undefined,
+                  }}
+                >
+                  <span className="flex items-center gap-[7px] text-[11px] font-semibold text-[var(--pb-text-muted)]">
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ background: hex }}
+                    />
+                    {label}
+                  </span>
+                  <span className="mt-1.5 flex items-baseline gap-2">
+                    <span className="font-mono text-[24px] font-bold leading-none tabular-nums text-[var(--pb-text)]">
+                      {count}
+                    </span>
+                    <span className="text-[10px] tabular-nums text-[var(--pb-text-faint)]">
+                      {pct.toFixed(0)} %
+                    </span>
+                  </span>
+                  <span
+                    aria-hidden
+                    className="mt-2.5 block h-[3px] w-full overflow-hidden rounded-full bg-[var(--pb-track)]"
+                  >
+                    <span
+                      className="block h-full rounded-full"
+                      style={{
+                        width: `${pct}%`,
+                        background: hex,
+                        animation: "pbGrowX .5s cubic-bezier(.16,1,.3,1) both",
+                      }}
+                    />
+                  </span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Vue principale */}
-          <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
+          {/* Vue principale — ré-anime à chaque changement d'onglet (key=view) */}
+          <div
+            key={view}
+            className="rounded-2xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4"
+            style={{ animation: "pbFadeUp .35s cubic-bezier(.16,1,.3,1) both" }}
+          >
             {view === "matrix" && (
               <RiskMatrixHeatmap
                 scores={filteredScores}
@@ -556,6 +643,7 @@ export function RiskMappingView({
                 depositCycleSlugs={depositCycleSlugs}
                 coveredCycleSlugs={coverage?.coveredCycleSlugs ?? []}
                 depositIdByCycleSlug={depositIdByCycleSlug}
+                activeBand={activeBand}
               />
             )}
             {view === "flow" && (
@@ -578,6 +666,12 @@ export function RiskMappingView({
             {view === "bubble" && (
               <div style={{ opacity: 0.4 + 0.6 * t, transition: "opacity .2s" }}>
                 <RiskBubbleChart scores={filteredScores} onSelect={setSelected} />
+                <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
+                  Abscisse = probabilité (ISA 315), ordonnée = gravité (ISA 320,
+                  axe inversé — fort en haut), rayon = exposition normative. Les
+                  cycles non évalués sont exclus : les placer à l'origine
+                  suggérerait à tort un risque nul.
+                </p>
               </div>
             )}
             {view === "temporal" && (
@@ -611,8 +705,8 @@ export function RiskMappingView({
 
       {/* Panneau détail (cycle sélectionné) */}
       {selectedCycle && selectedScore && (
-        <div className="w-[360px] shrink-0 overflow-y-auto border-l border-[var(--pb-border)] bg-[var(--pb-surface)]">
-          <div className="p-5">
+        <div className="w-[352px] shrink-0 overflow-y-auto border-l border-[var(--pb-border)] bg-[var(--pb-surface)]">
+          <div className="px-[18px] pb-[26px] pt-[18px]">
             <CycleRiskPanel
               key={selectedCycle.slug}
               cycle={selectedCycle}
@@ -621,6 +715,7 @@ export function RiskMappingView({
               adjustment={selectedAdjustment}
               onAdjust={(patch) => setAdjustment(selectedCycle.slug, patch)}
               onReset={() => resetCycle(selectedCycle.slug)}
+              onClose={() => setSelected(null)}
               saveStatus={saveStatus}
             />
           </div>

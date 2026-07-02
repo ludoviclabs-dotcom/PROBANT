@@ -16,6 +16,7 @@ import {
   ChevronsUpDown,
   TriangleAlert,
   CheckCircle2,
+  Search,
 } from "lucide-react";
 import type { CycleRiskScore, CriticityBand, RiskAxisId } from "@/lib/risk-mapping";
 import {
@@ -65,6 +66,12 @@ interface RiskMatrixHeatmapProps {
   coveredCycleSlugs?: string[];
   /** `cycleSlug` → id du cycle de dépôt correspondant, pour le lien de dépôt. */
   depositIdByCycleSlug?: Map<string, string>;
+  /**
+   * Filtre de bande piloté depuis le shell (cartes de stats). Si fourni et
+   * non-`null`, restreint les lignes visibles à cette seule bande — EN PLUS des
+   * chips internes. Absent/`null` = comportement actuel inchangé (rétro-compat).
+   */
+  activeBand?: CriticityBand | null;
 }
 
 /** Couleur d'accent par axe, pour l'intensité color-mix des cellules. */
@@ -100,9 +107,12 @@ const LEGEND_BANDS: { band: CriticityBand; range: string }[] = [
   { band: "critique", range: "76-100" },
 ];
 
-/** Fond hachuré gris pour les cellules non évaluées (jamais de vert). */
+/**
+ * Fond hachuré gris pour les cellules non évaluées (jamais de vert). Texture
+ * distincte des tokens de surface — même motif que la légende de pied (v2).
+ */
 const HATCH =
-  "repeating-linear-gradient(45deg, #1a2029 0, #1a2029 5px, #10151c 5px, #10151c 10px)";
+  "repeating-linear-gradient(45deg, #1a2029 0, #1a2029 3px, #10151c 3px, #10151c 6px)";
 
 /** Clé localStorage du tri persisté — dossierId fixe, pas de vraie multi-tenance. */
 const SORT_STORAGE_KEY = "probant_risques_sort_demo-dossier";
@@ -114,9 +124,12 @@ type SortableColumnId = "cycleSlug" | RiskAxisId | "composite";
  * un score élevé = bonne détection = risque moindre, donc l'intensité suit
  * `100 − value`. Les autres axes suivent directement `value`.
  */
+function axisRisk(axis: RiskAxisId, value: number): number {
+  return axis === "detectabilite" ? 100 - value : value;
+}
+
 function axisCellPct(axis: RiskAxisId, value: number): number {
-  const risk = axis === "detectabilite" ? 100 - value : value;
-  return 12 + (risk / 100) * 72;
+  return 12 + (axisRisk(axis, value) / 100) * 72;
 }
 
 function axisCellBg(axis: RiskAxisId, value: number, evaluated: boolean): string {
@@ -145,6 +158,9 @@ function compositeCellBg(band: CriticityBand, composite: number | null): string 
 function compositeTextColor(band: CriticityBand, composite: number): string {
   return wcagTextOnMix(BAND_HEX[band], compositeCellPct(composite));
 }
+
+/** Circonférence du mini-anneau composite (r = 8.5) pour le stroke-dasharray. */
+const COMPOSITE_RING_C = 2 * Math.PI * 8.5;
 
 /** Persiste le tri courant en localStorage ; ne doit jamais faire planter le rendu. */
 function persistSort(sorting: SortingState): void {
@@ -185,6 +201,7 @@ export function RiskMatrixHeatmap({
   depositCycleSlugs,
   coveredCycleSlugs,
   depositIdByCycleSlug,
+  activeBand = null,
 }: RiskMatrixHeatmapProps) {
   const [sorting, setSorting] = useState<SortingState>(DEFAULT_SORT);
   const [cycleQuery, setCycleQuery] = useState("");
@@ -221,9 +238,31 @@ export function RiskMatrixHeatmap({
     [coveredCycleSlugs],
   );
 
+  // Compteur de cycles par bande (sur l'ensemble des scores reçus), affiché
+  // dans chaque chip de bande. Compté sur `scores`, pas sur les lignes filtrées :
+  // le chip indique combien de cycles relèvent de la bande, indépendamment de
+  // la recherche/seuil actifs.
+  const bandCounts = useMemo(() => {
+    const counts: Record<CriticityBand, number> = {
+      faible: 0,
+      modéré: 0,
+      élevé: 0,
+      critique: 0,
+      non_évalué: 0,
+    };
+    for (const s of scores) counts[s.criticityBand] += 1;
+    return counts;
+  }, [scores]);
+
   const filteredByBand = useMemo(
-    () => scores.filter((s) => visibleBands[s.criticityBand]),
-    [scores, visibleBands],
+    () =>
+      scores.filter(
+        (s) =>
+          visibleBands[s.criticityBand] &&
+          // Filtre externe (carte de stats) : si fourni, restreint à la bande.
+          (activeBand === null || s.criticityBand === activeBand),
+      ),
+    [scores, visibleBands, activeBand],
   );
 
   const minCompositeValue = minComposite.trim() === "" ? null : Number(minComposite);
@@ -347,9 +386,9 @@ export function RiskMatrixHeatmap({
     });
   }
 
-  const gridTemplate = `160px repeat(${RISK_AXES.length}, 1fr) 84px${showDelta ? " 64px" : ""}`;
+  const gridTemplate = `168px repeat(${RISK_AXES.length}, minmax(72px, 1fr)) 104px${showDelta ? " 60px" : ""}`;
 
-  const bandCheckboxes: { band: CriticityBand; label: string }[] = [
+  const bandChips: { band: CriticityBand; label: string }[] = [
     { band: "faible", label: "Faible" },
     { band: "modéré", label: "Modéré" },
     { band: "élevé", label: "Élevé" },
@@ -357,23 +396,72 @@ export function RiskMatrixHeatmap({
     { band: "non_évalué", label: "Non évalué" },
   ];
 
+  const showingLabel =
+    rows.length === scores.length
+      ? `${rows.length} affichés`
+      : `${rows.length} / ${scores.length} affichés`;
+
   return (
     <div className="flex flex-col gap-3">
-      {/* Barre de filtres */}
-      <div className="flex flex-wrap items-end gap-3 rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-3 py-2.5">
-        <label className="flex flex-col gap-1 text-[10px] font-medium text-[var(--pb-text-faint)]">
-          Rechercher un cycle
+      {/* Barre de filtres v2 */}
+      <div className="flex flex-wrap items-center gap-2.5 rounded-[11px] border border-[var(--pb-border-soft)] bg-[var(--pb-surface-inset)] px-3 py-2.5">
+        {/* Recherche avec loupe intégrée */}
+        <div className="relative flex items-center">
+          <Search
+            className="pointer-events-none absolute left-[9px] h-[13px] w-[13px] text-[var(--pb-text-faint)]"
+            aria-hidden
+          />
           <input
             type="text"
             value={cycleQuery}
             onChange={(e) => setCycleQuery(e.target.value)}
-            placeholder="ex. clients, immos…"
-            className="w-40 rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface)] px-2 py-1 text-[11px] text-[var(--pb-text)] outline-none focus:border-[var(--pb-accent)]"
+            placeholder="Rechercher un cycle…"
+            aria-label="Rechercher un cycle"
+            className="w-[190px] rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] py-1.5 pl-7 pr-2.5 text-[11.5px] text-[var(--pb-text)] outline-none transition-colors focus:border-[var(--pb-accent)]"
           />
-        </label>
+        </div>
 
-        <label className="flex flex-col gap-1 text-[10px] font-medium text-[var(--pb-text-faint)]">
-          Composite supérieur à
+        {/* Chips de bande avec compteur */}
+        <div className="flex flex-wrap gap-1.5">
+          {bandChips.map(({ band, label }) => {
+            const on = visibleBands[band];
+            const color = BAND_HEX[band];
+            return (
+              <button
+                key={band}
+                type="button"
+                aria-pressed={on}
+                title={`${on ? "Masquer" : "Afficher"} la bande ${label}`}
+                onClick={() =>
+                  setVisibleBands((prev) => ({ ...prev, [band]: !prev[band] }))
+                }
+                className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10.5px] font-medium transition-colors"
+                style={{
+                  borderColor: on
+                    ? `color-mix(in srgb, ${color} 55%, transparent)`
+                    : "var(--pb-border)",
+                  background: on
+                    ? `color-mix(in srgb, ${color} 16%, transparent)`
+                    : "transparent",
+                  color: on ? "var(--pb-text-bright)" : "var(--pb-text-faint)",
+                  opacity: on ? 1 : 0.6,
+                }}
+              >
+                <span
+                  aria-hidden
+                  className="h-2 w-2 rounded-full"
+                  style={{ background: color, opacity: on ? 1 : 0.5 }}
+                />
+                {label}
+                <span className="tabular-nums opacity-65">{bandCounts[band]}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Seuil composite (fonctionnalité conservée) */}
+        <label className="flex items-center gap-1.5 text-[10.5px] font-medium text-[var(--pb-text-faint)]">
+          Comp. &gt;
           <input
             type="number"
             min={0}
@@ -381,52 +469,30 @@ export function RiskMatrixHeatmap({
             value={minComposite}
             onChange={(e) => setMinComposite(e.target.value)}
             placeholder="0"
-            className="w-24 rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface)] px-2 py-1 text-[11px] tabular-nums text-[var(--pb-text)] outline-none focus:border-[var(--pb-accent)]"
+            aria-label="Composite supérieur à"
+            className="w-16 rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1.5 text-[11px] tabular-nums text-[var(--pb-text)] outline-none transition-colors focus:border-[var(--pb-accent)]"
           />
         </label>
         {hasActiveThreshold && nonEvaluatedHiddenByThreshold > 0 && (
-          <span className="pb-0.5 text-[10px] text-[var(--pb-text-faint)]">
-            {nonEvaluatedHiddenByThreshold} non affiché
+          <span className="text-[10px] text-[var(--pb-text-faint)]">
+            {nonEvaluatedHiddenByThreshold} masqué
             {nonEvaluatedHiddenByThreshold > 1 ? "s" : ""} (non évalués)
           </span>
         )}
 
-        <div className="flex flex-col gap-1 text-[10px] font-medium text-[var(--pb-text-faint)]">
-          Bande de criticité
-          <div className="flex flex-wrap gap-2">
-            {bandCheckboxes.map(({ band, label }) => (
-              <label
-                key={band}
-                className="flex items-center gap-1 text-[10.5px] font-normal text-[var(--pb-text-muted)]"
-              >
-                <input
-                  type="checkbox"
-                  checked={visibleBands[band]}
-                  onChange={(e) =>
-                    setVisibleBands((prev) => ({ ...prev, [band]: e.target.checked }))
-                  }
-                  className="h-3 w-3 accent-[var(--pb-accent)]"
-                />
-                <span
-                  aria-hidden
-                  className="h-2 w-2 rounded-full"
-                  style={{ background: BAND_HEX[band] }}
-                />
-                {label}
-              </label>
-            ))}
-          </div>
-        </div>
-
+        <span className="ml-auto text-[10.5px] tabular-nums text-[var(--pb-text-faint)]">
+          {showingLabel}
+        </span>
         <button
           type="button"
           onClick={resetFilters}
-          className="ml-auto rounded-md border border-[var(--pb-border)] px-2.5 py-1 text-[10.5px] font-medium text-[var(--pb-text-muted)] transition-colors hover:bg-[var(--pb-surface-3)] hover:text-[var(--pb-text)]"
+          className="rounded-lg border border-[var(--pb-border)] bg-transparent px-2.5 py-1.5 text-[10.5px] font-medium text-[var(--pb-text-muted)] transition-colors hover:bg-[var(--pb-surface-3)] hover:text-[var(--pb-text)]"
         >
-          Réinitialiser les filtres
+          Réinitialiser
         </button>
       </div>
 
+      <div className="max-h-[600px] overflow-y-auto rounded-[10px]">
       <div
         role="grid"
         aria-label="Matrice thermique des cycles"
@@ -439,7 +505,7 @@ export function RiskMatrixHeatmap({
             type="button"
             role="columnheader"
             onClick={() => toggleSort("cycleSlug")}
-            className="flex items-center gap-1 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)] hover:text-[var(--pb-text)]"
+            className="flex items-center gap-1 px-2 py-1 text-left text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)] transition-colors hover:text-[var(--pb-text)]"
           >
             Cycle {sortIconFor("cycleSlug")}
           </button>
@@ -450,7 +516,7 @@ export function RiskMatrixHeatmap({
               role="columnheader"
               onClick={() => toggleSort(axis.id)}
               title={`${axis.label} — ${axis.doctrine}`}
-              className="flex items-center justify-center gap-0.5 text-center text-[10px] font-semibold uppercase tracking-wider"
+              className="flex items-center justify-center gap-0.5 px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-wider transition-opacity hover:opacity-80"
               style={{ color: AXIS_HEX[axis.id] }}
             >
               {axis.short} {sortIconFor(axis.id)}
@@ -460,7 +526,7 @@ export function RiskMatrixHeatmap({
             type="button"
             role="columnheader"
             onClick={() => toggleSort("composite")}
-            className="flex items-center justify-center gap-0.5 text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)]"
+            className="flex items-center justify-center gap-0.5 px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)] transition-colors hover:text-[var(--pb-text)]"
           >
             Comp. {sortIconFor("composite")}
           </button>
@@ -468,7 +534,7 @@ export function RiskMatrixHeatmap({
             <div
               role="columnheader"
               title={`Variation du composite vs exercice ${comparisonExercise} (simulé)`}
-              className="text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)]"
+              className="px-1 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--pb-text-faint)]"
             >
               Δ
             </div>
@@ -540,6 +606,10 @@ export function RiskMatrixHeatmap({
           const isDepositEligible = depositEligibleSlugs.has(s.cycleSlug);
           const depositId = depositIdByCycleSlug?.get(s.cycleSlug);
 
+          const compositePct =
+            s.composite === null ? 0 : Math.max(0, Math.min(100, s.composite));
+          const ringDash = `${((compositePct / 100) * COMPOSITE_RING_C).toFixed(2)} ${COMPOSITE_RING_C.toFixed(2)}`;
+
           return (
             <div key={s.cycleSlug} role="row" className="contents">
               <div className="flex min-w-0 items-center gap-1">
@@ -549,7 +619,7 @@ export function RiskMatrixHeatmap({
                   onClick={() => onSelect(s.cycleSlug)}
                   title={s.cycleSlug}
                   className={cn(
-                    "flex min-w-0 flex-1 items-center gap-2 truncate rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors",
+                    "flex min-w-0 flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-[11px] font-medium transition-colors",
                     isSelected
                       ? "bg-[var(--pb-surface-3)] text-[var(--pb-text)]"
                       : "text-[var(--pb-text-muted)] hover:bg-[var(--pb-surface-2)]",
@@ -561,6 +631,14 @@ export function RiskMatrixHeatmap({
                     style={{ background: bandColor }}
                   />
                   <span className="truncate">{s.cycleSlug}</span>
+                  {s.findingCount > 0 && (
+                    <span
+                      title={`${s.findingCount} constat${s.findingCount > 1 ? "s" : ""} rattaché${s.findingCount > 1 ? "s" : ""}`}
+                      className="ml-auto shrink-0 font-mono text-[9px] text-[var(--pb-text-faint)]"
+                    >
+                      {s.findingCount}fc
+                    </span>
+                  )}
                 </button>
                 {isDepositCovered && (
                   <CheckCircle2
@@ -587,6 +665,7 @@ export function RiskMatrixHeatmap({
 
               {RISK_AXES.map((axis) => {
                 const score = s.axes[axis.id];
+                const risk = axisRisk(axis.id, score.value);
                 return (
                   <button
                     key={axis.id}
@@ -604,17 +683,42 @@ export function RiskMatrixHeatmap({
                         : `Score ${axis.label} : non évalué, cycle ${s.cycleSlug}`
                     }
                     className={cn(
-                      "flex h-8 items-center justify-center rounded-md border font-mono text-xs font-bold transition-transform hover:scale-[1.04]",
+                      "relative flex h-9 items-center gap-1.5 overflow-hidden rounded-md border px-2 transition-colors",
                       isSelected
                         ? "border-[var(--pb-accent)]"
-                        : "border-[var(--pb-border)]",
+                        : "border-[var(--pb-border)] hover:border-[var(--pb-border-strong)]",
                     )}
                     style={{
                       background: axisCellBg(axis.id, score.value, evaluated),
                       color: evaluated ? axisTextColor(axis.id, score.value) : "#3a4761",
                     }}
                   >
-                    {evaluated ? Math.round(score.value) : "·"}
+                    {!evaluated && (
+                      <span
+                        aria-hidden
+                        className="pointer-events-none absolute inset-0"
+                        style={{ background: HATCH, animation: "pbHatchBurst 2.4s ease both" }}
+                      />
+                    )}
+                    <span className="relative font-mono text-xs font-bold">
+                      {evaluated ? Math.round(score.value) : "·"}
+                    </span>
+                    {evaluated && (
+                      <span
+                        aria-hidden
+                        className="relative block h-1 flex-1 overflow-hidden rounded-full"
+                        style={{ background: "rgba(13,18,28,.85)" }}
+                      >
+                        <span
+                          className="block h-full rounded-full"
+                          style={{
+                            width: `${risk}%`,
+                            background: AXIS_HEX[axis.id],
+                            animation: "pbGrowX .5s cubic-bezier(.16,1,.3,1) both",
+                          }}
+                        />
+                      </span>
+                    )}
                   </button>
                 );
               })}
@@ -634,42 +738,65 @@ export function RiskMatrixHeatmap({
                     : `Score composite : ${Math.round(s.composite)} sur 100, cycle ${s.cycleSlug}, niveau ${BAND_LABEL[s.criticityBand]}`
                 }
                 className={cn(
-                  "flex h-8 flex-col items-center justify-center gap-0.5 rounded-md border px-1 font-mono text-xs font-extrabold transition-transform hover:scale-[1.04]",
-                  isSelected ? "border-[var(--pb-accent)]" : "border-[var(--pb-border)]",
+                  "relative flex h-9 items-center gap-2 overflow-hidden rounded-md border px-2",
+                  isSelected ? "border-[var(--pb-accent)]" : "border-[var(--pb-border)] hover:border-[var(--pb-border-strong)]",
                 )}
                 style={{
                   background: compositeCellBg(s.criticityBand, s.composite),
-                  color:
-                    s.composite === null
-                      ? "#3a4761"
-                      : compositeTextColor(s.criticityBand, s.composite),
                 }}
               >
-                <span>{s.composite === null ? "·" : Math.round(s.composite)}</span>
-                {s.composite !== null && (
-                  <>
-                    <span
-                      aria-hidden
-                      className="h-[2px] w-full max-w-[48px] overflow-hidden rounded-full bg-black/25"
-                    >
-                      <span
-                        className="block h-full rounded-full"
-                        style={{
-                          width: `${Math.max(0, Math.min(100, s.composite))}%`,
-                          background: bandColor,
-                        }}
-                      />
-                    </span>
-                    <span className="text-[8px] font-medium normal-case leading-none opacity-85">
-                      {BAND_LABEL[s.criticityBand]}
-                    </span>
-                  </>
+                {s.composite === null && (
+                  <span
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0"
+                    style={{ background: HATCH, animation: "pbHatchBurst 2.4s ease both" }}
+                  />
                 )}
+                <svg width="22" height="22" viewBox="0 0 22 22" className="relative shrink-0" aria-hidden>
+                  <circle
+                    cx="11"
+                    cy="11"
+                    r="8.5"
+                    fill="none"
+                    stroke="var(--pb-track)"
+                    strokeWidth="2.6"
+                  />
+                  {s.composite !== null && (
+                    <circle
+                      cx="11"
+                      cy="11"
+                      r="8.5"
+                      fill="none"
+                      stroke={bandColor}
+                      strokeWidth="2.6"
+                      strokeLinecap="round"
+                      strokeDasharray={ringDash}
+                      transform="rotate(-90 11 11)"
+                    />
+                  )}
+                </svg>
+                <span className="relative flex flex-col items-start leading-[1.15]">
+                  <span
+                    className="font-mono text-[13px] font-extrabold"
+                    style={{
+                      color:
+                        s.composite === null
+                          ? "#3a4761"
+                          : compositeTextColor(s.criticityBand, s.composite),
+                    }}
+                  >
+                    {s.composite === null ? "·" : Math.round(s.composite)}
+                  </span>
+                  <span className="text-[8.5px] font-semibold text-[var(--pb-text-muted)]">
+                    {BAND_LABEL[s.criticityBand]}
+                  </span>
+                </span>
               </button>
 
               {showDelta && (
                 <div
-                  className="flex h-8 items-center justify-center rounded-md border border-[var(--pb-border)] text-sm font-bold"
+                  role="gridcell"
+                  className="flex h-9 items-center justify-center rounded-md border border-[var(--pb-border-soft)] bg-[var(--pb-surface-inset)] text-sm font-bold"
                 >
                   {deltaContent}
                 </div>
@@ -680,21 +807,22 @@ export function RiskMatrixHeatmap({
 
         {rows.length === 0 && (
           <div
-            className="col-span-full py-6 text-center text-[11px] text-[var(--pb-text-faint)]"
+            className="col-span-full py-[26px] text-center text-[11px] text-[var(--pb-text-faint)]"
             style={{ gridColumn: `1 / -1` }}
           >
             Aucun cycle ne correspond aux filtres actifs.
           </div>
         )}
       </div>
+      </div>
 
       {/* Légende */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--pb-border)] pt-2.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-t border-[var(--pb-border)] pt-[11px]">
         {LEGEND_BANDS.map(({ band, range }) => (
           <span key={band} className="flex items-center gap-1.5 text-[10.5px] text-[var(--pb-text-muted)]">
             <span
               aria-hidden
-              className="h-2.5 w-2.5 rounded-full"
+              className="h-[9px] w-[9px] rounded-full"
               style={{ background: BAND_HEX[band] }}
             />
             {BAND_LABEL[band]} ({range})
@@ -703,7 +831,7 @@ export function RiskMatrixHeatmap({
         <span className="flex items-center gap-1.5 text-[10.5px] text-[var(--pb-text-muted)]">
           <span
             aria-hidden
-            className="h-2.5 w-2.5 rounded-sm"
+            className="h-[9px] w-[9px] rounded-[3px]"
             style={{ background: HATCH }}
           />
           Non évalué / partiel
@@ -716,11 +844,11 @@ export function RiskMatrixHeatmap({
         )}
       </div>
 
-      <p className="text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
-        Intensité proportionnelle au score de l'axe (détectabilité inversée : plus
-        elle est faible, plus la cellule est chaude). Cellule hachurée = cycle non
-        évalué, jamais assimilé à un risque maîtrisé. Le composite est une heuristique
-        interne d'aide à la hiérarchisation, non opposable.
+      <p className="text-[10.5px] leading-[1.55] text-[var(--pb-text-faint)]">
+        Jauge proportionnelle au score de l'axe (détectabilité inversée : plus elle
+        est faible, plus la cellule est chaude). Cellule hachurée = cycle non évalué,
+        jamais assimilé à un risque maîtrisé. Le composite est une heuristique interne
+        d'aide à la hiérarchisation, non opposable.
       </p>
     </div>
   );
