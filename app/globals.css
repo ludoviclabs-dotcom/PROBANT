@@ -480,6 +480,40 @@ body[data-pb-guide] [data-tour-anno] {
 }
 
 /*
+  ══════════════════════════════════════════════════════════════════
+  Référentiel vivant — page /dashboard/referentiel
+  Bar chart, chronologie SVG et grille de cartes animés (cf.
+  components/referentiel/*). Réutilise pbDraw / pbNodeIn / pbFadeIn
+  déjà déclarées ci-dessus pour le tracé de ligne et l'entrée des points.
+  ══════════════════════════════════════════════════════════════════
+*/
+
+/* Anneau pulsant autour du point de la chronologie dont l'année est filtrée. */
+@keyframes pbRingPulse {
+  0%, 100% { opacity: 0.35; transform: scale(1);    }
+  50%      { opacity: 0.9;  transform: scale(1.12); }
+}
+
+/* Entrée en cascade d'une carte de source normative (grille filtrée). */
+@keyframes pbCardEnter {
+  from { opacity: 0; transform: translateY(8px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)   scale(1);    }
+}
+
+/* Chiffre d'une pill de filtre qui vient de changer (remonté via key={count}). */
+@keyframes pbCountFlip {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0);     }
+}
+
+/* Pulse unique du triangle d'avertissement à l'entrée du bandeau disclaimer. */
+@keyframes pbWarnPulse {
+  0%   { transform: scale(1);    }
+  30%  { transform: scale(1.25); }
+  100% { transform: scale(1);    }
+}
+
+/*
   Respect du choix utilisateur : animations complètes par défaut,
   mais neutralisées si l'OS demande la réduction de mouvement.
 */
