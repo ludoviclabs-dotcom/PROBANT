@@ -514,6 +514,42 @@ body[data-pb-guide] [data-tour-anno] {
 }
 
 /*
+  ══════════════════════════════════════════════════════════════════
+  Dropzone de dépôt — bordure à dégradé conique animé
+  (cf. components/probant/DepotView.tsx)
+  ══════════════════════════════════════════════════════════════════
+*/
+@property --pb-drop-angle {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes pbDropBorderRotate {
+  from { --pb-drop-angle: 0deg; }
+  to   { --pb-drop-angle: 360deg; }
+}
+
+.pb-dropzone-frame {
+  border: 2px solid transparent;
+  background:
+    linear-gradient(var(--pb-surface), var(--pb-surface)) padding-box,
+    conic-gradient(
+      from var(--pb-drop-angle),
+      transparent,
+      var(--pb-accent),
+      var(--pb-methodology),
+      transparent
+    ) border-box;
+  animation: pbDropBorderRotate 4s linear infinite;
+}
+
+.pb-dropzone-frame.pb-drop-active {
+  animation-duration: 1.5s;
+  box-shadow: inset 0 0 24px color-mix(in srgb, var(--pb-accent) 18%, transparent);
+}
+
+/*
   Respect du choix utilisateur : animations complètes par défaut,
   mais neutralisées si l'OS demande la réduction de mouvement.
 */
