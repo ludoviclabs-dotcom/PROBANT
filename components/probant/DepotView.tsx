@@ -4,17 +4,16 @@ import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
-  UploadCloud,
   FileText,
   FileSpreadsheet,
   CheckCircle2,
   XCircle,
-  Loader2,
   Fingerprint,
   AlertTriangle,
   Scale,
   Play,
-  ChevronUp,
+  FolderOpen,
+  Link2,
 } from "lucide-react";
 import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
@@ -33,6 +32,12 @@ import { parseLiasseFile } from "@/lib/pdf/parse-liasse";
 import { cn } from "@/lib/utils";
 import { SeverityBadge } from "./Badges";
 import { CycleUploadPanel } from "./CycleUploadPanel";
+import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
+import { ReassuranceBar } from "./ReassuranceBar";
+import { DropzoneArt } from "./DropzoneArt";
+import { ModeTabs, type ModeTabDef } from "./ModeTabs";
+import { IngestionStepper } from "./IngestionStepper";
+import { RecentDossiers } from "./RecentDossiers";
 
 interface DepotResult {
   nomFichier: string;
@@ -117,8 +122,9 @@ function DepotViewInner() {
   const [step, setStep] = useState(0);
   const [result, setResult] = useState<Result | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [showSim, setShowSim] = useState(false);
-  const [showCycleUpload, setShowCycleUpload] = useState(() => searchParams.get("cycle") !== null);
+  const [activeMode, setActiveMode] = useState<string>(() =>
+    searchParams.get("cycle") !== null ? "cycle" : "fichier",
+  );
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
@@ -236,8 +242,51 @@ function DepotViewInner() {
     }
   }
 
+  const fichierTabContent = status === "idle" && (
+    <div className="rounded-xl border border-dashed border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 text-[13px] text-[var(--pb-text-muted)]">
+      Pas de fichier sous la main ? La{" "}
+      <Link
+        href="/dashboard/cloisons"
+        className="font-semibold text-[var(--pb-accent)] hover:underline"
+      >
+        revue par cloison
+      </Link>{" "}
+      est préchargée avec la société de démonstration DEMO SA.
+    </div>
+  );
+
+  const modeTabs: ModeTabDef[] = [
+    {
+      id: "fichier",
+      icon: FolderOpen,
+      label: "Mon fichier",
+      desc: "FEC . Balance . Liasse",
+      color: "var(--pb-accent)",
+      content: fichierTabContent,
+    },
+    {
+      id: "simulation",
+      icon: Play,
+      label: "Simulation",
+      desc: `${SCENARIOS.length} scénarios disponibles`,
+      color: "var(--pb-methodology)",
+      hidden: status !== "idle",
+      content: <SimulationPanel scenarios={SCENARIOS} />,
+    },
+    {
+      id: "cycle",
+      icon: Link2,
+      label: "Par cycle",
+      desc: `${AUDIT_CYCLES.length} cycles disponibles`,
+      color: "var(--pb-internal)",
+      content: <CycleUploadPanel />,
+    },
+  ];
+
   return (
     <div className="space-y-4">
+      <ReassuranceBar />
+
       {/* Zone de dépôt */}
       <div
         data-tour="depot-dropzone"
@@ -254,10 +303,8 @@ function DepotViewInner() {
         }}
         onClick={() => inputRef.current?.click()}
         className={cn(
-          "flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-10 text-center transition-colors",
-          drag
-            ? "border-[var(--pb-accent)] bg-[var(--pb-accent)]/8"
-            : "border-[var(--pb-border-strong)] bg-[var(--pb-surface)] hover:border-[var(--pb-accent)]/60",
+          "pb-dropzone-frame flex cursor-pointer flex-col items-center justify-center rounded-xl px-6 py-10 text-center transition-colors",
+          drag && "pb-drop-active",
         )}
       >
         <input
@@ -270,30 +317,29 @@ function DepotViewInner() {
             if (f) handleFile(f);
           }}
         />
-        <UploadCloud className="h-9 w-9 text-[var(--pb-accent)]" />
+        <DropzoneArt active={drag} />
         <div className="mt-3 text-sm font-semibold text-[var(--pb-text)]">
-          Déposez un FEC, une balance ou une liasse — ou cliquez pour parcourir
+          Déposez votre dossier. Le reste se fait.
         </div>
         <div className="mt-1 text-[12px] text-[var(--pb-text-faint)]">
-          Aucun fichier n'est stocké. Balance et liasse sont analysées
-          directement dans votre navigateur.
+          FEC . Balance . Liasse — analysées, croisées, structurées en quelques secondes
         </div>
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-[11px]">
           <span
             title="FEC dématérialisé — fichier des écritures comptables (.txt, .csv). Analyse par le moteur de règles."
-            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)]"
+            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)] transition-transform duration-150 hover:-translate-y-0.5"
           >
             FEC .txt / .csv
           </span>
           <span
             title="Balance générale — exports Sage, Cegid, EBP… (.xlsx, .xls, .csv). Détection des colonnes débit/crédit et contrôles de cohérence."
-            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)]"
+            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)] transition-transform duration-150 hover:-translate-y-0.5"
           >
             XLSX / CSV balance
           </span>
           <span
             title="Liasse fiscale / états financiers (.pdf). Extraction best-effort du SIREN, de l'exercice et des postes-clés."
-            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)]"
+            className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1 text-[var(--pb-accent)] transition-transform duration-150 hover:-translate-y-0.5"
           >
             PDF liasse
           </span>
@@ -301,40 +347,7 @@ function DepotViewInner() {
       </div>
 
       {/* Pipeline */}
-      {status !== "idle" && (
-        <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-          <div className="flex flex-wrap items-center gap-2">
-            {pipeline.map((label, i) => {
-              const reached = i <= step || status === "done";
-              const current = i === step && status === "processing";
-              return (
-                <div key={label} className="flex items-center gap-2">
-                  <span
-                    className={cn(
-                      "flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px]",
-                      reached
-                        ? "bg-[var(--pb-accent)]/12 text-[var(--pb-accent)]"
-                        : "bg-[var(--pb-surface-2)] text-[var(--pb-text-faint)]",
-                    )}
-                  >
-                    {current ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : reached ? (
-                      <CheckCircle2 className="h-3 w-3" />
-                    ) : (
-                      <span className="h-3 w-3 rounded-full border border-current" />
-                    )}
-                    {label}
-                  </span>
-                  {i < pipeline.length - 1 && (
-                    <span className="text-[var(--pb-text-faint)]">›</span>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      <IngestionStepper labels={pipeline} activeIndex={step} status={status} />
 
       {error && (
         <div className="flex items-center gap-2 rounded-xl border border-[#ef4444]/50 bg-[#2a1416] p-4 text-sm text-[#ef4444]">
@@ -353,102 +366,9 @@ function DepotViewInner() {
         <LiasseResult data={result.data} />
       )}
 
-      {/* Aide démo */}
-      {status === "idle" && (
-        <div className="rounded-xl border border-dashed border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 text-[13px] text-[var(--pb-text-muted)]">
-          Pas de fichier sous la main ? La{" "}
-          <Link
-            href="/dashboard/cloisons"
-            className="font-semibold text-[var(--pb-accent)] hover:underline"
-          >
-            revue par cloison
-          </Link>{" "}
-          est préchargée avec la société de démonstration DEMO SA.
-        </div>
-      )}
+      <ModeTabs tabs={modeTabs} activeId={activeMode} onChange={setActiveMode} />
 
-      {/* Simulation */}
-      {status === "idle" && (
-        <div className="space-y-3">
-          {/* Séparateur */}
-          <div className="flex items-center gap-3">
-            <div className="h-px flex-1 bg-[var(--pb-border)]" />
-            <span className="text-[11px] uppercase tracking-wider text-[var(--pb-text-faint)]">
-              ou
-            </span>
-            <div className="h-px flex-1 bg-[var(--pb-border)]" />
-          </div>
-
-          {/* Bouton / Panel */}
-          {!showSim ? (
-            <button
-              onClick={() => setShowSim(true)}
-              className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-6 py-4 text-sm font-semibold text-[var(--pb-text)] transition-all hover:border-[var(--pb-accent)]/60 hover:bg-[var(--pb-accent)]/6"
-            >
-              <Play className="h-4 w-4 text-[var(--pb-accent)]" />
-              Lancer une simulation
-              <span className="ml-1 rounded border border-[var(--pb-border)] px-1.5 py-0.5 text-[10px] font-normal text-[var(--pb-text-faint)]">
-                5 scénarios disponibles
-              </span>
-            </button>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h2 className="text-sm font-semibold text-[var(--pb-text)]">
-                  Choisissez un scénario de simulation
-                </h2>
-                <button
-                  onClick={() => setShowSim(false)}
-                  className="flex items-center gap-1 text-[12px] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]"
-                >
-                  <ChevronUp className="h-3.5 w-3.5" />
-                  Réduire
-                </button>
-              </div>
-              <SimulationPanel scenarios={SCENARIOS} />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Dépôt par cycle */}
-      <div className="space-y-3">
-        {/* Séparateur */}
-        <div className="flex items-center gap-3">
-          <div className="h-px flex-1 bg-[var(--pb-border)]" />
-          <span className="text-[11px] uppercase tracking-wider text-[var(--pb-text-faint)]">
-            ou
-          </span>
-          <div className="h-px flex-1 bg-[var(--pb-border)]" />
-        </div>
-
-        {/* Bouton / Panel */}
-        {!showCycleUpload ? (
-          <button
-            onClick={() => setShowCycleUpload(true)}
-            className="flex w-full items-center justify-center gap-2.5 rounded-xl border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] px-6 py-4 text-sm font-semibold text-[var(--pb-text)] transition-all hover:border-[var(--pb-accent)]/60 hover:bg-[var(--pb-accent)]/6"
-          >
-            <FileSpreadsheet className="h-4 w-4 text-[var(--pb-accent)]" />
-            Déposer les documents d'un cycle de rapprochement
-          </button>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-[var(--pb-text)]">
-                Dépôt par cycle
-              </h2>
-              <button
-                onClick={() => setShowCycleUpload(false)}
-                className="flex items-center gap-1 text-[12px] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]"
-              >
-                <ChevronUp className="h-3.5 w-3.5" />
-                Réduire
-              </button>
-            </div>
-            <CycleUploadPanel />
-          </div>
-        )}
-      </div>
+      <RecentDossiers />
     </div>
   );
 }
