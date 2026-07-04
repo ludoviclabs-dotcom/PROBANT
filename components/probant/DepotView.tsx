@@ -38,6 +38,7 @@ import { DropzoneArt } from "./DropzoneArt";
 import { ModeTabs, type ModeTabDef } from "./ModeTabs";
 import { IngestionStepper } from "./IngestionStepper";
 import { RecentDossiers } from "./RecentDossiers";
+import { FecLoadingScreen } from "./FecLoadingScreen";
 
 interface DepotResult {
   nomFichier: string;
@@ -369,6 +370,14 @@ function DepotViewInner() {
       <ModeTabs tabs={modeTabs} activeId={activeMode} onChange={setActiveMode} />
 
       <RecentDossiers />
+
+      {/* Overlay marquise pendant le traitement réel du fichier déposé.
+          Le message affiché est l'étape RÉELLE du pipeline en cours
+          (FEC_PIPELINE ou CLIENT_PIPELINE), pas un texte défilant inventé. */}
+      <FecLoadingScreen
+        isVisible={status === "processing"}
+        statusMessage={`${pipeline[step]}…`}
+      />
     </div>
   );
 }
