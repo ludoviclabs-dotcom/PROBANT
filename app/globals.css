@@ -549,6 +549,12 @@ body[data-pb-guide] [data-tour-anno] {
   box-shadow: inset 0 0 24px color-mix(in srgb, var(--pb-accent) 18%, transparent);
 }
 
+/* Curseur terminal clignotant (écran de chargement FEC, cf. FecLoadingScreen). */
+@keyframes pbCaretBlink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
 /*
   Respect du choix utilisateur : animations complètes par défaut,
   mais neutralisées si l'OS demande la réduction de mouvement.

@@ -2,7 +2,15 @@
 
 import { useEffect, useRef } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { DemoLauncher } from "@/components/probant/DemoLauncher";
+
+// Client-only : l'état initial du splash lit sessionStorage de façon
+// synchrone, ce qui interdit tout rendu SSR (mismatch d'hydratation sinon).
+const SplashScreen = dynamic(
+  () => import("@/components/probant/SplashScreen").then((m) => m.SplashScreen),
+  { ssr: false },
+);
 
 /* ─── canvas animation types ──────────────────────────────────────────────── */
 
@@ -106,7 +114,11 @@ function useConstellationCanvas(ref: React.RefObject<HTMLCanvasElement | null>) 
 
     function draw() {
       raf = requestAnimationFrame(draw);
-      if (!ctx) return;
+      // H=0 (layout pas encore mesuré) rendrait scanY non-fini et
+      // createLinearGradient lèverait un TypeError ; on re-mesure jusqu'à
+      // obtenir une taille valide (aucun resize fenêtre à attendre sinon).
+      if (W <= 0 || H <= 0) resize();
+      if (!ctx || W <= 0 || H <= 0) return;
       t += 0.016;
       const rgb = hexRgb(accent);
       const [ar, ag, ab] = rgb;
@@ -144,6 +156,9 @@ export default function Home() {
 
   return (
     <div style={{ position: "relative", width: "100%", minHeight: "100vh", background: "#0a0e14", overflow: "hidden", fontFamily: "'Inter', system-ui, sans-serif" }}>
+
+      {/* intro marquise — une fois par session, au-dessus de tout */}
+      <SplashScreen />
 
       {/* animated background */}
       <canvas
