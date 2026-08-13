@@ -8,24 +8,31 @@ mélangent jamais :
 
 | Couche | Rôle | Code |
 |--------|------|------|
-| **Socle normatif** | Règles opposables (LPF, PCG) et méthode (ISA, ISRE), versionnées et citées | `lib/referentiel` |
-| **Moteur de constat** | Calcule, compare, classe, documente les écarts | `lib/rules-engine`, `lib/fec` |
+| **Socle normatif** | Règles opposables (LPF, PCG) et méthode (ISA, ISRE), versionnées et citées | `lib/referentiel`, `lib/audit-cycles` + `data/` |
+| **Moteur de constat** | Calcule, compare, classe, documente les écarts | `lib/rules-engine`, `lib/fec`, `lib/rapprochement`, `lib/risk-mapping` |
 | **Restitution** | Rend visible le calculé : silos, preuve, validation humaine | `app`, `components/probant` |
 
 ## Démarrer
 
 ```bash
-npm install
-npm run dev      # http://localhost:3000
+npm ci
+npm run dev        # http://localhost:3000
+npm run lint       # ESLint CLI (flat config)
 npm run typecheck
-npm run test     # tests des règles (Vitest)
+npm test           # 115 tests Vitest sur lib/**
+npm run build
 ```
 
-## Les six écrans
+Hors `npm run dev`, ces commandes sont exactement celles exécutées par la CI, dans
+cet ordre ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
+
+## Les sept écrans
 
 - **Dépôt & ingestion** — dépose un FEC ; empreinte → parsing → validation
   réglementaire → moteur. Pipeline réel (`/api/depot`).
 - **Synthèse** — distingue non-conformité réglementaire et signal analytique.
+- **Cartographie des risques** — scoring heuristique par cycle d'audit
+  (gravité / probabilité / détectabilité / exposition), heatmap et graphe.
 - **Revue par cloison** — *l'écran central*. Chaque catégorie comptable est un
   **silo** : l'élément financier reconstruit, la ligne en anomalie **entourée**
   et reliée par une **flèche annotée** au constat (montant, seuil, source
@@ -89,8 +96,12 @@ via `lib/audit-cycles/`).
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript strict · Tailwind CSS 4 · Zod · lucide-react.
-Déployable sur Vercel.
+Next.js 15.5 (App Router) · TypeScript strict · Tailwind CSS 4 · Zod ·
+lucide-react · Vitest · ESLint 9. Déployable sur Vercel.
+
+> ⚠️ `xlsx@0.18.5` (lecture des balances) porte deux vulnérabilités **sans
+> correctif publié**. Voir le blocage P0-1 dans
+> [`docs/architecture/CURRENT_STATE_MAP.md`](docs/architecture/CURRENT_STATE_MAP.md).
 
 ## Refonte : plan et avancement
 
@@ -106,9 +117,16 @@ Index complet de la documentation : [`docs/`](docs/README.md).
 
 ## À faire ensuite
 
-- Persistance (PostgreSQL via Drizzle) des dossiers et décisions humaines.
+- Persistance (PostgreSQL via Drizzle) des dossiers et décisions humaines —
+  aujourd'hui, les ajustements ne vivent qu'en mémoire du process Next.js.
 - Stockage des fichiers source et artefacts (Vercel Blob).
 - Export PDF du review pack (le JSON est déjà disponible).
-- Formats XLSX/CSV de balance et PDF de liasse.
-- Tests unitaires Vitest par règle + non-régression sur FEC de référence.
+- **Tests unitaires Vitest par règle** — `lib/rules-engine` (15 règles) et
+  `lib/fec/parser.ts` ne sont couverts par aucun test à ce jour.
+- Non-régression sur FEC de référence.
 - **Validation des citations et seuils du référentiel avant production.**
+
+## Architecture et refonte
+
+Cartographie vérifiée de l'existant, architecture cible et roadmap :
+[`docs/architecture/`](docs/architecture/PROBANT_MASTER_CONTEXT.md).

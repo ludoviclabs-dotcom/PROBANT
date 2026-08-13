@@ -7,8 +7,8 @@
 | | |
 |---|---|
 | Dernière mise à jour | 13/08/2026 |
-| État global | **Non démarré** — aucun PR de la séquence n'est ouvert |
-| Prochaine action | PR-00 (cartographie + patch de maintenance + CI minimale) |
+| État global | **PR-00 en revue** — cartographie publiée, CI minimale créée, patch Next appliqué |
+| Prochaine action | PR-01 (gouvernance des sources) — périmètre détaillé dans [`docs/architecture/PR_ROADMAP.md`](../architecture/PR_ROADMAP.md) § 4 |
 
 ---
 
@@ -60,7 +60,7 @@ First Load JS ; `/dashboard/risques` ≈ 207 kB.
 
 | PR | Objet | Prérequis | Statut | Branche / PR | Charge indicative | Risque |
 |---|---|---|---|---|---:|---|
-| **PR-00** | Cartographie + patch maintenance + **CI minimale** | — | ⬜ À faire | — | 0,5–1 j | Faible |
+| **PR-00** | Cartographie + patch maintenance + **CI minimale** | — | 🟨 En revue | `claude/probant-mapping-regression-b53f40` | 0,5–1 j | Faible |
 | **PR-01** | Gouvernance des sources et modèle de connaissance | PR-00 | ⬜ À faire | — | 1,5–2,5 j | Moyen |
 | **PR-02** | Dossier unique — fin de la divergence DEMO / réel | PR-00 | ⬜ À faire | — | 1,5–3 j | Élevé |
 | **PR-03** | Ingestion, persistance, stockage objet, remplacement XLSX | PR-02 | ⬜ À faire | — | 4–7 j | **Très élevé** |
@@ -95,11 +95,12 @@ Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estim
 
 | # | Sujet | État | Porté par | Détail |
 |---|---|---|---|---|
-| P0-1 | `xlsx@0.18.5` — pollution de prototype (`<0.19.3`) et ReDoS (`<0.20.2`) sur des fichiers externes | ⬜ Ouvert | PR-00 (documentation) → PR-03 (remplacement) | ADR-003 obligatoire avant remplacement |
-| P0-2 | Next.js 15.5.19 — patch de sécurité plus récent disponible sur la branche 15.5 | ⬜ Ouvert | PR-00 | Patch 15.5.x uniquement ; **pas** de migration 16 |
-| P0-3 | Aucune CI — sept PR structurants sans barrière de non-régression | ⬜ Ouvert | PR-00 | `npm ci` → lint → typecheck → test → build |
-| P0-4 | Trois sources de vérité (`DEMO_DOSSIER`, `sessionStorage`, stores en mémoire) | ⬜ Ouvert | PR-02 | Défaut fonctionnel majeur |
+| P0-1 | `xlsx@0.18.5` — pollution de prototype et ReDoS sur des fichiers externes. **`npm audit` : `fixAvailable: false`** — aucune version corrigée publiée | 🟥 **Ouvert — blocage documenté** | PR-00 (documentation ✅) → PR-03 (remplacement) | ADR-003 obligatoire avant remplacement |
+| P0-2 | Next.js 15.5.19 — patch de sécurité plus récent disponible sur la branche 15.5 | ✅ **Résolu** — `15.5.23` | PR-00 | 8 avis GHSA corrigés en 15.5.21 ; **pas** de migration 16 |
+| P0-3 | Aucune CI — sept PR structurants sans barrière de non-régression | ✅ **Résolu** | PR-00 | `.github/workflows/ci.yml` : `npm ci` → lint → typecheck → test → build |
+| P0-4 | Trois sources de vérité (`DEMO_DOSSIER`, `sessionStorage`, stores en mémoire) | ⬜ Ouvert | PR-02 | Défaut fonctionnel majeur. Chiffré en PR-00 : **8** imports directs, **8** clés `sessionStorage`, **3** stores |
 | P0-5 | `/api/depot` matérialise le fichier entier puis parse dans la requête HTTP | ⬜ Ouvert | PR-03 | Limite de volumétrie appliquée **après** parsing |
+| P0-6 | `npm run lint` inopérant — ESLint non installé, sortie en **exit 1** | ✅ **Résolu** | PR-00 | `next lint` → ESLint CLI 9 (`eslint.config.mjs`) |
 
 ### Décisions d'architecture en attente (ADR)
 
@@ -122,13 +123,13 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 
 ### Architecture — PR-00
 
-- [ ] `docs/architecture/PROBANT_MASTER_CONTEXT.md`
-- [ ] `docs/architecture/CURRENT_STATE_MAP.md`
-- [ ] `docs/architecture/TARGET_ARCHITECTURE.md`
-- [ ] `docs/architecture/DATA_FLOW.md`
-- [ ] `docs/architecture/PR_ROADMAP.md`
-- [ ] `docs/architecture/DECISION_LOG.md`
-- [ ] `.github/workflows/ci.yml`
+- [x] `docs/architecture/PROBANT_MASTER_CONTEXT.md`
+- [x] `docs/architecture/CURRENT_STATE_MAP.md`
+- [x] `docs/architecture/TARGET_ARCHITECTURE.md`
+- [x] `docs/architecture/DATA_FLOW.md`
+- [x] `docs/architecture/PR_ROADMAP.md`
+- [x] `docs/architecture/DECISION_LOG.md`
+- [x] `.github/workflows/ci.yml`
 
 ### ADR
 
@@ -208,6 +209,7 @@ Une ligne par événement structurant. Le plus récent en haut.
 
 | Date | Événement | Réf. |
 |---|---|---|
+| 13/08/2026 | **PR-00** — cartographie vérifiée publiée (`docs/architecture/`, 6 documents), CI minimale créée, `next` 15.5.19 → **15.5.23**, `next lint` → **ESLint CLI 9**. Aucun fichier de `app/`, `components/`, `lib/`, `data/` modifié. P0-2, P0-3, P0-6 résolus ; **P0-1 (`xlsx`) reste un blocage documenté** — `fixAvailable: false` | branche `claude/probant-mapping-regression-b53f40`, base `e61ae74` |
 | 13/08/2026 | Dépôt du plan de refonte et création de ce suivi | branche `claude/probant-refonte-document` |
 
 ---

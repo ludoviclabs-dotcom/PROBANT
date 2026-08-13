@@ -11,6 +11,19 @@ Point d'entrée de la documentation du dépôt.
 
 Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'est le rôle du suivi.
 
+## Architecture — produit par PR-00
+
+Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.
+
+| Document | À quoi il sert |
+|---|---|
+| [`architecture/PROBANT_MASTER_CONTEXT.md`](./architecture/PROBANT_MASTER_CONTEXT.md) | Point d'entrée : ce qu'est PROBANT, invariants, convention de marquage |
+| [`architecture/CURRENT_STATE_MAP.md`](./architecture/CURRENT_STATE_MAP.md) | Routes, sources de vérité, stockage navigateur, stores serveur, API, tests, dépendances à risque, **P0/P1/P2** |
+| [`architecture/TARGET_ARCHITECTURE.md`](./architecture/TARGET_ARCHITECTURE.md) | Knowledge Plane / Dossier Plane, en Mermaid. **Non implémentée.** |
+| [`architecture/DATA_FLOW.md`](./architecture/DATA_FLOW.md) | Les trois chemins de données réels et leurs points de fusion |
+| [`architecture/PR_ROADMAP.md`](./architecture/PR_ROADMAP.md) | Séquence PR-00 → PR-08 et **périmètre exact de PR-01** |
+| [`architecture/DECISION_LOG.md`](./architecture/DECISION_LOG.md) | Décisions d'outillage de PR-00 (D-001 → D-006) avec alternatives écartées |
+
 ## Documentation à produire
 
 Les répertoires ci-dessous sont prévus par le plan et seront créés par les PR
@@ -18,7 +31,7 @@ correspondantes. La checklist à jour se trouve au § 5 du suivi d'avancement.
 
 | Répertoire | Contenu | PR |
 |---|---|---|
-| `docs/architecture/` | Master context, cartographie de l'existant, architecture cible, flux de données, roadmap, journal des décisions | PR-00 |
+| ~~`docs/architecture/`~~ | ✅ **Livré par PR-00** — voir la section ci-dessus | PR-00 |
 | `docs/adr/` | ADR-001 à ADR-008 | PR-02 → PR-08 |
 | `docs/knowledge/` | Politique de sources, couverture normative, points à faire valider | PR-01, PR-04 |
 | `docs/ingestion/` | Limites d'ingestion et résultats de benchmark | PR-03 |
