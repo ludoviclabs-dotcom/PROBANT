@@ -1,13 +1,11 @@
+
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { RiskAdjustment, RiskAdjustmentMap } from "@/lib/risk-mapping";
 import {
-  RISK_ADJUSTMENTS_KEY,
   emptyAdjustments,
   mergeAdjustment,
-  parseAdjustments,
-  serializeAdjustments,
   type AdjustmentPatch,
 } from "@/lib/risk-mapping";
 
@@ -38,7 +36,6 @@ import {
 export type AdjustmentSaveStatus = "idle" | "saving" | "saved" | "error";
 
 /** dossierId simulé unique (aucune vraie multi-tenance dans PROBANT). */
-const DEMO_DOSSIER_ID = "demo-dossier";
 
 /** Délai de debounce avant l'appel POST, en ms (un seul timer par cycle). */
 const SAVE_DEBOUNCE_MS = 800;
@@ -58,7 +55,6 @@ interface JudgementAdjustmentRecord {
   commentaire?: string;
   updatedAt: string;
 }
-
 /** Ids serveur connus par cycle+axe, pour cibler les DELETE. */
 type RecordIdMap = Record<string, { probabilite?: string; detectabilite?: string }>;
 
@@ -96,24 +92,15 @@ function buildAdjustmentsFromRecords(records: JudgementAdjustmentRecord[]): {
 
 /** Lecture best-effort du cache optimiste sessionStorage (jamais bloquant). */
 function readSessionCache(): RiskAdjustmentMap {
-  try {
-    const raw = sessionStorage.getItem(RISK_ADJUSTMENTS_KEY);
-    return parseAdjustments(raw);
-  } catch {
-    return emptyAdjustments();
-  }
+  return emptyAdjustments();
 }
 
 /** Écriture best-effort du cache optimiste sessionStorage (jamais bloquant). */
 function writeSessionCache(next: RiskAdjustmentMap): void {
-  try {
-    sessionStorage.setItem(RISK_ADJUSTMENTS_KEY, serializeAdjustments(next));
-  } catch {
-    /* storage indisponible : l'état React / l'API restent la source de vérité */
-  }
+  void next;
 }
 
-export function useRiskAdjustments(): {
+export function useRiskAdjustments(dossierId: string): {
   adjustments: RiskAdjustmentMap;
   setAdjustment: (slug: string, patch: AdjustmentPatch) => void;
   resetCycle: (slug: string) => void;
@@ -144,7 +131,7 @@ export function useRiskAdjustments(): {
     (async () => {
       try {
         const res = await fetch(
-          `/api/adjustments?dossierId=${encodeURIComponent(DEMO_DOSSIER_ID)}`,
+          `/api/adjustments?dossierId=${encodeURIComponent(dossierId)}`,
         );
         if (!res.ok) return;
         const data: unknown = await res.json();
@@ -165,15 +152,16 @@ export function useRiskAdjustments(): {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [dossierId]);
 
   // Nettoyage des timers en cours au démontage.
   useEffect(() => {
+    const debounceTimers = debounceTimersRef.current;
     return () => {
-      for (const timer of debounceTimersRef.current.values()) {
+      for (const timer of debounceTimers.values()) {
         clearTimeout(timer);
       }
-      debounceTimersRef.current.clear();
+      debounceTimers.clear();
       if (savedTimerRef.current) {
         clearTimeout(savedTimerRef.current);
       }
@@ -215,7 +203,7 @@ export function useRiskAdjustments(): {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            dossierId: DEMO_DOSSIER_ID,
+            dossierId,
             cycleSlug: slug,
             axe,
             valeurAjustee,
@@ -237,7 +225,7 @@ export function useRiskAdjustments(): {
         markSaveSettled(false);
       }
     },
-    [markSaving, markSaveSettled],
+    [dossierId, markSaving, markSaveSettled],
   );
 
   /** Déclenche (ou relance) le debounce de sauvegarde pour un cycle. */
@@ -325,11 +313,11 @@ export function useRiskAdjustments(): {
     fetch("/api/adjustments/reset", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ dossierId: DEMO_DOSSIER_ID }),
+      body: JSON.stringify({ dossierId }),
     })
       .then((res) => markSaveSettled(res.ok))
       .catch(() => markSaveSettled(false));
-  }, [markSaving, markSaveSettled]);
+  }, [dossierId, markSaving, markSaveSettled]);
 
   return {
     adjustments: adjustments ?? emptyAdjustments(),

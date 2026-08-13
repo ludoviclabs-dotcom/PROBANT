@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Suspense, useEffect, useMemo, useReducer, useRef, useState } from "react";
@@ -19,20 +20,21 @@ import {
 import { parseTabularDocument } from "@/lib/rapprochement/parse-upload";
 import { buildRapprochementDepuisDepot } from "@/lib/rapprochement/build-from-upload";
 import type { DocumentSource } from "@/lib/rapprochement/types";
-import type { Finding, SiloView } from "@/lib/canonical-model";
+import type { SiloView } from "@/lib/canonical-model";
+import {
+  addRapprochementToSnapshot,
+} from "@/lib/dossier";
+import { useActiveDossier } from "@/lib/dossier/client";
 import { SeverityBadge } from "./Badges";
-import { LIVE_FINDINGS_KEY } from "./CloisonsViewLive";
 import { cn } from "@/lib/utils";
-
-export const LIVE_RAPPROCHEMENT_KEY = "probant:live-rapprochement";
 
 interface DocState {
   statut: "vide" | "en_cours" | "ok" | "erreur";
   fichier?: File;
   documentSource?: DocumentSource;
+  fingerprint?: string;
   erreur?: string;
 }
-
 interface PanelState {
   cycleId: string | null;
   docs: Record<string, DocState>;
@@ -43,7 +45,12 @@ interface PanelState {
 type Action =
   | { type: "SELECT_CYCLE"; cycleId: string }
   | { type: "START_PARSE"; documentTypeId: string; fichier: File }
-  | { type: "PARSE_OK"; documentTypeId: string; documentSource: DocumentSource }
+  | {
+      type: "PARSE_OK";
+      documentTypeId: string;
+      documentSource: DocumentSource;
+      fingerprint: string;
+    }
   | { type: "PARSE_ERROR"; documentTypeId: string; erreur: string }
   | { type: "SET_SILO"; silo: SiloView | null; erreurRapprochement: string | null }
   | { type: "RESET" };
@@ -54,6 +61,13 @@ const INITIAL_STATE: PanelState = {
   silo: null,
   erreurRapprochement: null,
 };
+
+async function fingerprintFile(file: File): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+  return [...new Uint8Array(digest)]
+    .map((value) => value.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 function reducer(state: PanelState, action: Action): PanelState {
   switch (action.type) {
@@ -76,6 +90,7 @@ function reducer(state: PanelState, action: Action): PanelState {
             statut: "ok",
             fichier: state.docs[action.documentTypeId]?.fichier,
             documentSource: action.documentSource,
+            fingerprint: action.fingerprint,
           },
         },
       };
@@ -109,6 +124,7 @@ export function CycleUploadPanel() {
 }
 
 function CycleUploadPanelInner() {
+  const { snapshot, saveSnapshot } = useActiveDossier();
   const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
   const searchParams = useSearchParams();
   const cycle = state.cycleId
@@ -135,10 +151,12 @@ function CycleUploadPanelInner() {
     dispatch({ type: "START_PARSE", documentTypeId: documentType.id, fichier });
     try {
       const resultat = await parseTabularDocument(fichier, documentType);
+      const fingerprint = await fingerprintFile(fichier);
       dispatch({
         type: "PARSE_OK",
         documentTypeId: documentType.id,
         documentSource: resultat.documentSource,
+        fingerprint,
       });
     } catch (e) {
       dispatch({
@@ -173,27 +191,26 @@ function CycleUploadPanelInner() {
         docCible.documentSource,
       );
       dispatch({ type: "SET_SILO", silo, erreurRapprochement: null });
-      try {
-        const brut = sessionStorage.getItem(LIVE_RAPPROCHEMENT_KEY);
-        const existant = brut ? JSON.parse(brut) : {};
-        sessionStorage.setItem(
-          LIVE_RAPPROCHEMENT_KEY,
-          JSON.stringify({ ...existant, [cycle.id]: silo }),
-        );
-      } catch {
-        /* ignore si sessionStorage indisponible */
-      }
-      try {
-        const brutFindings = sessionStorage.getItem(LIVE_FINDINGS_KEY);
-        const parsed: unknown = brutFindings ? JSON.parse(brutFindings) : [];
-        const existants: Finding[] = Array.isArray(parsed) ? (parsed as Finding[]) : [];
-        const byId = new Map<string, Finding>();
-        for (const f of existants) byId.set(f.id, f);
-        for (const f of silo.findings) byId.set(f.id, f);
-        sessionStorage.setItem(LIVE_FINDINGS_KEY, JSON.stringify([...byId.values()]));
-      } catch {
-        /* ignore si sessionStorage indisponible */
-      }
+      void saveSnapshot(
+        addRapprochementToSnapshot(snapshot, {
+          cycleId: cycle.id,
+          silo,
+          documents: [
+            {
+              id: `${cycle.id}-${docTypeSource.id}`,
+              fileName: docSource.fichier?.name ?? docTypeSource.libelle,
+              fingerprint: docSource.fingerprint ?? "fingerprint-unavailable",
+              lineCount: docSource.documentSource.lignes.length,
+            },
+            {
+              id: `${cycle.id}-${docTypeCible.id}`,
+              fileName: docCible.fichier?.name ?? docTypeCible.libelle,
+              fingerprint: docCible.fingerprint ?? "fingerprint-unavailable",
+              lineCount: docCible.documentSource.lignes.length,
+            },
+          ],
+        }),
+      );
     } catch (e) {
       dispatch({
         type: "SET_SILO",
@@ -201,7 +218,7 @@ function CycleUploadPanelInner() {
         erreurRapprochement: e instanceof Error ? e.message : "Erreur de rapprochement.",
       });
     }
-  }, [state.docs, cycle, documentTypes]);
+  }, [state.docs, cycle, documentTypes, saveSnapshot, snapshot]);
 
   return (
     <div className="space-y-4">

@@ -1,12 +1,29 @@
+"use client";
+
 import { Download, ArrowRight, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/probant/PageHeader";
 import { SeverityBadge, FamilyBadge } from "@/components/probant/Badges";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
-import { allFindings } from "@/lib/canonical-model";
+import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 
 export default function DossierPage() {
-  const d = DEMO_DOSSIER;
-  const findings = allFindings(d).filter((f) => f.preuve.length > 0);
+  const snapshot = useActiveDossierSnapshot();
+  const d = snapshot.dossier;
+  const findings = snapshot.findings.filter((f) => f.preuve.length > 0);
+
+  async function exportReviewPack() {
+    const response = await fetch("/api/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ snapshot }),
+    });
+    if (!response.ok) return;
+    const url = URL.createObjectURL(await response.blob());
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `review-pack-${d.societe.siren}-${d.societe.exercice}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <div className="p-6">
@@ -14,12 +31,13 @@ export default function DossierPage() {
         title="Dossier & preuve"
         subtitle="Pour chaque constat, la chaîne reconstituable : source → transformation → règle → résultat → décision. Exportable et vérifiable."
       >
-        <a
-          href="/api/export"
+        <button
+          type="button"
+          onClick={() => void exportReviewPack()}
           className="inline-flex items-center gap-2 rounded-lg bg-[var(--pb-accent)] px-4 py-2 text-[13px] font-semibold text-[#06122a] hover:opacity-90"
         >
           <Download className="h-4 w-4" /> Exporter le review pack (JSON)
-        </a>
+        </button>
       </PageHeader>
 
       {/* Bandeau traçabilité — ancre de la visite guidée (sourcé, horodaté). */}

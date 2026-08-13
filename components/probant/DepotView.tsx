@@ -17,9 +17,10 @@ import {
 } from "lucide-react";
 import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
-import { LIVE_FINDINGS_KEY, LIVE_FEC_KEY, LIVE_META_KEY, LIVE_ADMISSIBILITE_KEY } from "./CloisonsViewLive";
 import type { FecEntry, Finding, Severity } from "@/lib/canonical-model";
 import { buildFecDocument } from "@/lib/canonical-model";
+import { buildSnapshotFromFecDepot } from "@/lib/dossier";
+import { useActiveDossier } from "@/lib/dossier/client";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
 import type {
   BalanceValidation,
@@ -114,6 +115,7 @@ export function DepotView() {
 }
 
 function DepotViewInner() {
+  const { snapshot: activeSnapshot, saveSnapshot } = useActiveDossier();
   const searchParams = useSearchParams();
   const [drag, setDrag] = useState(false);
   const [status, setStatus] = useState<"idle" | "processing" | "done" | "error">(
@@ -167,54 +169,20 @@ function DepotViewInner() {
           setStep(FEC_PIPELINE.length - 1);
           setResult({ kind: "fec", data });
           setStatus("done");
-          try {
-            const exercice = exerciceFromEntries(data.entries);
-            // Fusion, pas écrasement : un dépôt FEC remplace ses propres constats
-            // d'analyse mais PRÉSERVE les constats issus d'un dépôt par cycle
-            // (origine "rapprochement"), qui écrivent dans la même clé de session.
-            // Sans cela, déposer un FEC après un rapprochement effacerait
-            // silencieusement ce dernier (et le ferait disparaître de la
-            // cartographie des risques qui lit cette même clé).
-            let previousLive: Finding[] = [];
-            try {
-              const raw = sessionStorage.getItem(LIVE_FINDINGS_KEY);
-              const parsed: unknown = raw ? JSON.parse(raw) : [];
-              if (Array.isArray(parsed)) previousLive = parsed as Finding[];
-            } catch { /* clé absente ou illisible : on repart d'une liste vide */ }
-            const mergedById = new Map<string, Finding>();
-            for (const f of previousLive) {
-              if (f.origine === "rapprochement") mergedById.set(f.id, f);
-            }
-            for (const f of data.analyse) mergedById.set(f.id, f);
-            sessionStorage.setItem(
-              LIVE_FINDINGS_KEY,
-              JSON.stringify([...mergedById.values()]),
-            );
-            sessionStorage.setItem(LIVE_ADMISSIBILITE_KEY, JSON.stringify(data.admissibilite));
-            // On préserve toutes les lignes référencées par les constats et
-            // on complète jusqu'à CAP avec des lignes saines, pour ne jamais
-            // perdre de flags dans le grand-livre annoté.
-            const SESSION_ENTRIES_CAP = 8000;
-            const referencedLignes = new Set(
-              data.analyse.flatMap((f) => f.lignesSource),
-            );
-            const priorityRows = data.entries.filter((e) => referencedLignes.has(e.ligne));
-            const otherRows = data.entries.filter((e) => !referencedLignes.has(e.ligne));
-            const cap = Math.max(0, SESSION_ENTRIES_CAP - priorityRows.length);
-            const sessionEntries = [
-              ...priorityRows,
-              ...otherRows.slice(0, cap),
-            ].sort((a, b) => a.ligne - b.ligne);
-            sessionStorage.setItem(LIVE_FEC_KEY, JSON.stringify(sessionEntries));
-            sessionStorage.setItem(
-              LIVE_META_KEY,
-              JSON.stringify({
-                societe: data.siren ?? data.nomFichier,
-                exercice,
-                nomFichier: data.nomFichier,
-              }),
-            );
-          } catch { /* ignore si sessionStorage indisponible */ }
+          const rapprochementFindings = activeSnapshot.findings.filter(
+            (finding) => finding.origine === "rapprochement",
+          );
+          void saveSnapshot(buildSnapshotFromFecDepot({
+            nomFichier: data.nomFichier,
+            fingerprint: data.fingerprint,
+            siren: data.siren,
+            referentielVersion: data.referentielVersion,
+            admissibilite: data.admissibilite,
+            analyse: [...rapprochementFindings, ...data.analyse],
+            entries: data.entries,
+            entriesTruncated: data.entriesTruncated,
+            totalEntryCount: data.mapping.nbEntries,
+          }));
         } catch (e) {
           timers.forEach(clearTimeout);
           throw e;
