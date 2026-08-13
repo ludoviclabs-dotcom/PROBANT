@@ -126,6 +126,18 @@ const findProv: Finding = {
     { etape: "Résultat", detail: "Provision constatée 0 € vs 145 000 € attendus" },
   ],
   statutRevue: "en_attente",
+  // Effet financier EXPLICITE : la provision à constituer diminue le résultat
+  // de 145 000 € (montant mesuré au suivi de contrat, pas un seuil).
+  financialEffect: {
+    amountCents: 14_500_000,
+    direction: "decrease",
+    target: "resultat",
+    assertion: "exhaustivite",
+    rootCause: "provision_insuffisante",
+    period: "2024",
+    basis: "measured",
+    taxRatePct: 25,
+  },
 };
 
 const siloProv: SiloView = {
@@ -179,6 +191,23 @@ const findCCA: Finding = {
     { etape: "Résultat", detail: "CCA constatée 0 € vs 18 000 € attendus" },
   ],
   statutRevue: "en_attente",
+  // Effet explicite : la constatation d'avance neutralise 18 000 € de charges
+  // et augmente d'autant le résultat (9/12 de la prime, prorata mesuré).
+  financialEffect: {
+    amountCents: 1_800_000,
+    direction: "increase",
+    target: "resultat",
+    assertion: "rattachement",
+    rootCause: "cutoff",
+    period: "2024",
+    basis: "measured",
+    taxRatePct: 25,
+  },
+  // NB : DEMO-STOCK-1 (rotation 540 j) ne porte volontairement AUCUN
+  // financialEffect : l'indice de rotation n'est pas un impact comptable tant
+  // que le test de dépréciation n'a pas été mené. Il apparaît donc dans
+  // « constats sans effet chiffré » de la Synthèse — c'est le comportement
+  // attendu, pas un oubli.
 };
 
 const siloCCA: SiloView = {
@@ -236,6 +265,18 @@ const findCA: Finding = {
     { etape: "Résultat", detail: "312 000 € à requalifier en PCA / N+1" },
   ],
   statutRevue: "en_attente",
+  // Effet explicite : le CA anticipé requalifié en N+1 diminue le résultat de
+  // 312 000 € (montant relevé sur les écritures 2310-2312, croisé aux BL).
+  financialEffect: {
+    amountCents: 31_200_000,
+    direction: "decrease",
+    target: "resultat",
+    assertion: "rattachement",
+    rootCause: "cutoff",
+    period: "2024",
+    basis: "measured",
+    taxRatePct: 25,
+  },
 };
 
 const siloCA: SiloView = {

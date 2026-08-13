@@ -7,8 +7,8 @@
 | | |
 |---|---|
 | Dernière mise à jour | 14/08/2026 |
-| État global | **PR-00 en revue · PR-01 en cours** — plan de connaissance créé (FEC vérifié, NEP/IFRS/PCG à certifier) |
-| Prochaine action | Revue métier des 17 points de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md), en commençant par R-01 à R-03 |
+| État global | **PR-00 → PR-03 fusionnés · PR-05 en cours** — moteur de Synthèse pur en branche |
+| Prochaine action | Revue de PR-05, puis PR-04 (référentiel/crosswalks) — la revue métier R-01 à R-03 de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md) reste ouverte |
 
 ---
 
@@ -60,12 +60,12 @@ First Load JS ; `/dashboard/risques` ≈ 207 kB.
 
 | PR | Objet | Prérequis | Statut | Branche / PR | Charge indicative | Risque |
 |---|---|---|---|---|---:|---|
-| **PR-00** | Cartographie + patch maintenance + **CI minimale** | — | 🟨 En revue | `claude/probant-mapping-regression-b53f40` | 0,5–1 j | Faible |
-| **PR-01** | Gouvernance des sources et modèle de connaissance | PR-00 | 🟦 En cours | `claude/probant-knowledge-base-pr01` | 1,5–2,5 j | Moyen |
-| **PR-02** | Dossier unique — fin de la divergence DEMO / réel | PR-00 | ⬜ À faire | — | 1,5–3 j | Élevé |
-| **PR-03** | Ingestion, persistance, stockage objet, remplacement XLSX | PR-02 | ⬜ À faire | — | 4–7 j | **Très élevé** |
+| **PR-00** | Cartographie + patch maintenance + **CI minimale** | — | ✅ Fusionné | [#30](https://github.com/ludoviclabs-dotcom/PROBANT/pull/30) | 0,5–1 j | Faible |
+| **PR-01** | Gouvernance des sources et modèle de connaissance | PR-00 | ✅ Fusionné | [#31](https://github.com/ludoviclabs-dotcom/PROBANT/pull/31) (gouvernance) + [#37](https://github.com/ludoviclabs-dotcom/PROBANT/pull/37) (contenus) | 1,5–2,5 j | Moyen |
+| **PR-02** | Dossier unique — fin de la divergence DEMO / réel | PR-00 | ✅ Fusionné | [#32](https://github.com/ludoviclabs-dotcom/PROBANT/pull/32) | 1,5–3 j | Élevé |
+| **PR-03** | Ingestion, persistance, stockage objet, remplacement XLSX | PR-02 | ✅ Fusionné | [#36](https://github.com/ludoviclabs-dotcom/PROBANT/pull/36) | 4–7 j | **Très élevé** |
 | **PR-04** | Référentiel PCG / NEP / IFRS et crosswalks | PR-01 | ⬜ À faire | — | 3–6 j + revue métier | Élevé |
-| **PR-05** | Moteur de Synthèse déterministe | PR-03, PR-04 | ⬜ À faire | — | 3–5 j | **Très élevé** |
+| **PR-05** | Moteur de Synthèse déterministe | PR-03, PR-04 | 🟦 En cours | `claude/probant-synthesis-engine` | 3–5 j | **Très élevé** |
 | **PR-06** | Cockpit, infographies, accessibilité | PR-05 | ⬜ À faire | — | 2–4 j | Moyen |
 | **PR-07** | Revue append-only, manifeste, exports | PR-05 | ⬜ À faire | — | 3–5 j | Élevé |
 | **PR-08** | Auth, hardening, E2E, observabilité, release | PR-06, PR-07 | ⬜ À faire | — | 2–4 j | Élevé |
@@ -107,10 +107,10 @@ Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estim
 | ADR | Sujet | Décidé dans | Statut |
 |---|---|---|---|
 | ADR-001 | Identité de dossier et routage (`dossierId`) | PR-02 | ⬜ À rédiger |
-| ADR-002 | Stockage objet — Vercel Private Blob vs S3 + Object Lock | PR-03 | ⬜ À rédiger |
-| ADR-003 | Lecteur XLSX — SheetJS CE / ExcelJS / read-excel-file | PR-03 | ⬜ À rédiger |
-| ADR-004 | Schéma PostgreSQL / Drizzle | PR-03 | ⬜ À rédiger |
-| ADR-005 | Runtime d'ingestion — jobs, retry, idempotence, limites | PR-03 | ⬜ À rédiger |
+| ADR-002 | Stockage objet — Vercel Private Blob vs S3 + Object Lock | PR-03 | ✅ Rédigée (`docs/adr/ADR-002-object-storage.md`) |
+| ADR-003 | Lecteur XLSX — SheetJS CE / ExcelJS / read-excel-file | PR-03 | ✅ Rédigée (`docs/adr/ADR-003-xlsx-reader.md`) |
+| ADR-004 | Schéma PostgreSQL / Drizzle | PR-03 | ✅ Rédigée (`docs/adr/ADR-004-database-schema.md`) |
+| ADR-005 | Runtime d'ingestion — jobs, retry, idempotence, limites | PR-03 | ✅ Rédigée (`docs/adr/ADR-005-ingestion-runtime.md`) |
 | ADR-006 | Déterminisme de la Synthèse — canonical JSON, traces, hash | PR-05 | ⬜ À rédiger |
 | ADR-007 | AuthN / AuthZ — OIDC, sessions, rôles, isolation | PR-08 (préparé en PR-03) | ⬜ À rédiger |
 | ADR-008 | PDF/A et PAdES | PR-07 | ⬜ À rédiger |
@@ -209,6 +209,7 @@ Une ligne par événement structurant. Le plus récent en haut.
 
 | Date | Événement | Réf. |
 |---|---|---|
+| 14/08/2026 | **PR-05** — moteur de Synthèse pur (`lib/synthesis`) : SynthesisSnapshot 5 dimensions sans score composite, exposition sur effets financiers EXPLICITES (fin de la présomption |constaté−seuil|), déduplication 5 étapes (clé stable, graphe, clusters, politique, ambiguïté→revue), centimes entiers, JSON canonique + SHA-256 pur (hash identique navigateur/Node vérifié), 8 limitations générées, note de synthèse déterministe sans LLM (bouton fonctionnel), verdict catégoriel — plus de « exploitable » sans couverture/admissibilité. Page Synthèse = projection du snapshot, calcul métier hors JSX. 39 tests moteur, 233 au total | branche `claude/probant-synthesis-engine` |
 | 14/08/2026 | **PR-01** — plan de connaissance : `data/{fec,nep,ifrs,pcg,crosswalks,statistics}`, schémas Zod + 8 contrôles d'intégrité (`lib/knowledge`), 32 tests. **Les 18 zones du FEC sont vérifiées à l'article A47 A-1 et identiques à `FEC_COLUMNS`.** Écart majeur détecté : `R-HL-006/007/008` classées `hardLaw` sans fondement établi — **moteur non modifié**, écart documenté. 21 fichiers ajoutés, **0 modifié** | branche `claude/probant-knowledge-base-pr01` |
 | 13/08/2026 | **PR-00** — cartographie vérifiée publiée (`docs/architecture/`, 6 documents), CI minimale créée, `next` 15.5.19 → **15.5.23**, `next lint` → **ESLint CLI 9**. Aucun fichier de `app/`, `components/`, `lib/`, `data/` modifié. P0-2, P0-3, P0-6 résolus ; **P0-1 (`xlsx`) reste un blocage documenté** — `fixAvailable: false` | branche `claude/probant-mapping-regression-b53f40`, base `e61ae74` |
 | 13/08/2026 | Dépôt du plan de refonte et création de ce suivi | branche `claude/probant-refonte-document` |

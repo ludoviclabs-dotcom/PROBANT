@@ -149,6 +149,57 @@ export interface SeuilApplique {
   depasse: boolean;
 }
 
+/**
+ * Effet financier EXPLICITE d'un constat sur les états financiers.
+ *
+ * Champ volontairement distinct de `Mesure` : une mesure décrit un écart par
+ * rapport à un seuil de détection, pas un impact comptable. La présomption
+ * historique `|constaté − seuil| = impact` surestimait ou sous-estimait
+ * l'exposition selon la règle. Depuis le moteur de Synthèse, un constat ne
+ * contribue à l'exposition QUE s'il porte ce bloc — sinon il est listé dans
+ * `excludedItems` de la trace de calcul, jamais compté en silence.
+ *
+ * Les montants sont en CENTIMES ENTIERS (voir lib/synthesis/money.ts) : les
+ * additions financières en flottant sont interdites dans le moteur.
+ */
+export interface FinancialEffect {
+  /** Ampleur de l'effet, en centimes entiers, toujours ≥ 0. */
+  amountCents: number;
+  /** Sens de l'effet sur la cible (augmentation / diminution du poste). */
+  direction: "increase" | "decrease";
+  /** Poste des états financiers affecté. */
+  target:
+    | "resultat"
+    | "bilan_actif"
+    | "bilan_passif"
+    | "capitaux_propres"
+    | "presentation";
+  /** Assertion d'audit principalement affectée (ISA 315). */
+  assertion:
+    | "existence"
+    | "exhaustivite"
+    | "exactitude"
+    | "evaluation"
+    | "droits_obligations"
+    | "presentation"
+    | "rattachement";
+  /** Cause racine normalisée — sert à la clé de déduplication. */
+  rootCause: string;
+  /** Période affectée (exercice AAAA, éventuellement AAAA-MM). */
+  period: string;
+  /**
+   * Fondement du chiffrage : mesuré sur pièces, ou estimé. Un effet estimé
+   * reste inclus dans l'exposition brute mais est signalé dans la trace.
+   */
+  basis: "measured" | "estimated";
+  /**
+   * Taux d'impôt applicable à l'effet (en %), si un effet d'impôt doit être
+   * calculé. Absent = effet d'impôt non évalué (limitation générée, jamais un
+   * taux implicite).
+   */
+  taxRatePct?: number;
+}
+
 /** Une grandeur chiffrée constatée vs son seuil de référence. */
 export interface Mesure {
   /** Valeur constatée dans les comptes. */
@@ -270,6 +321,13 @@ export interface Finding {
    * connaissance sourcée. Optionnel.
    */
   cycleSlug?: string;
+
+  /**
+   * Effet financier explicite sur les états financiers. ABSENT = le constat
+   * ne contribue pas à l'exposition chiffrée (il reste compté dans les
+   * dimensions risque/revue). Voir `FinancialEffect`.
+   */
+  financialEffect?: FinancialEffect;
 }
 
 /** Détermine si un constat relève d'une non-conformité réglementaire dure. */
