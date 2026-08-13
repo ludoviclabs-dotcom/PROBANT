@@ -17,6 +17,7 @@
  *   K-006  une statistique sans date, unité ou périmètre
  *   K-007  une citation IFRS excessive
  *   K-008  une statistique atteignable depuis un crosswalk
+ *   K-009  un enregistrement « verified » sans source primaire datée
  *
  * Fonctions PURES : aucun accès disque, aucune horloge implicite. La date de
  * référence est TOUJOURS injectée — sans quoi le contrôle K-003 changerait de
@@ -28,8 +29,11 @@ import {
   sourceIsSecondary,
   type Crosswalk,
   type FecControlSet,
+  type FecFieldSet,
   type IfrsSet,
   type IfrsStandard,
+  type NepSet,
+  type PcgSet,
   type SourceRef,
   type StatisticSet,
 } from "./schemas";
@@ -50,6 +54,78 @@ export interface KnowledgeReport {
 
 function hasPrimarySource(sources: SourceRef[]): boolean {
   return sources.some((s) => s.kind === "primary" && !sourceIsSecondary(s));
+}
+
+function hasDatedPrimarySource(sources: SourceRef[]): boolean {
+  return sources.some(
+    (s) => s.kind === "primary" && !sourceIsSecondary(s) && !!s.retrievedAt,
+  );
+}
+
+/**
+ * Tous les porteurs de sources du plan de connaissance, aplatis en une liste
+ * `(sujet, sources)` — le socle commun de K-002 et K-009. Un référentiel
+ * ajouté au plan doit être ajouté ICI, sinon ses sources échappent aux deux
+ * contrôles : les tests de couverture le rappellent.
+ */
+function collectSourceBearers(
+  input: KnowledgeInput,
+): { subject: string; sources: SourceRef[]; status?: string }[] {
+  const bearers: { subject: string; sources: SourceRef[]; status?: string }[] = [];
+
+  // FEC — les zones ne portent pas de SourceRef individuel (elles pointent le
+  // registre par `sourceId`) : le jeu porte les références datées au niveau du
+  // référentiel. Une zone `verified` s'appuie donc sur les sources du jeu.
+  bearers.push({
+    subject: input.fecFields.referentialId,
+    sources: input.fecFields.sources,
+  });
+  for (const f of input.fecFields.fields) {
+    bearers.push({
+      subject: `${input.fecFields.referentialId}:${f.fieldName}`,
+      sources: input.fecFields.sources,
+      status: f.status,
+    });
+  }
+
+  for (const c of input.fecControls.controls) {
+    bearers.push({ subject: c.id, sources: c.sources, status: c.status });
+  }
+  for (const e of input.nep.entries) {
+    bearers.push({ subject: e.id, sources: e.sources, status: e.status });
+  }
+  for (const s of input.ifrs.entries) {
+    bearers.push({ subject: s.id, sources: s.sources, status: s.status });
+    bearers.push({ subject: `${s.id}.euEndorsement`, sources: s.euEndorsement.sources });
+    s.pcgDifferences.forEach((d, i) => {
+      bearers.push({
+        subject: `${s.id}.pcgDifferences[${i}]`,
+        sources: d.sources,
+        status: d.status,
+      });
+    });
+  }
+
+  bearers.push({ subject: input.pcg.referentialId, sources: input.pcg.sources });
+  for (const r of input.pcg.requirements) {
+    bearers.push({ subject: r.id, sources: r.sources, status: r.status });
+  }
+
+  for (const cw of input.crosswalks) {
+    for (const link of cw.links) {
+      bearers.push({
+        subject: `${cw.kind}:${link.from}→${link.to}`,
+        sources: link.sources,
+        status: link.status,
+      });
+    }
+  }
+
+  for (const s of input.statistics.statistics) {
+    bearers.push({ subject: s.id, sources: s.sources, status: s.status });
+  }
+
+  return bearers;
 }
 
 /* ─────────────────────────────────── K-001 ───────────────────────────────── */
@@ -75,29 +151,34 @@ export function checkMandatoryControlsHaveSource(
 
 /**
  * K-002 — une publication de cabinet ou de doctrine ne fonde jamais une
- * obligation. Deux infractions possibles : la déclarer `primary`, ou l'employer
- * comme unique appui d'un contrôle opposable.
+ * obligation. Deux infractions possibles : la déclarer `primary` — où que ce
+ * soit dans le plan de connaissance, pas seulement sur les contrôles FEC et
+ * les fiches IFRS — ou l'employer comme unique appui d'un contrôle opposable.
  */
 export function checkNoSecondarySourceAsMandatory(
-  controls: FecControlSet,
-  ifrs: IfrsSet,
+  input: KnowledgeInput,
 ): KnowledgeIssue[] {
   const issues: KnowledgeIssue[] = [];
+  const seen = new Set<string>();
 
-  const inspect = (subject: string, sources: SourceRef[]) => {
-    for (const s of sources) {
+  for (const bearer of collectSourceBearers(input)) {
+    for (const s of bearer.sources) {
       if (sourceIsSecondary(s) && s.kind === "primary") {
+        // Les zones FEC partagent les sources de leur jeu : une même référence
+        // fautive ne doit produire qu'un signalement, pas dix-huit.
+        const key = `${bearer.subject}|${s.sourceId}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
         issues.push({
           control: "K-002",
-          subject,
+          subject: bearer.subject,
           message: `source de doctrine « ${s.sourceId} » déclarée primaire`,
         });
       }
     }
-  };
+  }
 
-  for (const c of controls.controls) {
-    inspect(c.id, c.sources);
+  for (const c of input.fecControls.controls) {
     if (c.basis === "hard_law" && c.sources.length > 0 && !hasPrimarySource(c.sources)) {
       issues.push({
         control: "K-002",
@@ -105,11 +186,6 @@ export function checkNoSecondarySourceAsMandatory(
         message: "contrôle opposable appuyé uniquement sur de la doctrine",
       });
     }
-  }
-
-  for (const s of ifrs.entries) {
-    inspect(s.id, s.sources);
-    inspect(`${s.id}.euEndorsement`, s.euEndorsement.sources);
   }
 
   return issues;
@@ -321,17 +397,47 @@ export function checkStatisticsAreIsolated(
   return issues;
 }
 
+/* ─────────────────────────────────── K-009 ───────────────────────────────── */
+
+/**
+ * K-009 — le contrat de `verified` est mécanique, pas déclaratif.
+ *
+ * Un enregistrement marqué `verified` engage l'existence d'au moins une source
+ * PRIMAIRE (hors doctrine) portant `retrievedAt`. Sans ce couplage, un statut
+ * `verified` pourrait entrer dans le jeu de données de confiance sans que
+ * personne ne puisse dire QUAND la vérification a eu lieu — c'est-à-dire sans
+ * qu'elle soit contestable, donc sans qu'elle vaille vérification.
+ *
+ * Les statuts `review_required` et `out_of_scope` sont hors du champ : ils
+ * n'affirment rien.
+ */
+export function checkVerifiedRecordsHaveDatedSource(
+  input: KnowledgeInput,
+): KnowledgeIssue[] {
+  return collectSourceBearers(input)
+    .filter((b) => b.status === "verified" && !hasDatedPrimarySource(b.sources))
+    .map((b) => ({
+      control: "K-009",
+      subject: b.subject,
+      message:
+        "marqué « verified » sans source primaire datée (retrievedAt manquant ou source de doctrine)",
+    }));
+}
+
 /* ────────────────────────────── Rapport complet ──────────────────────────── */
 
 export interface KnowledgeInput {
+  fecFields: FecFieldSet;
   fecControls: FecControlSet;
+  nep: NepSet;
   ifrs: IfrsSet;
+  pcg: PcgSet;
   crosswalks: Crosswalk[];
   statistics: StatisticSet;
 }
 
 /**
- * Exécute les huit contrôles.
+ * Exécute les neuf contrôles.
  *
  * `referenceDate` (AAAA-MM-JJ) est injectée pour que le résultat soit
  * reproductible : un test qui dépendrait de l'horloge deviendrait rouge tout
@@ -343,13 +449,14 @@ export function validateKnowledgeBase(
 ): KnowledgeReport {
   const errors: KnowledgeIssue[] = [
     ...checkMandatoryControlsHaveSource(input.fecControls),
-    ...checkNoSecondarySourceAsMandatory(input.fecControls, input.ifrs),
+    ...checkNoSecondarySourceAsMandatory(input),
     ...checkNoFutureStandardPresentedAsEffective(input.ifrs, referenceDate),
     ...checkEndorsementNotAssumedPositive(input.ifrs),
     ...checkPcgDifferencesAreSourced(input.ifrs),
     ...checkStatisticsAreQualified(input.statistics),
     ...checkNoExcessiveIfrsQuotation(input.ifrs),
     ...checkStatisticsAreIsolated(input.crosswalks),
+    ...checkVerifiedRecordsHaveDatedSource(input),
   ];
 
   return { valid: errors.length === 0, errors, warnings: [] };

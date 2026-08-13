@@ -30,14 +30,18 @@ import {
   checkPcgDifferencesAreSourced,
   checkStatisticsAreIsolated,
   checkStatisticsAreQualified,
+  checkVerifiedRecordsHaveDatedSource,
   isEffectiveAt,
   validateKnowledgeBase,
+  type KnowledgeInput,
 } from "@/lib/knowledge/content/validation";
 import type {
   Crosswalk,
+  FecControl,
   FecControlSet,
   IfrsSet,
   IfrsStandard,
+  NepEntry,
   StatisticSet,
 } from "@/lib/knowledge/content/schemas";
 
@@ -108,18 +112,9 @@ describe("chargement", () => {
 /* ──────────────────── Les données réelles passent les contrôles ───────────── */
 
 describe("intégrité des données réelles", () => {
-  it("passe les huit contrôles sans erreur", async () => {
-    const [fecControls, ifrs, crosswalks, statistics] = await Promise.all([
-      loadFecControls(),
-      loadIfrs(),
-      loadCrosswalks(),
-      loadStatistics(),
-    ]);
-
-    const report = validateKnowledgeBase(
-      { fecControls, ifrs, crosswalks, statistics },
-      AT,
-    );
+  it("passe les neuf contrôles sans erreur", async () => {
+    const kb = await loadKnowledgeBase();
+    const report = validateKnowledgeBase(kb, AT);
 
     expect(report.errors).toEqual([]);
     expect(report.valid).toBe(true);
@@ -188,6 +183,44 @@ const asIfrsSet = (entries: IfrsStandard[]): IfrsSet => ({
   entries,
 });
 
+/**
+ * Entrée complète minimale — chaque référentiel vide ou neutre. Les tests de
+ * violation remplacent uniquement le référentiel qu'ils dégradent : K-002 et
+ * K-009 balaient TOUS les porteurs de sources, il faut donc pouvoir injecter
+ * une faute dans n'importe lequel.
+ */
+function makeInput(over: Partial<KnowledgeInput> = {}): KnowledgeInput {
+  return {
+    fecFields: {
+      referentialId: "fec-test",
+      label: "test",
+      sources: [
+        {
+          sourceId: "lpf-a47-a1",
+          kind: "primary",
+          retrievedAt: "2026-08-14",
+        },
+      ],
+      fields: [],
+    } as unknown as KnowledgeInput["fecFields"],
+    fecControls: { referentialId: "t", label: "t", controls: [] },
+    nep: { referentialId: "t", label: "t", entries: [] },
+    ifrs: asIfrsSet([]),
+    pcg: {
+      referentialId: "t",
+      label: "t",
+      consolidatedVersion: "2026-01-01",
+      sources: [
+        { sourceId: "anc-reglementation", kind: "primary", retrievedAt: "2026-08-14" },
+      ],
+      requirements: [],
+    },
+    crosswalks: [],
+    statistics: { referentialId: "t", label: "t", statistics: [] },
+    ...over,
+  };
+}
+
 describe("K-001 — règle obligatoire sans source", () => {
   it("échoue quand un contrôle hard_law ne cite aucune source primaire", () => {
     const set: FecControlSet = {
@@ -255,7 +288,7 @@ describe("K-002 — source de doctrine classée obligatoire", () => {
         },
       ],
     };
-    const issues = checkNoSecondarySourceAsMandatory(set, asIfrsSet([]));
+    const issues = checkNoSecondarySourceAsMandatory(makeInput({ fecControls: set }));
     expect(issues.some((i) => i.control === "K-002")).toBe(true);
   });
 
@@ -263,11 +296,91 @@ describe("K-002 — source de doctrine classée obligatoire", () => {
     const std = makeStandard({
       sources: [{ sourceId: "pwc-manual", kind: "primary", url: "https://www.pwc.com/x" }],
     });
-    const issues = checkNoSecondarySourceAsMandatory(
-      { referentialId: "t", label: "t", controls: [] },
-      asIfrsSet([std]),
-    );
+    const issues = checkNoSecondarySourceAsMandatory(makeInput({ ifrs: asIfrsSet([std]) }));
     expect(issues.some((i) => i.control === "K-002")).toBe(true);
+  });
+
+  it("balaie aussi les NEP, le PCG et les crosswalks — pas seulement FEC/IFRS", () => {
+    // Une entrée NEP appuyée sur une publication Deloitte déclarée primaire :
+    // avant l'extension du contrôle, cette faute passait inaperçue.
+    const nepEntry: NepEntry = {
+      id: "nep-999",
+      number: "999",
+      title: "NEP de test",
+      themes: ["documentation"],
+      objectiveSummary: "Test.",
+      concepts: [],
+      paragraphReferences: [],
+      relatedCycles: [],
+      isaCrosswalk: [],
+      status: "review_required",
+      sources: [
+        { sourceId: "deloitte-guide", kind: "primary", url: "https://www.deloitte.com/x" },
+      ],
+    };
+    const issues = checkNoSecondarySourceAsMandatory(
+      makeInput({ nep: { referentialId: "t", label: "t", entries: [nepEntry] } }),
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].subject).toBe("nep-999");
+  });
+});
+
+describe("K-009 — enregistrement « verified » sans source primaire datée", () => {
+  const datedControl = (over: Partial<FecControl>): FecControl => ({
+    id: "FEC-PRESENCE-997",
+    family: "presence",
+    label: "Contrôle de test",
+    expectation: "…",
+    appliesTo: [],
+    basis: "hard_law",
+    variant: "both",
+    status: "verified",
+    sources: [],
+    ...over,
+  });
+
+  it("échoue quand la source primaire n'a pas de retrievedAt", () => {
+    const c = datedControl({
+      sources: [{ sourceId: "lpf-a47-a1", kind: "primary" }], // pas de date
+    });
+    const issues = checkVerifiedRecordsHaveDatedSource(
+      makeInput({ fecControls: { referentialId: "t", label: "t", controls: [c] } }),
+    );
+    expect(issues).toHaveLength(1);
+    expect(issues[0].control).toBe("K-009");
+  });
+
+  it("échoue quand la seule source datée est de la doctrine", () => {
+    const c = datedControl({
+      sources: [
+        { sourceId: "ey-guide", kind: "primary", url: "https://www.ey.com/x", retrievedAt: "2026-08-14" },
+      ],
+    });
+    const issues = checkVerifiedRecordsHaveDatedSource(
+      makeInput({ fecControls: { referentialId: "t", label: "t", controls: [c] } }),
+    );
+    expect(issues).toHaveLength(1);
+  });
+
+  it("accepte un verified adossé à une source primaire datée", () => {
+    const c = datedControl({
+      sources: [{ sourceId: "lpf-a47-a1", kind: "primary", retrievedAt: "2026-08-14" }],
+    });
+    expect(
+      checkVerifiedRecordsHaveDatedSource(
+        makeInput({ fecControls: { referentialId: "t", label: "t", controls: [c] } }),
+      ),
+    ).toEqual([]);
+  });
+
+  it("laisse review_required hors du champ : ne rien affirmer est légitime", () => {
+    const c = datedControl({ status: "review_required", sources: [] });
+    expect(
+      checkVerifiedRecordsHaveDatedSource(
+        makeInput({ fecControls: { referentialId: "t", label: "t", controls: [c] } }),
+      ),
+    ).toEqual([]);
   });
 });
 

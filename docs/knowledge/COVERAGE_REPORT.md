@@ -55,7 +55,7 @@ All unresolved verification points are enumerated in `docs/knowledge/REVIEW_REQU
 
 > **PR-01** · Date de constat : **14/08/2026** · Base : commit `c4b1d44` (PR-00)
 > Chiffres calculés en chargeant les données, pas estimés.
-> Contrôles d'intégrité : `lib/knowledge/validation.ts` (K-001 → K-008).
+> Contrôles d'intégrité : `lib/knowledge/content/validation.ts` (K-001 → K-009).
 
 ---
 
@@ -63,7 +63,7 @@ All unresolved verification points are enumerated in `docs/knowledge/REVIEW_REQU
 
 Le plan de connaissance existe désormais comme **structure validée** : six
 référentiels, un schéma Zod par référentiel, un chargeur qui refuse un YAML
-non conforme, huit contrôles d'intégrité exécutés par la CI.
+non conforme, neuf contrôles d'intégrité exécutés par la CI.
 
 Le **contenu normatif**, lui, est vérifié de façon très inégale. Ce rapport
 existe pour que cette inégalité soit visible plutôt que masquée par un volume
@@ -109,7 +109,7 @@ l'est pas.
 sont **identiques, dans le même ordre**, à `FEC_COLUMNS` de
 `lib/canonical-model/fec.ts`. Le modèle d'exécution qui tourne depuis le début
 est conforme au texte. Un test le vérifie désormais en continu
-(`lib/knowledge/__tests__/fec-coherence.test.ts`).
+(`lib/knowledge/content/__tests__/fec-coherence.test.ts`).
 
 ### Contrôles atomiques : 24 contrôles, 12 familles
 
@@ -291,6 +291,7 @@ contredit : il reste sous le régime « revue requise » de la base Audit Normat
 | K-006 | Une statistique sans date, unité ou périmètre | ✅ |
 | K-007 | Une citation IFRS au-delà de 200 caractères | ✅ |
 | K-008 | Une statistique atteignable depuis un crosswalk | ✅ |
+| K-009 | Un enregistrement « verified » sans source primaire datée (`retrievedAt`) | ✅ |
 
 Chaque contrôle est testé **deux fois** : il passe sur les données réelles, et
 il **échoue sur une violation fabriquée**. Seul le second test prouve quelque
