@@ -1,8 +1,9 @@
+"use client";
+
 import { FlaskConical, ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/probant/PageHeader";
 import { SeverityBadge, FamilyBadge } from "@/components/probant/Badges";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
-import { allFindings } from "@/lib/canonical-model";
+import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 
 /** Procédures complémentaires suggérées selon le silo concerné. */
 const PROCEDURES: Record<string, string[]> = {
@@ -26,8 +27,8 @@ const PROCEDURES: Record<string, string[]> = {
 };
 
 export default function TestsPage() {
-  const d = DEMO_DOSSIER;
-  const cibles = allFindings(d).filter(
+  const snapshot = useActiveDossierSnapshot();
+  const cibles = snapshot.findings.filter(
     (f) => f.family !== "internal" && f.severity !== "informatif",
   );
 

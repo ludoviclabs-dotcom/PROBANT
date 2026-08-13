@@ -3,8 +3,12 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
-import { allFindings as getAllFindings } from "@/lib/canonical-model/dossier";
+import {
+  calculateReviewProgress,
+  computeLegacyExposureIndex,
+  LEGACY_EXPOSURE_WEIGHTS,
+} from "@/lib/dossier";
+import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 import { CLOISONS } from "@/lib/canonical-model/taxonomy";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
 import type { Severity, FindingFamily, Finding } from "@/lib/canonical-model/finding";
@@ -32,7 +36,7 @@ const SEV: Record<Severity, SevStyle> = {
 const SEVK: Severity[] = ["bloquant", "majeur", "mineur", "informatif"];
 
 // Poids de gravité (indice d'exposition + radar)
-const WSEV: Record<Severity, number> = { bloquant: 25, majeur: 8, mineur: 2, informatif: 0.5 };
+const WSEV: Record<Severity, number> = LEGACY_EXPOSURE_WEIGHTS;
 
 interface FamStyle { label: string; short: string; hex: string; bd: string; bg: string; help: string; }
 const FAM: Record<FindingFamily, FamStyle> = {
@@ -337,8 +341,9 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
 
 // ── Page ────────────────────────────────────────────────────────────────
 export default function SynthesePage() {
-  const d = DEMO_DOSSIER;
-  const findings = useMemo(() => getAllFindings(d), [d]);
+  const snapshot = useActiveDossierSnapshot();
+  const d = snapshot.dossier;
+  const findings = snapshot.findings;
 
   // Cloisons effectivement présentes dans les constats
   const axes = useMemo(() => {
@@ -403,12 +408,20 @@ export default function SynthesePage() {
       if (inc) totalInc += inc;
       if (f.severity === "bloquant") bloquants++;
     }
-    const idx = Math.round((100 * W) / (W + 52));
+    const idx = computeLegacyExposureIndex(findings);
     return { sevCount, famCount, incByClo, matrix, cloW, totalInc, bloquants, idx, W, total: findings.length };
   }, [findings, axes]);
 
   const lvl = idxLevel(calc.idx);
-  const reviewPct = 0; // démo : aucun statut persisté
+  const reviewPct = useMemo(() => calculateReviewProgress(
+    findings.map((finding) => {
+      const latest = snapshot.reviewEvents
+        .filter((event) => event.findingId === finding.id)
+        .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+        .at(-1);
+      return latest?.newStatus ?? finding.statutRevue;
+    }),
+  ).pct, [findings, snapshot.reviewEvents]);
 
   // Barres incidence triées
   const incBars = useMemo(() => axes

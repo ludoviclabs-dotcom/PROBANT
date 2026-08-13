@@ -1,29 +1,16 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
-import { computeCounts } from "@/lib/canonical-model";
-import { LIVE_META_KEY } from "@/components/probant/CloisonsViewLive";
-
-interface LiveDossierMeta {
-  societe: string;
-  exercice?: string;
-  nomFichier?: string;
-}
-
-function isLiveDossierMeta(value: unknown): value is LiveDossierMeta {
-  if (typeof value !== "object" || value === null) return false;
-  const candidate = value as Record<string, unknown>;
-  return typeof candidate.societe === "string";
-}
+import { type DossierContext, type DossierSnapshot } from "@/lib/dossier";
+import { useActiveDossier } from "@/lib/dossier/client";
 
 function initiales(nom: string): string {
   return nom.trim().slice(0, 2).toUpperCase();
 }
-
 function StatutBadge() {
   return (
     <span
@@ -43,11 +30,15 @@ function DossierCard({
   exercice,
   sousLigne,
   href,
+  context,
+  onSelect,
 }: {
   nom: string;
   exercice: string;
   sousLigne: string;
   href: string;
+  context: DossierContext;
+  onSelect: (context: DossierContext) => void;
 }) {
   return (
     <div
@@ -68,6 +59,9 @@ function DossierCard({
       <StatutBadge />
       <Link
         href={href}
+        onClick={() => {
+          onSelect(context);
+        }}
         className="ml-auto flex shrink-0 items-center gap-1 text-[12px] font-medium text-[var(--pb-accent)] hover:underline"
       >
         Reprendre
@@ -78,39 +72,37 @@ function DossierCard({
 }
 
 export function RecentDossiers() {
-  const [liveMeta, setLiveMeta] = useState<LiveDossierMeta | null>(null);
+  const { context: activeContext, listSnapshots, selectDossier } = useActiveDossier();
+  const [snapshots, setSnapshots] = useState<DossierSnapshot[]>([]);
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(LIVE_META_KEY);
-      if (!raw) return;
-      const parsed: unknown = JSON.parse(raw);
-      if (isLiveDossierMeta(parsed)) setLiveMeta(parsed);
-    } catch {
-      /* JSON invalide ou sessionStorage indisponible : pas de card live */
-    }
-  }, []);
-
-  const demoCount = computeCounts(DEMO_DOSSIER).totalFindings;
+    void listSnapshots().then(setSnapshots);
+  }, [listSnapshots]);
 
   return (
     <section className="space-y-3">
       <h2 className="text-sm font-semibold text-[var(--pb-text)]">Reprendre un dossier</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <DossierCard
-          nom={DEMO_DOSSIER.societe.raisonSociale}
-          exercice={DEMO_DOSSIER.societe.exercice}
-          sousLigne={`${demoCount} constats`}
-          href="/dashboard/cloisons"
-        />
-        {liveMeta && (
+        {snapshots.map((snapshot) => (
           <DossierCard
-            nom={liveMeta.societe}
-            exercice={liveMeta.exercice ?? "—"}
-            sousLigne={liveMeta.nomFichier ?? "—"}
+            key={snapshot.dossier.id}
+            nom={snapshot.dossier.societe.raisonSociale}
+            exercice={snapshot.dossier.societe.exercice}
+            sousLigne={`${snapshot.findings.length} constats · ${
+              snapshot.sourceDocuments.at(0)?.fileName ?? "snapshot"
+            }`}
             href="/dashboard/cloisons?mode=live"
+            context={{
+              organizationId: snapshot.sourceKind === "demo"
+                ? "demo"
+                : activeContext.organizationId === "demo"
+                  ? "session"
+                  : activeContext.organizationId,
+              dossierId: snapshot.dossier.id,
+            }}
+            onSelect={(context) => void selectDossier(context)}
           />
-        )}
+        ))}
         <Link
           href="/dashboard/depot"
           className="flex h-[72px] items-center justify-center gap-2 rounded-xl border border-dashed border-[var(--pb-border-strong)] text-[13px] font-medium text-[var(--pb-text-muted)] transition-colors hover:text-[var(--pb-text)]"

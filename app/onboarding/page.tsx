@@ -1,3 +1,4 @@
+
 "use client";
 
 /**
@@ -10,20 +11,18 @@
  *   3. Génération   → CTA qui déclenche l'événement `mapping_generated` puis
  *      redirige vers la cartographie des risques déjà existante.
  *
- * `DepotView` ne remonte pas de callback de succès exploitable simplement
- * (voir lecture du fichier) : son seul signal de succès observable depuis
- * l'extérieur est l'écriture de `LIVE_META_KEY` dans sessionStorage une fois
- * un FEC traité. On s'appuie dessus en best-effort (poll léger) pour afficher
- * le bouton « Suivant » dès qu'un FEC a été traité dans la session ; à défaut
- * (sessionStorage indisponible, etc.) le bouton reste affiché en permanence
- * avec une note, sans sur-ingénierie.
+ * La progression observe le `DossierSnapshot` actif, même source de vérité que
+ * les pages métier du dashboard.
  */
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, FileUp, Settings2, Sparkles } from "lucide-react";
 import { DepotView } from "@/components/probant/DepotView";
-import { LIVE_META_KEY } from "@/components/probant/CloisonsViewLive";
+import {
+  ActiveDossierProvider,
+  useActiveDossierSnapshot,
+} from "@/lib/dossier/client";
 import { track } from "@/lib/analytics/track";
 import { cn } from "@/lib/utils";
 
@@ -37,7 +36,6 @@ function exerciceParDefaut(): string {
     ? annee
     : EXERCICES[EXERCICES.length - 1];
 }
-
 const ONBOARDING_PARAMS_KEY = "probant:onboarding-params";
 
 const STEPS = [
@@ -46,32 +44,16 @@ const STEPS = [
   { n: 3, label: "Génération", icon: Sparkles },
 ] as const;
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const [step, setStep] = useState(1);
-  const [fecPret, setFecPret] = useState(false);
+  const snapshot = useActiveDossierSnapshot();
+  const fecPret =
+    !snapshot.dossier.demoMode &&
+    snapshot.sourceDocuments.some((document) => document.documentType === "fec");
 
   useEffect(() => {
     track("demo_viewed", { source: "onboarding" });
   }, []);
-
-  // Best-effort : on détecte le succès du dépôt FEC via le signal déjà posé
-  // par DepotView dans sessionStorage (LIVE_META_KEY). Pas d'API DepotView
-  // dédiée à un callback de succès — on évite de la créer pour rester non
-  // intrusif sur un composant partagé.
-  useEffect(() => {
-    if (step !== 1) return;
-    const check = () => {
-      try {
-        setFecPret(sessionStorage.getItem(LIVE_META_KEY) !== null);
-      } catch {
-        // sessionStorage indisponible : on ne bloque pas l'onboarding, le
-        // bouton Suivant reste affiché en permanence (voir rendu ci-dessous).
-      }
-    };
-    check();
-    const id = setInterval(check, 800);
-    return () => clearInterval(id);
-  }, [step]);
 
   function goToStep(n: number) {
     setStep(n);
@@ -123,6 +105,16 @@ export default function OnboardingPage() {
         {step === 3 && <StepGeneration />}
       </div>
     </div>
+  );
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense fallback={null}>
+      <ActiveDossierProvider>
+        <OnboardingContent />
+      </ActiveDossierProvider>
+    </Suspense>
   );
 }
 
