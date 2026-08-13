@@ -16,6 +16,24 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: probant
+          POSTGRES_PASSWORD: probant_ci
+          POSTGRES_DB: probant_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U probant -d probant_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://probant:probant_ci@localhost:5432/probant_ci
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +52,13 @@ jobs:
       - name: Install (npm ci)
         run: npm ci
 
+      - name: Migrations reproductibles
+        run: |
+          npm run db:check
+          npm run db:generate
+          git diff --exit-code -- drizzle
+          npm run db:migrate
+
       - name: Lint (ESLint CLI)
         run: npm run lint
 
@@ -46,11 +71,8 @@ jobs:
       - name: Build (Next.js)
         run: npm run build
 
-      # NON BLOQUANT — décision consignée dans DECISION_LOG.md § D-003.
-      # Le dépôt part avec 7 vulnérabilités préexistantes (dont xlsx@0.18.5,
-      # sans correctif disponible : `fixAvailable: false`). Rendre cette étape
-      # bloquante empêcherait tout merge, y compris celui des PR chargées de
-      # les éliminer. L'étape reste exécutée pour rendre l'écart visible dans
-      # le log ; PR-03 (xlsx) et PR-08 (hardening) la rendront bloquante.
+      # NON BLOQUANT — `xlsx@0.18.5` est supprimé par PR-03. Les alertes
+      # transitives restantes exigent actuellement des mises à niveau majeures
+      # de Next ou de l'outillage Drizzle et restent visibles pour PR-08.
       - name: Audit de sécurité (informatif, non bloquant)
         run: npm audit --audit-level=high || true

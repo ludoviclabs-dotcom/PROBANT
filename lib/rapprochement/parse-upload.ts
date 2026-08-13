@@ -1,6 +1,11 @@
 import type { ChampMappage, DocumentType } from "./catalog";
 import type { DocumentSource } from "./types";
 import { documentDepuisTableur, type MappageColonnes } from "./adapters/tabular";
+import {
+  DEMO_XLSX_LIMITS,
+  readXlsxRowsInWorker,
+} from "@/lib/tabular/read-xlsx-browser";
+import { readCsvRows } from "@/lib/tabular/read-csv-browser";
 
 const RE: Record<ChampMappage, RegExp> = {
   compte: /(n[°o]?\s*)?(de\s+)?compte|^cpt\b|num.*compte/i,
@@ -21,68 +26,16 @@ export interface ParseTabularResult {
 
 function extensionAcceptee(fileName: string, formats: DocumentType["formats"]): boolean {
   const ext = fileName.toLowerCase().split(".").pop() ?? "";
-  if (ext === "xls") return formats.includes("xlsx");
+  if (ext === "xls") return false;
   return formats.includes(ext as DocumentType["formats"][number]);
 }
 
-function detecterDelimiteur(texte: string): "," | ";" {
-  const premieresLignes = texte.split(/\r?\n/).slice(0, 5).join("\n");
-  const nbPointVirgule = (premieresLignes.match(/;/g) ?? []).length;
-  const nbVirgule = (premieresLignes.match(/,/g) ?? []).length;
-  return nbPointVirgule > nbVirgule ? ";" : ",";
-}
-
-/** Découpe une ligne CSV en respectant les guillemets (RFC 4180) : un délimiteur ou un
- * saut de ligne entre guillemets ne coupe pas la cellule ; "" à l'intérieur = guillemet littéral. */
-function decouperLigneCsv(ligne: string, delimiteur: string): string[] {
-  const cellules: string[] = [];
-  let cellule = "";
-  let dansGuillemets = false;
-  for (let i = 0; i < ligne.length; i++) {
-    const c = ligne[i];
-    if (dansGuillemets) {
-      if (c === '"') {
-        if (ligne[i + 1] === '"') {
-          cellule += '"';
-          i++;
-        } else {
-          dansGuillemets = false;
-        }
-      } else {
-        cellule += c;
-      }
-    } else if (c === '"') {
-      dansGuillemets = true;
-    } else if (c === delimiteur) {
-      cellules.push(cellule.trim());
-      cellule = "";
-    } else {
-      cellule += c;
-    }
-  }
-  cellules.push(cellule.trim());
-  return cellules;
-}
-
 async function lireLignesCsv(file: File): Promise<unknown[][]> {
-  const texte = await file.text();
-  const delimiteur = detecterDelimiteur(texte);
-  return texte
-    .split(/\r?\n/)
-    .filter((ligne) => ligne.length > 0)
-    .map((ligne) => decouperLigneCsv(ligne, delimiteur));
+  return readCsvRows(file, DEMO_XLSX_LIMITS);
 }
 
 async function lireLignesXlsx(file: File): Promise<unknown[][]> {
-  const XLSX = await import("xlsx");
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  return XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    blankrows: false,
-    defval: "",
-  });
+  return readXlsxRowsInWorker(file);
 }
 
 /** Associe chaque champ à AU PLUS une colonne : une colonne déjà retenue pour un champ

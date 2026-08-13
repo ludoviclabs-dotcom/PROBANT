@@ -17,11 +17,8 @@ import {
 } from "lucide-react";
 import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
-import type { FecEntry, Finding, Severity } from "@/lib/canonical-model";
-import { buildFecDocument } from "@/lib/canonical-model";
-import { buildSnapshotFromFecDepot } from "@/lib/dossier";
+import type { Severity } from "@/lib/canonical-model";
 import { useActiveDossier } from "@/lib/dossier/client";
-import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
 import type {
   BalanceValidation,
   ParsedBalance,
@@ -31,7 +28,6 @@ import { parseBalanceFile } from "@/lib/balance/parse-xlsx";
 import { validateBalance } from "@/lib/balance/validate";
 import { parseLiasseFile } from "@/lib/pdf/parse-liasse";
 import { cn } from "@/lib/utils";
-import { SeverityBadge } from "./Badges";
 import { CycleUploadPanel } from "./CycleUploadPanel";
 import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
 import { ReassuranceBar } from "./ReassuranceBar";
@@ -41,27 +37,33 @@ import { IngestionStepper } from "./IngestionStepper";
 import { RecentDossiers } from "./RecentDossiers";
 import { FecLoadingScreen } from "./FecLoadingScreen";
 
-interface DepotResult {
-  nomFichier: string;
-  fingerprint: string;
-  siren: string | null;
-  referentielVersion: string;
-  mapping: {
-    separateur: string;
-    variante: string;
-    nbColonnes: number;
-    colonnes: string[];
-    nbEntries: number;
+interface IngestionJobResult {
+  id: string;
+  sourceDocumentId: string;
+  status: string;
+  attempt: number;
+  parserVersion: string;
+  startedAt: string | null;
+  completedAt: string | null;
+  lineCount: number;
+  warningCount: number;
+  errorCode: string | null;
+}
+
+interface StartUploadResponse {
+  jobId: string;
+  sourceDocumentId: string;
+  status: string;
+  upload: null | {
+    method: "PUT";
+    url: string;
+    headers: Record<string, string>;
+    expiresAt: string;
   };
-  admissibilite: Finding[];
-  analyse: Finding[];
-  parseErrors: string[];
-  entries: FecEntry[];
-  entriesTruncated: boolean;
 }
 
 type Result =
-  | { kind: "fec"; data: DepotResult }
+  | { kind: "fec"; data: IngestionJobResult }
   | { kind: "balance"; data: ParsedBalance; validation: BalanceValidation }
   | { kind: "pdf"; data: ParsedLiasse };
 
@@ -88,22 +90,15 @@ const SEVERITY_HEX: Record<Severity, string> = {
 const fmtEUR = (n: number) =>
   n.toLocaleString("fr-FR", { maximumFractionDigits: 0 }) + " €";
 
-/** Exercice dominant déduit des dates d'écriture du FEC (AAAA). */
-function exerciceFromEntries(entries: FecEntry[]): string {
-  const years = new Map<string, number>();
-  for (const e of entries) {
-    const y = e.ecritureDate?.slice(0, 4);
-    if (y && /^\d{4}$/u.test(y)) years.set(y, (years.get(y) ?? 0) + 1);
+async function readApiJson<T>(response: Response): Promise<T> {
+  const payload = (await response.json().catch(() => null)) as
+    | (T & { message?: string })
+    | null;
+  if (!response.ok) {
+    throw new Error(payload?.message ?? `Erreur ${response.status}`);
   }
-  let best = "";
-  let bestN = 0;
-  for (const [y, n] of years) {
-    if (n > bestN) {
-      best = y;
-      bestN = n;
-    }
-  }
-  return best || "—";
+  if (!payload) throw new Error("Réponse serveur vide.");
+  return payload;
 }
 
 export function DepotView() {
@@ -115,7 +110,7 @@ export function DepotView() {
 }
 
 function DepotViewInner() {
-  const { snapshot: activeSnapshot, saveSnapshot } = useActiveDossier();
+  const { context: activeContext, snapshot: activeSnapshot } = useActiveDossier();
   const searchParams = useSearchParams();
   const [drag, setDrag] = useState(false);
   const [status, setStatus] = useState<"idle" | "processing" | "done" | "error">(
@@ -129,6 +124,7 @@ function DepotViewInner() {
     searchParams.get("cycle") !== null ? "cycle" : "fichier",
   );
   const inputRef = useRef<HTMLInputElement>(null);
+  const uploadKeys = useRef(new Map<string, string>());
 
   async function handleFile(file: File) {
     setStatus("processing");
@@ -140,7 +136,8 @@ function DepotViewInner() {
     try {
       let kind: "fec" | "balance" | "pdf";
       if (ext === "pdf") kind = "pdf";
-      else if (ext === "xlsx" || ext === "xls") kind = "balance";
+      else if (ext === "xlsx") kind = "balance";
+      else if (ext === "xls") throw new Error("Le format XLS historique doit être converti en XLSX.");
       else if (ext === "txt") kind = "fec";
       else if (ext === "csv") {
         const head = (await file.slice(0, 600).text()).toLowerCase();
@@ -153,40 +150,72 @@ function DepotViewInner() {
 
       if (kind === "fec") {
         setPipeline(FEC_PIPELINE);
-        const timers = FEC_PIPELINE.map((_, i) =>
-          setTimeout(() => setStep(i), i * 350),
-        );
-        try {
-          const fd = new FormData();
-          fd.append("file", file);
-          const res = await fetch("/api/depot", { method: "POST", body: fd });
-          if (!res.ok) {
-            const j = await res.json().catch(() => ({}));
-            throw new Error(j.error ?? `Erreur ${res.status}`);
-          }
-          const data: DepotResult = await res.json();
-          timers.forEach(clearTimeout);
-          setStep(FEC_PIPELINE.length - 1);
-          setResult({ kind: "fec", data });
-          setStatus("done");
-          const rapprochementFindings = activeSnapshot.findings.filter(
-            (finding) => finding.origine === "rapprochement",
+        if (activeSnapshot.sourceKind !== "persistent") {
+          throw new Error(
+            "L'upload FEC durable nécessite un dossier persistant autorisé. Le dossier de démonstration reste consultable sans infrastructure.",
           );
-          void saveSnapshot(buildSnapshotFromFecDepot({
-            nomFichier: data.nomFichier,
-            fingerprint: data.fingerprint,
-            siren: data.siren,
-            referentielVersion: data.referentielVersion,
-            admissibilite: data.admissibilite,
-            analyse: [...rapprochementFindings, ...data.analyse],
-            entries: data.entries,
-            entriesTruncated: data.entriesTruncated,
-            totalEntryCount: data.mapping.nbEntries,
-          }));
-        } catch (e) {
-          timers.forEach(clearTimeout);
-          throw e;
         }
+        const fileKey = `${activeContext.dossierId}:${file.name}:${file.size}:${file.lastModified}`;
+        const idempotencyKey = uploadKeys.current.get(fileKey) ?? crypto.randomUUID();
+        uploadKeys.current.set(fileKey, idempotencyKey);
+        const startResponse = await fetch(
+          `/api/dossiers/${encodeURIComponent(activeContext.dossierId)}/uploads`,
+          {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              fileName: file.name,
+              documentType: "fec",
+              contentType: file.type || (ext === "csv" ? "text/csv" : "text/plain"),
+              contentLength: file.size,
+              idempotencyKey,
+            }),
+          },
+        );
+        const started = await readApiJson<StartUploadResponse>(startResponse);
+        if (started.upload) {
+          setStep(1);
+          const uploadResponse = await fetch(started.upload.url, {
+            method: started.upload.method,
+            headers: started.upload.headers,
+            body: file,
+          });
+          if (!uploadResponse.ok) throw new Error(`Upload objet refusé (${uploadResponse.status}).`);
+        }
+        // Toujours rejouer la finalisation : si le PUT avait réussi mais SQS
+        // échoué, l'intention idempotente revient `uploaded` sans nouvelle URL.
+        const completeResponse = await fetch(
+          `/api/dossiers/${encodeURIComponent(activeContext.dossierId)}/uploads/${encodeURIComponent(started.jobId)}/complete`,
+          { method: "POST" },
+        );
+        await readApiJson<{ jobId: string; status: string }>(completeResponse);
+        let job: IngestionJobResult | null = null;
+        for (let poll = 0; poll < 120; poll += 1) {
+          const response = await fetch(
+            `/api/dossiers/${encodeURIComponent(activeContext.dossierId)}/ingestion-jobs/${encodeURIComponent(started.jobId)}`,
+            { cache: "no-store" },
+          );
+          job = await readApiJson<IngestionJobResult>(response);
+          const stepByStatus: Record<string, number> = {
+            fingerprinting: 0,
+            parsing: 1,
+            validating: 2,
+            running_controls: 3,
+            building_snapshot: 4,
+            completed: 4,
+          };
+          setStep(stepByStatus[job.status] ?? 0);
+          if (["completed", "failed", "quarantined"].includes(job.status)) break;
+          await new Promise((resolve) => setTimeout(resolve, 1_000));
+        }
+        if (!job || !["completed", "failed", "quarantined"].includes(job.status)) {
+          throw new Error("Le traitement continue en arrière-plan. Rechargez le dossier pour suivre son état.");
+        }
+        setResult({ kind: "fec", data: job });
+        if (job.status !== "completed") {
+          throw new Error(`Ingestion ${job.status} (${job.errorCode ?? "sans code"}).`);
+        }
+        setStatus("done");
         return;
       }
 
@@ -352,71 +381,25 @@ function DepotViewInner() {
 
 /* ───────────────────────────── Résultat FEC ─────────────────────────────── */
 
-function FecResult({ data }: { data: DepotResult }) {
+function FecResult({ data }: { data: IngestionJobResult }) {
   return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
-          <FileText className="h-4 w-4 text-[var(--pb-accent)]" />
-          {data.nomFichier}
-        </div>
-        <div className="tnum mt-3 grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
-          <Info label="SIREN" value={data.siren ?? "—"} />
-          <Info label="Séparateur" value={data.mapping.separateur} />
-          <Info label="Variante montants" value={data.mapping.variante} />
-          <Info
-            label="Écritures"
-            value={data.mapping.nbEntries.toLocaleString("fr-FR")}
-          />
-          <Info label="Colonnes" value={String(data.mapping.nbColonnes)} />
-          <div className="col-span-1 flex items-center gap-1.5 text-[var(--pb-text-faint)]">
-            <Fingerprint className="h-3.5 w-3.5" />
-            <span className="tnum">{data.fingerprint}</span>
-          </div>
+    <div className="space-y-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
+      <div className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
+        <CheckCircle2 className="h-4 w-4 text-[#22c55e]" />
+        Ingestion durable terminée
+      </div>
+      <div className="tnum grid grid-cols-2 gap-3 text-[12px] sm:grid-cols-4">
+        <Info label="État" value={data.status} />
+        <Info label="Tentative" value={String(data.attempt)} />
+        <Info label="Écritures" value={data.lineCount.toLocaleString("fr-FR")} />
+        <Info label="Avertissements" value={data.warningCount.toLocaleString("fr-FR")} />
+        <Info label="Parseur" value={data.parserVersion} />
+        <div className="col-span-2 flex items-center gap-1.5 text-[var(--pb-text-faint)]">
+          <Fingerprint className="h-3.5 w-3.5" />
+          <span className="truncate">Document {data.sourceDocumentId}</span>
         </div>
       </div>
-
-      <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-        <h3 className="text-sm font-semibold text-[var(--pb-text)]">
-          Validation réglementaire d'admissibilité
-        </h3>
-        {data.admissibilite.length === 0 ? (
-          <div className="mt-3 flex items-center gap-2 text-[13px] text-[#22c55e]">
-            <CheckCircle2 className="h-4 w-4" /> Aucune alerte bloquante : le FEC
-            est admissible pour l'analyse.
-          </div>
-        ) : (
-          <ul className="mt-3 space-y-2">
-            {data.admissibilite.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-start gap-3 rounded-lg border border-[#ef4444]/40 bg-[#2a1416] p-3"
-              >
-                <SeverityBadge severity={f.severity} />
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-[var(--pb-text)]">
-                    {f.titre}
-                  </div>
-                  <div className="text-[12px] text-[var(--pb-text-muted)]">
-                    {f.constat}
-                  </div>
-                  <div className="mt-1 text-[11px] text-[var(--pb-accent)]">
-                    {f.source.ref}
-                  </div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-        <p className="text-[13px] text-[var(--pb-text-muted)]">
-          <span className="tnum font-semibold text-[var(--pb-text)]">
-            {data.analyse.length}
-          </span>{" "}
-          constat(s) analytique(s) détecté(s) hors admissibilité.
-        </p>
+      <div className="flex justify-end">
         <Link
           href="/dashboard/cloisons?mode=live"
           className="rounded-lg bg-[var(--pb-accent)] px-4 py-2 text-[13px] font-semibold text-[#06122a] hover:opacity-90"
@@ -424,33 +407,6 @@ function FecResult({ data }: { data: DepotResult }) {
           Voir la revue par cloison →
         </Link>
       </div>
-
-      {/* Document annoté : grand-livre réel avec flags posés sur les lignes */}
-      {data.entries.length > 0 && (
-        <div className="space-y-2">
-          <h3 className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
-            <FileText className="h-4 w-4 text-[var(--pb-accent)]" />
-            Document déposé — anomalies marquées sur les écritures
-          </h3>
-          {data.entriesTruncated && (
-            <p className="text-[11px] text-[var(--pb-text-faint)]">
-              Aperçu limité aux premières écritures du fichier.
-            </p>
-          )}
-          <FinancialDocumentViewer
-            docs={[
-              buildFecDocument({
-                societe: data.siren ?? data.nomFichier,
-                exercice: exerciceFromEntries(data.entries),
-                origine: "upload",
-                entries: data.entries,
-                findings: data.analyse,
-                admissibilite: data.admissibilite,
-              }),
-            ]}
-          />
-        </div>
-      )}
     </div>
   );
 }
