@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CheckCircle2, Info, LayoutGrid, FileText } from "lucide-react";
 import type { CloisonId, FecEntry, Finding } from "@/lib/canonical-model";
 import { CLOISONS, buildFecDocument, siloById } from "@/lib/canonical-model";
 import { SeverityBadge } from "./Badges";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
-import { useActiveDossierSnapshot } from "@/lib/dossier/client";
+import { useActiveDossier } from "@/lib/dossier/client";
 import { cn } from "@/lib/utils";
 
 interface LiveMeta {
@@ -18,6 +18,15 @@ interface LiveMeta {
 }
 
 type Vue = "cloison" | "document";
+
+const LEDGER_PAGE_SIZE = 500;
+const MAX_RENDERED_LEDGER_ROWS = 2_000;
+
+interface LedgerPage {
+  entries: FecEntry[];
+  nextCursor: string | null;
+  total: number;
+}
 
 function groupByCloison(findings: Finding[]): Map<CloisonId, Finding[]> {
   const map = new Map<CloisonId, Finding[]>();
@@ -36,12 +45,14 @@ function LiveInner({
   meta,
   admissibilite,
   storageLabel,
+  ledgerTotal,
 }: {
   findings: Finding[];
   entries: FecEntry[];
   meta: LiveMeta | null;
   admissibilite: Finding[];
   storageLabel: string;
+  ledgerTotal: number;
 }) {
   const byCloison = groupByCloison(findings);
   const cloisonsPresentes = CLOISONS.filter((c) => byCloison.has(c.id));
@@ -212,6 +223,9 @@ function LiveInner({
 
       <div className="text-[11px] text-[var(--pb-text-faint)]">
         Source de vérité : snapshot actif ({storageLabel}).
+        {ledgerTotal > entries.length
+          ? ` Aperçu borné à ${entries.length.toLocaleString("fr-FR")} ligne(s) sur ${ledgerTotal.toLocaleString("fr-FR")}; le grand livre complet reste paginé.`
+          : ""}
       </div>
     </div>
   );
@@ -219,7 +233,7 @@ function LiveInner({
 
 /* ── shell : consomme exclusivement le DossierSnapshot actif ── */
 export function CloisonsViewLive() {
-  const snapshot = useActiveDossierSnapshot();
+  const { context, snapshot } = useActiveDossier();
   const admissibilityIds = useMemo(
     () => new Set(snapshot.admissibilityFindings.map((finding) => finding.id)),
     [snapshot.admissibilityFindings],
@@ -228,13 +242,74 @@ export function CloisonsViewLive() {
     () => snapshot.findings.filter((finding) => !admissibilityIds.has(finding.id)),
     [admissibilityIds, snapshot.findings],
   );
-  const source = snapshot.sourceDocuments.at(0);
+  const source = snapshot.sourceDocuments.find((document) => document.documentType === "fec")
+    ?? snapshot.sourceDocuments.at(0);
   const meta: LiveMeta = {
     societe: snapshot.dossier.societe.raisonSociale,
     exercice: snapshot.dossier.societe.exercice,
     nomFichier: source?.fileName ?? "Dossier actif",
   };
-  const entries: FecEntry[] = snapshot.ledgerEntries ?? [];
+  const [persistentLedger, setPersistentLedger] = useState<{
+    entries: FecEntry[];
+    total: number;
+    loading: boolean;
+    error: boolean;
+  }>({ entries: [], total: 0, loading: false, error: false });
+
+  useEffect(() => {
+    if (snapshot.sourceKind !== "persistent" || !source || source.documentType !== "fec") {
+      setPersistentLedger({ entries: [], total: 0, loading: false, error: false });
+      return;
+    }
+
+    const abortController = new AbortController();
+    setPersistentLedger({ entries: [], total: source.lineCount ?? 0, loading: true, error: false });
+
+    void (async () => {
+      const entries: FecEntry[] = [];
+      let cursor: string | null = null;
+      let total = source.lineCount ?? 0;
+      do {
+        const params = new URLSearchParams({
+          sourceDocumentId: source.id,
+          pageSize: String(LEDGER_PAGE_SIZE),
+        });
+        if (cursor) params.set("cursor", cursor);
+        const response = await fetch(
+          `/api/dossiers/${encodeURIComponent(context.dossierId)}/ledger?${params.toString()}`,
+          { signal: abortController.signal, cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("LEDGER_PAGE_UNAVAILABLE");
+        const page = (await response.json()) as LedgerPage;
+        entries.push(...page.entries);
+        total = page.total;
+        cursor = page.nextCursor;
+      } while (cursor && entries.length < MAX_RENDERED_LEDGER_ROWS);
+
+      if (!abortController.signal.aborted) {
+        setPersistentLedger({
+          entries: entries.slice(0, MAX_RENDERED_LEDGER_ROWS),
+          total,
+          loading: false,
+          error: false,
+        });
+      }
+    })().catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (!abortController.signal.aborted) {
+        setPersistentLedger({ entries: [], total: source.lineCount ?? 0, loading: false, error: true });
+      }
+    });
+
+    return () => abortController.abort();
+  }, [context.dossierId, snapshot.sourceKind, source]);
+
+  const entries: FecEntry[] = snapshot.sourceKind === "persistent"
+    ? persistentLedger.entries
+    : snapshot.ledgerEntries ?? [];
+  const ledgerTotal = snapshot.sourceKind === "persistent"
+    ? persistentLedger.total
+    : entries.length;
 
   if (snapshot.dossier.demoMode) {
     return (
@@ -246,6 +321,14 @@ export function CloisonsViewLive() {
         <Link href="/dashboard/depot" className="text-[12px] text-[var(--pb-accent)] hover:underline">
           ← Retour au dépôt
         </Link>
+      </div>
+    );
+  }
+
+  if (snapshot.sourceKind === "persistent" && persistentLedger.loading) {
+    return (
+      <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
+        Chargement paginé du grand livre…
       </div>
     );
   }
@@ -280,6 +363,7 @@ export function CloisonsViewLive() {
       meta={meta}
       admissibilite={snapshot.admissibilityFindings}
       storageLabel={snapshot.sourceKind}
+      ledgerTotal={ledgerTotal}
     />
   );
 }
