@@ -1,1 +1,0 @@
-ALTER TABLE "source_documents" ADD CONSTRAINT "source_documents_completed_integrity_ck" CHECK ("source_documents"."status" <> 'completed' or ("source_documents"."sha256" is not null and "source_documents"."observed_byte_size" is not null));
