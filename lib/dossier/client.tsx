@@ -19,6 +19,7 @@ import {
   SessionDossierRepository,
   type SessionStoragePort,
 } from "./repositories";
+import { HttpDossierRepository } from "./http-repository";
 import { buildDemoDossierSnapshot } from "./snapshot-builder";
 
 interface ActiveDossierValue {
@@ -66,6 +67,7 @@ export function ActiveDossierProvider({
       ? new ActiveDossierService(
           new DemoDossierRepository(),
           new SessionDossierRepository(browserStorage),
+          new HttpDossierRepository(),
         )
       : null,
     [browserStorage],

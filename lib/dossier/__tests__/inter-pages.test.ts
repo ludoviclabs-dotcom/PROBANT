@@ -69,4 +69,49 @@ describe("inter-page dossier consistency", () => {
       review: "0/0/0",
     });
   });
+
+  it("ne sérialise jamais le grand livre dans sessionStorage", async () => {
+    const storage = new MemoryStorage();
+    const repository = new SessionDossierRepository(storage);
+    const context = { organizationId: "session", dossierId: "fec-no-ledger" };
+    const snapshot = buildSnapshotFromFecDepot({
+      dossierId: context.dossierId,
+      nomFichier: "fixture-fec.txt",
+      fingerprint: "full-sha256-placeholder",
+      siren: "123456789",
+      referentielVersion: "fec-2026.1",
+      admissibilite: [],
+      analyse: [],
+      entries: [
+        {
+          ligne: 1,
+          journalCode: "AC",
+          journalLib: "Achats",
+          ecritureNum: "E1",
+          ecritureDate: "20241231",
+          compteNum: "607000",
+          compteLib: "Achats",
+          compAuxNum: "",
+          compAuxLib: "",
+          pieceRef: "P1",
+          pieceDate: "20241231",
+          ecritureLib: "Test",
+          debit: 100,
+          credit: 0,
+          ecritureLet: "",
+          dateLet: "",
+          validDate: "20241231",
+          montant: 100,
+        },
+      ],
+      entriesTruncated: true,
+      totalEntryCount: 20_000,
+    });
+    await repository.save(context, snapshot);
+    const restored = await repository.get(context);
+    expect(restored?.ledgerEntries).toBeUndefined();
+    for (let index = 0; index < storage.length; index += 1) {
+      expect(storage.getItem(storage.key(index)!)).not.toContain('"ledgerEntries":[');
+    }
+  });
 });

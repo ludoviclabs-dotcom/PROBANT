@@ -7,7 +7,7 @@ import {
   type SessionStoragePort,
 } from "../repositories";
 import { buildSnapshotFromFecDepot } from "../snapshot-builder";
-import type { DossierContext } from "../types";
+import type { DossierContext, PostgresDossierRepository } from "../types";
 
 class MemoryStorage implements SessionStoragePort {
   private readonly values = new Map<string, string>();
@@ -69,6 +69,33 @@ describe("contextual dossier repositories", () => {
         fixture("dossier-a", "fingerprint-a"),
       ),
     ).rejects.toThrow(/meme dossier/u);
+  });
+
+  it("never lets a session snapshot shadow a persistent UUID context", async () => {
+    const sessionRepository = new SessionDossierRepository(new MemoryStorage());
+    const context: DossierContext = {
+      organizationId: "00000000-0000-4000-8000-000000000001",
+      dossierId: "00000000-0000-4000-8000-000000000002",
+    };
+    await sessionRepository.save(context, fixture(context.dossierId, "session-shadow"));
+    const durableSnapshot = {
+      ...fixture(context.dossierId, "durable-fingerprint"),
+      sourceKind: "persistent" as const,
+    };
+    const persistentRepository: PostgresDossierRepository = {
+      kind: "persistent",
+      get: async () => durableSnapshot,
+      save: async () => undefined,
+    };
+    const service = new ActiveDossierService(
+      new DemoDossierRepository(),
+      sessionRepository,
+      persistentRepository,
+    );
+
+    expect((await service.resolve(context)).snapshot.dossier.fecFingerprint).toBe(
+      "durable-fingerprint",
+    );
   });
 });
 
