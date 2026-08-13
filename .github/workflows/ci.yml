@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: lint · typecheck · test · build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Node 24 : version utilisée localement (v24.14.0 au 13/08/2026) et
+      # runtime par défaut de Vercel. `package.json` ne déclare aucun champ
+      # `engines` — voir P2-3 dans CURRENT_STATE_MAP.md.
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Installation reproductible depuis le lockfile — échoue si
+      # package.json et package-lock.json divergent.
+      - name: Install (npm ci)
+        run: npm ci
+
+      - name: Lint (ESLint CLI)
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test (Vitest)
+        run: npm test
+
+      - name: Build (Next.js)
+        run: npm run build
+
+      # NON BLOQUANT — décision consignée dans DECISION_LOG.md § D-003.
+      # Le dépôt part avec 7 vulnérabilités préexistantes (dont xlsx@0.18.5,
+      # sans correctif disponible : `fixAvailable: false`). Rendre cette étape
+      # bloquante empêcherait tout merge, y compris celui des PR chargées de
+      # les éliminer. L'étape reste exécutée pour rendre l'écart visible dans
+      # le log ; PR-03 (xlsx) et PR-08 (hardening) la rendront bloquante.
+      - name: Audit de sécurité (informatif, non bloquant)
+        run: npm audit --audit-level=high || true
