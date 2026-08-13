@@ -92,6 +92,18 @@ via `lib/audit-cycles/`).
 Next.js 15 (App Router) · TypeScript strict · Tailwind CSS 4 · Zod · lucide-react.
 Déployable sur Vercel.
 
+## Refonte : plan et avancement
+
+Une refonte structurée en neuf lots (PR-00 → PR-08) est planifiée. Deux documents,
+deux rôles distincts :
+
+- **[Le plan](docs/refonte/PLAN_REFONTE.md)** — audit de l'existant, architecture cible,
+  roadmap, prompts d'exécution. Stable, ne se réécrit pas.
+- **[L'avancement](docs/refonte/SUIVI_AVANCEMENT.md)** — statut de chaque PR, blocages P0,
+  ADR en attente, checklist des livrables, journal. Mis à jour à chaque PR.
+
+Index complet de la documentation : [`docs/`](docs/README.md).
+
 ## À faire ensuite
 
 - Persistance (PostgreSQL via Drizzle) des dossiers et décisions humaines.
