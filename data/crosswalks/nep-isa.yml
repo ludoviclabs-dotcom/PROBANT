@@ -1,0 +1,158 @@
+# Crosswalk NEP ↔ ISA.
+#
+# UNE NEP N'EST PAS UNE ISA. Les NEP sont des normes françaises homologuées par
+# arrêté ; les ISA sont des normes internationales. Certaines NEP constituent
+# l'adaptation d'une ISA, d'autres s'en écartent ou n'ont pas d'équivalent.
+# Ce crosswalk emploie donc `relation` pour porter la force du lien, et n'écrit
+# `equivalent` que là où une source l'établit.
+#
+# Seul le lien NEP 230 ↔ ISA 230 a été vérifié (14/08/2026) : la NEP 230,
+# homologuée par arrêté du 27/07/2023, est présentée comme l'adaptation de la
+# norme ISA 230. Tous les autres liens reposent sur la concordance de
+# numérotation — indice sérieux, PAS une preuve — et restent review_required.
+
+kind: nep_isa
+label: Crosswalk NEP ↔ ISA
+
+links:
+  - from: nep-230
+    to: isa-230
+    relation: partial
+    status: verified
+    note: >
+      NEP 230 est l'adaptation française d'ISA 230. « partial » et non
+      « equivalent » : une adaptation nationale peut ajouter ou retrancher des
+      exigences, ce que la vérification n'a pas détaillé.
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://doc.cncc.fr/docs/nep-230-documentati
+        retrievedAt: "2026-08-14"
+
+  - from: nep-200
+    to: isa-200
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-240
+    to: isa-240
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-300
+    to: isa-300
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-315
+    to: isa-315
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-320
+    to: isa-320
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-330
+    to: isa-330
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-450
+    to: isa-450
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-500
+    to: isa-500
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-501
+    to: isa-501
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-505
+    to: isa-505
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-520
+    to: isa-520
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-530
+    to: isa-530
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-540
+    to: isa-540
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-550
+    to: isa-550
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-560
+    to: isa-560
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-570
+    to: isa-570
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-580
+    to: isa-580
+    relation: related
+    status: review_required
+    note: Concordance de numérotation, non vérifiée à la source.
+    sources: []
+
+  - from: nep-700
+    to: isa-700
+    relation: related
+    status: review_required
+    note: >
+      NEP 700 elle-même non vérifiée à la source, et isa-700 est absente du
+      registre data/sources/isa.yml. Double vérification requise.
+    sources: []

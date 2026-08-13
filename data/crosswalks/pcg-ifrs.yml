@@ -1,0 +1,57 @@
+# Crosswalk PCG ↔ IFRS.
+#
+# ─── ÉTAT DÉLIBÉRÉMENT MINIMAL ───────────────────────────────────────────────
+#
+# Ce fichier ne contient QUE des liens de RAPPROCHEMENT THÉMATIQUE vérifiés,
+# et aucune différence de traitement.
+#
+# Énoncer qu'un traitement PCG diverge d'un traitement IFRS est une affirmation
+# normative double : elle engage la lecture des deux référentiels. Aucune de ces
+# lectures n'a pu être vérifiée à la source lors de ce PR — les navigateurs
+# ifrs.org et le recueil PCG n'ont pas été exploitables article par article.
+# Écrire ici vingt différences plausibles aurait produit un fichier d'apparence
+# riche et de valeur nulle, voire négative : c'est exactement la règle
+# « aucune règle comptable inventée » qui l'interdit.
+#
+# Les deux liens ci-dessous reposent sur un fait vérifié : l'ANC a adopté en
+# 2026 deux règlements portant sur des sujets que traitent aussi IFRS 15 et
+# IAS 12. C'est un rapprochement de SUJET, explicitement pas une équivalence
+# ni une différence de traitement.
+#
+# NOTE — les 35 fiches de cycles existantes (data/cycles/*.yml) portent déjà un
+# bloc `ifrsVsPcg`. Ce PR ne le modifie pas et ne le contredit pas : son
+# contenu reste sous le régime « revue requise » de la base Audit Normatif 360.
+# La consolidation des deux sources relève de PR-04.
+
+kind: pcg_ifrs
+label: Crosswalk PCG ↔ IFRS (rapprochements thématiques vérifiés)
+
+links:
+  - from: pcg:anc-2026-03-produits-ventes
+    to: ifrs-15
+    relation: related
+    status: review_required
+    note: >
+      Le règlement ANC 2026-03 (adopté le 06/03/2026) porte sur la
+      comptabilisation des produits des ventes, sujet également traité par
+      IFRS 15. Rapprochement de sujet uniquement : aucune convergence ni
+      divergence de traitement n'est affirmée ici.
+    sources:
+      - sourceId: anc-reglementation
+        kind: primary
+        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+        retrievedAt: "2026-08-14"
+
+  - from: pcg:anc-2026-04-impot-benefices
+    to: ias-12
+    relation: related
+    status: review_required
+    note: >
+      Le règlement ANC 2026-04 (adopté le 06/05/2026) porte sur la
+      comptabilisation de l'impôt sur les bénéfices, sujet également traité par
+      IAS 12. Rapprochement de sujet uniquement.
+    sources:
+      - sourceId: anc-reglementation
+        kind: primary
+        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+        retrievedAt: "2026-08-14"

@@ -1,0 +1,365 @@
+# Normes d'exercice professionnel (NEP) — métadonnées structurées.
+#
+# CE FICHIER NE CONTIENT PAS LE TEXTE DES NORMES. Il stocke des métadonnées,
+# un objectif RÉSUMÉ rédigé par PROBANT, des concepts, des références de
+# paragraphes et des correspondances. Reproduire les NEP en masse serait à la
+# fois inutile au produit et contestable — le renvoi au texte officiel reste la
+# seule référence opposable.
+#
+# CADRE VÉRIFIÉ le 14/08/2026 :
+#   - les NEP sont homologuées par arrêté et codifiées au Code de commerce,
+#     partie arrêtés, section « De l'exercice du contrôle légal »
+#     (articles A821-62 et suivants) ;
+#   - NEP 230 « Documentation de l'audit des comptes » : homologuée par arrêté
+#     du 27 juillet 2023 (JO du 4 août 2023), modifiée par arrêté du
+#     28 décembre 2023 (JO du 31 décembre 2023), remplaçant la NEP 230
+#     homologuée par arrêté du 10 avril 2007 ; adaptation d'ISA 230.
+#
+# NON VÉRIFIÉ : les intitulés exacts des autres NEP. Le portail CNCC rend sa
+# liste par script, non lisible à la consultation ; les intitulés repris
+# ci-dessous proviennent du registre interne data/sources/nep.yml, antérieur à
+# ce PR. Ils portent donc status: review_required — ce sont des libellés de
+# travail, pas des intitulés officiels certifiés.
+
+referentialId: nep-metadata
+label: NEP — métadonnées par thème d'audit
+
+entries:
+  - id: nep-200
+    number: "200"
+    title: Principes applicables à l'audit des comptes
+    themes: [planification, documentation]
+    objectiveSummary: >
+      Fixe les principes généraux et les objectifs de l'audit légal, et le
+      cadre dans lequel s'inscrivent les autres normes.
+    concepts: [assurance raisonnable, esprit critique, jugement professionnel]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-200]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+        note: Intitulé repris du registre interne, non recertifié à la source.
+
+  - id: nep-230
+    number: "230"
+    title: Documentation de l'audit des comptes
+    themes: [documentation]
+    objectiveSummary: >
+      Définit les principes de constitution du dossier documentant les travaux
+      d'audit réalisés pour chaque entité contrôlée.
+    concepts: [dossier de travail, piste d'audit, conservation]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-230]
+    status: verified
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://doc.cncc.fr/docs/nep-230-documentati
+        retrievedAt: "2026-08-14"
+        paragraphReference: >
+          Homologuée par arrêté du 27/07/2023 (JO 04/08/2023), modifiée par
+          arrêté du 28/12/2023 (JO 31/12/2023).
+      - sourceId: legifrance-code-commerce
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/id/LEGISCTA000048874153/2024-01-01
+        retrievedAt: "2026-08-14"
+        paragraphReference: Articles A821-62 à A821-98
+    note: >
+      Seule NEP dont l'intitulé et le régime d'homologation ont été vérifiés
+      lors de ce PR. ISA 230 est la norme dont elle constitue l'adaptation.
+
+  - id: nep-240
+    number: "240"
+    title: Prise en considération de la possibilité de fraudes
+    themes: [risques, reponses_aux_risques]
+    objectiveSummary: >
+      Encadre la prise en compte du risque de fraude dans l'audit, dont la
+      présomption de risque sur la reconnaissance du revenu.
+    concepts: [fraude, présomption, triangle de la fraude]
+    paragraphReferences: []
+    relatedCycles: [controle-interne-fraude, chiffre-affaires-ifrs15]
+    isaCrosswalk: [isa-240]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-300
+    number: "300"
+    title: Planification de l'audit
+    themes: [planification]
+    objectiveSummary: Encadre la démarche de planification de la mission.
+    concepts: [stratégie générale, programme de travail]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-300]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-315
+    number: "315"
+    title: >
+      Connaissance de l'entité et évaluation du risque d'anomalies
+      significatives
+    themes: [risques, planification]
+    objectiveSummary: >
+      Encadre la connaissance de l'entité et de son environnement, et
+      l'identification des risques d'anomalies significatives.
+    concepts: [risque inhérent, risque de contrôle, assertions]
+    paragraphReferences: []
+    relatedCycles: [controle-interne-fraude]
+    isaCrosswalk: [isa-315]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-320
+    number: "320"
+    title: Caractère significatif
+    themes: [materialite]
+    objectiveSummary: >
+      Encadre la détermination et l'usage du caractère significatif dans la
+      conduite de l'audit.
+    concepts: [seuil de signification, seuil de planification]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-320]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-330
+    number: "330"
+    title: Procédures d'audit mises en œuvre en réponse à l'évaluation des risques
+    themes: [reponses_aux_risques]
+    objectiveSummary: >
+      Encadre la conception des réponses aux risques identifiés, tests de
+      procédures et contrôles de substance.
+    concepts: [test de procédures, contrôle de substance]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-330]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-450
+    number: "450"
+    title: Évaluation des anomalies relevées au cours de l'audit
+    themes: [anomalies]
+    objectiveSummary: >
+      Encadre le recensement, la communication et l'évaluation des anomalies
+      relevées, corrigées ou non.
+    concepts: [anomalie non corrigée, cumul d'anomalies]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-450]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-500
+    number: "500"
+    title: Éléments probants
+    themes: [elements_probants]
+    objectiveSummary: >
+      Encadre le caractère suffisant et approprié des éléments collectés à
+      l'appui des conclusions.
+    concepts: [suffisance, caractère approprié, fiabilité de la source]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-500]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-501
+    number: "501"
+    title: Éléments probants — considérations supplémentaires
+    themes: [elements_probants]
+    objectiveSummary: >
+      Complète NEP 500 sur des éléments particuliers (stocks, litiges,
+      information sectorielle).
+    concepts: [observation physique, confirmation juridique]
+    paragraphReferences: []
+    relatedCycles: [stocks-en-cours, provisions-risques-charges]
+    isaCrosswalk: [isa-501]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-505
+    number: "505"
+    title: Demandes de confirmation des tiers
+    themes: [elements_probants]
+    objectiveSummary: >
+      Encadre le recours aux confirmations externes et le traitement des
+      absences de réponse.
+    concepts: [circularisation, confirmation directe]
+    paragraphReferences: []
+    relatedCycles: [creances-clients, dettes-fournisseurs, disponibilites-banques]
+    isaCrosswalk: [isa-505]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-520
+    number: "520"
+    title: Procédures analytiques
+    themes: [elements_probants, planification]
+    objectiveSummary: >
+      Encadre l'usage des procédures analytiques, y compris en revue finale de
+      cohérence d'ensemble.
+    concepts: [attente, écart significatif, corroboration]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-520]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-530
+    number: "530"
+    title: Sélection des éléments à contrôler
+    themes: [selection]
+    objectiveSummary: >
+      Encadre les méthodes de sélection, dont le sondage, et l'extrapolation
+      des résultats.
+    concepts: [sondage, population, extrapolation]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-530]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-540
+    number: "540"
+    title: Appréciation des estimations comptables
+    themes: [risques, elements_probants]
+    objectiveSummary: >
+      Encadre l'audit des estimations comptables et des informations fournies
+      les concernant.
+    concepts: [estimation, incertitude, biais de la direction]
+    paragraphReferences: []
+    relatedCycles: [estimations-jugements, impairment-goodwill-actifs]
+    isaCrosswalk: [isa-540]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-550
+    number: "550"
+    title: Parties liées
+    themes: [risques, elements_probants]
+    objectiveSummary: >
+      Encadre l'identification et l'audit des relations et transactions avec
+      les parties liées.
+    concepts: [partie liée, transaction hors marché]
+    paragraphReferences: []
+    relatedCycles: [parties-liees]
+    isaCrosswalk: [isa-550]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-560
+    number: "560"
+    title: Événements postérieurs à la clôture
+    themes: [elements_probants, anomalies]
+    objectiveSummary: >
+      Encadre la prise en compte des événements survenus entre la clôture et
+      la date du rapport.
+    concepts: [événement postérieur, ajustement, information]
+    paragraphReferences: []
+    relatedCycles: [evenements-posterieurs]
+    isaCrosswalk: [isa-560]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-570
+    number: "570"
+    title: Continuité d'exploitation
+    themes: [risques, rapport]
+    objectiveSummary: >
+      Encadre l'appréciation de la continuité d'exploitation et ses
+      conséquences sur le rapport.
+    concepts: [incertitude significative, horizon d'appréciation]
+    paragraphReferences: []
+    relatedCycles: [continuite-exploitation]
+    isaCrosswalk: [isa-570]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-580
+    number: "580"
+    title: Déclarations de la direction
+    themes: [elements_probants]
+    objectiveSummary: >
+      Encadre l'obtention des déclarations écrites de la direction et leur
+      portée probante limitée.
+    concepts: [lettre d'affirmation, portée probante]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-580]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+
+  - id: nep-700
+    number: "700"
+    title: Rapport du commissaire aux comptes sur les comptes annuels et consolidés
+    themes: [rapport]
+    objectiveSummary: >
+      Encadre la forme et le contenu du rapport d'opinion sur les comptes.
+    concepts: [opinion, justification des appréciations, réserve]
+    paragraphReferences: []
+    relatedCycles: []
+    isaCrosswalk: [isa-700]
+    status: review_required
+    sources:
+      - sourceId: nep-cncc-master
+        kind: primary
+        url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    note: >
+      NEP absente du registre interne data/sources/nep.yml et non vérifiée à la
+      source lors de ce PR. Ajoutée pour couvrir le thème « rapport », qui
+      serait sinon vide. À certifier en priorité — cf. REVIEW_REQUIRED.md.

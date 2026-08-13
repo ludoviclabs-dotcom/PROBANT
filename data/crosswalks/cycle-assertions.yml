@@ -1,0 +1,1355 @@
+# Crosswalk cycle d'audit ↔ assertions
+#
+# GÉNÉRÉ à partir de data/cycles/*.yml (assertions des procédures analytiques
+# et des tests de détail) — régénérer via scripts/gen-crosswalks.mjs.
+#
+# status: review_required pour la même raison que cycle-accounts.yml.
+
+kind: cycle_assertions
+label: Crosswalk cycle d'audit ↔ assertions
+links:
+  - from: cycle:achats-charges-externes
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:achats-charges-externes
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:achats-charges-externes
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:achats-charges-externes
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:achats-charges-externes
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:achats-charges-externes
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-creances-cca
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-creances-cca
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-creances-cca
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-creances-cca
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-dettes-pca
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-dettes-pca
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-dettes-pca
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:autres-dettes-pca
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:capitaux-propres
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-personnel
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:charges-produits-financiers
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: assertion:Occurrence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:consolidation-perimetre
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/consolidation-perimetre.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:consolidation-perimetre
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/consolidation-perimetre.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:consolidation-perimetre
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/consolidation-perimetre.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:consolidation-perimetre
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/consolidation-perimetre.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:consolidation-perimetre
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/consolidation-perimetre.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:continuite-exploitation
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/continuite-exploitation.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:continuite-exploitation
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/continuite-exploitation.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:continuite-exploitation
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/continuite-exploitation.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:contrats-location-ifrs16
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:controle-interne-fraude
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/controle-interne-fraude.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:controle-interne-fraude
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/controle-interne-fraude.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:controle-interne-fraude
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/controle-interne-fraude.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:controle-interne-fraude
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/controle-interne-fraude.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:controle-interne-fraude
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/controle-interne-fraude.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:covenants-gearing-icr
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:creances-clients
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:creances-clients
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:creances-clients
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:creances-clients
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:cutoff-separation-exercices
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/cutoff-separation-exercices.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:cutoff-separation-exercices
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/cutoff-separation-exercices.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:cutoff-separation-exercices
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/cutoff-separation-exercices.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:cutoff-separation-exercices
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/cutoff-separation-exercices.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:derives-instruments-financiers
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-financieres-emprunts
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-fournisseurs
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-fournisseurs
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-fournisseurs
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-fournisseurs
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dettes-fournisseurs
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:disponibilites-banques
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:disponibilites-banques
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:disponibilites-banques
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:disponibilites-banques
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dotations-amortissements-depreciations
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dotations-amortissements-depreciations
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dotations-amortissements-depreciations
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:dotations-amortissements-depreciations
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:engagements-hors-bilan
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/engagements-hors-bilan.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:engagements-hors-bilan
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/engagements-hors-bilan.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:engagements-hors-bilan
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/engagements-hors-bilan.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:estimations-jugements
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/estimations-jugements.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:estimations-jugements
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/estimations-jugements.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:evenements-posterieurs
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/evenements-posterieurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:evenements-posterieurs
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/evenements-posterieurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:evenements-posterieurs
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/evenements-posterieurs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:exceptionnel-cutoff
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:exceptionnel-cutoff
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:exceptionnel-cutoff
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:exceptionnel-cutoff
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:exceptionnel-cutoff
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-corporelles
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-financieres
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-financieres
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-financieres
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-financieres
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-financieres
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:immobilisations-incorporelles
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:impairment-goodwill-actifs
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:impairment-goodwill-actifs
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:impairment-goodwill-actifs
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:impairment-goodwill-actifs
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:parties-liees
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/parties-liees.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:parties-liees
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/parties-liees.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:parties-liees
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/parties-liees.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:parties-liees
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/parties-liees.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:provisions-risques-charges
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/provisions-risques-charges.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:provisions-risques-charges
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/provisions-risques-charges.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:resultat-fiscal-is
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:retraites-avantages-personnel
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/retraites-avantages-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:retraites-avantages-personnel
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/retraites-avantages-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:retraites-avantages-personnel
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/retraites-avantages-personnel.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:stocks-en-cours
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:stocks-en-cours
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:stocks-en-cours
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:stocks-en-cours
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:stocks-en-cours
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tableau-flux-tresorerie
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tableau-flux-tresorerie.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tableau-flux-tresorerie
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tableau-flux-tresorerie.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tableau-flux-tresorerie
+    to: assertion:Présentation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tableau-flux-tresorerie.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tableau-flux-tresorerie
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tableau-flux-tresorerie.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Rattachement
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:tva-etat
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:vmp
+    to: assertion:Droits et obligations
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:vmp
+    to: assertion:Exactitude
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:vmp
+    to: assertion:Exhaustivité
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:vmp
+    to: assertion:Existence
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  - from: cycle:vmp
+    to: assertion:Évaluation
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé des assertions portées par les procédures et tests.
+  

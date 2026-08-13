@@ -1,0 +1,631 @@
+# Normes IAS/IFRS prioritaires du produit — MÉTADONNÉES uniquement.
+#
+# Les normes IFRS sont protégées par le droit d'auteur de l'IFRS Foundation.
+# Ce fichier ne stocke aucun extrait de texte : titre, périmètre en une phrase,
+# statut, dates, correspondances. Le plafond de citation est vérifié
+# mécaniquement (contrôle K-007, MAX_QUOTE_CHARS).
+#
+# ─── CE QUI A ÉTÉ VÉRIFIÉ le 14/08/2026 ───────────────────────────────────────
+#
+# Source primaire : EFRAG, « The EU Endorsement Status Report », 17 juillet 2026
+# https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+#
+# Ce rapport énumère les documents IASB/IFRIC NON ENCORE ADOPTÉS par l'UE. À
+# cette date y figurent :
+#   - IFRS 20 Regulatory Assets and Regulatory Liabilities (publiée 27/05/2026),
+#     date d'effet IASB 01/01/2029 ;
+#   - IFRS 19 Subsidiaries without Public Accountability: Disclosures
+#     (publiée 09/05/2024), adoption attendue T3/T4 2026, effet IASB 01/01/2027 ;
+#   - amendements à IAS 28 (option juste valeur, publiés 26/06/2026) ;
+#   - amendements à IAS 21 (conversion en monnaie de présentation
+#     hyperinflationniste, publiés 13/11/2025), adoption attendue T4 2026 ;
+#   - amendements à IFRS 19 (publiés 21/08/2025).
+#
+# ─── MÉTHODE D'ATTRIBUTION DU STATUT D'ADOPTION UE ────────────────────────────
+#
+# `euEndorsement.status: endorsed` n'est PAS affirmé de mémoire. Il repose sur
+# une déduction explicitée dans `basis` : la norme est absente de la liste EFRAG
+# des documents non adoptés au 17/07/2026. Cette déduction est tracée pour
+# pouvoir être contestée. `not_endorsed` est en revanche une lecture DIRECTE de
+# cette liste.
+#
+# ─── CE QUI N'A PAS ÉTÉ VÉRIFIÉ ───────────────────────────────────────────────
+#
+# Les dates d'entrée en vigueur IASB des normes anciennes : le navigateur
+# ifrs.org rend sa liste par script et n'a pas pu être lu. Elles valent `null`
+# plutôt qu'une valeur plausible. De même, `pcgDifferences`,
+# `dataRequirements` et `disclosureRequirements` restent vides : les remplir
+# sans source serait inventer. Cf. docs/knowledge/REVIEW_REQUIRED.md.
+
+referentialId: ifrs-standards
+label: IAS/IFRS — métadonnées des normes prioritaires
+
+entries:
+  - id: ias-2
+    number: IAS 2
+    title: Stocks
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: >
+        Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Évaluation et comptabilisation des stocks.
+    topics: [coût, valeur nette de réalisation, dépréciation]
+    affectedCycles: [stocks-en-cours]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-7
+    number: IAS 7
+    title: Tableau des flux de trésorerie
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Présentation des flux de trésorerie.
+    topics: [exploitation, investissement, financement]
+    affectedCycles: [tableau-flux-tresorerie, disponibilites-banques]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-8
+    number: IAS 8
+    title: >
+      Méthodes comptables, changements d'estimations comptables et erreurs
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Choix et changement de méthodes, corrections d'erreurs.
+    topics: [permanence des méthodes, rétrospectif, erreur]
+    affectedCycles: [estimations-jugements]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-10
+    number: IAS 10
+    title: Événements postérieurs à la date de clôture
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Traitement des événements survenus après la clôture.
+    topics: [événement donnant lieu à ajustement, information]
+    affectedCycles: [evenements-posterieurs]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-12
+    number: IAS 12
+    title: Impôts sur le résultat
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Impôts exigibles et différés.
+    topics: [impôt différé, différence temporelle, report déficitaire]
+    affectedCycles: [resultat-fiscal-is]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+    note: >
+      Interaction à documenter avec le règlement ANC 2026-04 (comptabilisation
+      de l'impôt sur les bénéfices en comptes sociaux) — cf. data/pcg.
+
+  - id: ias-16
+    number: IAS 16
+    title: Immobilisations corporelles
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Comptabilisation et évaluation des immobilisations corporelles.
+    topics: [approche par composants, réévaluation, amortissement]
+    affectedCycles: [immobilisations-corporelles, dotations-amortissements-depreciations]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-19
+    number: IAS 19
+    title: Avantages du personnel
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Avantages court terme, postérieurs à l'emploi et autres.
+    topics: [régime à prestations définies, écarts actuariels]
+    affectedCycles: [retraites-avantages-personnel, charges-personnel]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-21
+    number: IAS 21
+    title: Effets des variations des cours des monnaies étrangères
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: >
+        La norme est absente de la liste EFRAG des documents non adoptés au
+        17/07/2026. ATTENTION : un AMENDEMENT à IAS 21 (conversion en monnaie
+        de présentation hyperinflationniste, publié le 13/11/2025) y figure en
+        revanche comme non adopté, adoption attendue T4 2026, effet IASB
+        01/01/2027. Le statut « adopté » porte sur la norme, pas sur cet
+        amendement.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+          retrievedAt: "2026-08-14"
+    scope: Conversion des opérations et états financiers en devises.
+    topics: [monnaie fonctionnelle, écart de conversion, hyperinflation]
+    affectedCycles: [charges-produits-financiers]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-24
+    number: IAS 24
+    title: Information relative aux parties liées
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Identification et information sur les parties liées.
+    topics: [partie liée, principal dirigeant, transaction]
+    affectedCycles: [parties-liees]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-36
+    number: IAS 36
+    title: Dépréciation d'actifs
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Test de dépréciation et valeur recouvrable.
+    topics: [UGT, valeur d'utilité, goodwill]
+    affectedCycles: [impairment-goodwill-actifs]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-37
+    number: IAS 37
+    title: Provisions, passifs éventuels et actifs éventuels
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Comptabilisation et évaluation des provisions.
+    topics: [obligation actuelle, sortie de ressources, passif éventuel]
+    affectedCycles: [provisions-risques-charges, engagements-hors-bilan]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ias-38
+    number: IAS 38
+    title: Immobilisations incorporelles
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Comptabilisation des immobilisations incorporelles.
+    topics: [frais de développement, durée d'utilité indéfinie]
+    affectedCycles: [immobilisations-incorporelles]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-3
+    number: IFRS 3
+    title: Regroupements d'entreprises
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Méthode de l'acquisition et goodwill.
+    topics: [contrepartie transférée, goodwill, écart d'acquisition]
+    affectedCycles: [consolidation-perimetre, impairment-goodwill-actifs]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-7
+    number: IFRS 7
+    title: Instruments financiers — informations à fournir
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Informations à fournir sur les instruments financiers.
+    topics: [risque de crédit, risque de liquidité, risque de marché]
+    affectedCycles: [derives-instruments-financiers, covenants-gearing-icr]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-9
+    number: IFRS 9
+    title: Instruments financiers
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Classement, évaluation, dépréciation et couverture.
+    topics: [pertes de crédit attendues, comptabilité de couverture]
+    affectedCycles: [derives-instruments-financiers, creances-clients, vmp]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-10
+    number: IFRS 10
+    title: États financiers consolidés
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Notion de contrôle et périmètre de consolidation.
+    topics: [contrôle, entité structurée, participation ne donnant pas le contrôle]
+    affectedCycles: [consolidation-perimetre]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-15
+    number: IFRS 15
+    title: Produits des activités ordinaires tirés de contrats conclus avec des clients
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Reconnaissance du revenu selon un modèle en cinq étapes.
+    topics: [obligation de prestation, prix de transaction, transfert du contrôle]
+    affectedCycles: [chiffre-affaires-ifrs15, cutoff-separation-exercices]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+    note: >
+      Rapprochement à documenter avec le règlement ANC 2026-03 (comptabilisation
+      des produits des ventes en comptes sociaux) — cf. data/pcg.
+
+  - id: ifrs-16
+    number: IFRS 16
+    title: Contrats de location
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Comptabilisation des contrats de location chez le preneur et le bailleur.
+    topics: [droit d'utilisation, dette locative, durée du contrat]
+    affectedCycles: [contrats-location-ifrs16]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+
+  - id: ifrs-17
+    number: IFRS 17
+    title: Contrats d'assurance
+    iasbStatus: issued
+    iasbEffectiveDate: null
+    euEndorsement:
+      status: endorsed
+      basis: Absente de la liste EFRAG des documents non adoptés au 17/07/2026.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/en/financial-reporting/endorsement-status
+          retrievedAt: "2026-08-14"
+    scope: Comptabilisation des contrats d'assurance.
+    topics: [marge sur services contractuels, groupes de contrats]
+    affectedCycles: []
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: review_required
+    sources:
+      - sourceId: ifrs-standards-master
+        kind: primary
+        url: https://www.ifrs.org/issued-standards/list-of-standards/
+    note: >
+      Aucun des 35 cycles existants ne traite l'assurance : périmètre sectoriel
+      à arbitrer (candidat OUT_OF_SCOPE) — cf. COVERAGE_REPORT.md.
+
+  - id: ifrs-18
+    number: IFRS 18
+    title: Présentation et informations à fournir dans les états financiers
+    iasbStatus: issued
+    iasbEffectiveDate: "2027-01-01"
+    euEndorsement:
+      status: endorsed
+      basis: >
+        Absente de la liste EFRAG des documents non adoptés au 17/07/2026, ce
+        qui atteste l'achèvement du processus d'adoption. Le règlement de la
+        Commission a été publié au JOUE le 16/02/2026 selon deux sources
+        secondaires concordantes ; la référence exacte du règlement
+        (numéro/CELEX) reste à confirmer.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+          retrievedAt: "2026-08-14"
+        - sourceId: xbrl-org-ifrs18
+          kind: secondary
+          url: https://www.xbrl.org/news/eu-officially-adopts-ifrs-18/
+          retrievedAt: "2026-08-14"
+          note: Corroboration de la date de publication au JOUE — non opposable.
+    scope: >
+      Structure de l'état de résultat, sous-totaux obligatoires et informations
+      à fournir. Remplace IAS 1.
+    topics: [catégories exploitation/investissement/financement, sous-totaux, MPM]
+    affectedCycles: []
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: verified
+    sources:
+      - sourceId: efrag
+        kind: primary
+        url: https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+        retrievedAt: "2026-08-14"
+    note: >
+      Date d'effet IASB 01/01/2027 : la norme n'est PAS encore applicable à la
+      date d'écriture de ce référentiel (14/08/2026). Le contrôle K-003 échoue
+      si une norme future est présentée comme effective.
+
+  - id: ifrs-19
+    number: IFRS 19
+    title: Filiales sans obligation d'information du public — informations à fournir
+    iasbStatus: issued
+    iasbEffectiveDate: "2027-01-01"
+    euEndorsement:
+      status: not_endorsed
+      basis: >
+        Lecture DIRECTE de la liste EFRAG des documents non adoptés au
+        17/07/2026 : IFRS 19 (publiée le 09/05/2024) y figure, adoption
+        attendue T3/T4 2026. Un amendement à IFRS 19 (publié le 21/08/2025) y
+        figure également.
+      asOf: "2026-07-17"
+      sources:
+        - sourceId: efrag
+          kind: primary
+          url: https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+          retrievedAt: "2026-08-14"
+    scope: >
+      Allègement des informations à fournir par les filiales éligibles.
+    topics: [exemption d'informations, filiale éligible]
+    affectedCycles: [consolidation-perimetre]
+    pcgDifferences: []
+    dataRequirements: []
+    disclosureRequirements: []
+    status: verified
+    sources:
+      - sourceId: efrag
+        kind: primary
+        url: https://www.efrag.org/sites/default/files/media/document/2026-07/EFRAG%20Endorsement%20Status%20Report%2017%20July%202026.pdf
+        retrievedAt: "2026-08-14"
+    note: >
+      NE JAMAIS présenter IFRS 19 comme adoptée dans l'UE à cette date. C'est
+      précisément le cas que le contrôle K-004 protège.

@@ -1,0 +1,390 @@
+# Contrôles atomiques du FEC — douze familles.
+#
+# Un contrôle = UNE attente vérifiable sur un périmètre défini. Aucun contrôle
+# n'agrège plusieurs vérifications : c'est ce qui permet de rattacher un constat
+# à un fondement unique.
+#
+# DISCIPLINE DE FONDEMENT — la distinction est le cœur de ce fichier :
+#
+#   basis: hard_law  le contrôle vérifie une exigence effectivement énoncée par
+#                    un texte opposable, vérifiée le 14/08/2026 sur Légifrance.
+#                    Il DOIT porter au moins une source primaire (contrôle
+#                    K-001, qui échoue sinon).
+#
+#   basis: internal  heuristique PROBANT d'aide à la revue. Utile, mais NON
+#                    opposable : elle ne doit jamais être présentée à
+#                    l'utilisateur comme une obligation légale.
+#
+# Plusieurs attentes que la pratique tient pour évidentes — l'équilibre
+# débit/crédit, le rattachement à un compte du plan de comptes — ne sont PAS
+# énoncées par l'article A47 A-1, qui décrit un format de fichier et non les
+# règles de tenue de comptabilité. Elles sont donc `internal` avec un
+# `review_required` demandant le rattachement au bon article du PCG. Les
+# classer `hard_law` sans source serait exactement l'invention que ce PR
+# s'interdit.
+
+referentialId: fec-controls
+label: FEC — contrôles atomiques par famille
+
+controls:
+  # ── presence ──────────────────────────────────────────────────────────────
+  - id: FEC-PRESENCE-001
+    family: presence
+    label: Les 18 zones sont présentes dans la ligne d'en-tête
+    expectation: >
+      La première ligne d'enregistrement porte les noms des 18 zones définies
+      par l'article A47 A-1, aucune manquante.
+    appliesTo: []
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII, 1°
+        retrievedAt: "2026-08-14"
+
+  - id: FEC-PRESENCE-002
+    family: presence
+    label: Aucune zone hors référentiel dans l'en-tête
+    expectation: >
+      L'en-tête ne comporte pas de colonne étrangère aux 18 zones (hors
+      variante Montant/Sens).
+    appliesTo: []
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      L'article énumère les zones attendues mais la consultation n'a pas établi
+      qu'il interdise une colonne supplémentaire. Heuristique de vigilance
+      tant que ce point n'est pas tranché en revue métier.
+
+  # ── ordre ─────────────────────────────────────────────────────────────────
+  - id: FEC-ORDRE-001
+    family: ordre
+    label: Les zones respectent l'ordre prescrit
+    expectation: >
+      Les zones apparaissent dans l'ordre 1 à 18 de l'article A47 A-1.
+    appliesTo: []
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII, 1°
+        retrievedAt: "2026-08-14"
+
+  - id: FEC-ORDRE-002
+    family: ordre
+    label: Les écritures sont classées par ordre chronologique de validation
+    expectation: >
+      Les lignes se succèdent selon un ValidDate croissant.
+    appliesTo: [ValidDate]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Exigence attribuée à l'article par plusieurs sources secondaires, mais
+      NON retrouvée dans le texte lors de la consultation du 14/08/2026.
+      Reclasser en hard_law seulement après vérification du paragraphe exact.
+
+  # ── type ──────────────────────────────────────────────────────────────────
+  - id: FEC-TYPE-001
+    family: type
+    label: Les zones de date portent une valeur de type date
+    expectation: >
+      EcritureDate, PieceDate, DateLet et ValidDate contiennent huit chiffres
+      ou sont vides.
+    appliesTo: [EcritureDate, PieceDate, DateLet, ValidDate]
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII — format des dates
+        retrievedAt: "2026-08-14"
+
+  - id: FEC-TYPE-002
+    family: type
+    label: Les zones de montant portent une valeur numérique
+    expectation: >
+      Debit, Credit et Montantdevise sont numériques ou vides.
+    appliesTo: [Debit, Credit, Montantdevise]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Le caractère numérique découle de la nature de la zone ; le texte ne
+      fixe pas de format numérique explicite (séparateur décimal, signe).
+
+  # ── date ──────────────────────────────────────────────────────────────────
+  - id: FEC-DATE-001
+    family: date
+    label: Format de date AAAAMMJJ sans séparateur
+    expectation: >
+      Toute date renseignée respecte strictement AAAAMMJJ, sans séparateur.
+    appliesTo: [EcritureDate, PieceDate, DateLet, ValidDate]
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII — « exprimées en format AAAAMMJJ sans séparateur »
+        retrievedAt: "2026-08-14"
+
+  - id: FEC-DATE-002
+    family: date
+    label: Date de pièce non postérieure à la date de comptabilisation
+    expectation: >
+      PieceDate, si renseignée, n'est pas postérieure à EcritureDate.
+    appliesTo: [PieceDate, EcritureDate]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Cohérence de bon sens, non énoncée par le texte. Des cas légitimes
+      existent (régularisations) : à qualifier en revue métier avant de lui
+      donner une force quelconque.
+
+  # ── montant ───────────────────────────────────────────────────────────────
+  - id: FEC-MONTANT-001
+    family: montant
+    label: Une ligne ne porte pas simultanément un débit et un crédit non nuls
+    expectation: >
+      Pour la variante Debit/Credit, au plus une des deux zones est non nulle.
+    appliesTo: [Debit, Credit]
+    basis: internal
+    variant: debit_credit
+    status: review_required
+    sources: []
+    note: Convention de tenue très répandue, non énoncée par l'article.
+
+  - id: FEC-MONTANT-002
+    family: montant
+    label: Le sens est renseigné et interprétable en variante Montant/Sens
+    expectation: >
+      En variante Montant/Sens, la zone Sens porte une valeur de sens
+      exploitable pour chaque ligne dotée d'un montant.
+    appliesTo: [Montant, Sens]
+    basis: hard_law
+    variant: montant_sens
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII, 1° — substitution des zones 12 et 13
+        retrievedAt: "2026-08-14"
+        note: >
+          Le texte autorise la substitution ; il ne normalise pas les valeurs
+          admises pour Sens (D/C, +/-) — voir REVIEW_REQUIRED.md.
+
+  # ── sequence ──────────────────────────────────────────────────────────────
+  - id: FEC-SEQUENCE-001
+    family: sequence
+    label: Le numéro d'écriture suit une séquence continue
+    expectation: >
+      EcritureNum s'inscrit dans une séquence continue, sans rupture
+      inexpliquée.
+    appliesTo: [EcritureNum]
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII, 1°, zone 3 — « numéro sur une séquence continue »
+        retrievedAt: "2026-08-14"
+
+  - id: FEC-SEQUENCE-002
+    family: sequence
+    label: Un numéro d'écriture ne mélange pas plusieurs journaux
+    expectation: >
+      Un même EcritureNum ne regroupe pas des lignes de JournalCode différents.
+    appliesTo: [EcritureNum, JournalCode]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+
+  # ── equilibre ─────────────────────────────────────────────────────────────
+  - id: FEC-EQUILIBRE-001
+    family: equilibre
+    label: Chaque écriture est équilibrée
+    expectation: >
+      Pour un EcritureNum donné, la somme des débits égale la somme des crédits.
+    appliesTo: [EcritureNum, Debit, Credit]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Principe de la partie double. Il ne figure PAS dans l'article A47 A-1,
+      qui décrit un format de fichier. Le rattachement à l'article du PCG qui
+      l'énonce est demandé en revue métier — tant qu'il n'est pas fait, ce
+      contrôle reste une heuristique interne et non une obligation opposable.
+
+  - id: FEC-EQUILIBRE-002
+    family: equilibre
+    label: Le fichier est globalement équilibré
+    expectation: Somme de tous les débits égale somme de tous les crédits.
+    appliesTo: [Debit, Credit]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: Même réserve de fondement que FEC-EQUILIBRE-001.
+
+  # ── compte ────────────────────────────────────────────────────────────────
+  - id: FEC-COMPTE-001
+    family: compte
+    label: Le numéro de compte se rattache à une classe du plan de comptes
+    expectation: >
+      CompteNum commence par un chiffre de 1 à 8 correspondant à une classe du
+      plan de comptes général.
+    appliesTo: [CompteNum]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Le rattachement au PCG est une exigence comptable, pas une exigence de
+      format FEC. Source PCG à rattacher en revue métier.
+
+  - id: FEC-COMPTE-002
+    family: compte
+    label: Le libellé de compte est cohérent d'un enregistrement à l'autre
+    expectation: >
+      Un même CompteNum porte le même CompteLib sur l'ensemble du fichier.
+    appliesTo: [CompteNum, CompteLib]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+
+  # ── piece ─────────────────────────────────────────────────────────────────
+  - id: FEC-PIECE-001
+    family: piece
+    label: Toute écriture porte une référence de pièce justificative
+    expectation: PieceRef est renseignée pour chaque ligne.
+    appliesTo: [PieceRef]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      La zone est obligatoire dans l'en-tête ; l'obligation de la renseigner
+      ligne à ligne n'a pas été vérifiée dans le texte.
+
+  - id: FEC-PIECE-002
+    family: piece
+    label: Une référence de pièce ne couvre pas des périodes incohérentes
+    expectation: >
+      Une même PieceRef ne se retrouve pas sur des exercices différents.
+    appliesTo: [PieceRef, EcritureDate]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+
+  # ── periode ───────────────────────────────────────────────────────────────
+  - id: FEC-PERIODE-001
+    family: periode
+    label: Les écritures relèvent de l'exercice déclaré par le nom du fichier
+    expectation: >
+      EcritureDate est comprise dans l'exercice dont la date de clôture est
+      portée par le nom du fichier (SirenFECAAAAMMJJ).
+    appliesTo: [EcritureDate]
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII — nommage SirenFECAAAAMMJJ
+        retrievedAt: "2026-08-14"
+        note: >
+          Le texte fixe la convention de nommage et la signification de
+          AAAAMMJJ (date de clôture). Le contrôle en déduit le rattachement des
+          écritures à l'exercice.
+
+  - id: FEC-PERIODE-002
+    family: periode
+    label: Le nom du fichier respecte la convention SirenFECAAAAMMJJ
+    expectation: >
+      Le fichier est nommé SirenFECAAAAMMJJ, Siren étant celui de l'article
+      L.47 A et AAAAMMJJ la date de clôture de l'exercice.
+    appliesTo: []
+    basis: hard_law
+    variant: both
+    status: verified
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        paragraphReference: VII — nommage du fichier
+        retrievedAt: "2026-08-14"
+
+  # ── devise ────────────────────────────────────────────────────────────────
+  - id: FEC-DEVISE-001
+    family: devise
+    label: Un montant en devise s'accompagne de son identifiant de devise
+    expectation: >
+      Si Montantdevise est renseigné, Idevise l'est également.
+    appliesTo: [Montantdevise, Idevise]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Cohérence entre deux zones que le texte définit sans lier explicitement.
+
+  - id: FEC-DEVISE-002
+    family: devise
+    label: L'identifiant de devise suit une codification reconnue
+    expectation: Idevise, si renseigné, correspond à un code devise ISO 4217.
+    appliesTo: [Idevise]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Le renvoi à l'ISO 4217 n'a pas été vérifié dans le texte : à confirmer
+      avant de refuser un code hors norme.
+
+  # ── lettrage ──────────────────────────────────────────────────────────────
+  - id: FEC-LETTRAGE-001
+    family: lettrage
+    label: Un lettrage s'accompagne de sa date
+    expectation: Si EcritureLet est renseigné, DateLet l'est également.
+    appliesTo: [EcritureLet, DateLet]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+
+  - id: FEC-LETTRAGE-002
+    family: lettrage
+    label: Un code de lettrage équilibre les lignes qu'il rapproche
+    expectation: >
+      Les lignes partageant un même EcritureLet présentent un solde nul.
+    appliesTo: [EcritureLet, Debit, Credit]
+    basis: internal
+    variant: both
+    status: review_required
+    sources: []
+    note: >
+      Propriété attendue d'un lettrage correct ; non énoncée par le texte.

@@ -1,0 +1,281 @@
+# Référentiel des 18 zones du fichier des écritures comptables (FEC).
+#
+# Source primaire : article A47 A-1 du Livre des procédures fiscales,
+# consulté sur Légifrance le 14/08/2026.
+# https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+#
+# Ce que la vérification a établi :
+#   - les 18 zones, leur ORDRE et leur NOM exact (ligne d'en-tête) ;
+#   - le format de date AAAAMMJJ, sans séparateur ;
+#   - la substitution des zones 12 et 13 par « Montant » et « Sens » lorsque
+#     le débit et le crédit ne figurent pas dans le système informatisé ;
+#   - la convention de nommage du fichier : SirenFECAAAAMMJJ.
+#
+# Ce que la vérification n'a PAS établi : la tolérance au vide zone par zone.
+# Elle est donc portée séparément par `allowedBlankStatus` et récapitulée dans
+# docs/knowledge/REVIEW_REQUIRED.md.
+#
+# Ce référentiel décrit le FORMAT LÉGAL. Il ne duplique pas
+# lib/canonical-model/fec.ts (modèle d'exécution) : la cohérence entre les deux
+# est vérifiée par un test (lib/knowledge/__tests__/fec.test.ts).
+
+referentialId: fec-fields-a47a1
+label: FEC — 18 zones de l'article A47 A-1 du LPF
+
+sources:
+  - sourceId: lpf-a47-a1
+    kind: primary
+    url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+    paragraphReference: VII, 1°
+    retrievedAt: "2026-08-14"
+    note: >
+      Énumération et ordre des 18 zones, format de date AAAAMMJJ, variante
+      Montant/Sens des zones 12-13, nommage SirenFECAAAAMMJJ.
+
+fields:
+  - position: 1
+    fieldName: JournalCode
+    businessLabel: Code du journal de l'écriture comptable
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 1
+    variant: both
+    status: verified
+
+  - position: 2
+    fieldName: JournalLib
+    businessLabel: Libellé du journal de l'écriture comptable
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 2
+    variant: both
+    status: verified
+
+  - position: 3
+    fieldName: EcritureNum
+    businessLabel: Numéro sur une séquence continue de l'écriture comptable
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 3
+    variant: both
+    status: verified
+    note: >
+      La continuité de la séquence est une propriété du champ énoncée par son
+      intitulé ; le contrôle FEC-SEQUENCE-001 l'exploite.
+
+  - position: 4
+    fieldName: EcritureDate
+    businessLabel: Date de comptabilisation de l'écriture comptable
+    dataType: date
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: AAAAMMJJ
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 4
+    variant: both
+    status: verified
+
+  - position: 5
+    fieldName: CompteNum
+    businessLabel: Numéro de compte
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 5
+    variant: both
+    status: verified
+
+  - position: 6
+    fieldName: CompteLib
+    businessLabel: Libellé de compte
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 6
+    variant: both
+    status: verified
+
+  - position: 7
+    fieldName: CompAuxNum
+    businessLabel: Numéro de compte auxiliaire
+    dataType: string
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 7
+    variant: both
+    status: verified
+    note: >
+      Zone obligatoire dans l'en-tête. La possibilité de la laisser à blanc en
+      l'absence de comptabilité auxiliaire n'a pas été vérifiée dans le texte
+      lors de cette consultation — à confirmer en revue métier.
+
+  - position: 8
+    fieldName: CompAuxLib
+    businessLabel: Libellé de compte auxiliaire
+    dataType: string
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 8
+    variant: both
+    status: verified
+    note: Même réserve que CompAuxNum sur la tolérance au vide.
+
+  - position: 9
+    fieldName: PieceRef
+    businessLabel: Référence de la pièce justificative
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 9
+    variant: both
+    status: verified
+
+  - position: 10
+    fieldName: PieceDate
+    businessLabel: Date de la pièce justificative
+    dataType: date
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: AAAAMMJJ
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 10
+    variant: both
+    status: verified
+
+  - position: 11
+    fieldName: EcritureLib
+    businessLabel: Libellé de l'écriture comptable
+    dataType: string
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 11
+    variant: both
+    status: verified
+
+  - position: 12
+    fieldName: Debit
+    businessLabel: Montant au débit
+    dataType: amount
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: numérique
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 12
+    variant: debit_credit
+    status: verified
+    note: >
+      Remplaçable par « Montant » lorsque le débit et le crédit ne figurent pas
+      dans le système informatisé de l'entreprise (variante montant_sens).
+
+  - position: 13
+    fieldName: Credit
+    businessLabel: Montant au crédit
+    dataType: amount
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: numérique
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 13
+    variant: debit_credit
+    status: verified
+    note: Remplaçable par « Sens » (variante montant_sens).
+
+  - position: 14
+    fieldName: EcritureLet
+    businessLabel: Lettrage de l'écriture comptable
+    dataType: string
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 14
+    variant: both
+    status: verified
+    note: Zone sans objet lorsque l'entité ne pratique pas le lettrage.
+
+  - position: 15
+    fieldName: DateLet
+    businessLabel: Date de lettrage
+    dataType: date
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: AAAAMMJJ
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 15
+    variant: both
+    status: verified
+
+  - position: 16
+    fieldName: ValidDate
+    businessLabel: Date de validation de l'écriture comptable
+    dataType: date
+    required: true
+    allowedBlank: false
+    allowedBlankStatus: review_required
+    format: AAAAMMJJ
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 16
+    variant: both
+    status: verified
+
+  - position: 17
+    fieldName: Montantdevise
+    businessLabel: Montant en devise
+    dataType: amount
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: numérique
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 17
+    variant: both
+    status: verified
+
+  - position: 18
+    fieldName: Idevise
+    businessLabel: Identifiant de la devise
+    dataType: currency_code
+    required: true
+    allowedBlank: true
+    allowedBlankStatus: review_required
+    format: libre
+    sourceId: lpf-a47-a1
+    paragraphReference: VII, 1°, zone 18
+    variant: both
+    status: verified
