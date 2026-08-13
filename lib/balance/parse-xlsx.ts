@@ -1,5 +1,10 @@
 import type { BalanceLigne, ParsedBalance } from "./types";
 import { parseMontant } from "./types";
+import {
+  DEMO_XLSX_LIMITS,
+  readXlsxRowsInWorker,
+} from "@/lib/tabular/read-xlsx-browser";
+import { readCsvRows } from "@/lib/tabular/read-csv-browser";
 
 /**
  * Parse une balance générale (XLSX / XLS / CSV) côté NAVIGATEUR via SheetJS.
@@ -18,15 +23,9 @@ const RE = {
 };
 
 export async function parseBalanceFile(file: File): Promise<ParsedBalance> {
-  const XLSX = await import("xlsx");
-  const buf = await file.arrayBuffer();
-  const wb = XLSX.read(buf, { type: "array" });
-  const sheet = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
-    header: 1,
-    blankrows: false,
-    defval: "",
-  });
+  const rows = file.name.toLowerCase().endsWith(".csv")
+    ? await readCsvRows(file, DEMO_XLSX_LIMITS)
+    : await readXlsxRowsInWorker(file);
   const warnings: string[] = [];
 
   // Recherche de la ligne d'en-têtes dans les 15 premières lignes.

@@ -15,6 +15,11 @@ export const DEMO_DOSSIER_CONTEXT: DossierContext = {
 const SESSION_PREFIX = "probant:dossier:v1";
 const SELECTED_CONTEXT_KEY = `${SESSION_PREFIX}:selected-context`;
 const LEGACY_ACTIVE_KEY = "probant:active-dossier-snapshot";
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+
+function isPersistentContext(context: DossierContext): boolean {
+  return UUID_PATTERN.test(context.organizationId) && UUID_PATTERN.test(context.dossierId);
+}
 
 export interface SessionStoragePort {
   getItem(key: string): string | null;
@@ -67,7 +72,11 @@ export class SessionDossierRepository implements DossierRepository {
     if (!snapshot || snapshot.dossier.id !== context.dossierId) return null;
     const legacyKind = (snapshot as DossierSnapshot & { storageKind?: DossierSnapshot["sourceKind"] })
       .storageKind;
-    return { ...snapshot, sourceKind: snapshot.sourceKind ?? legacyKind ?? "session" };
+    return {
+      ...snapshot,
+      sourceKind: snapshot.sourceKind ?? legacyKind ?? "session",
+      ledgerEntries: undefined,
+    };
   }
 
   async save(context: DossierContext, snapshot: DossierSnapshot): Promise<void> {
@@ -77,6 +86,7 @@ export class SessionDossierRepository implements DossierRepository {
     const next: DossierSnapshot = {
       ...snapshot,
       sourceKind: snapshot.sourceKind === "persistent" ? "persistent" : "session",
+      ledgerEntries: undefined,
     };
     this.storage.setItem(snapshotKey(context), JSON.stringify(next));
     const contexts = (await this.listContexts(context.organizationId)).filter(
@@ -131,11 +141,15 @@ export class ActiveDossierService {
   }> {
     const context = routeContext ?? (await this.sessionRepository.getSelectedContext());
     if (context) {
-      const snapshot =
-        (await this.sessionRepository.get(context)) ??
-        (await this.persistentRepository?.get(context)) ??
-        (await this.demoRepository.get(context));
+      const snapshot = context.organizationId === "demo"
+        ? await this.demoRepository.get(context)
+        : isPersistentContext(context)
+          ? await this.persistentRepository?.get(context)
+          : await this.sessionRepository.get(context);
       if (snapshot) return { context, snapshot };
+      if (isPersistentContext(context)) {
+        throw new Error(`Dossier persistant indisponible: ${context.dossierId}`);
+      }
     }
 
     const demo = await this.demoRepository.get(DEMO_DOSSIER_CONTEXT);
@@ -144,6 +158,10 @@ export class ActiveDossierService {
   }
 
   async save(context: DossierContext, snapshot: DossierSnapshot): Promise<void> {
+    const persistentContext = isPersistentContext(context);
+    if (persistentContext !== (snapshot.sourceKind === "persistent")) {
+      throw new Error("Le contexte et la source du snapshot sont incompatibles.");
+    }
     const repository = snapshot.sourceKind === "persistent"
       ? this.persistentRepository
       : this.sessionRepository;
