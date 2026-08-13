@@ -1,0 +1,181 @@
+# Crosswalk règle du moteur ↔ contrôle atomique FEC.
+#
+# Rattache les 15 règles de lib/rules-engine aux contrôles de
+# data/fec/controls.yml, et rend visible l'écart entre la famille déclarée par
+# une règle et le fondement établi pour le contrôle correspondant.
+#
+# ─── CONSTAT MAJEUR DE CE CROSSWALK ──────────────────────────────────────────
+#
+# Trois règles sont déclarées `family: "hardLaw"` (droit dur opposable) dans le
+# moteur alors que la vérification de l'article A47 A-1 du 14/08/2026 n'a PAS
+# établi qu'il les fonde :
+#
+#   R-HL-006  Conformité des numéros de compte (PCG)
+#   R-HL-007  Ordre chronologique de validation
+#   R-HL-008  Équilibre débit / crédit par écriture
+#
+# Ces exigences sont probablement fondées — mais ailleurs : dans le PCG et
+# dans les règles de tenue de comptabilité, pas dans l'article qui décrit le
+# format du fichier. Tant que le rattachement n'est pas fait, présenter ces
+# constats comme opposables est un risque.
+#
+# CE PR NE MODIFIE PAS LE MOTEUR : changer la famille d'une règle changerait
+# les résultats métier, ce que le lot s'interdit. L'écart est donc DOCUMENTÉ
+# ici et repris dans docs/knowledge/REVIEW_REQUIRED.md, à l'attention de la
+# revue métier puis d'un PR ultérieur.
+
+kind: finding_control
+label: Crosswalk règle du moteur ↔ contrôle atomique FEC
+
+links:
+  - from: rule:R-HL-001
+    to: FEC-PERIODE-002
+    relation: equivalent
+    status: verified
+    note: Nommage SirenFECAAAAMMJJ — fondement établi dans A47 A-1.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: rule:R-HL-002
+    to: FEC-PRESENCE-001
+    relation: equivalent
+    status: verified
+    note: Présence des 18 rubriques — fondement établi.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: rule:R-HL-003
+    to: FEC-ORDRE-001
+    relation: equivalent
+    status: verified
+    note: Ordre des rubriques — fondement établi.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: rule:R-HL-004
+    to: FEC-DATE-001
+    relation: equivalent
+    status: verified
+    note: Format AAAAMMJJ — fondement établi.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: rule:R-HL-005
+    to: FEC-MONTANT-002
+    relation: partial
+    status: verified
+    note: >
+      La variante Montant/Sens est fondée par le texte ; le choix du séparateur
+      de colonnes, également couvert par cette règle, ne l'est pas dans la même
+      mesure.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: rule:R-HL-006
+    to: FEC-COMPTE-001
+    relation: partial
+    status: review_required
+    note: >
+      ÉCART DE FONDEMENT — la règle est déclarée hardLaw dans le moteur ; le
+      contrôle correspondant est `internal` car A47 A-1 n'impose pas le
+      rattachement au plan de comptes. Rattacher à l'article du PCG applicable.
+    sources: []
+
+  - from: rule:R-HL-007
+    to: FEC-ORDRE-002
+    relation: partial
+    status: review_required
+    note: >
+      ÉCART DE FONDEMENT — l'ordre chronologique de validation est attribué à
+      l'article par des sources secondaires mais n'a pas été retrouvé dans le
+      texte lors de la consultation du 14/08/2026.
+    sources: []
+
+  - from: rule:R-HL-008
+    to: FEC-EQUILIBRE-001
+    relation: partial
+    status: review_required
+    note: >
+      ÉCART DE FONDEMENT — l'équilibre par écriture relève de la partie double
+      (PCG), non du format de fichier décrit par A47 A-1.
+    sources: []
+
+  - from: rule:R-HL-009
+    to: FEC-TYPE-002
+    relation: partial
+    status: review_required
+    note: >
+      Le caractère numérique découle de la nature des zones ; le texte ne fixe
+      pas de format numérique explicite.
+    sources: []
+
+  - from: rule:R-HL-010
+    to: FEC-PERIODE-001
+    relation: related
+    status: review_required
+    note: >
+      « Reprise des soldes en ouverture » n'a pas de contrôle atomique dédié :
+      elle relève des règles de tenue, pas du format. Contrôle à créer une fois
+      la source identifiée.
+    sources: []
+
+  - from: rule:R-ME-001
+    to: FEC-DATE-002
+    relation: related
+    status: review_required
+    note: >
+      Écritures atypiques en fin de période — présomption d'audit (NEP 240),
+      sans rapport avec le format FEC. Le rattachement naturel est NEP 240,
+      pas un contrôle de format.
+    sources: []
+
+  - from: rule:R-ME-002
+    to: FEC-MONTANT-001
+    relation: no_equivalent
+    status: review_required
+    note: >
+      Régularisations sur le chiffre d'affaires : aucun contrôle de format ne
+      correspond. Rattachement attendu vers NEP 240 / IFRS 15 / ANC 2026-03.
+    sources: []
+
+  - from: rule:R-ME-003
+    to: FEC-PERIODE-001
+    relation: related
+    status: review_required
+    note: >
+      Cut-off : le contrôle de période FEC borne l'exercice, mais le
+      rattachement des produits est une question comptable, pas de format.
+    sources: []
+
+  - from: rule:R-IN-001
+    to: FEC-COMPTE-001
+    relation: no_equivalent
+    status: review_required
+    note: >
+      Concentration des mouvements par silo — heuristique interne PROBANT, sans
+      contrôle de format correspondant. Cohérent avec family: "internal".
+    sources: []
+
+  - from: rule:R-IN-002
+    to: FEC-MONTANT-001
+    relation: no_equivalent
+    status: review_required
+    note: >
+      Matérialité indicative — paramètre interne, sans contrôle de format
+      correspondant. Cohérent avec family: "internal".
+    sources: []

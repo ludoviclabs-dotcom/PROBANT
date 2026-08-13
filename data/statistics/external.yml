@@ -1,0 +1,37 @@
+# Statistiques externes — ESPACE CLOISONNÉ.
+#
+# ─── INVARIANT ───────────────────────────────────────────────────────────────
+#
+# Une statistique externe NE CONTRIBUE JAMAIS au score d'un dossier.
+#
+# Cet invariant n'est pas seulement écrit ici, il est rendu mécanique :
+#   - chaque entrée porte `contributesToScore: false` (littéral imposé par le
+#     schéma Zod : toute autre valeur fait échouer le chargement) ;
+#   - le contrôle K-008 vérifie qu'aucun crosswalk ne référence un identifiant
+#     `stat-*`, donc qu'aucune statistique ne peut atteindre un contrôle, un
+#     constat ou un cycle ;
+#   - les statistiques vivent dans leur propre répertoire et leur propre
+#     schéma : rien dans lib/risk-mapping ni lib/rules-engine ne les charge.
+#
+# Une statistique sert au cadrage et à la pédagogie — « voici l'ordre de
+# grandeur constaté dans la population » — jamais à qualifier un dossier.
+# Un dossier se juge sur ses propres écritures et sur des normes citées.
+#
+# ─── POURQUOI CE FICHIER EST VIDE ────────────────────────────────────────────
+#
+# Aucune statistique externe n'a pu être vérifiée lors de ce PR avec les trois
+# attributs qu'exige le schéma : date de mesure, unité et périmètre.
+#
+# Une liste vide est un résultat honnête. Elle vaut mieux qu'un ordre de
+# grandeur mémorisé auquel on aurait attaché une date approximative : le
+# contrôle K-006 échouerait de toute façon, et une statistique fausse dans un
+# outil d'audit est pire que pas de statistique du tout.
+#
+# Pour ajouter une statistique, fournir OBLIGATOIREMENT : `asOf` (date de
+# mesure), `unit` (unité explicite), `scope` (périmètre mesuré) et au moins une
+# source. Sans ces attributs, le chargement échoue — par conception.
+
+referentialId: external-statistics
+label: Statistiques externes (hors scoring dossier)
+
+statistics: []

@@ -1,0 +1,213 @@
+# Crosswalk contrôle ↔ source normative.
+#
+# Rend interrogeable, contrôle par contrôle, CE QUI LE FONDE. C'est la table
+# qui permet de répondre à « au nom de quoi PROBANT affirme cela ? ».
+#
+# Les contrôles `basis: internal` apparaissent avec `relation: no_equivalent`
+# et sans source : c'est un état LÉGITIME et explicite, pas un oubli. Un
+# contrôle interne assume de n'être fondé sur aucun texte — c'est ce qui le
+# distingue d'un contrôle opposable.
+#
+# Le contrôle K-001 vérifie la réciproque : aucun contrôle `hard_law` ne peut
+# rester sans source primaire.
+
+kind: control_source
+label: Crosswalk contrôle atomique ↔ source normative
+
+links:
+  - from: FEC-PRESENCE-001
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Article A47 A-1, VII, 1° — énumération des 18 zones.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-ORDRE-001
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Article A47 A-1, VII, 1° — ordre prescrit des zones.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-TYPE-001
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Article A47 A-1 — format des dates.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-DATE-001
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Article A47 A-1 — « format AAAAMMJJ sans séparateur ».
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-MONTANT-002
+    to: lpf-a47-a1
+    relation: partial
+    status: verified
+    note: >
+      Le texte autorise la substitution des zones 12/13 par Montant/Sens ; il
+      ne normalise pas les valeurs admises pour Sens.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-SEQUENCE-001
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Zone 3 — « numéro sur une séquence continue ».
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-PERIODE-001
+    to: lpf-a47-a1
+    relation: partial
+    status: verified
+    note: >
+      Déduit de la convention de nommage : AAAAMMJJ y désigne la date de
+      clôture de l'exercice.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  - from: FEC-PERIODE-002
+    to: lpf-a47-a1
+    relation: equivalent
+    status: verified
+    note: Convention de nommage SirenFECAAAAMMJJ.
+    sources:
+      - sourceId: lpf-a47-a1
+        kind: primary
+        url: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775
+        retrievedAt: "2026-08-14"
+
+  # ── Contrôles internes : absence de source ASSUMÉE ─────────────────────────
+  - from: FEC-PRESENCE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: Heuristique interne — aucune source ne l'établit à ce jour.
+    sources: []
+
+  - from: FEC-ORDRE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: >
+      Ordre chronologique de validation — à rattacher si le paragraphe exact
+      est identifié dans A47 A-1.
+    sources: []
+
+  - from: FEC-TYPE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-DATE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-MONTANT-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-SEQUENCE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-EQUILIBRE-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: Partie double — rattachement au PCG attendu.
+    sources: []
+
+  - from: FEC-EQUILIBRE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: Partie double — rattachement au PCG attendu.
+    sources: []
+
+  - from: FEC-COMPTE-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: Rattachement au plan de comptes — source PCG attendue.
+    sources: []
+
+  - from: FEC-COMPTE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-PIECE-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-PIECE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-DEVISE-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-DEVISE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    note: Renvoi à l'ISO 4217 non vérifié dans le texte.
+    sources: []
+
+  - from: FEC-LETTRAGE-001
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []
+
+  - from: FEC-LETTRAGE-002
+    to: none
+    relation: no_equivalent
+    status: review_required
+    sources: []

@@ -1,0 +1,574 @@
+# Crosswalk cycle d'audit ↔ comptes PCG
+#
+# GÉNÉRÉ à partir de data/cycles/*.yml (champ pcgAccounts) — ne pas éditer
+# à la main : régénérer via scripts/gen-crosswalks.mjs.
+#
+# Les liens portent status: review_required parce qu'ils projettent un
+# contenu (les 35 fiches de cycles) lui-même en revue requise. Le crosswalk
+# n'ajoute aucune affirmation normative : il rend interrogeable ce qui
+# existe déjà.
+
+kind: cycle_accounts
+label: Crosswalk cycle d'audit ↔ comptes PCG
+links:
+  - from: cycle:achats-charges-externes
+    to: pcg-account:60
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:achats-charges-externes
+    to: pcg-account:61
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:achats-charges-externes
+    to: pcg-account:62
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/achats-charges-externes.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-creances-cca
+    to: pcg-account:486
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-creances-cca
+    to: pcg-account:44
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-creances-cca
+    to: pcg-account:46
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-creances-cca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-dettes-pca
+    to: pcg-account:487
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-dettes-pca
+    to: pcg-account:42
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:autres-dettes-pca
+    to: pcg-account:43
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/autres-dettes-pca.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:capitaux-propres
+    to: pcg-account:10
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:capitaux-propres
+    to: pcg-account:11
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:capitaux-propres
+    to: pcg-account:12
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:capitaux-propres
+    to: pcg-account:13
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/capitaux-propres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:charges-personnel
+    to: pcg-account:63
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:charges-personnel
+    to: pcg-account:64
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-personnel.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:charges-produits-financiers
+    to: pcg-account:66
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:charges-produits-financiers
+    to: pcg-account:76
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/charges-produits-financiers.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: pcg-account:70
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: pcg-account:71
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:chiffre-affaires-ifrs15
+    to: pcg-account:72
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/chiffre-affaires-ifrs15.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:contrats-location-ifrs16
+    to: pcg-account:612
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/contrats-location-ifrs16.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:covenants-gearing-icr
+    to: pcg-account:16
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/covenants-gearing-icr.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:creances-clients
+    to: pcg-account:411
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:creances-clients
+    to: pcg-account:413
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:creances-clients
+    to: pcg-account:416
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:creances-clients
+    to: pcg-account:418
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:creances-clients
+    to: pcg-account:491
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/creances-clients.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:derives-instruments-financiers
+    to: pcg-account:52
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/derives-instruments-financiers.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-financieres-emprunts
+    to: pcg-account:16
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-financieres-emprunts
+    to: pcg-account:17
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-financieres-emprunts
+    to: pcg-account:519
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-financieres-emprunts.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-fournisseurs
+    to: pcg-account:401
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-fournisseurs
+    to: pcg-account:403
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dettes-fournisseurs
+    to: pcg-account:408
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dettes-fournisseurs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:disponibilites-banques
+    to: pcg-account:512
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:disponibilites-banques
+    to: pcg-account:514
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:disponibilites-banques
+    to: pcg-account:53
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:disponibilites-banques
+    to: pcg-account:58
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/disponibilites-banques.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dotations-amortissements-depreciations
+    to: pcg-account:68
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:dotations-amortissements-depreciations
+    to: pcg-account:78
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/dotations-amortissements-depreciations.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:engagements-hors-bilan
+    to: pcg-account:801
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/engagements-hors-bilan.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:engagements-hors-bilan
+    to: pcg-account:802
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/engagements-hors-bilan.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:exceptionnel-cutoff
+    to: pcg-account:67
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:exceptionnel-cutoff
+    to: pcg-account:77
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/exceptionnel-cutoff.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-corporelles
+    to: pcg-account:21
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-corporelles
+    to: pcg-account:23
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-corporelles
+    to: pcg-account:281
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-corporelles
+    to: pcg-account:291
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-corporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-financieres
+    to: pcg-account:26
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-financieres
+    to: pcg-account:27
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-financieres
+    to: pcg-account:296
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-financieres
+    to: pcg-account:297
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-financieres.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-incorporelles
+    to: pcg-account:20
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-incorporelles
+    to: pcg-account:280
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:immobilisations-incorporelles
+    to: pcg-account:290
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/immobilisations-incorporelles.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:impairment-goodwill-actifs
+    to: pcg-account:207
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:impairment-goodwill-actifs
+    to: pcg-account:2807
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:impairment-goodwill-actifs
+    to: pcg-account:29
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/impairment-goodwill-actifs.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:provisions-risques-charges
+    to: pcg-account:15
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/provisions-risques-charges.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:provisions-risques-charges
+    to: pcg-account:6815
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/provisions-risques-charges.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:provisions-risques-charges
+    to: pcg-account:7815
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/provisions-risques-charges.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:resultat-fiscal-is
+    to: pcg-account:69
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:resultat-fiscal-is
+    to: pcg-account:444
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/resultat-fiscal-is.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:retraites-avantages-personnel
+    to: pcg-account:153
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/retraites-avantages-personnel.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:retraites-avantages-personnel
+    to: pcg-account:158
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/retraites-avantages-personnel.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:stocks-en-cours
+    to: pcg-account:3
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:stocks-en-cours
+    to: pcg-account:39
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/stocks-en-cours.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:tva-etat
+    to: pcg-account:445
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/tva-etat.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:vmp
+    to: pcg-account:50
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  - from: cycle:vmp
+    to: pcg-account:59
+    relation: related
+    status: review_required
+    sources:
+      - sourceId: data/cycles/vmp.yml
+        kind: primary
+        note: Dérivé de pcgAccounts.
+  

@@ -33,7 +33,7 @@ correspondantes. La checklist à jour se trouve au § 5 du suivi d'avancement.
 |---|---|---|
 | ~~`docs/architecture/`~~ | ✅ **Livré par PR-00** — voir la section ci-dessus | PR-00 |
 | `docs/adr/` | ADR-001 à ADR-008 | PR-02 → PR-08 |
-| `docs/knowledge/` | Politique de sources, couverture normative, points à faire valider | PR-01, PR-04 |
+| `docs/knowledge/` | 🟦 **Partiellement livré par PR-01** — [`COVERAGE_REPORT.md`](./knowledge/COVERAGE_REPORT.md) et [`REVIEW_REQUIRED.md`](./knowledge/REVIEW_REQUIRED.md) publiés ; `SOURCE_POLICY.md` reste à écrire | PR-01, PR-04 |
 | `docs/ingestion/` | Limites d'ingestion et résultats de benchmark | PR-03 |
 | `docs/ux/` | Contrats de visualisation, règles d'accessibilité | PR-06 |
 | `docs/evidence/` | Spécification du manifeste, formats d'export | PR-07 |

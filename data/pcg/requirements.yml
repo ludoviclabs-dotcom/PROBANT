@@ -1,0 +1,113 @@
+# Plan comptable général — version consolidée et amendements datés.
+#
+# ─── VÉRIFIÉ le 14/08/2026 sur le site de l'ANC ───────────────────────────────
+#
+# Version consolidée indexée : PCG au 1er janvier 2026 (règlement ANC 2014-03
+# modifié), publiée par l'ANC.
+# https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
+#
+# Règlements 2026 modifiant le règlement ANC 2014-03, relevés sur la page
+# officielle des règlements de l'ANC :
+#   - ANC 2026-03, adopté le 06/03/2026 — comptabilisation des produits des
+#     ventes ;
+#   - ANC 2026-04, adopté le 06/05/2026 — modalités de comptabilisation de
+#     l'impôt sur les bénéfices et des contributions qui s'y rattachent ;
+#     entrée en vigueur le lendemain de la publication au Journal officiel,
+#     applicable aux exercices en cours à cette date.
+#
+# ─── EXPLICITEMENT NON RETENU ────────────────────────────────────────────────
+#
+# Un résumé de moteur de recherche attribuait au règlement « ANC 2024-07 » une
+# ligne obligatoire « autres fonds propres » applicable aux exercices ouverts à
+# compter du 01/01/2026. Ce règlement NE FIGURE PAS sur la page officielle des
+# règlements de l'ANC consultée le 14/08/2026, qui liste pour 2024 le règlement
+# 2024-02 (certificats d'économies d'énergie). L'information n'est donc pas
+# reprise ici : elle est consignée en attente de vérification dans
+# docs/knowledge/REVIEW_REQUIRED.md. Recopier un résumé de recherche dans un
+# référentiel normatif est exactement le risque que ce PR doit écarter.
+#
+# ─── PORTÉE ──────────────────────────────────────────────────────────────────
+#
+# Ce fichier indexe des RÈGLEMENTS et leurs dates d'effet. Il ne réécrit pas
+# les articles du PCG : les exigences article par article restent à saisir,
+# sous revue métier.
+
+referentialId: pcg-requirements
+label: PCG — exigences datées (règlement ANC 2014-03 modifié)
+consolidatedVersion: "2026-01-01"
+
+sources:
+  - sourceId: anc-reglementation
+    kind: primary
+    url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+    retrievedAt: "2026-08-14"
+    note: Liste officielle des règlements de l'ANC.
+  - sourceId: pcg
+    kind: primary
+    url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
+    retrievedAt: "2026-08-14"
+    note: Version consolidée du PCG au 1er janvier 2026.
+
+requirements:
+  - id: pcg-consolide-2026
+    reference: Règlement ANC n° 2014-03 — version consolidée au 01/01/2026
+    title: Plan comptable général consolidé au 1er janvier 2026
+    summary: >
+      Version consolidée du règlement 2014-03 publiée par l'ANC et applicable
+      au 1er janvier 2026. Sert de version de référence du plan de comptes et
+      des règles de comptabilisation en comptes sociaux.
+    regulation: ANC 2014-03
+    effectiveFrom: "2026-01-01"
+    effectiveTo: null
+    affectedCycles: []
+    status: verified
+    sources:
+      - sourceId: pcg
+        kind: primary
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
+        retrievedAt: "2026-08-14"
+
+  - id: anc-2026-03-produits-ventes
+    reference: Règlement ANC n° 2026-03
+    title: Modification du PCG — comptabilisation des produits des ventes
+    summary: >
+      Règlement adopté par le collège de l'ANC le 6 mars 2026, modifiant le
+      règlement 2014-03 sur la comptabilisation des produits des ventes.
+    regulation: ANC 2026-03
+    effectiveFrom: null
+    effectiveTo: null
+    affectedCycles: [chiffre-affaires-ifrs15, cutoff-separation-exercices]
+    status: review_required
+    sources:
+      - sourceId: anc-reglementation
+        kind: primary
+        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+        retrievedAt: "2026-08-14"
+    note: >
+      Adoption vérifiée ; date d'homologation par arrêté et date d'entrée en
+      vigueur NON établies lors de la consultation. `effectiveFrom` reste null
+      plutôt que de porter une date supposée.
+
+  - id: anc-2026-04-impot-benefices
+    reference: Règlement ANC n° 2026-04
+    title: >
+      Modification du PCG — modalités de comptabilisation de l'impôt sur les
+      bénéfices et des contributions rattachées
+    summary: >
+      Règlement adopté par le collège de l'ANC le 6 mai 2026. Entrée en vigueur
+      le lendemain de sa publication au Journal officiel, avec application aux
+      exercices en cours à cette date.
+    regulation: ANC 2026-04
+    effectiveFrom: null
+    effectiveTo: null
+    affectedCycles: [resultat-fiscal-is]
+    status: review_required
+    sources:
+      - sourceId: anc-reglementation
+        kind: primary
+        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+        retrievedAt: "2026-08-14"
+    note: >
+      La RÈGLE d'entrée en vigueur est vérifiée (lendemain de la publication au
+      JO, exercices en cours) mais la DATE de publication ne l'est pas :
+      `effectiveFrom` ne peut donc pas être calculé ici.

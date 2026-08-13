@@ -6,9 +6,9 @@
 
 | | |
 |---|---|
-| Dernière mise à jour | 13/08/2026 |
-| État global | **PR-00 en revue** — cartographie publiée, CI minimale créée, patch Next appliqué |
-| Prochaine action | PR-01 (gouvernance des sources) — périmètre détaillé dans [`docs/architecture/PR_ROADMAP.md`](../architecture/PR_ROADMAP.md) § 4 |
+| Dernière mise à jour | 14/08/2026 |
+| État global | **PR-00 en revue · PR-01 en cours** — plan de connaissance créé (FEC vérifié, NEP/IFRS/PCG à certifier) |
+| Prochaine action | Revue métier des 17 points de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md), en commençant par R-01 à R-03 |
 
 ---
 
@@ -61,7 +61,7 @@ First Load JS ; `/dashboard/risques` ≈ 207 kB.
 | PR | Objet | Prérequis | Statut | Branche / PR | Charge indicative | Risque |
 |---|---|---|---|---|---:|---|
 | **PR-00** | Cartographie + patch maintenance + **CI minimale** | — | 🟨 En revue | `claude/probant-mapping-regression-b53f40` | 0,5–1 j | Faible |
-| **PR-01** | Gouvernance des sources et modèle de connaissance | PR-00 | ⬜ À faire | — | 1,5–2,5 j | Moyen |
+| **PR-01** | Gouvernance des sources et modèle de connaissance | PR-00 | 🟦 En cours | `claude/probant-knowledge-base-pr01` | 1,5–2,5 j | Moyen |
 | **PR-02** | Dossier unique — fin de la divergence DEMO / réel | PR-00 | ⬜ À faire | — | 1,5–3 j | Élevé |
 | **PR-03** | Ingestion, persistance, stockage objet, remplacement XLSX | PR-02 | ⬜ À faire | — | 4–7 j | **Très élevé** |
 | **PR-04** | Référentiel PCG / NEP / IFRS et crosswalks | PR-01 | ⬜ À faire | — | 3–6 j + revue métier | Élevé |
@@ -144,9 +144,9 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 
 ### Connaissance — PR-01 / PR-04
 
-- [ ] `docs/knowledge/SOURCE_POLICY.md`
-- [ ] `docs/knowledge/COVERAGE_REPORT.md`
-- [ ] `docs/knowledge/REVIEW_REQUIRED.md`
+- [ ] `docs/knowledge/SOURCE_POLICY.md` — non livré par PR-01 (cf. journal)
+- [x] `docs/knowledge/COVERAGE_REPORT.md`
+- [x] `docs/knowledge/REVIEW_REQUIRED.md`
 
 ### Ingestion, UX, preuve — PR-03 / PR-06 / PR-07
 
@@ -209,6 +209,7 @@ Une ligne par événement structurant. Le plus récent en haut.
 
 | Date | Événement | Réf. |
 |---|---|---|
+| 14/08/2026 | **PR-01** — plan de connaissance : `data/{fec,nep,ifrs,pcg,crosswalks,statistics}`, schémas Zod + 8 contrôles d'intégrité (`lib/knowledge`), 32 tests. **Les 18 zones du FEC sont vérifiées à l'article A47 A-1 et identiques à `FEC_COLUMNS`.** Écart majeur détecté : `R-HL-006/007/008` classées `hardLaw` sans fondement établi — **moteur non modifié**, écart documenté. 21 fichiers ajoutés, **0 modifié** | branche `claude/probant-knowledge-base-pr01` |
 | 13/08/2026 | **PR-00** — cartographie vérifiée publiée (`docs/architecture/`, 6 documents), CI minimale créée, `next` 15.5.19 → **15.5.23**, `next lint` → **ESLint CLI 9**. Aucun fichier de `app/`, `components/`, `lib/`, `data/` modifié. P0-2, P0-3, P0-6 résolus ; **P0-1 (`xlsx`) reste un blocage documenté** — `fixAvailable: false` | branche `claude/probant-mapping-regression-b53f40`, base `e61ae74` |
 | 13/08/2026 | Dépôt du plan de refonte et création de ce suivi | branche `claude/probant-refonte-document` |
 
