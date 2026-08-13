@@ -1,0 +1,51 @@
+[
+  {
+    "id": "nep-315-isa-315",
+    "fromKind": "NEP",
+    "fromId": "NEP 315",
+    "toKind": "ISA",
+    "toId": "ISA 315",
+    "relation": "corresponds_to",
+    "applicability": "international_correspondence_only",
+    "sourceId": "acpr-isa",
+    "sourceVersion": "page-2024-12-27",
+    "status": "review_required",
+    "note": "La NEP demeure le referentiel principal de la mission d'audit francaise."
+  },
+  {
+    "id": "pcg-ifrs-revenue",
+    "fromKind": "PCG",
+    "fromId": "ANC 2026-03 produits des ventes",
+    "toKind": "IFRS",
+    "toId": "IFRS 15",
+    "relation": "differs_from",
+    "applicability": "informative",
+    "sourceId": "anc-2026-03",
+    "sourceVersion": "adopted-2026-03-06",
+    "status": "review_required"
+  },
+  {
+    "id": "pcg-ifrs-tax",
+    "fromKind": "PCG",
+    "fromId": "ANC 2026-04 impot sur les benefices",
+    "toKind": "IFRS",
+    "toId": "IAS 12",
+    "relation": "differs_from",
+    "applicability": "informative",
+    "sourceId": "anc-2026-04",
+    "sourceVersion": "adopted-2026-05-04",
+    "status": "review_required"
+  },
+  {
+    "id": "ifrs18-ias1",
+    "fromKind": "IFRS",
+    "fromId": "IFRS 18",
+    "toKind": "IFRS",
+    "toId": "IAS 1",
+    "relation": "supersedes",
+    "applicability": "informative",
+    "sourceId": "ifrs-18",
+    "sourceVersion": "issued-2024-04-09",
+    "status": "future"
+  }
+]

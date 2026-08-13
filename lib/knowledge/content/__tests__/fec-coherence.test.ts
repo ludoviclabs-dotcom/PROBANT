@@ -13,7 +13,7 @@
 
 import { describe, expect, it } from "vitest";
 import { FEC_COLUMNS } from "@/lib/canonical-model/fec";
-import { loadFecControls, loadFecFields } from "@/lib/knowledge/loader";
+import { loadFecControls, loadFecFields } from "@/lib/knowledge/content/loader";
 import { loadAllCycles } from "@/lib/audit-cycles/loader";
 import { validateAll } from "@/lib/audit-cycles/validation";
 
@@ -84,7 +84,7 @@ describe("non-régression des 35 cycles existants", () => {
     const cycles = await loadAllCycles();
     const slugs = new Set(cycles.map((c) => c.slug));
 
-    const { loadIfrs, loadNep, loadPcg } = await import("@/lib/knowledge/loader");
+    const { loadIfrs, loadNep, loadPcg } = await import("@/lib/knowledge/content/loader");
     const [ifrs, nep, pcg] = await Promise.all([loadIfrs(), loadNep(), loadPcg()]);
 
     const references = [

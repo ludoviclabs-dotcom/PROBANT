@@ -1,356 +1,341 @@
-/**
- * Contrôles qualité du plan de connaissance — les garde-fous d'intégrité.
- *
- * Chaque contrôle matérialise une règle que la base ne doit JAMAIS enfreindre.
- * Ils sont exécutés par les tests (`lib/knowledge/__tests__/`), donc par la CI :
- * une régression d'intégrité fait échouer le build, elle ne se découvre pas en
- * production.
- *
- * Ces contrôles complètent, sans les remplacer, ceux de
- * `lib/audit-cycles/validation.ts` qui portent sur les 35 fiches de cycles.
- *
- *   K-001  une règle opposable sans source primaire
- *   K-002  une source de doctrine (EY, PwC, …) présentée comme primaire
- *   K-003  une norme IFRS future présentée comme applicable
- *   K-004  une adoption UE affirmée positive sans base
- *   K-005  une différence PCG/IFRS sans source
- *   K-006  une statistique sans date, unité ou périmètre
- *   K-007  une citation IFRS excessive
- *   K-008  une statistique atteignable depuis un crosswalk
- *
- * Fonctions PURES : aucun accès disque, aucune horloge implicite. La date de
- * référence est TOUJOURS injectée — sans quoi le contrôle K-003 changerait de
- * résultat au fil du temps et la CI deviendrait non déterministe.
- */
+import { KnowledgeRegistrySchema } from "./schemas";
+import type { KnowledgeRegistry, SourceRecord, SourceVersion } from "./types";
 
-import {
-  MAX_QUOTE_CHARS,
-  sourceIsSecondary,
-  type Crosswalk,
-  type FecControlSet,
-  type IfrsSet,
-  type IfrsStandard,
-  type SourceRef,
-  type StatisticSet,
-} from "./schemas";
-
-export interface KnowledgeIssue {
-  /** Identifiant du contrôle (K-001 …). */
-  control: string;
-  /** Enregistrement concerné. */
-  subject: string;
+export interface KnowledgeValidationIssue {
+  field: string;
   message: string;
+  id?: string;
 }
 
-export interface KnowledgeReport {
+export interface KnowledgeValidationResult {
   valid: boolean;
-  errors: KnowledgeIssue[];
-  warnings: KnowledgeIssue[];
+  errors: KnowledgeValidationIssue[];
+  warnings: KnowledgeValidationIssue[];
+  stats: {
+    records: number;
+    versions: number;
+    requirements: number;
+    statistics: number;
+    reviewRequired: number;
+  };
 }
 
-function hasPrimarySource(sources: SourceRef[]): boolean {
-  return sources.some((s) => s.kind === "primary" && !sourceIsSecondary(s));
+const ALLOWED_HOSTS = new Set([
+  "legifrance.gouv.fr",
+  "www.legifrance.gouv.fr",
+  "anc.gouv.fr",
+  "www.anc.gouv.fr",
+  "bofip.impots.gouv.fr",
+  "h2a-france.org",
+  "www.h2a-france.org",
+  "ifrs.org",
+  "www.ifrs.org",
+  "eur-lex.europa.eu",
+  "efrag.org",
+  "www.efrag.org",
+  "acpr.banque-france.fr",
+  "cncc.fr",
+  "www.cncc.fr",
+  "doc.cncc.fr",
+  "experts-comptables.fr",
+  "www.experts-comptables.fr",
+  "ey.com",
+  "www.ey.com",
+  "pwc.fr",
+  "www.pwc.fr",
+]);
+
+function sourceVersionKey(version: SourceVersion): string {
+  return `${version.sourceId}:${version.versionLabel}`;
 }
 
-/* ─────────────────────────────────── K-001 ───────────────────────────────── */
-
-/**
- * K-001 — un contrôle `hard_law` affirme une obligation opposable : il doit
- * citer au moins une source primaire. Un contrôle `internal` peut légitimement
- * n'en citer aucune, c'est ce qui le distingue.
- */
-export function checkMandatoryControlsHaveSource(
-  controls: FecControlSet,
-): KnowledgeIssue[] {
-  return controls.controls
-    .filter((c) => c.basis === "hard_law" && !hasPrimarySource(c.sources))
-    .map((c) => ({
-      control: "K-001",
-      subject: c.id,
-      message: `contrôle opposable « ${c.label} » sans source primaire`,
-    }));
+function isSecondarySource(record: SourceRecord): boolean {
+  return record.sourceNature === "secondary_analysis";
 }
 
-/* ─────────────────────────────────── K-002 ───────────────────────────────── */
+function isIfrsStandard(record: SourceRecord): boolean {
+  return ["ifrs_standard_metadata", "ifrs_standards_collection_metadata"].includes(
+    record.documentType,
+  );
+}
 
-/**
- * K-002 — une publication de cabinet ou de doctrine ne fonde jamais une
- * obligation. Deux infractions possibles : la déclarer `primary`, ou l'employer
- * comme unique appui d'un contrôle opposable.
- */
-export function checkNoSecondarySourceAsMandatory(
-  controls: FecControlSet,
-  ifrs: IfrsSet,
-): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
+function checkUniqueIds(
+  field: string,
+  items: Array<{ id: string }>,
+  errors: KnowledgeValidationIssue[],
+): void {
+  const ids = new Set<string>();
+  for (const item of items) {
+    if (ids.has(item.id)) {
+      errors.push({ field, id: item.id, message: "identifiant duplique" });
+    }
+    ids.add(item.id);
+  }
+}
 
-  const inspect = (subject: string, sources: SourceRef[]) => {
-    for (const s of sources) {
-      if (sourceIsSecondary(s) && s.kind === "primary") {
-        issues.push({
-          control: "K-002",
-          subject,
-          message: `source de doctrine « ${s.sourceId} » déclarée primaire`,
+export function validateKnowledgeRegistry(
+  registry: KnowledgeRegistry,
+): KnowledgeValidationResult {
+  const errors: KnowledgeValidationIssue[] = [];
+  const warnings: KnowledgeValidationIssue[] = [];
+
+  const parsed = KnowledgeRegistrySchema.safeParse(registry);
+  if (!parsed.success) {
+    for (const issue of parsed.error.issues) {
+      errors.push({ field: issue.path.join("."), message: issue.message });
+    }
+  }
+
+  const records = new Map<string, SourceRecord>();
+  for (const record of registry.records) {
+    if (records.has(record.id)) {
+      errors.push({ field: "records.id", id: record.id, message: "identifiant de source duplique" });
+    }
+    records.set(record.id, record);
+
+    if (record.canonicalUrl.startsWith("internal://")) {
+      if (record.sourceNature !== "internal_rule") {
+        errors.push({
+          field: "records.canonicalUrl",
+          id: record.id,
+          message: "une URL interne est reservee aux regles internes PROBANT",
         });
       }
+      continue;
+    }
+    try {
+      const host = new URL(record.canonicalUrl).hostname.toLowerCase();
+      if (!ALLOWED_HOSTS.has(host)) {
+        errors.push({
+          field: "records.canonicalUrl",
+          id: record.id,
+          message: `domaine source non autorise: ${host}`,
+        });
+      }
+    } catch {
+      errors.push({
+        field: "records.canonicalUrl",
+        id: record.id,
+        message: "URL de source invalide",
+      });
+    }
+  }
+
+  const versionsByKey = new Map<string, SourceVersion>();
+  for (const version of registry.versions) {
+    const key = sourceVersionKey(version);
+    if (versionsByKey.has(key)) {
+      errors.push({ field: "versions.versionLabel", id: key, message: "version de source dupliquee" });
+    }
+    versionsByKey.set(key, version);
+    const record = records.get(version.sourceId);
+    if (!record) {
+      errors.push({ field: "versions.sourceId", id: key, message: "version rattachee a une source inconnue" });
+      continue;
+    }
+    if (record.id.startsWith("h2a-nep-") && !version.homologationDate) {
+      errors.push({
+        field: "versions.homologationDate",
+        id: key,
+        message: "une NEP doit porter sa date d'homologation",
+      });
+    }
+    if (isIfrsStandard(record)) {
+      if (!version.iasbStatus || !version.iasbEffectiveFrom) {
+        errors.push({
+          field: "versions.iasbStatus",
+          id: key,
+          message: "une IFRS doit distinguer statut et date d'effet IASB",
+        });
+      }
+      if (!version.euEndorsementStatus) {
+        errors.push({
+          field: "versions.euEndorsementStatus",
+          id: key,
+          message: "une IFRS doit porter son statut d'adoption UE",
+        });
+      } else if (
+        version.euEndorsementStatus !== "not_applicable" &&
+        !version.euEndorsementSource
+      ) {
+        errors.push({
+          field: "versions.euEndorsementSource",
+          id: key,
+          message: "le statut d'adoption UE d'une IFRS doit citer sa source",
+        });
+      }
+    }
+    if (version.status === "effective" && version.supersededBy && !version.supersessionJustification) {
+      errors.push({
+        field: "versions.status",
+        id: key,
+        message: "une version remplacee ne peut rester active sans justification",
+      });
+    }
+  }
+
+  const checkSourceVersionReference = (
+    field: string,
+    id: string,
+    sourceId: string,
+    sourceVersion: string,
+  ): void => {
+    if (!records.has(sourceId)) {
+      errors.push({ field: `${field}.sourceId`, id, message: "reference rattachee a une source inconnue" });
+    } else if (!versionsByKey.has(`${sourceId}:${sourceVersion}`)) {
+      errors.push({ field: `${field}.sourceVersion`, id, message: "reference rattachee a une version inconnue" });
     }
   };
 
-  for (const c of controls.controls) {
-    inspect(c.id, c.sources);
-    if (c.basis === "hard_law" && c.sources.length > 0 && !hasPrimarySource(c.sources)) {
-      issues.push({
-        control: "K-002",
-        subject: c.id,
-        message: "contrôle opposable appuyé uniquement sur de la doctrine",
-      });
+  for (const version of registry.versions) {
+    if (version.euEndorsementSource) {
+      checkSourceVersionReference(
+        "versions.euEndorsementSource",
+        sourceVersionKey(version),
+        version.euEndorsementSource.sourceId,
+        version.euEndorsementSource.sourceVersion,
+      );
     }
-  }
-
-  for (const s of ifrs.entries) {
-    inspect(s.id, s.sources);
-    inspect(`${s.id}.euEndorsement`, s.euEndorsement.sources);
-  }
-
-  return issues;
-}
-
-/* ─────────────────────────────────── K-003 ───────────────────────────────── */
-
-/** Une norme est-elle applicable à `referenceDate` (AAAA-MM-JJ) ? */
-export function isEffectiveAt(
-  standard: IfrsStandard,
-  referenceDate: string,
-): boolean {
-  if (!standard.iasbEffectiveDate) return false;
-  return standard.iasbEffectiveDate <= referenceDate;
-}
-
-/**
- * K-003 — une norme publiée n'est pas une norme applicable. IFRS 18 est
- * adoptée et entre en vigueur le 01/01/2027 : la présenter comme applicable en
- * 2026 induirait l'auditeur en erreur. Le champ `presentedAsEffective` rend
- * l'affirmation explicite, donc vérifiable.
- */
-export function checkNoFutureStandardPresentedAsEffective(
-  ifrs: IfrsSet,
-  referenceDate: string,
-): KnowledgeIssue[] {
-  return ifrs.entries
-    .filter((s) => s.presentedAsEffective && !isEffectiveAt(s, referenceDate))
-    .map((s) => ({
-      control: "K-003",
-      subject: s.id,
-      message: s.iasbEffectiveDate
-        ? `présentée comme applicable alors que sa date d'effet est le ${s.iasbEffectiveDate}`
-        : "présentée comme applicable alors que sa date d'effet est inconnue",
-    }));
-}
-
-/* ─────────────────────────────────── K-004 ───────────────────────────────── */
-
-/**
- * K-004 — « adopté par l'UE » est une affirmation forte. Elle exige une base
- * explicitée ET une source. Le statut `unknown` est toujours acceptable : ne
- * pas savoir est un état légitime, affirmer sans base ne l'est pas.
- */
-export function checkEndorsementNotAssumedPositive(
-  ifrs: IfrsSet,
-): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
-
-  for (const s of ifrs.entries) {
-    const e = s.euEndorsement;
-    if (e.status === "unknown") continue;
-
-    if (!e.basis || e.basis.trim().length === 0) {
-      issues.push({
-        control: "K-004",
-        subject: s.id,
-        message: `statut d'adoption UE « ${e.status} » affirmé sans base explicitée`,
-      });
-    }
-    if (e.sources.length === 0) {
-      issues.push({
-        control: "K-004",
-        subject: s.id,
-        message: `statut d'adoption UE « ${e.status} » affirmé sans source`,
-      });
-    }
-    if (e.status === "endorsed" && !e.asOf) {
-      issues.push({
-        control: "K-004",
-        subject: s.id,
-        message: "adoption UE affirmée sans date de constatation (asOf)",
-      });
-    }
-  }
-
-  return issues;
-}
-
-/* ─────────────────────────────────── K-005 ───────────────────────────────── */
-
-/**
- * K-005 — affirmer qu'un traitement PCG diverge d'un traitement IFRS engage la
- * lecture des deux référentiels. Sans source, c'est une opinion présentée
- * comme un fait.
- */
-export function checkPcgDifferencesAreSourced(ifrs: IfrsSet): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
-
-  for (const s of ifrs.entries) {
-    s.pcgDifferences.forEach((d, i) => {
-      if (d.sources.length === 0) {
-        issues.push({
-          control: "K-005",
-          subject: `${s.id}.pcgDifferences[${i}]`,
-          message: `différence PCG/IFRS « ${d.topic} » sans source`,
+    for (const linkedVersion of [version.supersedes, version.supersededBy]) {
+      if (linkedVersion && !versionsByKey.has(`${version.sourceId}:${linkedVersion}`)) {
+        errors.push({
+          field: "versions.supersession",
+          id: sourceVersionKey(version),
+          message: "lien de remplacement vers une version inconnue",
         });
       }
-    });
-  }
-
-  return issues;
-}
-
-/* ─────────────────────────────────── K-006 ───────────────────────────────── */
-
-/**
- * K-006 — une statistique sans date, sans unité ou sans périmètre n'est pas
- * une information : c'est un nombre. Le schéma Zod impose déjà la présence des
- * champs ; ce contrôle refuse en plus les valeurs vides ou d'attente.
- */
-export function checkStatisticsAreQualified(
-  statistics: StatisticSet,
-): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
-  const blank = (v: string) => v.trim().length === 0 || v.trim() === "-";
-
-  for (const s of statistics.statistics) {
-    if (blank(s.unit)) {
-      issues.push({ control: "K-006", subject: s.id, message: "unité vide" });
-    }
-    if (blank(s.scope)) {
-      issues.push({ control: "K-006", subject: s.id, message: "périmètre vide" });
-    }
-    if (blank(s.asOf)) {
-      issues.push({ control: "K-006", subject: s.id, message: "date de mesure vide" });
-    }
-    if (s.sources.length === 0) {
-      issues.push({ control: "K-006", subject: s.id, message: "aucune source" });
     }
   }
 
-  return issues;
-}
+  checkUniqueIds("requirements.id", registry.requirements, errors);
+  checkUniqueIds("crosswalks.id", registry.crosswalks, errors);
+  checkUniqueIds("statistics.id", registry.statistics, errors);
 
-/* ─────────────────────────────────── K-007 ───────────────────────────────── */
+  for (const requirement of registry.requirements) {
+    checkSourceVersionReference(
+      "requirements",
+      requirement.id,
+      requirement.sourceId,
+      requirement.sourceVersion,
+    );
+    const record = records.get(requirement.sourceId);
+    if (!record) continue;
 
-/** Extrait les passages entre guillemets (français ou droits) d'un texte. */
-function extractQuotes(text: string): string[] {
-  const quotes: string[] = [];
-  for (const m of text.matchAll(/«\s*([^»]*)\s*»/gu)) quotes.push(m[1]);
-  for (const m of text.matchAll(/"([^"]*)"/gu)) quotes.push(m[1]);
-  return quotes;
-}
-
-/**
- * K-007 — les normes IFRS sont protégées par le droit d'auteur de l'IFRS
- * Foundation. PROBANT stocke des références et des résumés ; un extrait long
- * signale une reproduction qui n'a pas lieu d'être dans un référentiel.
- */
-export function checkNoExcessiveIfrsQuotation(ifrs: IfrsSet): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
-
-  for (const s of ifrs.entries) {
-    const texts = [
-      s.scope,
-      s.note ?? "",
-      s.euEndorsement.basis ?? "",
-      ...s.dataRequirements,
-      ...s.disclosureRequirements,
-      ...s.pcgDifferences.flatMap((d) => [d.ifrsTreatment, d.pcgTreatment]),
-    ];
-
-    for (const t of texts) {
-      for (const q of extractQuotes(t)) {
-        if (q.length > MAX_QUOTE_CHARS) {
-          issues.push({
-            control: "K-007",
-            subject: s.id,
-            message: `citation de ${q.length} caractères — plafond ${MAX_QUOTE_CHARS}`,
-          });
-        }
-      }
+    if (requirement.force === "mandatory" && isSecondarySource(record)) {
+      errors.push({
+        field: "requirements.force",
+        id: requirement.id,
+        message: "une source secondaire ne peut pas fonder une exigence obligatoire",
+      });
+    }
+    if (requirement.force === "mandatory" && record.sourceNature === "internal_rule") {
+      errors.push({
+        field: "requirements.force",
+        id: requirement.id,
+        message: "un parametre interne ne peut pas etre presente comme obligation externe",
+      });
+    }
+    if (
+      requirement.paragraphReference &&
+      (requirement.paragraphReference.sourceId !== requirement.sourceId ||
+        requirement.paragraphReference.sourceVersion !== requirement.sourceVersion)
+    ) {
+      errors.push({
+        field: "requirements.paragraphReference",
+        id: requirement.id,
+        message: "la reference de paragraphe doit viser la source de l'exigence",
+      });
+    }
+    if (
+      requirement.force === "mandatory" &&
+      requirement.numericThreshold &&
+      (!requirement.sourceId || !requirement.sourceVersion || !requirement.paragraphReference)
+    ) {
+      errors.push({
+        field: "requirements.numericThreshold",
+        id: requirement.id,
+        message: "une regle chiffree obligatoire doit etre sourcee au paragraphe",
+      });
+    }
+    if (isIfrsStandard(record) && requirement.summary.length > 1200) {
+      errors.push({
+        field: "requirements.summary",
+        id: requirement.id,
+        message: "contenu IFRS anormalement long: conserver un resume original, pas le texte integral",
+      });
     }
   }
 
-  return issues;
-}
-
-/* ─────────────────────────────────── K-008 ───────────────────────────────── */
-
-/**
- * K-008 — cloisonnement des statistiques.
- *
- * Rend l'invariant « une statistique ne contribue jamais à un score dossier »
- * mécaniquement vérifiable : si aucun crosswalk ne référence un identifiant
- * `stat-*`, aucune statistique ne peut atteindre un contrôle, un constat ou un
- * cycle par le graphe de connaissance.
- */
-export function checkStatisticsAreIsolated(
-  crosswalks: Crosswalk[],
-): KnowledgeIssue[] {
-  const issues: KnowledgeIssue[] = [];
-
-  for (const cw of crosswalks) {
-    for (const link of cw.links) {
-      for (const endpoint of [link.from, link.to]) {
-        if (/(^|:)stat-/u.test(endpoint)) {
-          issues.push({
-            control: "K-008",
-            subject: `${cw.kind}:${link.from}→${link.to}`,
-            message: `un crosswalk référence la statistique « ${endpoint} »`,
-          });
-        }
-      }
+  for (const statistic of registry.statistics) {
+    checkSourceVersionReference(
+      "statistics",
+      statistic.id,
+      statistic.sourceId,
+      statistic.sourceVersion,
+    );
+    if (!statistic.period.trim()) {
+      errors.push({ field: "statistics.period", id: statistic.id, message: "une statistique doit indiquer une periode" });
+    }
+    if (!statistic.unit.trim()) {
+      errors.push({ field: "statistics.unit", id: statistic.id, message: "une statistique doit indiquer une unite" });
     }
   }
 
-  return issues;
-}
+  for (const crosswalk of registry.crosswalks) {
+    checkSourceVersionReference(
+      "crosswalks",
+      crosswalk.id,
+      crosswalk.sourceId,
+      crosswalk.sourceVersion,
+    );
+    const isNepIsa =
+      (crosswalk.fromKind === "NEP" && crosswalk.toKind === "ISA") ||
+      (crosswalk.fromKind === "ISA" && crosswalk.toKind === "NEP");
+    if (isNepIsa && crosswalk.applicability !== "international_correspondence_only") {
+      errors.push({
+        field: "crosswalks.applicability",
+        id: crosswalk.id,
+        message: "une correspondance NEP/ISA ne doit pas presenter l'ISA comme directement applicable en France",
+      });
+    }
+  }
 
-/* ────────────────────────────── Rapport complet ──────────────────────────── */
+  for (const verification of registry.verifications) {
+    checkSourceVersionReference(
+      "verifications",
+      `${verification.sourceId}:${verification.sourceVersion}`,
+      verification.sourceId,
+      verification.sourceVersion,
+    );
+    if (
+      verification.result === "pass_with_limitations" &&
+      (!verification.unverifiedFields || verification.unverifiedFields.length === 0)
+    ) {
+      warnings.push({
+        field: "verifications.unverifiedFields",
+        id: `${verification.sourceId}:${verification.sourceVersion}`,
+        message: "les champs non verifies devraient etre enumeres",
+      });
+    }
+  }
 
-export interface KnowledgeInput {
-  fecControls: FecControlSet;
-  ifrs: IfrsSet;
-  crosswalks: Crosswalk[];
-  statistics: StatisticSet;
-}
+  const reviewRequired =
+    registry.versions.filter((version) =>
+      ["review_required", "pending_endorsement"].includes(version.status),
+    ).length +
+    registry.requirements.filter((requirement) => requirement.force === "review_required").length +
+    registry.crosswalks.filter((entry) => entry.status === "review_required").length;
 
-/**
- * Exécute les huit contrôles.
- *
- * `referenceDate` (AAAA-MM-JJ) est injectée pour que le résultat soit
- * reproductible : un test qui dépendrait de l'horloge deviendrait rouge tout
- * seul le jour où une norme entre en vigueur.
- */
-export function validateKnowledgeBase(
-  input: KnowledgeInput,
-  referenceDate: string,
-): KnowledgeReport {
-  const errors: KnowledgeIssue[] = [
-    ...checkMandatoryControlsHaveSource(input.fecControls),
-    ...checkNoSecondarySourceAsMandatory(input.fecControls, input.ifrs),
-    ...checkNoFutureStandardPresentedAsEffective(input.ifrs, referenceDate),
-    ...checkEndorsementNotAssumedPositive(input.ifrs),
-    ...checkPcgDifferencesAreSourced(input.ifrs),
-    ...checkStatisticsAreQualified(input.statistics),
-    ...checkNoExcessiveIfrsQuotation(input.ifrs),
-    ...checkStatisticsAreIsolated(input.crosswalks),
-  ];
-
-  return { valid: errors.length === 0, errors, warnings: [] };
+  return {
+    valid: errors.length === 0,
+    errors,
+    warnings,
+    stats: {
+      records: registry.records.length,
+      versions: registry.versions.length,
+      requirements: registry.requirements.length,
+      statistics: registry.statistics.length,
+      reviewRequired,
+    },
+  };
 }

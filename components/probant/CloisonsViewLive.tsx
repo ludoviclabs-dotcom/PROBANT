@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -7,15 +8,8 @@ import type { CloisonId, FecEntry, Finding } from "@/lib/canonical-model";
 import { CLOISONS, buildFecDocument, siloById } from "@/lib/canonical-model";
 import { SeverityBadge } from "./Badges";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
+import { useActiveDossier } from "@/lib/dossier/client";
 import { cn } from "@/lib/utils";
-
-export const LIVE_FINDINGS_KEY = "probant:live-findings";
-/** Écritures FEC du dépôt courant, pour le rendu du grand-livre annoté. */
-export const LIVE_FEC_KEY = "probant:live-fec";
-/** Méta du dépôt courant (société, exercice, fichier). */
-export const LIVE_META_KEY = "probant:live-meta";
-/** Constats d'admissibilité du dépôt courant (conforme / alerte / rejeté). */
-export const LIVE_ADMISSIBILITE_KEY = "probant:live-admissibilite";
 
 interface LiveMeta {
   societe: string;
@@ -24,6 +18,15 @@ interface LiveMeta {
 }
 
 type Vue = "cloison" | "document";
+
+const LEDGER_PAGE_SIZE = 500;
+const MAX_RENDERED_LEDGER_ROWS = 2_000;
+
+interface LedgerPage {
+  entries: FecEntry[];
+  nextCursor: string | null;
+  total: number;
+}
 
 function groupByCloison(findings: Finding[]): Map<CloisonId, Finding[]> {
   const map = new Map<CloisonId, Finding[]>();
@@ -41,11 +44,15 @@ function LiveInner({
   entries,
   meta,
   admissibilite,
+  storageLabel,
+  ledgerTotal,
 }: {
   findings: Finding[];
   entries: FecEntry[];
   meta: LiveMeta | null;
   admissibilite: Finding[];
+  storageLabel: string;
+  ledgerTotal: number;
 }) {
   const byCloison = groupByCloison(findings);
   const cloisonsPresentes = CLOISONS.filter((c) => byCloison.has(c.id));
@@ -215,43 +222,113 @@ function LiveInner({
       )}
 
       <div className="text-[11px] text-[var(--pb-text-faint)]">
-        Résultats en mémoire de session uniquement — non persistés.
+        Source de vérité : snapshot actif ({storageLabel}).
+        {ledgerTotal > entries.length
+          ? ` Aperçu borné à ${entries.length.toLocaleString("fr-FR")} ligne(s) sur ${ledgerTotal.toLocaleString("fr-FR")}; le grand livre complet reste paginé.`
+          : ""}
       </div>
     </div>
   );
 }
 
-/* ── shell : lit sessionStorage puis délègue à LiveInner ── */
+/* ── shell : consomme exclusivement le DossierSnapshot actif ── */
 export function CloisonsViewLive() {
-  const [findings, setFindings] = useState<Finding[] | null>(null);
-  const [entries, setEntries] = useState<FecEntry[]>([]);
-  const [meta, setMeta] = useState<LiveMeta | null>(null);
-  const [admissibilite, setAdmissibilite] = useState<Finding[]>([]);
+  const { context, snapshot } = useActiveDossier();
+  const admissibilityIds = useMemo(
+    () => new Set(snapshot.admissibilityFindings.map((finding) => finding.id)),
+    [snapshot.admissibilityFindings],
+  );
+  const findings = useMemo(
+    () => snapshot.findings.filter((finding) => !admissibilityIds.has(finding.id)),
+    [admissibilityIds, snapshot.findings],
+  );
+  const source = snapshot.sourceDocuments.find((document) => document.documentType === "fec")
+    ?? snapshot.sourceDocuments.at(0);
+  const meta: LiveMeta = {
+    societe: snapshot.dossier.societe.raisonSociale,
+    exercice: snapshot.dossier.societe.exercice,
+    nomFichier: source?.fileName ?? "Dossier actif",
+  };
+  const [persistentLedger, setPersistentLedger] = useState<{
+    entries: FecEntry[];
+    total: number;
+    loading: boolean;
+    error: boolean;
+  }>({ entries: [], total: 0, loading: false, error: false });
 
   useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(LIVE_FINDINGS_KEY);
-      setFindings(raw ? (JSON.parse(raw) as Finding[]) : []);
-    } catch {
-      setFindings([]);
+    if (snapshot.sourceKind !== "persistent" || !source || source.documentType !== "fec") {
+      setPersistentLedger({ entries: [], total: 0, loading: false, error: false });
+      return;
     }
-    try {
-      const rawFec = sessionStorage.getItem(LIVE_FEC_KEY);
-      if (rawFec) setEntries(JSON.parse(rawFec) as FecEntry[]);
-      const rawMeta = sessionStorage.getItem(LIVE_META_KEY);
-      if (rawMeta) setMeta(JSON.parse(rawMeta) as LiveMeta);
-      const rawAdm = sessionStorage.getItem(LIVE_ADMISSIBILITE_KEY);
-      if (rawAdm) setAdmissibilite(JSON.parse(rawAdm) as Finding[]);
-    } catch {
-      /* écritures indisponibles : on retombe sur la vue par cloison */
-    }
-  }, []);
 
-  if (findings === null) {
+    const abortController = new AbortController();
+    setPersistentLedger({ entries: [], total: source.lineCount ?? 0, loading: true, error: false });
+
+    void (async () => {
+      const entries: FecEntry[] = [];
+      let cursor: string | null = null;
+      let total = source.lineCount ?? 0;
+      do {
+        const params = new URLSearchParams({
+          sourceDocumentId: source.id,
+          pageSize: String(LEDGER_PAGE_SIZE),
+        });
+        if (cursor) params.set("cursor", cursor);
+        const response = await fetch(
+          `/api/dossiers/${encodeURIComponent(context.dossierId)}/ledger?${params.toString()}`,
+          { signal: abortController.signal, cache: "no-store" },
+        );
+        if (!response.ok) throw new Error("LEDGER_PAGE_UNAVAILABLE");
+        const page = (await response.json()) as LedgerPage;
+        entries.push(...page.entries);
+        total = page.total;
+        cursor = page.nextCursor;
+      } while (cursor && entries.length < MAX_RENDERED_LEDGER_ROWS);
+
+      if (!abortController.signal.aborted) {
+        setPersistentLedger({
+          entries: entries.slice(0, MAX_RENDERED_LEDGER_ROWS),
+          total,
+          loading: false,
+          error: false,
+        });
+      }
+    })().catch((error: unknown) => {
+      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (!abortController.signal.aborted) {
+        setPersistentLedger({ entries: [], total: source.lineCount ?? 0, loading: false, error: true });
+      }
+    });
+
+    return () => abortController.abort();
+  }, [context.dossierId, snapshot.sourceKind, source]);
+
+  const entries: FecEntry[] = snapshot.sourceKind === "persistent"
+    ? persistentLedger.entries
+    : snapshot.ledgerEntries ?? [];
+  const ledgerTotal = snapshot.sourceKind === "persistent"
+    ? persistentLedger.total
+    : entries.length;
+
+  if (snapshot.dossier.demoMode) {
     return (
-      <div className="flex items-center gap-2 p-8 text-[13px] text-[var(--pb-text-faint)]">
-        <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-[var(--pb-accent)] border-t-transparent" />
-        Chargement des constats…
+      <div className="space-y-4">
+        <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
+          Aucun dépôt réel n'est actif. Sélectionnez un snapshot de session ou
+          déposez un FEC.
+        </div>
+        <Link href="/dashboard/depot" className="text-[12px] text-[var(--pb-accent)] hover:underline">
+          ← Retour au dépôt
+        </Link>
+      </div>
+    );
+  }
+
+  if (snapshot.sourceKind === "persistent" && persistentLedger.loading) {
+    return (
+      <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
+        Chargement paginé du grand livre…
       </div>
     );
   }
@@ -279,5 +356,14 @@ export function CloisonsViewLive() {
     );
   }
 
-  return <LiveInner findings={findings} entries={entries} meta={meta} admissibilite={admissibilite} />;
+  return (
+    <LiveInner
+      findings={findings}
+      entries={entries}
+      meta={meta}
+      admissibilite={snapshot.admissibilityFindings}
+      storageLabel={snapshot.sourceKind}
+      ledgerTotal={ledgerTotal}
+    />
+  );
 }

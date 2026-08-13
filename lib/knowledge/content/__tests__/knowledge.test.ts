@@ -20,7 +20,7 @@ import {
   loadNep,
   loadPcg,
   loadStatistics,
-} from "@/lib/knowledge/loader";
+} from "@/lib/knowledge/content/loader";
 import {
   checkEndorsementNotAssumedPositive,
   checkMandatoryControlsHaveSource,
@@ -32,14 +32,14 @@ import {
   checkStatisticsAreQualified,
   isEffectiveAt,
   validateKnowledgeBase,
-} from "@/lib/knowledge/validation";
+} from "@/lib/knowledge/content/validation";
 import type {
   Crosswalk,
   FecControlSet,
   IfrsSet,
   IfrsStandard,
   StatisticSet,
-} from "@/lib/knowledge/schemas";
+} from "@/lib/knowledge/content/schemas";
 
 /** Date de référence figée : les tests ne doivent pas dépendre de l'horloge. */
 const AT = "2026-08-14";

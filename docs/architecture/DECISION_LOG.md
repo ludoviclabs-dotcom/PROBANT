@@ -176,3 +176,25 @@ régression ultérieure deviendra impossible à imputer.
 **Alternative écartée.** Corriger « en passant » les P2 triviaux : brouille la
 frontière entre cartographie et refactor, et fait perdre la valeur de référence
 du commit.
+
+---
+
+## D-007 — Socle durable PR-03 renvoyé vers quatre ADR spécialisés
+
+**Date** : 13/08/2026 · **PR-03** · **Statut** : appliqué
+
+**Décision.** Les choix structurants de PR-03 sont conclus dans les ADR-002 à
+ADR-005 : Amazon S3 privé derrière `ObjectStorage`, `read-excel-file` dans un
+Web Worker pour XLSX, PostgreSQL + Drizzle et SQS standard + Lambda. Le mode
+persistant échoue fermé sans identité/configuration ; le mode démo ne crée
+aucun client d'infrastructure.
+
+**Pourquoi.** Ces décisions ont des cycles de révision différents et exigent
+des comparaisons traçables (stockage, licence/sécurité XLSX, schéma et runtime).
+Le journal d'architecture conserve ici leur articulation ; les métriques,
+sources, alternatives et seuils de réexamen restent dans les ADR dédiés.
+
+`xlsx@0.18.5` est retiré du manifeste et du lockfile. La baseline `npm audit`
+reste à 7 alertes transitives (4 moderate, 3 high) dans Next/Sharp/PostCSS et
+l'outillage Drizzle ; leurs corrections automatiques imposent des mises à jour
+majeures hors périmètre et restent visibles dans la CI pour PR-08.

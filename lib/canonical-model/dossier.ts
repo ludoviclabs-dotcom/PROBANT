@@ -1,3 +1,4 @@
+
 import type { CloisonId } from "./taxonomy";
 import type {
   Finding,
@@ -5,11 +6,12 @@ import type {
   ReconstitutedStatement,
   Severity,
 } from "./finding";
+import type { FecEntry } from "./fec";
 
 /**
- * Un dossier représente une exécution d'analyse sur un jeu de comptes
- * (un FEC, un exercice). Il agrège l'état financier reconstruit par silo,
- * les constats et les alertes d'admissibilité.
+ * Un dossier reprÃ©sente une exÃ©cution d'analyse sur un jeu de comptes
+ * (un FEC, un exercice). Il agrÃ¨ge l'Ã©tat financier reconstruit par silo,
+ * les constats et les alertes d'admissibilitÃ©.
  */
 
 export interface Societe {
@@ -19,7 +21,7 @@ export interface Societe {
   dateCloture: string; // AAAAMMJJ
 }
 
-/** Vue d'un silo : état reconstruit + constats rattachés. */
+/** Vue d'un silo : Ã©tat reconstruit + constats rattachÃ©s. */
 export interface SiloView {
   siloId: string;
   statement: ReconstitutedStatement;
@@ -32,16 +34,96 @@ export interface Dossier {
   demoMode: boolean;
   fecFingerprint: string;
   referentielVersion: string;
-  createdAt: string; // ISO, injecté à la génération (jamais Date.now() ici)
+  createdAt: string; // ISO, injectÃ© Ã  la gÃ©nÃ©ration (jamais Date.now() ici)
 
   /**
-   * Alertes bloquantes d'admissibilité (conformité d'ingestion FEC).
-   * Traitées en amont de toute analyse financière.
+   * Alertes bloquantes d'admissibilitÃ© (conformitÃ© d'ingestion FEC).
+   * TraitÃ©es en amont de toute analyse financiÃ¨re.
    */
   admissibilite: Finding[];
 
-  /** Vues par silo, contenant l'état reconstruit et les constats. */
+  /** Vues par silo, contenant l'Ã©tat reconstruit et les constats. */
   silos: SiloView[];
+}
+
+/** Origine du snapshot. La persistance durable est reservee a PR-03. */
+export type DossierSourceKind = "demo" | "session" | "persistent";
+
+export interface SourceDocumentSummary {
+  id: string;
+  dossierId: string;
+  fileName: string;
+  documentType: "fec" | "balance" | "pdf" | "cycle_document" | "demo";
+  fingerprint: string;
+  lineCount?: number;
+  pageCount?: number;
+  parserVersion?: string;
+  truncated?: boolean;
+  createdAt: string;
+}
+
+export type ReviewEventStatus =
+  | import("./finding").StatutRevue
+  | "corrige"
+  | "pending"
+  | "needs_evidence"
+  | "confirmed"
+  | "dismissed"
+  | "corrected"
+  | "superseded";
+
+export interface ReviewEvent {
+  id: string;
+  dossierId: string;
+  findingId: string;
+  previousStatus: ReviewEventStatus;
+  newStatus: ReviewEventStatus;
+  comment?: string;
+  actorLabel: string;
+  actorRole: string;
+  createdAt: string;
+  relatedEvidenceIds: string[];
+}
+
+export interface CalculationContext {
+  entriesTotal: number;
+  entriesAnalysed: number;
+  controlsEligible: number;
+  controlsExecuted: number;
+  controlsConcluded: number;
+  controlsNotConcluded: number;
+  controlsNotApplicable?: number;
+  expectedDocumentTypes?: string[];
+  cycleIdsEligible?: string[];
+  cycleIdsCovered?: string[];
+  materialityAmount?: number;
+  materialityBasis?: { chiffreAffaires: number };
+  scenarioMeta?: {
+    label: string;
+    secteur: string;
+    forme: string;
+    exercice: string;
+  };
+  taxEffectCents?: number;
+  notes: string[];
+}
+
+/**
+ * Projection canonique et immutable d'un dossier a un instant donne.
+ * Toutes les pages de restitution doivent consommer cette meme enveloppe.
+ */
+export interface DossierSnapshot {
+  dossier: Dossier;
+  sourceDocuments: SourceDocumentSummary[];
+  findings: Finding[];
+  admissibilityFindings: Finding[];
+  reviewEvents: ReviewEvent[];
+  calculationContext: CalculationContext;
+  snapshotVersion: string;
+  snapshotHash: string;
+  sourceKind: DossierSourceKind;
+  /** Lignes disponibles pour la restitution détaillée de session. */
+  ledgerEntries?: FecEntry[];
 }
 
 export interface DossierCounts {
@@ -50,7 +132,7 @@ export interface DossierCounts {
   parStatut: { en_attente: number; valide: number; ecarte: number };
   bloquantesAdmissibilite: number;
   totalFindings: number;
-  /** Incidence potentielle estimée (somme |écart EUR|) par cloison. */
+  /** Incidence potentielle estimÃ©e (somme |Ã©cart EUR|) par cloison. */
   incidenceParCloison: Partial<Record<CloisonId, number>>;
 }
 

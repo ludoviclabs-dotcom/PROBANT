@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -6,8 +7,7 @@ import type { AuditCycle, CycleFamily } from "@/lib/audit-cycles/types";
 import { CYCLE_FAMILIES, CYCLE_FAMILY_LABEL } from "@/lib/audit-cycles/types";
 import { computeMateriality, type MaterialityThresholds } from "@/lib/audit/materiality";
 import type { Finding } from "@/lib/canonical-model";
-import { allFindings } from "@/lib/canonical-model/dossier";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
+import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 import type { CriticityBand, CycleRiskScore } from "@/lib/risk-mapping";
 import {
   buildCycleScores,
@@ -38,10 +38,8 @@ import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
  * graphe de flux, nuage, panneau détail), détient l'état d'interface et le hook
  * d'ajustements de jugement.
  *
- * Les constats proviennent du dossier démo `DEMO_DOSSIER` (même source que la
- * Synthèse), fusionnés best-effort avec d'éventuels constats « live » déposés en
- * `sessionStorage` par le module de dépôt FEC. La fusion est déduplicée par
- * `finding.id`. La matérialité est dérivée de la base passée en props.
+ * Les constats proviennent exclusivement du `DossierSnapshot` actif.
+ * La matérialité est dérivée de la base passée en props.
  *
  * Règle de fiabilité (non négociable) : le composite est une heuristique interne
  * jamais opposable (marqueur `isHeuristic` porté par chaque score). Les arcs du
@@ -49,10 +47,6 @@ import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
  * partagés. `GENERATED_AT` est une constante : aucun `Date.now()` au rendu, pour
  * exclure tout écart d'hydratation serveur/client.
  */
-
-/** Clés `sessionStorage` des constats déposés (même source que la revue live). */
-const LIVE_FINDINGS_KEY = "probant:live-findings";
-const LIVE_ADMISSIBILITE_KEY = "probant:live-admissibilite";
 
 /**
  * Horodatage de génération du graphe, figé. La valeur n'est pas opposable : elle
@@ -96,36 +90,7 @@ const EXERCISE_OPTIONS: { value: HistoricalExercise; label: string }[] = [
   { value: CURRENT_EXERCISE, label: "2024 réel" },
 ];
 
-/**
- * Lit un tableau de `Finding` sérialisé dans `sessionStorage` sans jamais lever :
- * une clé absente ou illisible retombe sur une liste vide.
- */
-function readLiveFindings(key: string): Finding[] {
-  try {
-    const raw = sessionStorage.getItem(key);
-    if (!raw) return [];
-    const parsed: unknown = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as Finding[]) : [];
-  } catch {
-    return [];
-  }
-}
-
-/** Fusionne les constats démo et live en dédupliquant par `finding.id`. */
-function mergeFindings(base: Finding[], live: Finding[]): Finding[] {
-  const byId = new Map<string, Finding>();
-  for (const f of base) byId.set(f.id, f);
-  for (const f of live) byId.set(f.id, f);
-  return [...byId.values()];
-}
-
-export function RiskMappingView({
-  cycles,
-  materialityBasis,
-}: {
-  cycles: AuditCycle[];
-  materialityBasis: { chiffreAffaires: number };
-}) {
+export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>("matrix");
@@ -164,7 +129,10 @@ export function RiskMappingView({
     };
   }, []);
 
-  const { adjustments, setAdjustment, resetCycle, resetAll, saveStatus } = useRiskAdjustments();
+  const activeSnapshot = useActiveDossierSnapshot();
+  const { adjustments, setAdjustment, resetCycle, resetAll, saveStatus } = useRiskAdjustments(
+    activeSnapshot.dossier.id,
+  );
   const coverage = useDepositCoverage();
 
   // Cycles de dépôt éligibles pour la matrice : slug (base normative) → id de
@@ -179,26 +147,16 @@ export function RiskMappingView({
     [],
   );
 
-  // Constats démo + live. Sentinelle `null` = pas encore hydraté (pattern
-  // CloisonsViewLive) : on ne fige pas un premier rendu qui ignorerait des
-  // constats déposés côté client.
-  const demoFindings = useMemo(() => allFindings(DEMO_DOSSIER), []);
-  const [liveFindings, setLiveFindings] = useState<Finding[] | null>(null);
-  useEffect(() => {
-    setLiveFindings([
-      ...readLiveFindings(LIVE_ADMISSIBILITE_KEY),
-      ...readLiveFindings(LIVE_FINDINGS_KEY),
-    ]);
-  }, []);
-
   const findings = useMemo(
-    () => mergeFindings(demoFindings, liveFindings ?? []),
-    [demoFindings, liveFindings],
+    () => activeSnapshot.findings,
+    [activeSnapshot.findings],
   );
 
   const materiality = useMemo(
-    () => computeMateriality(materialityBasis),
-    [materialityBasis],
+    () => computeMateriality(
+      activeSnapshot.calculationContext.materialityBasis ?? { chiffreAffaires: 0 },
+    ),
+    [activeSnapshot.calculationContext.materialityBasis],
   );
 
   // Seuil de matérialité alternatif du simulateur ISA 320 (Bloc 4) : substitue
@@ -384,7 +342,12 @@ export function RiskMappingView({
                 {aggregates.unevaluatedCycleCount} non évalué(s)
               </span>
               <span>·</span>
-              <span>{findings.length} constat(s) — données démo DEMO SA</span>
+              <span>
+                {findings.length} constat(s) —{" "}
+                {activeSnapshot.dossier.demoMode
+                  ? "données fictives DEMO SA"
+                  : "dossier actif"}
+              </span>
               {aggregates.unattachedFindings.length > 0 && (
                 <>
                   <span>·</span>
@@ -686,7 +649,7 @@ export function RiskMappingView({
           {/* Disclaimer + reset global */}
           <p className="mt-3 text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
             Heuristique interne d'aide à la hiérarchisation — non opposable. Basée
-            sur les constats du dossier démo DEMO SA · ajustements de jugement
+            sur les constats du dossier actif · ajustements de jugement
             sauvegardés côté serveur (persistance simulée, non durable au
             redémarrage — pas une vraie base de données).
             {hasAdjustments && (
