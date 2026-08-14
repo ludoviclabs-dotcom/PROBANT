@@ -168,11 +168,18 @@ export function buildSynthesisSnapshot(
     explanation: `min(ratio écritures, ratio contrôles conclus) ; substantial si ≥ ${COVERAGE_SUBSTANTIAL_MIN}, partial si > 0, none sinon.`,
   });
 
+  // Statut de revue de chaque constat (dernier événement, sinon statut porté
+  // par le constat) — calculé une fois, partagé par Risk, Exposure et Review.
+  const statusOf = new Map<string, string>(
+    findings.map((f) => [f.id, statusAfterReviewEvents(f, input.reviewEvents)]),
+  );
+
   /* ── 3. Risk ───────────────────────────────────────────────────────────── */
   const bySeverity = Object.fromEntries(SEVERITIES.map((s) => [s, 0])) as Record<Severity, number>;
   const byFamily = Object.fromEntries(FAMILIES.map((f) => [f, 0])) as Record<FindingFamily, number>;
   const matrix: Partial<Record<CloisonId, Record<Severity, number>>> = {};
   let weighted = 0;
+  let openBlockingCount = 0;
   for (const f of findings) {
     bySeverity[f.severity]++;
     byFamily[f.family]++;
@@ -181,6 +188,9 @@ export function buildSynthesisSnapshot(
       matrix[f.cloison] ??
       (matrix[f.cloison] = Object.fromEntries(SEVERITIES.map((s) => [s, 0])) as Record<Severity, number>);
     row[f.severity]++;
+    if (f.severity === "bloquant" && !CLOSED_REVIEW.has(statusOf.get(f.id) ?? "en_attente")) {
+      openBlockingCount++;
+    }
   }
   const heuristicSeverityIndex = Math.round(
     (100 * weighted) / (weighted + HEURISTIC_SATURATION),
@@ -190,9 +200,27 @@ export function buildSynthesisSnapshot(
     byFamily,
     matrix,
     totalFindings: findings.length,
+    openBlockingCount,
     heuristicSeverityIndex,
     heuristicSeverityIndexIsVerdict: false,
   };
+  trace.push({
+    metricId: "risk.openBlockingCount",
+    formulaId: "open-blocking-count",
+    formulaVersion: "1.0.0",
+    inputs: {
+      totalBloquant: bySeverity.bloquant,
+      closedStatuses: [...CLOSED_REVIEW],
+    },
+    excludedItems: findings
+      .filter((f) => f.severity === "bloquant" && CLOSED_REVIEW.has(statusOf.get(f.id) ?? "en_attente"))
+      .map((f) => ({ id: f.id, reason: `bloquant mais revue close (${statusOf.get(f.id)})` })),
+    output: openBlockingCount,
+    unit: "count",
+    rounding: "none",
+    explanation:
+      "Constats de gravité bloquante dont la revue n'est pas close. Distinct de bySeverity.bloquant, qui compte tous les bloquants sans regard sur leur statut de revue.",
+  });
   trace.push({
     metricId: "risk.heuristicSeverityIndex",
     formulaId: "legacy-severity-index",
@@ -213,10 +241,6 @@ export function buildSynthesisSnapshot(
   /* ── 4. Exposure ───────────────────────────────────────────────────────── */
   const { records, withoutEffect } = collectEffects(findings, input.dossier.fecFingerprint);
   const dedup = deduplicateEffects(records);
-
-  const statusOf = new Map<string, string>(
-    findings.map((f) => [f.id, statusAfterReviewEvents(f, input.reviewEvents)]),
-  );
 
   // Exposition revue : clusters dont TOUS les membres ont une revue close.
   // Ventilation complémentaire du montant retenu de chaque cluster selon le

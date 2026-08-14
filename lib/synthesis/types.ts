@@ -70,6 +70,14 @@ export interface RiskDimension {
   matrix: Partial<Record<CloisonId, Record<Severity, number>>>;
   totalFindings: number;
   /**
+   * Constats de gravité bloquante dont la revue n'est PAS close (dernier
+   * événement de revue hors statuts clos — cf. review.byStatus). Distinct de
+   * `bySeverity.bloquant`, qui compte tous les bloquants sans regard sur leur
+   * statut de revue : un bloquant déjà validé/écarté/corrigé n'est plus un
+   * blocage ouvert.
+   */
+  openBlockingCount: number;
+  /**
    * Indice heuristique historique (poids 25/8/2/0.5, saturation /(W+52)).
    * SUBORDONNÉ : jamais utilisé pour le verdict. Conservé pour continuité
    * visuelle, marqué heuristique, tracé comme les autres KPI.

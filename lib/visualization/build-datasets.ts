@@ -51,8 +51,12 @@ function cloisonLabel(id: string): string {
 const RULE_FIELD_MAP: Record<string, readonly string[]> = {
   "R-HL-002": [...FEC_COLUMNS], // présence des 18 rubriques
   "R-HL-003": [...FEC_COLUMNS], // ordre des rubriques
-  "R-HL-004": ["EcritureDate", "PieceDate", "DateLet", "ValidDate"],
+  // R_HL_004.run (hard-law.ts) ne teste que `e.ecritureDate` — PieceDate,
+  // DateLet et ValidDate ne sont jamais inspectées par cette règle.
+  "R-HL-004": ["EcritureDate"],
   "R-HL-005": ["Debit", "Credit"],
+  // R_HL_006.run ne teste que `e.compteNum`.
+  "R-HL-006": ["CompteNum"],
   "R-HL-007": ["ValidDate"],
   "R-HL-008": ["Debit", "Credit"],
   "R-HL-009": ["Debit", "Credit", "Montantdevise"],
@@ -101,9 +105,12 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
     {
       id: "blocages",
       label: "Blocages ouverts",
-      value: String(s.risk.bySeverity.bloquant),
-      tone: s.risk.bySeverity.bloquant > 0 ? "critical" : "positive",
-      detail: "constats de gravité bloquante",
+      value: String(s.risk.openBlockingCount),
+      tone: s.risk.openBlockingCount > 0 ? "critical" : "positive",
+      detail:
+        s.risk.openBlockingCount === s.risk.bySeverity.bloquant
+          ? "constats de gravité bloquante, revue non close"
+          : `sur ${s.risk.bySeverity.bloquant} constat(s) de gravité bloquante — le reste est déjà arbitré`,
     },
     {
       id: "couverture",

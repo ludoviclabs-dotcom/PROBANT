@@ -469,3 +469,77 @@ describe("bornes de politiques", () => {
     expect(s.limitations.some((l) => l.code === "internal_threshold")).toBe(true);
   });
 });
+
+/* ── risk.openBlockingCount — distinct de bySeverity.bloquant ────────────── */
+describe("openBlockingCount — bloquants dont la revue n'est pas close", () => {
+  it("compte tous les bloquants tant qu'aucun n'est arbitré", () => {
+    const s = build(
+      makeDossierSnapshot({
+        findings: [
+          makeFinding("f-1", { severity: "bloquant" }),
+          makeFinding("f-2", { severity: "bloquant" }),
+        ],
+      }),
+    );
+    expect(s.risk.bySeverity.bloquant).toBe(2);
+    expect(s.risk.openBlockingCount).toBe(2);
+  });
+
+  it("un bloquant validé n'est plus un blocage ouvert, mais reste compté en gravité", () => {
+    const s = build(
+      makeDossierSnapshot({
+        findings: [
+          makeFinding("f-1", { severity: "bloquant", statutRevue: "valide" }),
+          makeFinding("f-2", { severity: "bloquant" }),
+        ],
+      }),
+    );
+    expect(s.risk.bySeverity.bloquant).toBe(2);
+    expect(s.risk.openBlockingCount).toBe(1);
+  });
+
+  it("un bloquant écarté sort du décompte de blocages ouverts", () => {
+    const s = build(
+      makeDossierSnapshot({
+        findings: [makeFinding("f-1", { severity: "bloquant", statutRevue: "ecarte" })],
+      }),
+    );
+    expect(s.risk.openBlockingCount).toBe(0);
+  });
+
+  it("un événement de revue postérieur au statut du constat prime", () => {
+    const f = makeFinding("f-1", { severity: "bloquant", statutRevue: "en_attente" });
+    const s = build(
+      makeDossierSnapshot({
+        findings: [f],
+        reviewEvents: [
+          {
+            id: "ev-1",
+            dossierId: "dossier-test",
+            findingId: "f-1",
+            previousStatus: "en_attente",
+            newStatus: "valide",
+            actorLabel: "Réviseur",
+            actorRole: "reviewer",
+            createdAt: "2026-08-14T10:00:00.000Z",
+            relatedEvidenceIds: [],
+          },
+        ],
+      }),
+    );
+    expect(s.risk.openBlockingCount).toBe(0);
+  });
+
+  it("trace risk.openBlockingCount avec l'exclusion motivée du bloquant clos", () => {
+    const s = build(
+      makeDossierSnapshot({
+        findings: [makeFinding("f-1", { severity: "bloquant", statutRevue: "valide" })],
+      }),
+    );
+    const t = s.calculationTrace.find((x) => x.metricId === "risk.openBlockingCount");
+    expect(t?.output).toBe(0);
+    expect(t?.excludedItems).toEqual([
+      expect.objectContaining({ id: "f-1", reason: expect.stringMatching(/revue close/) }),
+    ]);
+  });
+});

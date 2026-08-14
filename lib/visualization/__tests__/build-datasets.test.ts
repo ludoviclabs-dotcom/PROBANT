@@ -137,7 +137,10 @@ describe("matrice FEC", () => {
     );
   });
 
-  it("localise une alerte de format de date sur les zones de date", () => {
+  it("R-HL-004 : localise l'alerte sur EcritureDate exclusivement", () => {
+    // R_HL_004.run (lib/rules-engine/registries/hard-law.ts) ne teste que
+    // e.ecritureDate — PieceDate/DateLet/ValidDate ne sont jamais inspectées
+    // par cette règle et ne doivent donc pas être marquées en alerte.
     const blocking = makeFinding("adm-1", {
       severity: "bloquant",
       ruleId: "R-HL-004",
@@ -146,9 +149,20 @@ describe("matrice FEC", () => {
       makeDossierSnapshot({ admissibilityFindings: [blocking], findings: [blocking] }),
     );
     const dates = datasets.fecQuality.rows.filter((r) => r.emphasis === "critical");
-    expect(dates.map((r) => r.cells.zone).sort()).toEqual([
-      "DateLet", "EcritureDate", "PieceDate", "ValidDate",
-    ]);
+    expect(dates.map((r) => r.cells.zone)).toEqual(["EcritureDate"]);
+  });
+
+  it("R-HL-006 : localise l'alerte sur CompteNum", () => {
+    // R_HL_006.run ne teste que e.compteNum.
+    const blocking = makeFinding("adm-1", {
+      severity: "bloquant",
+      ruleId: "R-HL-006",
+    });
+    const { datasets } = datasetsFor(
+      makeDossierSnapshot({ admissibilityFindings: [blocking], findings: [blocking] }),
+    );
+    const alerted = datasets.fecQuality.rows.filter((r) => r.emphasis === "critical");
+    expect(alerted.map((r) => r.cells.zone)).toEqual(["CompteNum"]);
   });
 });
 
