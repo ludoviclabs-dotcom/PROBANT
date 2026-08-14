@@ -129,9 +129,16 @@ comparaison pour la prochaine PR.
 | Contrôle | Statut | Détail |
 |---|---|---|
 | Configuration | **PASS** | `lighthouserc.json`, 7 URL, 3 exécutions, preset desktop |
-| Exécution | **NOT_TESTED** | Job CI `lighthouse` ; non exécuté localement |
+| Exécution | **PASS** | 14/08/2026 — 7 URL × 3 exécutions, 6 min 27 |
 | Assertions bloquantes | — | LCP ≤ 2 500 ms, CLS ≤ 0,1 |
 | Assertions d'alerte | — | Score performance ≥ 0,8, TBT ≤ 200 ms |
+
+Toutes les assertions bloquantes sont satisfaites sur les sept pages :
+**LCP ≤ 2 500 ms** et **CLS ≤ 0,1** en conditions de laboratoire, preset
+desktop. Ce résultat ne vaut pas conformité Core Web Vitals — il constate que
+le laboratoire ne détecte aucune régression, sur une machine de CI sans
+concurrence réseau. Les cibles du § 1 restent `NOT_TESTED` tant que le terrain
+n'a pas parlé.
 
 **INP n'est pas asserté** : cette métrique n'est pas mesurable en laboratoire.
 Son proxy TBT l'est, et c'est lui qui est surveillé. Asserter un INP de
@@ -167,6 +174,7 @@ une capacité.
 2. Agréger les lignes `event=web_vital` du flux de logs avec `summarize()`.
 3. Reporter les P75 obtenus dans le § 1, avec le nombre d'échantillons et la
    période d'observation — un P75 sans son volume n'est pas un résultat.
-4. Exécuter le job Lighthouse CI et joindre `.lighthouseci`.
+4. ~~Exécuter le job Lighthouse CI~~ — **fait le 14/08/2026**, assertions
+   satisfaites ; les rapports `.lighthouseci` sont publiés comme artefact de CI.
 5. Construire le corpus de benchmark d'ingestion (PR-03) **avant** de proposer
    le moindre SLO chiffré.

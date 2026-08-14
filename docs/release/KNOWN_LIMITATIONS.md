@@ -23,7 +23,7 @@ Classement par nature de risque, puis par gravité décroissante.
 | L-04 | **Les limites de Functions ne sont pas configurées.** Ni `vercel.json` ni `vercel.ts` : durée et mémoire restent aux valeurs par défaut de la plateforme. | Une valeur par défaut n'est pas un choix documenté ; un job long peut être coupé sans que la limite ait été décidée. | Créer `vercel.ts` après mesure du corpus de benchmark |
 | L-05 | **La protection de branche `main` n'est pas vérifiée.** Les règles sont prescrites, pas constatées. | Rien ne garantit aujourd'hui qu'un push direct sur `main` soit impossible. | `gh api repos/…/branches/main/protection` — cf. `BRANCH_PROTECTION.md` |
 | L-06 | **Aucun smoke test Preview ni Production n'a été exécuté.** | Le comportement de l'artefact déployé n'est pas attesté, seulement celui du build local. | Exécuter la liste de 10 contrôles de `BRANCH_PROTECTION.md` § 4 |
-| L-07 | **CodeQL, secret scan et Lighthouse CI n'ont jamais tourné.** Les jobs sont écrits, jamais exécutés. | Leur première exécution peut révéler des défauts non anticipés. | Ouvrir la PR : la CI les déclenche |
+| ~~L-07~~ | ~~CodeQL, secret scan et Lighthouse CI n'ont jamais tourné.~~ **LEVÉE le 14/08/2026** : les 8 jobs ont tourné verts sur la PR #41. CodeQL n'a remonté aucune alerte ; Lighthouse satisfait ses assertions LCP et CLS sur 7 URL × 3 exécutions. | — | Deux échecs ont précédé ce vert, tous deux dans la configuration de la CI, aucun dans le code — cf. `TEST_REPORT.md` § 8 |
 
 ---
 

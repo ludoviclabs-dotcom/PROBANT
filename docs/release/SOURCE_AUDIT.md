@@ -34,7 +34,7 @@ Commande : `npm audit --audit-level=high` — **PASS**, désormais **bloquante e
 | Avis | Sévérité | Origine réelle | Décision | Statut |
 |---|---|---|---|---|
 | `postcss` — XSS via `</style>` non échappé ; lecture arbitraire via `sourceMappingURL` (×2) | high | `postcss@8.4.31` **imbriqué sous `next`**, alors que le projet dépend directement de `postcss@8.5.26`, dernière version publiée | `overrides: { "postcss": "$postcss" }` — aligne l'arbre sur la version déjà présente | **PASS** |
-| `sharp` — CVE-2026-33327, 33328, 35590, 35591 (libvips) | high | `sharp@0.34.5`, dépendance optionnelle de `next` pour `next/image` | `overrides: { "sharp": "^0.35.3" }` — bump mineur ; `npm run build` et 438 tests revérifiés | **PASS** |
+| `sharp` — CVE-2026-33327, 33328, 35590, 35591 (libvips) | high | `sharp@0.34.5`, dépendance optionnelle de `next` pour `next/image` | `overrides: { "sharp": "^0.35.3" }` — bump mineur ; `npm run build` et 444 tests revérifiés | **PASS** |
 | `esbuild` — le serveur de développement accepte toute requête cross-origin | moderate | `esbuild@0.18.20` sous `@esbuild-kit/*`, chaîne héritée de `drizzle-kit` | `overrides: { "esbuild": "^0.25.12" }` | **PASS** |
 
 **Correctif refusé.** `npm audit fix --force` proposait de rétrograder
@@ -131,7 +131,7 @@ Production.
 
 | Contrôle | Statut | Détail |
 |---|---|---|
-| CI présente et complète | **PASS** | 8 jobs — cf. `.github/workflows/ci.yml` |
+| CI présente et complète | **PASS** | 8 jobs, **tous verts** le 14/08/2026 — [run 31803317981](https://github.com/ludoviclabs-dotcom/PROBANT/actions/runs/31803317981) |
 | Protection de branche `main` | **NOT_VERIFIED** | Non lisible depuis le dépôt. Règles prescrites et commande de vérification dans [`BRANCH_PROTECTION.md`](./BRANCH_PROTECTION.md) |
 | `CODEOWNERS` | **NOT_TESTED** | Fichier proposé, non créé — décision d'organisation |
 | Smoke test Preview | **NOT_TESTED** | Liste de 10 contrôles définie ; aucun déploiement Preview exécuté dans cette campagne |

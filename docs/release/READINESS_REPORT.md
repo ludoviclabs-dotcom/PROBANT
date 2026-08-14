@@ -19,18 +19,20 @@ Les huit critères énoncés pour PR-08, dans l'ordre.
 
 | # | Critère | Statut | Preuve |
 |---|---|---|---|
-| 1 | **CI verte** | **PASS_WITH_LIMITATIONS** | 5 contrôles exécutés localement (lint, typecheck, 438 tests, build, 18 E2E) ; 3 jobs jamais exécutés (CodeQL, secret scan, Lighthouse) |
+| 1 | **CI verte** | **PASS** | **8 jobs verts** le 14/08/2026 — [run 31803317981](https://github.com/ludoviclabs-dotcom/PROBANT/actions/runs/31803317981) |
 | 2 | **Auth et isolation testées** | **PASS** | 84 tests d'authentification dont **14 tests négatifs d'isolation** couvrant nommément les 4 scénarios exigés |
 | 3 | **Aucun bouton factice** | **PASS** | E2E : tout bouton visible porte un nom accessible ; note de synthèse et exports produisent un effet observable |
-| 4 | **Dossier actif cohérent** | **PASS** | Aucune régression : 438 tests verts, dont ceux de PR-02/05/06 |
+| 4 | **Dossier actif cohérent** | **PASS** | Aucune régression : 444 tests verts, dont ceux de PR-02/05/06 |
 | 5 | **Aucun `xlsx` vulnérable connu** | **PASS** | `xlsx` **absent du lockfile** ; `npm audit` : **0 vulnérabilité** |
 | 6 | **RUM activé** | **PASS** | Collecte native `PerformanceObserver` → `/api/rum`, sans connecteur SaaS |
 | 7 | **CWV reportés, même si trafic insuffisant** | **PASS_WITH_LIMITATIONS** | Dispositif en place et documenté ; **aucune mesure de terrain** — reporté comme `NOT_TESTED`, pas comme conforme |
 | 8 | **Limitations connues explicites** | **PASS** | 29 limitations datées et chiffrées dans [`KNOWN_LIMITATIONS.md`](./KNOWN_LIMITATIONS.md) |
 | 9 | **Preview et Production smoke-testés** | **NOT_TESTED** | Liste de 10 contrôles définie ; aucun déploiement exécuté dans cette campagne |
 
-**Sept critères sur neuf sont tenus.** Les deux restants (7 partiel, 9) ne
-dépendent pas du code : ils exigent un déploiement et du trafic.
+**Huit critères sur neuf sont tenus.** Le neuvième — smoke test Preview et
+Production — ne dépend pas du code : il exige un déploiement. Le critère 7
+reste partiel faute de trafic réel, la mesure de laboratoire ne pouvant en
+tenir lieu.
 
 ---
 
@@ -140,11 +142,11 @@ octets par `pull`, préservant le streaming introduit en PR-03.
 | build | `verify` | **PASS** |
 | Playwright | `e2e` | **PASS** |
 | Axe | `e2e` | **PASS** |
-| Lighthouse CI | `lighthouse` | **NOT_TESTED** |
+| Lighthouse CI | `lighthouse` | **PASS** — LCP et CLS satisfaits sur 7 URL |
 | dependency scan | `supply-chain` | **PASS** — bloquant à partir de `high` |
-| CodeQL | `codeql` | **NOT_TESTED** |
-| secret scan | `secret-scan` | **NOT_TESTED** |
-| migration tests | `migrations` | **NOT_TESTED** localement — inclut un **aller-retour descendant puis remontant** |
+| CodeQL | `codeql` | **PASS** — aucune alerte |
+| secret scan | `secret-scan` | **PASS** |
+| migration tests | `migrations` | **PASS** — **aller-retour descendant puis remontant** |
 | fixture ingestion tests | `fixtures` | **PASS** |
 | SBOM | `supply-chain` | **PASS** — CycloneDX 1.5, 668 composants, reproductible |
 
@@ -210,7 +212,7 @@ Résumé ; le détail est dans [`KNOWN_LIMITATIONS.md`](./KNOWN_LIMITATIONS.md).
 | Document | Objet |
 |---|---|
 | [`SOURCE_AUDIT.md`](./SOURCE_AUDIT.md) | Chaîne d'approvisionnement, runtime, plateforme Vercel, gouvernance |
-| [`TEST_REPORT.md`](./TEST_REPORT.md) | 438 tests, 18 E2E, tests négatifs d'isolation |
+| [`TEST_REPORT.md`](./TEST_REPORT.md) | 444 tests, 18 E2E, tests négatifs d'isolation |
 | [`PERFORMANCE_REPORT.md`](./PERFORMANCE_REPORT.md) | RUM, budgets P75, baseline de build, SLI métier |
 | [`ACCESSIBILITY_REPORT.md`](./ACCESSIBILITY_REPORT.md) | axe-core sur pages assemblées, défaut critique corrigé, dette gelée |
 | [`KNOWN_LIMITATIONS.md`](./KNOWN_LIMITATIONS.md) | 29 limitations datées |
