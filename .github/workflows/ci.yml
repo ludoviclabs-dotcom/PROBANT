@@ -349,11 +349,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          # L'historique complet est nécessaire : un secret retiré du dernier
-          # commit reste exploitable s'il est resté dans un commit antérieur.
+          # Profondeur complète : l'action compare la base et la tête de la PR.
+          # Sans l'historique, un secret introduit puis retiré dans un commit
+          # intermédiaire de la branche échapperait au balayage.
           fetch-depth: 0
 
       - name: TruffleHog
         uses: trufflesecurity/trufflehog@main
         with:
-          extra_args: --results=verified,unknown --fail
+          # `--fail` est déjà passé par l'action : le répéter ici fait échouer
+          # TruffleHog sur « flag 'fail' cannot be repeated ».
+          # `unknown` couvre les détecteurs sans vérification en ligne — un
+          # secret non vérifiable reste un secret à examiner.
+          extra_args: --results=verified,unknown
