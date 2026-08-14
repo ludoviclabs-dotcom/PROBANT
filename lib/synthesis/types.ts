@@ -70,6 +70,14 @@ export interface RiskDimension {
   matrix: Partial<Record<CloisonId, Record<Severity, number>>>;
   totalFindings: number;
   /**
+   * Constats de gravité bloquante dont la revue n'est PAS close (dernier
+   * événement de revue hors statuts clos — cf. review.byStatus). Distinct de
+   * `bySeverity.bloquant`, qui compte tous les bloquants sans regard sur leur
+   * statut de revue : un bloquant déjà validé/écarté/corrigé n'est plus un
+   * blocage ouvert.
+   */
+  openBlockingCount: number;
+  /**
    * Indice heuristique historique (poids 25/8/2/0.5, saturation /(W+52)).
    * SUBORDONNÉ : jamais utilisé pour le verdict. Conservé pour continuité
    * visuelle, marqué heuristique, tracé comme les autres KPI.
@@ -104,6 +112,10 @@ export interface ExposureDimension {
   deduplicatedExposureCents: number;
   /** Part de l'exposition dédupliquée dont la revue humaine est close. */
   reviewedExposureCents: number;
+  /** Part de l'exposition dédupliquée portée par des constats ÉCARTÉS. */
+  dismissedExposureCents: number;
+  /** Part de l'exposition dédupliquée encore EN ATTENTE de revue. */
+  pendingReviewExposureCents: number;
   /** Somme signée des effets des constats VALIDÉS (ajustement proposé). */
   validatedAdjustmentCents: number;
   /** Effet d'impôt sur l'ajustement validé (taux explicites uniquement). */
