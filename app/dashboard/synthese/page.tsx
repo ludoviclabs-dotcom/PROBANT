@@ -3,12 +3,9 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import Link from "next/link";
-import {
-  calculateReviewProgress,
-  computeLegacyExposureIndex,
-  LEGACY_EXPOSURE_WEIGHTS,
-} from "@/lib/dossier";
+import { LEGACY_EXPOSURE_WEIGHTS } from "@/lib/dossier";
 import { useActiveDossierSnapshot } from "@/lib/dossier/client";
+import { buildSynthesisSnapshot, generateSynthesisNote } from "@/lib/synthesis";
 import { CLOISONS } from "@/lib/canonical-model/taxonomy";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
 import type { Severity, FindingFamily, Finding } from "@/lib/canonical-model/finding";
@@ -75,16 +72,22 @@ function eur(n: number | null | undefined): string {
 function eurFull(n: number): string {
   return `${(n || 0).toLocaleString("fr-FR")} €`;
 }
-function findingInc(f: Finding): number {
-  return f.mesure.unite === "EUR" ? Math.abs(f.mesure.constate - f.mesure.seuil) : 0;
+/**
+ * Montant de l'effet financier EXPLICITE du constat, en euros d'affichage.
+ * 0 si le constat ne porte pas de `financialEffect` — l'ancienne présomption
+ * |constaté − seuil| n'est plus utilisée nulle part dans cette page.
+ */
+function findingEffectEuros(f: Finding): number {
+  return f.financialEffect ? f.financialEffect.amountCents / 100 : 0;
 }
 
 interface IdxLevel { label: string; hex: string; bg: string; bd: string; }
+/** Habillage visuel du signal heuristique — le verdict vient du moteur. */
 function idxLevel(idx: number): IdxLevel {
-  if (idx >= 60) return { label: "Exposition élevée",  hex: "#ef4444", bg: "#2a1416", bd: "rgba(239,68,68,.45)" };
-  if (idx >= 40) return { label: "Exposition notable", hex: "#f97316", bg: "#2a1a0e", bd: "rgba(249,115,22,.45)" };
-  if (idx >= 20) return { label: "Exposition modérée", hex: "#eab308", bg: "#292207", bd: "rgba(234,179,8,.45)" };
-  return { label: "Risque maîtrisé", hex: "#22c55e", bg: "#0f2417", bd: "rgba(34,197,94,.45)" };
+  if (idx >= 60) return { label: "Signal heuristique élevé",  hex: "#ef4444", bg: "#2a1416", bd: "rgba(239,68,68,.45)" };
+  if (idx >= 40) return { label: "Signal heuristique notable", hex: "#f97316", bg: "#2a1a0e", bd: "rgba(249,115,22,.45)" };
+  if (idx >= 20) return { label: "Signal heuristique modéré", hex: "#eab308", bg: "#292207", bd: "rgba(234,179,8,.45)" };
+  return { label: "Signal heuristique faible", hex: "#22c55e", bg: "#0f2417", bd: "rgba(34,197,94,.45)" };
 }
 
 // Tooltip controller shared with charts
@@ -385,43 +388,56 @@ export default function SynthesePage() {
     return () => { if (rafRef.current) cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // ── Calcul agrégé ────────────────────────────────────────────────────
+  // ── Moteur de Synthèse — TOUT le calcul métier vit dans lib/synthesis ──
+  // Le composant ne fait plus que projeter le SynthesisSnapshot en géométrie
+  // de graphiques. Horloge injectée : le hash du snapshot n'en dépend pas.
+  const synthesis = useMemo(
+    () => buildSynthesisSnapshot(snapshot, { clock: () => new Date().toISOString() }),
+    [snapshot],
+  );
+
   const calc = useMemo(() => {
-    const sevCount: Record<Severity, number> = { bloquant: 0, majeur: 0, mineur: 0, informatif: 0 };
-    const famCount: Record<FindingFamily, number> = { hardLaw: 0, methodology: 0, internal: 0 };
-    const incByClo: Record<string, number> = {};
+    // Projections d'affichage (aucun calcul métier : lecture du snapshot).
     const matrix: Record<string, Record<Severity, number>> = {};
     const cloW: Record<string, number> = {};
-    axes.forEach((c) => { incByClo[c.id] = 0; cloW[c.id] = 0; matrix[c.id] = { bloquant: 0, majeur: 0, mineur: 0, informatif: 0 }; });
-    let totalInc = 0, bloquants = 0, W = 0;
-    for (const f of findings) {
-      sevCount[f.severity]++;
-      famCount[f.family]++;
-      W += WSEV[f.severity];
-      if (matrix[f.cloison]) {
-        matrix[f.cloison][f.severity]++;
-        cloW[f.cloison] += WSEV[f.severity];
-        const inc = findingInc(f);
-        if (inc) { incByClo[f.cloison] += inc; }
-      }
-      const inc = findingInc(f);
-      if (inc) totalInc += inc;
-      if (f.severity === "bloquant") bloquants++;
+    const incByClo: Record<string, number> = {};
+    for (const c of axes) {
+      const row = synthesis.risk.matrix[c.id] ?? { bloquant: 0, majeur: 0, mineur: 0, informatif: 0 };
+      matrix[c.id] = row;
+      // Pondération VISUELLE du radar (intensité), même barème que l'indice
+      // heuristique — jamais réutilisée pour un verdict.
+      cloW[c.id] = SEVK.reduce((sum, s) => sum + row[s] * WSEV[s], 0);
+      incByClo[c.id] = (synthesis.exposure.byCloison[c.id] ?? 0) / 100;
     }
-    const idx = computeLegacyExposureIndex(findings);
-    return { sevCount, famCount, incByClo, matrix, cloW, totalInc, bloquants, idx, W, total: findings.length };
-  }, [findings, axes]);
+    return {
+      sevCount: synthesis.risk.bySeverity,
+      famCount: synthesis.risk.byFamily,
+      matrix,
+      cloW,
+      incByClo,
+      totalInc: synthesis.exposure.deduplicatedExposureCents / 100,
+      bloquants: synthesis.risk.bySeverity.bloquant,
+      idx: synthesis.risk.heuristicSeverityIndex,
+      total: synthesis.risk.totalFindings,
+    };
+  }, [synthesis, axes]);
 
   const lvl = idxLevel(calc.idx);
-  const reviewPct = useMemo(() => calculateReviewProgress(
-    findings.map((finding) => {
-      const latest = snapshot.reviewEvents
-        .filter((event) => event.findingId === finding.id)
-        .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
-        .at(-1);
-      return latest?.newStatus ?? finding.statutRevue;
-    }),
-  ).pct, [findings, snapshot.reviewEvents]);
+  const reviewPct = synthesis.review.pct;
+  const verdict = synthesis.verdict;
+
+  // Bouton « Générer la note de synthèse » : génération DÉTERMINISTE (sans
+  // LLM) depuis le snapshot, téléchargée en Markdown.
+  const downloadNote = useCallback(() => {
+    const note = generateSynthesisNote(synthesis, d.societe);
+    const blob = new Blob([note], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `note-synthese-${d.societe.siren}-${d.societe.exercice}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [synthesis, d.societe]);
 
   // Barres incidence triées
   const incBars = useMemo(() => axes
@@ -444,7 +460,7 @@ export default function SynthesePage() {
       list = list.filter((f) => f.titre.toLowerCase().includes(q) || f.comptesConcernes.some((cc) => cc.toLowerCase().includes(q)) || f.constat.toLowerCase().includes(q));
     }
     return [...list].sort((a, b) =>
-      sortField === "sev" ? SEVK.indexOf(a.severity) - SEVK.indexOf(b.severity) : findingInc(b) - findingInc(a));
+      sortField === "sev" ? SEVK.indexOf(a.severity) - SEVK.indexOf(b.severity) : findingEffectEuros(b) - findingEffectEuros(a));
   }, [findings, natFilter, sevFilter, cloisonFilter, query, sortField]);
 
   const hasFilters = !!(natFilter || sevFilter || cloisonFilter || query);
@@ -453,10 +469,6 @@ export default function SynthesePage() {
   const toggleSev = useCallback((s: Severity) => setSevFilter((p) => (p === s ? null : s)), []);
   const toggleClo = useCallback((c: CloisonId) => setCloisonFilter((p) => (p === c ? null : c)), []);
   const setBoth = useCallback((c: CloisonId, s: Severity) => { setCloisonFilter(c); setSevFilter(s); }, []);
-
-  const verdictSub = calc.bloquants > 0
-    ? `Le dossier reste exploitable, mais ${calc.bloquants} alerte${calc.bloquants > 1 ? "s" : ""} bloquante${calc.bloquants > 1 ? "s" : ""} doivent être traitées avant de conclure. ${calc.total} constats restent en revue pour ${eur(calc.totalInc)} d'incidence potentielle.`
-    : `Aucune alerte bloquante en attente : l'analyse financière est exploitable. ${calc.total} constats demeurent à arbitrer.`;
 
   // ── Render ───────────────────────────────────────────────────────────
   return (
@@ -515,10 +527,12 @@ export default function SynthesePage() {
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 7, borderRadius: 9, border: "1px solid rgba(34,197,94,.35)", background: "#07271a", padding: "5px 11px", fontSize: 12, fontWeight: 600, color: "#22c55e" }}>Aucune alerte bloquante</span>
               )}
             </div>
-            <p style={{ margin: "12px 0 0", maxWidth: 560, fontSize: 13.5, lineHeight: 1.55, color: TEXT }}>{verdictSub}</p>
+            <p style={{ margin: "12px 0 0", maxWidth: 560, fontSize: 13.5, lineHeight: 1.55, color: TEXT }}>
+              <strong>{verdict.headline}.</strong> {verdict.detail}
+            </p>
             <div style={{ marginTop: 16, display: "flex", gap: 26, flexWrap: "wrap" as const }}>
               {([
-                { label: "incidence potentielle retenue", value: eur(calc.totalInc * t).replace("NaN", "0") },
+                { label: "exposition dédupliquée (effets explicites)", value: eur(calc.totalInc * t).replace("NaN", "0") },
                 { label: "revue traitée", value: `${reviewPct} %` },
                 { label: "constats actifs", value: String(Math.round(calc.total * t)) },
               ] as const).map((m, i) => (
@@ -539,14 +553,13 @@ export default function SynthesePage() {
               Ouvrir la revue par cloison
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M5 12h14" /><path d="m12 5 7 7-7 7" /></svg>
             </Link>
-            <button style={{ display: "inline-flex", alignItems: "center", gap: 9, border: `1px solid ${BORDER}`, borderRadius: 11, background: SURF2, color: TEXT, padding: "11px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
+            <button onClick={downloadNote} style={{ display: "inline-flex", alignItems: "center", gap: 9, border: `1px solid ${BORDER}`, borderRadius: 11, background: SURF2, color: TEXT, padding: "11px 16px", fontSize: 13, fontWeight: 600, cursor: "pointer" }}>
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2" strokeLinecap="round"><path d="M14 3v4a1 1 0 0 0 1 1h4" /><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z" /><path d="M9 13h6" /><path d="M9 17h3" /></svg>
               Générer la note de synthèse
             </button>
-            <button style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, border: `1px dashed ${MUTED}`, borderRadius: 11, background: "transparent", color: MUTED, padding: "9px 16px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" /><path d="M3 3v5h5" /></svg>
-              Réinitialiser la simulation
-            </button>
+            <div style={{ fontSize: 10, color: FAINT, fontFamily: "monospace", textAlign: "center" as const }}>
+              snapshot <span title={synthesis.snapshotHash}>{synthesis.snapshotHash.slice(0, 12)}…</span> · moteur {synthesis.engineVersion}
+            </div>
           </div>
         </div>
       </section>
@@ -556,7 +569,7 @@ export default function SynthesePage() {
         {([
           { label: "Bloquants",        value: Math.round(calc.bloquants * t),  color: "#ef4444", sub: "analyse suspendue" },
           { label: "Constats actifs",  value: Math.round(calc.total * t),       color: ACCENT,    sub: `sur ${calc.total} relevés` },
-          { label: "Incidence retenue",value: eur(calc.totalInc),               color: "#f97316", sub: "somme des écarts chiffrés" },
+          { label: "Exposition dédupliquée", value: eur(calc.totalInc),         color: "#f97316", sub: "effets financiers explicites" },
           { label: "Silos analysés",   value: d.silos.length,                   color: "#a78bfa", sub: "postes du plan comptable" },
           { label: "Revue traitée",    value: `${reviewPct} %`,                 color: "#22c55e", sub: "validés + écartés" },
         ] as const).map((kpi, i) => (
@@ -567,6 +580,24 @@ export default function SynthesePage() {
           </div>
         ))}
       </div>
+
+      {/* ── Limites de l'analyse — toujours visibles ─────────────────── */}
+      <section style={{ border: `1px solid ${BORDER}`, borderLeft: "3px solid #eab308", borderRadius: 12, background: SURF2, padding: "13px 16px", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap" as const }}>
+          <span style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: ".09em", color: "#eab308" }}>
+            Limites de l'analyse · {synthesis.limitations.length}
+          </span>
+          <span style={{ fontSize: 10.5, color: FAINT }}>
+            couverture {synthesis.coverage.status === "substantial" ? "substantielle" : synthesis.coverage.status === "partial" ? "PARTIELLE" : "NULLE"}
+            {" · "}{synthesis.exposure.findingsWithoutEffect.length} constat{synthesis.exposure.findingsWithoutEffect.length > 1 ? "s" : ""} sans effet chiffré (exclus de l'exposition)
+          </span>
+        </div>
+        <ul style={{ margin: "8px 0 0", paddingLeft: 18, display: "flex", flexDirection: "column" as const, gap: 3 }}>
+          {synthesis.limitations.map((lim, i) => (
+            <li key={i} style={{ fontSize: 11.5, lineHeight: 1.5, color: MUTED }}>{lim.message}</li>
+          ))}
+        </ul>
+      </section>
 
       {/* ── Nature des règles ────────────────────────────────────────── */}
       <section style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: SURF2, padding: "16px 18px", marginBottom: 16 }}>
@@ -631,17 +662,17 @@ export default function SynthesePage() {
 
         {/* Incidence bars */}
         <section style={{ border: `1px solid ${BORDER}`, borderRadius: 14, background: SURF2, padding: "16px 18px", display: "flex", flexDirection: "column" as const }}>
-          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT }}>Incidence potentielle estimée</div>
-          <h3 style={{ margin: "3px 0 0", fontSize: 14, fontWeight: 600, color: TEXT }}>Écarts chiffrés par cloison</h3>
-          <p style={{ margin: "4px 0 0", fontSize: 11, color: FAINT }}>Somme des écarts en € · indicatif · cliquer pour filtrer</p>
+          <div style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".09em", color: FAINT }}>Exposition financière dédupliquée</div>
+          <h3 style={{ margin: "3px 0 0", fontSize: 14, fontWeight: 600, color: TEXT }}>Effets explicites par cloison</h3>
+          <p style={{ margin: "4px 0 0", fontSize: 11, color: FAINT }}>Effets financiers explicites, dédupliqués · cliquer pour filtrer</p>
           <div style={{ marginTop: 16, display: "flex", flexDirection: "column" as const, gap: 15, flex: 1 }}>
             {incBars.length === 0 ? (
-              <p style={{ fontSize: 12, color: FAINT }}>Aucun écart chiffré à incidence directe.</p>
+              <p style={{ fontSize: 12, color: FAINT }}>Aucun effet financier explicite : rien n'est présumé depuis les seuils.</p>
             ) : incBars.map((b) => {
               const active = cloisonFilter === b.id;
               return (
                 <button key={b.id} onClick={() => toggleClo(b.id)}
-                  onMouseEnter={(e) => tip.show(e, `${b.label}\n${eurFull(b.value)} d'écarts chiffrés`)}
+                  onMouseEnter={(e) => tip.show(e, `${b.label}\n${eurFull(b.value)} d'effets financiers explicites`)}
                   onMouseMove={tip.move} onMouseLeave={tip.hide}
                   style={{ textAlign: "left" as const, cursor: "pointer", background: "none", border: "none", padding: 0 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
@@ -655,7 +686,7 @@ export default function SynthesePage() {
               );
             })}
             <div style={{ marginTop: 2, borderTop: `1px solid ${BORDER}`, paddingTop: 11, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <span style={{ fontSize: 11, color: FAINT }}>Total dossier</span>
+              <span style={{ fontSize: 11, color: FAINT }}>Total dédupliqué</span>
               <span style={{ fontSize: 15, fontWeight: 700, color: ACCENT, fontFamily: "monospace" }}>{eurFull(calc.totalInc)}</span>
             </div>
           </div>
@@ -745,7 +776,7 @@ export default function SynthesePage() {
               <button onClick={() => setSortField((f) => (f === "sev" ? "inc" : "sev"))}
                 style={{ display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${BORDER}`, borderRadius: 9, background: SURF3, color: MUTED, padding: "7px 11px", fontSize: 12, fontWeight: 500, cursor: "pointer" }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="m3 16 4 4 4-4" /><path d="M7 20V4" /><path d="M11 4h10" /><path d="M11 8h7" /><path d="M11 12h4" /></svg>
-                Tri : {sortField === "sev" ? "Gravité" : "Incidence"}
+                Tri : {sortField === "sev" ? "Gravité" : "Effet chiffré"}
               </button>
             </div>
           </div>
@@ -773,14 +804,14 @@ export default function SynthesePage() {
           <table style={{ width: "100%", borderCollapse: "collapse" as const, fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
-                {["Sévérité", "Cloison", "Comptes", "Constat", "Incidence", "Famille"].map((col) => (
+                {["Sévérité", "Cloison", "Comptes", "Constat", "Effet chiffré", "Famille"].map((col) => (
                   <th key={col} style={{ padding: "10px 16px", textAlign: "left" as const, fontSize: 10, fontWeight: 600, textTransform: "uppercase" as const, letterSpacing: ".06em", color: FAINT, whiteSpace: "nowrap" as const }}>{col}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {hubFindings.slice(0, 50).map((f, i) => {
-                const inc = findingInc(f);
+                const inc = findingEffectEuros(f);
                 const clLabel = CLOISONS.find((cl) => cl.id === f.cloison)?.label ?? f.cloison;
                 const s = SEV[f.severity];
                 return (
@@ -818,9 +849,7 @@ export default function SynthesePage() {
       {/* ── CTA ──────────────────────────────────────────────────────── */}
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", border: `1px solid ${BORDER}`, borderRadius: 12, background: SURF2, padding: "16px 20px" }}>
         <p style={{ fontSize: 13, color: MUTED, margin: 0 }}>
-          {calc.bloquants > 0
-            ? "Des alertes bloquantes subsistent : à traiter avant de conclure l'analyse financière."
-            : "Aucune alerte bloquante. L'analyse financière est exploitable."}
+          <strong style={{ color: TEXT }}>{verdict.headline}.</strong> {verdict.detail}
         </p>
         <Link href="/dashboard/cloisons" style={{ flexShrink: 0, borderRadius: 9, background: ACCENT, padding: "8px 16px", fontSize: 13, fontWeight: 600, color: "#06122a", textDecoration: "none" }}>
           Ouvrir la revue par cloison →
