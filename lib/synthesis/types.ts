@@ -104,6 +104,10 @@ export interface ExposureDimension {
   deduplicatedExposureCents: number;
   /** Part de l'exposition dédupliquée dont la revue humaine est close. */
   reviewedExposureCents: number;
+  /** Part de l'exposition dédupliquée portée par des constats ÉCARTÉS. */
+  dismissedExposureCents: number;
+  /** Part de l'exposition dédupliquée encore EN ATTENTE de revue. */
+  pendingReviewExposureCents: number;
   /** Somme signée des effets des constats VALIDÉS (ajustement proposé). */
   validatedAdjustmentCents: number;
   /** Effet d'impôt sur l'ajustement validé (taux explicites uniquement). */

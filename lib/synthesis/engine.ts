@@ -219,12 +219,31 @@ export function buildSynthesisSnapshot(
   );
 
   // Exposition revue : clusters dont TOUS les membres ont une revue close.
+  // Ventilation complémentaire du montant retenu de chaque cluster selon le
+  // statut de revue du constat RETENU : écarté / en attente. Ces agrégats
+  // alimentent le waterfall d'exposition — l'UI ne recalcule rien.
   const reviewedParts: number[] = [];
+  const dismissedParts: number[] = [];
+  const pendingParts: number[] = [];
+  const DISMISSED_REVIEW = new Set(["ecarte", "dismissed"]);
   for (const cluster of dedup.clusters) {
     const allClosed = cluster.findingIds.every((id) =>
       CLOSED_REVIEW.has(statusOf.get(id) ?? "en_attente"),
     );
     if (allClosed) reviewedParts.push(cluster.retainedCents);
+    // Le montant retenu du cluster suit le statut de son constat retenu
+    // (premier findingId du cluster trié = représentant max_magnitude n'est
+    // pas garanti premier ; on retrouve le retenu par son montant).
+    const retainedId =
+      cluster.findingIds.length === 1
+        ? cluster.findingIds[0]
+        : cluster.findingIds.find((id) => {
+            const r = records.find((x) => x.findingId === id);
+            return r?.effect.amountCents === cluster.retainedCents;
+          }) ?? cluster.findingIds[0];
+    const st = statusOf.get(retainedId) ?? "en_attente";
+    if (DISMISSED_REVIEW.has(st)) dismissedParts.push(cluster.retainedCents);
+    else if (!CLOSED_REVIEW.has(st)) pendingParts.push(cluster.retainedCents);
   }
 
   // Ajustement validé : somme SIGNÉE des effets des constats validés
@@ -258,6 +277,8 @@ export function buildSynthesisSnapshot(
     grossDetectedExposureCents: dedup.grossCents,
     deduplicatedExposureCents: dedup.deduplicatedCents,
     reviewedExposureCents: sumCents(reviewedParts, "exposition revue"),
+    dismissedExposureCents: sumCents(dismissedParts, "exposition écartée"),
+    pendingReviewExposureCents: sumCents(pendingParts, "exposition en attente"),
     validatedAdjustmentCents,
     taxEffectCents,
     netFinancialStatementEffectCents: validatedAdjustmentCents - taxEffectCents,
