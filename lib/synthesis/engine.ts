@@ -18,7 +18,7 @@
 import type { DossierSnapshot } from "@/lib/canonical-model";
 import type { Finding, Severity, FindingFamily } from "@/lib/canonical-model/finding";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
-import { statusAfterReviewEvents } from "@/lib/dossier/review";
+import { reviewEventsDigest, statusAfterReviewEvents } from "@/lib/dossier/review";
 import { canonicalJson, sha256Hex } from "./canonical";
 import { applyRatePct, sumCents } from "./money";
 import {
@@ -394,6 +394,13 @@ export function buildSynthesisSnapshot(
 
   /* ── Limitations ───────────────────────────────────────────────────────── */
   const expected = ctx.expectedDocumentTypes ?? [];
+  if (evidence.findingsWithoutEvidenceChain.length > 0) {
+    limitations.push({
+      code: "missing_evidence",
+      message: `${evidence.findingsWithoutEvidenceChain.length} constat(s) sans chaîne de preuve complète.`,
+      subjects: evidence.findingsWithoutEvidenceChain,
+    });
+  }
   const presentTypes = new Set(sourceDocuments.map((d) => d.documentType));
   const missingDocs = expected.filter((t) => !presentTypes.has(t as never));
   if (missingDocs.length > 0) {
@@ -500,6 +507,7 @@ export function buildSynthesisSnapshot(
     referenceSetVersion: input.dossier.referentielVersion,
     policyVersion: SYNTHESIS_POLICY_VERSION,
     sourceDocumentHashes: sourceDocuments.map((d) => d.fingerprint),
+    reviewEventsDigest: reviewEventsDigest(input.reviewEvents),
     admissibility,
     coverage,
     risk,
@@ -515,7 +523,20 @@ export function buildSynthesisSnapshot(
   // données à des instants différents portent le même hash.
   const snapshotHash = sha256Hex(canonicalJson(body));
 
-  return { ...body, generatedAt: options.clock(), snapshotHash };
+  return {
+    ...body,
+    snapshotId: `sha256:${snapshotHash}`,
+    generatedAt: options.clock(),
+    snapshotHash,
+  };
+}
+
+export function verifySynthesisSnapshotHash(snapshot: SynthesisSnapshot): boolean {
+  const body: Partial<SynthesisSnapshot> = { ...snapshot };
+  delete body.generatedAt;
+  delete body.snapshotHash;
+  delete body.snapshotId;
+  return sha256Hex(canonicalJson(body)) === snapshot.snapshotHash;
 }
 
 function buildVerdict(

@@ -1210,7 +1210,7 @@ export const DEMO_DOSSIER: Dossier = {
     dateCloture: "20241231",
   },
   demoMode: true,
-  fecFingerprint: "demo000000000fec20241231abcdef0123456789",
+  fecFingerprint: "3863478135b75ac255493bfac85875321f88a20802df721e39cee34478b85311",
   referentielVersion: FECT,
   createdAt: "2024-12-31T18:00:00.000Z",
   admissibilite,

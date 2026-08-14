@@ -15,6 +15,13 @@
       "when": 1786654425932,
       "tag": "0001_source_document_completion_guard",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786674293575,
+      "tag": "0002_append_only_review_evidence",
+      "breakpoints": true
     }
   ]
 }

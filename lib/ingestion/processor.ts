@@ -1,7 +1,7 @@
 import "server-only";
 
-import { createHash } from "node:crypto";
 import { buildSnapshotFromFecDepot } from "@/lib/dossier/snapshot-builder";
+import { computeDossierSnapshotHash } from "@/lib/dossier/snapshot-state";
 import { FEC_STREAM_PARSER_VERSION, FecStreamError, parseFecStream } from "@/lib/fec/stream-parser";
 import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
 import { ALL_REGISTRIES, runRules, splitAdmissibilite } from "@/lib/rules-engine";
@@ -16,10 +16,6 @@ export class IngestionConcurrencyError extends Error {
     super("INGESTION_ORGANIZATION_CONCURRENCY_LIMIT");
     this.name = "IngestionConcurrencyError";
   }
-}
-
-function snapshotSha256(snapshot: unknown): string {
-  return createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
 }
 
 export class IngestionProcessor {
@@ -123,8 +119,16 @@ export class IngestionProcessor {
       );
       const baseSnapshot = buildSnapshotFromFecDepot({
         dossierId: acquired.document.dossierId,
+        sourceDocumentId: acquired.document.id,
         nomFichier: acquired.document.originalName,
         fingerprint: parsed.sha256,
+        parserVersion: FEC_STREAM_PARSER_VERSION,
+        sourceLocation: {
+          provider: "s3",
+          bucket: acquired.document.storageBucket,
+          key: acquired.document.storageKey,
+          versionId: acquired.document.storageVersionId ?? undefined,
+        },
         siren,
         referentielVersion: REFERENTIEL_VERSION,
         admissibilite,
@@ -143,7 +147,7 @@ export class IngestionProcessor {
         snapshotVersion: `${baseSnapshot.snapshotVersion}+${message.jobId}`,
         ledgerEntries: undefined,
       };
-      snapshot.snapshotHash = snapshotSha256({ ...snapshot, snapshotHash: undefined });
+      snapshot.snapshotHash = computeDossierSnapshotHash(snapshot);
       await this.repository.persistAnalysis({
         jobId: message.jobId,
         dossierId: acquired.document.dossierId,

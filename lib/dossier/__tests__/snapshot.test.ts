@@ -12,7 +12,7 @@ describe("dossier snapshot", () => {
     expect(snapshot.dossier.id).toBe(DEMO_DOSSIER.id);
     expect(snapshot.findings).toHaveLength(allFindings(DEMO_DOSSIER).length);
     expect(snapshot.sourceKind).toBe("demo");
-    expect(snapshot.snapshotHash).toMatch(/^snapshot-/u);
+    expect(snapshot.snapshotHash).toMatch(/^[0-9a-f]{64}$/u);
   });
 
   it("builds a session snapshot from a FEC depot response", () => {
@@ -47,16 +47,12 @@ describe("dossier snapshot", () => {
       pct: 60,
     });
     expect(progress.includedStatuses).toEqual([
-      "valide",
-      "ecarte",
-      "corrige",
       "confirmed",
       "dismissed",
       "corrected",
       "superseded",
     ]);
     expect(progress.excludedStatuses).toEqual([
-      "en_attente",
       "pending",
       "needs_evidence",
     ]);

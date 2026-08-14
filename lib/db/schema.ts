@@ -77,6 +77,15 @@ export const reviewStatusEnum = pgEnum("review_status", [
   "superseded",
 ]);
 
+export const reviewEventStatusEnum = pgEnum("review_event_status", [
+  "pending",
+  "needs_evidence",
+  "confirmed",
+  "dismissed",
+  "corrected",
+  "superseded",
+]);
+
 export const organizations = pgTable("organizations", {
   id: uuid("id").primaryKey(),
   name: text("name").notNull(),
@@ -348,20 +357,38 @@ export const reviewEvents = pgTable(
   "review_events",
   {
     id: uuid("id").primaryKey(),
+    dossierId: uuid("dossier_id")
+      .notNull()
+      .references(() => dossiers.id, { onDelete: "restrict" }),
     findingId: uuid("finding_id")
       .notNull()
-      .references(() => findings.id, { onDelete: "cascade" }),
-    previousStatus: reviewStatusEnum("previous_status").notNull(),
-    newStatus: reviewStatusEnum("new_status").notNull(),
-    actorExternalId: text("actor_external_id").notNull(),
+      .references(() => findings.id, { onDelete: "restrict" }),
+    actorId: text("actor_external_id").notNull(),
     actorRole: text("actor_role").notNull(),
-    comment: text("comment"),
+    previousStatus: reviewEventStatusEnum("previous_status").notNull(),
+    newStatus: reviewEventStatusEnum("new_status").notNull(),
+    comment: text("comment").notNull().default(""),
     relatedEvidenceIds: jsonb("related_evidence_ids").$type<string[]>().notNull().default([]),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    previousEventHash: text("previous_event_hash"),
+    eventHash: text("event_hash").notNull(),
   },
   (table) => [
+    uniqueIndex("review_events_dossier_event_hash_uq").on(table.dossierId, table.eventHash),
+    uniqueIndex("review_events_dossier_previous_hash_uq")
+      .on(table.dossierId, table.previousEventHash)
+      .where(sql`${table.previousEventHash} is not null`),
+    uniqueIndex("review_events_dossier_root_uq")
+      .on(table.dossierId)
+      .where(sql`${table.previousEventHash} is null`),
+    index("review_events_dossier_created_idx").on(table.dossierId, table.createdAt),
     index("review_events_finding_created_idx").on(table.findingId, table.createdAt),
-    index("review_events_actor_created_idx").on(table.actorExternalId, table.createdAt),
+    index("review_events_actor_created_idx").on(table.actorId, table.createdAt),
+    check("review_events_event_hash_ck", sql`${table.eventHash} ~ '^[0-9a-f]{64}$'`),
+    check(
+      "review_events_previous_hash_ck",
+      sql`${table.previousEventHash} is null or ${table.previousEventHash} ~ '^[0-9a-f]{64}$'`,
+    ),
   ],
 );
 
@@ -381,7 +408,7 @@ export const synthesisSnapshots = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex("synthesis_snapshots_dossier_version_uq").on(
+    index("synthesis_snapshots_dossier_version_idx").on(
       table.dossierId,
       table.snapshotVersion,
     ),

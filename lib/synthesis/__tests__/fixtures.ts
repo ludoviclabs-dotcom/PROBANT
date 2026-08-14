@@ -10,6 +10,8 @@ import type {
   FinancialEffect,
   Finding,
 } from "@/lib/canonical-model/finding";
+import type { ReviewEvent, ReviewEventStatus } from "@/lib/canonical-model";
+import { appendReviewEvent } from "@/lib/dossier/review";
 
 export const CLOCK = () => "2026-08-14T12:00:00.000Z";
 
@@ -51,6 +53,26 @@ export function makeFinding(id: string, over: Partial<Finding> = {}): Finding {
     statutRevue: "en_attente",
     ...over,
   };
+}
+
+export function makeReviewEvent(
+  finding: Finding,
+  newStatus: ReviewEventStatus = "confirmed",
+  id = "ev-1",
+): ReviewEvent {
+  const event = appendReviewEvent([], {
+    id,
+    dossierId: "dossier-test",
+    finding,
+    actorId: "reviewer-test",
+    actorRole: "reviewer",
+    newStatus,
+    comment: "Décision de test",
+    relatedEvidenceIds: [],
+    createdAt: "2026-08-14T10:00:00.000Z",
+  }).at(0);
+  if (!event) throw new Error("TEST_REVIEW_EVENT_NOT_CREATED");
+  return event;
 }
 
 export function makeDossierSnapshot(

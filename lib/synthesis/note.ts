@@ -22,6 +22,7 @@ const SEVERITY_LABELS: [string, string][] = [
 
 const LIMITATION_LABEL: Record<Limitation["code"], string> = {
   missing_document: "Document manquant",
+  missing_evidence: "Preuve manquante",
   control_not_run: "Contrôle non exécuté",
   control_inconclusive: "Contrôle non conclusif",
   partial_coverage: "Couverture partielle",

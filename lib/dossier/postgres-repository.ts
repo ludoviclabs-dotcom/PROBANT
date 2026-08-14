@@ -8,6 +8,7 @@ import type {
   DossierSnapshot,
   PostgresDossierRepository,
 } from "./types";
+import { loadReviewEvents } from "./review-repository";
 
 export class DrizzleDossierRepository implements PostgresDossierRepository {
   readonly kind = "persistent" as const;
@@ -28,7 +29,12 @@ export class DrizzleDossierRepository implements PostgresDossierRepository {
       .orderBy(desc(synthesisSnapshots.createdAt))
       .limit(1);
     if (!row) return null;
-    return { ...(row.payload as unknown as DossierSnapshot), sourceKind: "persistent" };
+    const payload = row.payload as unknown as DossierSnapshot;
+    return {
+      ...payload,
+      sourceKind: "persistent",
+      reviewEvents: await loadReviewEvents(this.db, context.dossierId),
+    };
   }
 
   async save(context: DossierContext, snapshot: DossierSnapshot): Promise<void> {

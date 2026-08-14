@@ -1,36 +1,45 @@
 import { NextResponse } from "next/server";
-import { DEMO_DOSSIER } from "@/lib/demo/dataset";
-import { buildReviewPack } from "@/lib/evidence/export";
-import type { DossierSnapshot } from "@/lib/dossier";
+import type { DossierContext, DossierSnapshot } from "@/lib/dossier";
+import { buildEvidenceExportPackage } from "@/lib/evidence/package";
+import { buildSynthesisSnapshot } from "@/lib/synthesis";
 
 export const runtime = "nodejs";
 
-/** Exporte le review pack JSON du dossier de démonstration. */
+/** Aucun GET implicite: il exportait historiquement DEMO quel que soit le dossier actif. */
 export async function GET() {
-  const pack = buildReviewPack(DEMO_DOSSIER, new Date().toISOString());
-  const body = JSON.stringify(pack, null, 2);
-  return new NextResponse(body, {
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="review-pack-${DEMO_DOSSIER.societe.siren}-${DEMO_DOSSIER.societe.exercice}.json"`,
-    },
-  });
+  return NextResponse.json(
+    { error: "Un snapshot et son contexte actif explicites sont requis." },
+    { status: 405, headers: { Allow: "POST" } },
+  );
 }
 
-/** Exporte le dossier explicitement fourni par son contexte client. */
 export async function POST(request: Request) {
   const body = (await request.json().catch(() => null)) as
-    | { snapshot?: DossierSnapshot }
+    | { snapshot?: DossierSnapshot; activeContext?: DossierContext }
     | null;
-  if (!body?.snapshot?.dossier) {
-    return NextResponse.json({ error: "Snapshot de dossier invalide." }, { status: 400 });
+  if (!body?.snapshot?.dossier || !body.activeContext) {
+    return NextResponse.json({ error: "Snapshot ou contexte actif invalide." }, { status: 400 });
   }
-  const dossier = body.snapshot.dossier;
-  const pack = buildReviewPack(dossier, new Date().toISOString());
-  return new NextResponse(JSON.stringify(pack, null, 2), {
-    headers: {
-      "Content-Type": "application/json; charset=utf-8",
-      "Content-Disposition": `attachment; filename="review-pack-${dossier.societe.siren}-${dossier.societe.exercice}.json"`,
-    },
-  });
+  try {
+    const synthesis = buildSynthesisSnapshot(body.snapshot, {
+      clock: () => body.snapshot?.dossier.createdAt ?? new Date(0).toISOString(),
+    });
+    const pack = await buildEvidenceExportPackage(body.snapshot, synthesis, {
+      applicationVersion: process.env.npm_package_version ?? "0.1.0",
+      activeContext: body.activeContext,
+    });
+    const artifact = pack.manifest.artifacts.find((item) => item.format === "canonical_json");
+    return new NextResponse(pack.canonicalJson, {
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${artifact?.fileName ?? "probant-evidence.json"}"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Export impossible." },
+      { status: 409 },
+    );
+  }
 }
