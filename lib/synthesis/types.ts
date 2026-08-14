@@ -141,6 +141,7 @@ export interface ReviewDimension {
 
 export type LimitationCode =
   | "missing_document"
+  | "missing_evidence"
   | "control_not_run"
   | "control_inconclusive"
   | "partial_coverage"
@@ -187,6 +188,8 @@ export interface Verdict {
 export interface SynthesisSnapshot {
   schemaVersion: string;
   dossierId: string;
+  /** Identifiant adressé par contenu: `sha256:<snapshotHash>`. */
+  snapshotId: string;
   /** Horodatage injecté (clock) — EXCLU du snapshotHash. */
   generatedAt: string;
   engineVersion: string;
@@ -195,6 +198,8 @@ export interface SynthesisSnapshot {
   policyVersion: string;
   /** Empreintes des documents sources, triées (stables). */
   sourceDocumentHashes: string[];
+  /** Digest canonique de la chaîne append-only des événements de revue. */
+  reviewEventsDigest: string;
 
   admissibility: AdmissibilityDimension;
   coverage: CoverageDimension;

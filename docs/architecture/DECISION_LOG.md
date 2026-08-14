@@ -198,3 +198,26 @@ sources, alternatives et seuils de réexamen restent dans les ADR dédiés.
 reste à 7 alertes transitives (4 moderate, 3 high) dans Next/Sharp/PostCSS et
 l'outillage Drizzle ; leurs corrections automatiques imposent des mises à jour
 majeures hors périmètre et restent visibles dans la CI pour PR-08.
+
+---
+
+## D-008 — Historique de revue chaîné et PDF sans revendication d'archivage
+
+**Date** : 14/08/2026 · **PR-07** · **Statut** : appliqué
+
+**Décision.** Chaque décision de revue est un événement immuable dont le hash
+SHA-256 couvre le contenu canonique et le hash de l'événement précédent. Une
+correction ajoute un événement et un snapshot ; les `UPDATE` et `DELETE` sont
+interdits par le dépôt applicatif et par des triggers PostgreSQL. Le PDF produit
+est explicitement un PDF standard avec un état `not_validated` dans le
+manifeste.
+
+**Pourquoi.** La reproductibilité exige de pouvoir reconstituer l'ordre des
+décisions, détecter une rupture ou une bifurcation de chaîne et relier chaque
+export au snapshot exact. Une extension ou un label PDF/A ne démontre pas la
+conformité : cette revendication ne sera autorisée qu'après passage réussi d'un
+profil explicite dans veraPDF, selon l'ADR-008.
+
+**Alternative écartée.** Conserver uniquement le dernier statut sur le finding,
+ou présenter le PDF courant comme PDF/A sur la base de métadonnées déclaratives :
+ces deux options détruisent une partie de la preuve au lieu de la vérifier.

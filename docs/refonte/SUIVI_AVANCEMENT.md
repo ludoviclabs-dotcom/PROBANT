@@ -7,8 +7,8 @@
 | | |
 |---|---|
 | Dernière mise à jour | 14/08/2026 |
-| État global | **PR-00 → PR-05 fusionnés · PR-06 en cours** — restitution Synthèse refondée sur les datasets |
-| Prochaine action | Revue de PR-05, puis PR-04 (référentiel/crosswalks) — la revue métier R-01 à R-03 de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md) reste ouverte |
+| État global | **PR-00 → PR-06 fusionnés · PR-07 en cours** — historique de revue et dossier de preuve reproductible |
+| Prochaine action | Revue de PR-07, puis PR-04 (référentiel/crosswalks) — la revue métier R-01 à R-03 de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md) reste ouverte |
 
 ---
 
@@ -66,8 +66,8 @@ First Load JS ; `/dashboard/risques` ≈ 207 kB.
 | **PR-03** | Ingestion, persistance, stockage objet, remplacement XLSX | PR-02 | ✅ Fusionné | [#36](https://github.com/ludoviclabs-dotcom/PROBANT/pull/36) | 4–7 j | **Très élevé** |
 | **PR-04** | Référentiel PCG / NEP / IFRS et crosswalks | PR-01 | ⬜ À faire | — | 3–6 j + revue métier | Élevé |
 | **PR-05** | Moteur de Synthèse déterministe | PR-03, PR-04 | ✅ Fusionné | [#38](https://github.com/ludoviclabs-dotcom/PROBANT/pull/38) | 3–5 j | **Très élevé** |
-| **PR-06** | Cockpit, infographies, accessibilité | PR-05 | 🟦 En cours | `claude/probant-synthese-ui` | 2–4 j | Moyen |
-| **PR-07** | Revue append-only, manifeste, exports | PR-05 | ⬜ À faire | — | 3–5 j | Élevé |
+| **PR-06** | Cockpit, infographies, accessibilité | PR-05 | ✅ Fusionné | [#39](https://github.com/ludoviclabs-dotcom/PROBANT/pull/39) | 2–4 j | Moyen |
+| **PR-07** | Revue append-only, manifeste, exports | PR-05 | 🟦 En cours | `codex/pr-07-review-evidence` | 3–5 j | Élevé |
 | **PR-08** | Auth, hardening, E2E, observabilité, release | PR-06, PR-07 | ⬜ À faire | — | 2–4 j | Élevé |
 | PR-09+ | Tax Compliance Engine (IS / TVA) | PR-07 | ⏸️ Reporté | — | non estimé | — |
 
@@ -113,7 +113,7 @@ Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estim
 | ADR-005 | Runtime d'ingestion — jobs, retry, idempotence, limites | PR-03 | ✅ Rédigée (`docs/adr/ADR-005-ingestion-runtime.md`) |
 | ADR-006 | Déterminisme de la Synthèse — canonical JSON, traces, hash | PR-05 | ⬜ À rédiger |
 | ADR-007 | AuthN / AuthZ — OIDC, sessions, rôles, isolation | PR-08 (préparé en PR-03) | ⬜ À rédiger |
-| ADR-008 | PDF/A et PAdES | PR-07 | ⬜ À rédiger |
+| ADR-008 | PDF/A et PAdES | PR-07 | ✅ Rédigée (`docs/adr/ADR-008-pdf-a-pades.md`) |
 
 ---
 
@@ -140,7 +140,7 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 - [ ] `docs/adr/ADR-005-ingestion-runtime.md`
 - [ ] `docs/adr/ADR-006-synthesis-determinism.md`
 - [ ] `docs/adr/ADR-007-authn-authz.md`
-- [ ] `docs/adr/ADR-008-pdf-a-pades.md`
+- [x] `docs/adr/ADR-008-pdf-a-pades.md`
 
 ### Connaissance — PR-01 / PR-04
 
@@ -153,8 +153,8 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 - [ ] `docs/ingestion/INGESTION_LIMITS.md`
 - [ ] `docs/ux/VISUALIZATION_CONTRACTS.md`
 - [ ] `docs/ux/ACCESSIBILITY_RULES.md`
-- [ ] `docs/evidence/MANIFEST_SPEC.md`
-- [ ] `docs/evidence/EXPORT_FORMATS.md`
+- [x] `docs/evidence/MANIFEST_SPEC.md`
+- [x] `docs/evidence/EXPORT_FORMATS.md`
 
 ### Release — PR-08
 
@@ -209,6 +209,7 @@ Une ligne par événement structurant. Le plus récent en haut.
 
 | Date | Événement | Réf. |
 |---|---|---|
+| 14/08/2026 | **PR-07** — événements de revue append-only chaînés par SHA-256, snapshots immuables, manifeste versionné et exports reproductibles (JSON canonique, 4 CSV, HTML accessible/imprimable et PDF dérivé sans revendication PDF/A). Garde de contexte DEMO/persistant, limitations de preuve, contrôles d'intégrité et migration PostgreSQL protégée par triggers. 274 tests au total ; build et rendu PDF vérifiés | branche `codex/pr-07-review-evidence` |
 | 14/08/2026 | **PR-06** — restitution Synthèse refondée sur VisualizationDataset (`lib/visualization`) : 14 composants (décision/analyse/exploration, matrice FEC 18 zones, waterfall, heatmap cloison×assertion, pyramide normative, frise, chaîne de preuve), contrat « aucun composant ne recompte les findings » testé, alternative tabulaire sous chaque graphique, axe-core sans violation, reduced-motion, plus de compteur à zéro ni pulsation infinie, responsive vérifié à 5 viewports sans overflow. +25 tests (258 au total) | branche `claude/probant-synthese-ui` |
 | 14/08/2026 | **PR-05** — moteur de Synthèse pur (`lib/synthesis`) : SynthesisSnapshot 5 dimensions sans score composite, exposition sur effets financiers EXPLICITES (fin de la présomption |constaté−seuil|), déduplication 5 étapes (clé stable, graphe, clusters, politique, ambiguïté→revue), centimes entiers, JSON canonique + SHA-256 pur (hash identique navigateur/Node vérifié), 8 limitations générées, note de synthèse déterministe sans LLM (bouton fonctionnel), verdict catégoriel — plus de « exploitable » sans couverture/admissibilité. Page Synthèse = projection du snapshot, calcul métier hors JSX. 39 tests moteur, 233 au total | branche `claude/probant-synthesis-engine` |
 | 14/08/2026 | **PR-01** — plan de connaissance : `data/{fec,nep,ifrs,pcg,crosswalks,statistics}`, schémas Zod + 8 contrôles d'intégrité (`lib/knowledge`), 32 tests. **Les 18 zones du FEC sont vérifiées à l'article A47 A-1 et identiques à `FEC_COLUMNS`.** Écart majeur détecté : `R-HL-006/007/008` classées `hardLaw` sans fondement établi — **moteur non modifié**, écart documenté. 21 fichiers ajoutés, **0 modifié** | branche `claude/probant-knowledge-base-pr01` |

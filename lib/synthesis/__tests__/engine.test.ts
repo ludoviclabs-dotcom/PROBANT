@@ -9,7 +9,7 @@
 import { describe, expect, it } from "vitest";
 import { buildSynthesisSnapshot } from "@/lib/synthesis/engine";
 import { generateSynthesisNote } from "@/lib/synthesis/note";
-import { CLOCK, makeDossierSnapshot, makeEffect, makeFinding } from "./fixtures";
+import { CLOCK, makeDossierSnapshot, makeEffect, makeFinding, makeReviewEvent } from "./fixtures";
 
 const build = (input = makeDossierSnapshot()) =>
   buildSynthesisSnapshot(input, { clock: CLOCK });
@@ -301,19 +301,7 @@ describe("progression de revue", () => {
     const s = build(
       makeDossierSnapshot({
         findings,
-        reviewEvents: [
-          {
-            id: "ev-1",
-            dossierId: "dossier-test",
-            findingId: "f-2",
-            previousStatus: "en_attente",
-            newStatus: "valide",
-            actorLabel: "Réviseur",
-            actorRole: "reviewer",
-            createdAt: "2026-08-14T10:00:00.000Z",
-            relatedEvidenceIds: [],
-          },
-        ],
+        reviewEvents: [makeReviewEvent(findings[1])],
       }),
     );
     expect(s.review.pct).toBe(100);
@@ -512,19 +500,7 @@ describe("openBlockingCount — bloquants dont la revue n'est pas close", () => 
     const s = build(
       makeDossierSnapshot({
         findings: [f],
-        reviewEvents: [
-          {
-            id: "ev-1",
-            dossierId: "dossier-test",
-            findingId: "f-1",
-            previousStatus: "en_attente",
-            newStatus: "valide",
-            actorLabel: "Réviseur",
-            actorRole: "reviewer",
-            createdAt: "2026-08-14T10:00:00.000Z",
-            relatedEvidenceIds: [],
-          },
-        ],
+        reviewEvents: [makeReviewEvent(f)],
       }),
     );
     expect(s.risk.openBlockingCount).toBe(0);

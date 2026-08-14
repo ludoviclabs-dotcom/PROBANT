@@ -54,17 +54,23 @@ export interface SourceDocumentSummary {
   dossierId: string;
   fileName: string;
   documentType: "fec" | "balance" | "pdf" | "cycle_document" | "demo";
+  /** SHA-256 hexadecimal complet du document source. */
   fingerprint: string;
   lineCount?: number;
   pageCount?: number;
   parserVersion?: string;
+  /** Localisation logique, sans URL signee ni secret. */
+  location?: {
+    provider: "s3" | "session" | "demo";
+    bucket?: string;
+    key: string;
+    versionId?: string;
+  };
   truncated?: boolean;
   createdAt: string;
 }
 
 export type ReviewEventStatus =
-  | import("./finding").StatutRevue
-  | "corrige"
   | "pending"
   | "needs_evidence"
   | "confirmed"
@@ -76,13 +82,15 @@ export interface ReviewEvent {
   id: string;
   dossierId: string;
   findingId: string;
+  actorId: string;
+  actorRole: string;
   previousStatus: ReviewEventStatus;
   newStatus: ReviewEventStatus;
-  comment?: string;
-  actorLabel: string;
-  actorRole: string;
-  createdAt: string;
+  comment: string;
   relatedEvidenceIds: string[];
+  createdAt: string;
+  previousEventHash: string | null;
+  eventHash: string;
 }
 
 export interface CalculationContext {

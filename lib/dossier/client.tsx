@@ -21,6 +21,8 @@ import {
 } from "./repositories";
 import { HttpDossierRepository } from "./http-repository";
 import { buildDemoDossierSnapshot } from "./snapshot-builder";
+import { appendReviewDecisionToSnapshot } from "./snapshot-state";
+import type { ReviewDecisionRequest } from "@/lib/evidence/types";
 
 interface ActiveDossierValue {
   context: DossierContext;
@@ -29,6 +31,7 @@ interface ActiveDossierValue {
   selectDossier(context: DossierContext): Promise<void>;
   listSnapshots(organizationId?: string): Promise<DossierSnapshot[]>;
   resetToDemo(): Promise<void>;
+  appendReviewDecision(input: ReviewDecisionRequest): Promise<void>;
 }
 
 const ActiveDossierContext = createContext<ActiveDossierValue | null>(null);
@@ -111,6 +114,41 @@ export function ActiveDossierProvider({
     setState(await service.select(DEMO_DOSSIER_CONTEXT));
   }, [service]);
 
+  const appendReviewDecision = useCallback(async (input: ReviewDecisionRequest) => {
+    if (state.snapshot.sourceKind === "persistent") {
+      const response = await fetch(
+        `/api/dossiers/${encodeURIComponent(state.context.dossierId)}/review-events`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify(input),
+        },
+      );
+      if (!response.ok) throw new Error(`REVIEW_EVENT_APPEND_FAILED:${response.status}`);
+      const snapshot = (await response.json()) as DossierSnapshot;
+      setState({ context: state.context, snapshot });
+      return;
+    }
+
+    const next = appendReviewDecisionToSnapshot(state.snapshot, {
+      id: crypto.randomUUID(),
+      findingId: input.findingId,
+      actorId: state.snapshot.sourceKind === "demo" ? "demo-reviewer" : "session-reviewer",
+      actorRole: "reviewer",
+      newStatus: input.newStatus,
+      comment: input.comment,
+      relatedEvidenceIds: input.relatedEvidenceIds,
+      createdAt: new Date().toISOString(),
+    });
+    if (next.sourceKind === "demo") {
+      setState({ context: state.context, snapshot: next });
+      return;
+    }
+    if (!service) return;
+    await service.save(state.context, next);
+    setState({ context: state.context, snapshot: next });
+  }, [service, state]);
+
   return (
     <ActiveDossierContext.Provider
       value={{
@@ -120,6 +158,7 @@ export function ActiveDossierProvider({
         selectDossier,
         listSnapshots,
         resetToDemo,
+        appendReviewDecision,
       }}
     >
       {children}

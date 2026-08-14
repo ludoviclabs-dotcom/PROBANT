@@ -22,6 +22,8 @@ import { AccessibleChartTable } from "@/components/synthesis/AccessibleChartTabl
 import { NormativePyramid } from "@/components/knowledge/NormativePyramid";
 import { StandardsTimeline } from "@/components/knowledge/StandardsTimeline";
 import { EvidenceFlow } from "@/components/evidence/EvidenceFlow";
+import { EvidenceExportToolbar } from "@/components/evidence/EvidenceExportToolbar";
+import { ReviewEventPanel } from "@/components/evidence/ReviewEventPanel";
 import { focusStyle } from "@/components/synthesis/tokens";
 
 // ── Design tokens ──────────────────────────────────────────────────────
@@ -477,6 +479,8 @@ export default function SynthesePage() {
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}
       <DecisionHeader decision={datasets.decision} onDownloadNote={downloadNote} />
+      <EvidenceExportToolbar synthesis={synthesis} />
+      <ReviewEventPanel />
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(290px,1fr))", gap: 14, marginBottom: 14 }}>
         <CoverageStackedBar dataset={datasets.coverage} />

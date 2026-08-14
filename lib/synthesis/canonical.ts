@@ -75,8 +75,8 @@ function utf8Bytes(text: string): Uint8Array {
 }
 
 /** SHA-256 hexadécimal d'une chaîne UTF-8. */
-export function sha256Hex(text: string): string {
-  const data = utf8Bytes(text);
+export function sha256Hex(input: string | Uint8Array): string {
+  const data = typeof input === "string" ? utf8Bytes(input) : input;
   const bitLen = data.length * 8;
 
   // Padding : 0x80, zéros, longueur sur 64 bits big-endian.

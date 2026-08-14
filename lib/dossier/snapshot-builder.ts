@@ -14,16 +14,12 @@ import type {
   FecDepotSnapshotInput,
   SourceDocumentSummary,
 } from "./types";
+import { computeDossierSnapshotHash } from "./snapshot-state";
 
 export const DOSSIER_SNAPSHOT_VERSION = "1.0.0";
 
-function stableHash(value: unknown): string {
-  const text = JSON.stringify(value, Object.keys(value as object).sort());
-  let hash = 5381;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash * 33) ^ text.charCodeAt(i);
-  }
-  return `snapshot-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+function finalizeSnapshot(snapshot: DossierSnapshot): DossierSnapshot {
+  return { ...snapshot, snapshotHash: computeDossierSnapshotHash(snapshot) };
 }
 
 function emptyStatement(title: string): ReconstitutedStatement {
@@ -91,11 +87,12 @@ export function buildDemoDossierSnapshot(scenarioId?: string): DossierSnapshot {
       documentType: "demo",
       fingerprint: dossier.fecFingerprint,
       parserVersion: "demo",
+      location: { provider: "demo", key: "bundled/DEMO-SA-FEC-2024.txt" },
       createdAt: dossier.createdAt,
     },
   ];
 
-  return {
+  return finalizeSnapshot({
     dossier,
     sourceDocuments,
     findings,
@@ -114,14 +111,10 @@ export function buildDemoDossierSnapshot(scenarioId?: string): DossierSnapshot {
         : undefined,
     },
     snapshotVersion: DOSSIER_SNAPSHOT_VERSION,
-    snapshotHash: stableHash({
-      dossierId: dossier.id,
-      fingerprint: dossier.fecFingerprint,
-      findings: findings.map((finding) => finding.id),
-    }),
+    snapshotHash: "",
     sourceKind: "demo",
     ledgerEntries: [],
-  };
+  });
 }
 
 export function buildSnapshotFromFecDepot(input: FecDepotSnapshotInput): DossierSnapshot {
@@ -151,17 +144,21 @@ export function buildSnapshotFromFecDepot(input: FecDepotSnapshotInput): Dossier
     silos: silosFromFindings(input.analyse),
   };
 
-  return {
+  return finalizeSnapshot({
     dossier,
     sourceDocuments: [
       {
-        id: `${dossierId}-fec`,
+        id: input.sourceDocumentId ?? `${dossierId}-fec`,
         dossierId,
         fileName: input.nomFichier,
         documentType: "fec",
         fingerprint: input.fingerprint,
         lineCount: input.totalEntryCount ?? input.entries.length,
-        parserVersion: "fec-parser-1.0.0",
+        parserVersion: input.parserVersion ?? "fec-parser-1.0.0",
+        location: input.sourceLocation ?? {
+          provider: "session",
+          key: `browser/${input.sourceDocumentId ?? `${dossierId}-fec`}`,
+        },
         truncated: input.entriesTruncated,
         createdAt: generatedAt,
       },
@@ -186,14 +183,10 @@ export function buildSnapshotFromFecDepot(input: FecDepotSnapshotInput): Dossier
         : [],
     },
     snapshotVersion: DOSSIER_SNAPSHOT_VERSION,
-    snapshotHash: stableHash({
-      dossierId,
-      fingerprint: input.fingerprint,
-      findings: findings.map((finding) => finding.id),
-    }),
+    snapshotHash: "",
     sourceKind: "session",
     ledgerEntries: input.entries,
-  };
+  });
 }
 
 export function addRapprochementToSnapshot(
@@ -233,6 +226,7 @@ export function addRapprochementToSnapshot(
     fingerprint: document.fingerprint,
     lineCount: document.lineCount,
     parserVersion: "rapprochement-tabular-1.0.0",
+    location: { provider: "session", key: `browser/${document.id}` },
     createdAt: generatedAt,
   }));
   const sourceDocuments = startsFromDemo
@@ -265,7 +259,7 @@ export function addRapprochementToSnapshot(
         silos,
       };
 
-  return {
+  return finalizeSnapshot({
     ...current,
     dossier,
     sourceDocuments,
@@ -287,11 +281,7 @@ export function addRapprochementToSnapshot(
         `Rapprochement ${input.cycleId} ajouté au snapshot actif.`,
       ],
     },
-    snapshotHash: stableHash({
-      dossierId,
-      documents: sourceDocuments.map((document) => document.fingerprint),
-      findings: findings.map((finding) => finding.id),
-    }),
+    snapshotHash: "",
     sourceKind: "session",
-  };
+  });
 }
