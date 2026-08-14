@@ -11,6 +11,7 @@ import React, {
   type ReactNode,
 } from "react";
 import { useSearchParams } from "next/navigation";
+import { fetchWithCsrf } from "@/lib/auth/csrf-client";
 import type { DossierContext, DossierSnapshot } from "./types";
 import {
   ActiveDossierService,
@@ -116,7 +117,7 @@ export function ActiveDossierProvider({
 
   const appendReviewDecision = useCallback(async (input: ReviewDecisionRequest) => {
     if (state.snapshot.sourceKind === "persistent") {
-      const response = await fetch(
+      const response = await fetchWithCsrf(
         `/api/dossiers/${encodeURIComponent(state.context.dossierId)}/review-events`,
         {
           method: "POST",

@@ -18,6 +18,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "."),
+      // `server-only` lève une exception hors condition `react-server`. Les
+      // tests s'exécutent côté serveur : on résout vers le même module vide
+      // que Next.js utilise dans un Server Component.
+      "server-only": path.resolve(__dirname, "node_modules/server-only/empty.js"),
     },
   },
 });

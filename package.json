@@ -14,7 +14,17 @@
     "db:generate": "drizzle-kit generate",
     "db:check": "drizzle-kit check",
     "db:migrate": "drizzle-kit migrate",
-    "benchmark:ingestion": "tsx scripts/benchmark-ingestion.ts"
+    "benchmark:ingestion": "tsx scripts/benchmark-ingestion.ts",
+    "verify:vercel": "node scripts/verify-vercel.mjs",
+    "sbom": "node scripts/generate-sbom.mjs",
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install --with-deps chromium"
+  },
+  "//overrides": "Remontées transitives d'avis de sécurité. Voir docs/release/SOURCE_AUDIT.md pour la justification de chaque ligne et docs/adr/ADR-009-next-16-compatibility.md pour ce qui exige Next 16.",
+  "overrides": {
+    "postcss": "$postcss",
+    "esbuild": "^0.25.12",
+    "sharp": "^0.35.3"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1110.0",
@@ -42,6 +52,7 @@
   "devDependencies": {
     "@axe-core/react": "^4.12.1",
     "@eslint/eslintrc": "^3.3.6",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/react": "^16.3.2",
     "@types/js-yaml": "^4.0.9",
@@ -53,7 +64,7 @@
     "eslint": "^9.39.5",
     "eslint-config-next": "^15.5.23",
     "jsdom": "^29.1.1",
-    "postcss": "^8.5.1",
+    "postcss": "^8.5.26",
     "tailwindcss": "^4.0.0",
     "tsx": "^4.23.12",
     "typescript": "^5.7.3",

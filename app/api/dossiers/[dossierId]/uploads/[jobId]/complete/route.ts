@@ -1,8 +1,5 @@
 import { apiErrorResponse, requestIdFrom } from "@/lib/api/errors";
-import {
-  assertDossierAccess,
-  SignedHeaderContextResolver,
-} from "@/lib/auth/persistent-context";
+import { authorizeRequest } from "@/lib/auth/server";
 import { createPersistentIngestionRuntime } from "@/lib/ingestion/runtime";
 
 export const runtime = "nodejs";
@@ -14,10 +11,12 @@ export async function POST(
   const requestId = requestIdFrom(request);
   try {
     const { dossierId, jobId } = await context.params;
-    const auth = await new SignedHeaderContextResolver().resolve(request);
-    assertDossierAccess(auth, dossierId, "uploader");
+    const principal = await authorizeRequest(request, {
+      permission: "dossier:upload",
+      dossierId,
+    });
     const result = await createPersistentIngestionRuntime().uploadService.complete({
-      organizationId: auth.organizationId,
+      organizationId: principal.organizationId,
       dossierId,
       jobId,
     });

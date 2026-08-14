@@ -3,23 +3,40 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
+import type { AuthenticatedPrincipal } from "./principal";
+import { roleSchema } from "./roles";
 
+/**
+ * Contexte d'autorisation signé — chemin **machine**, pas utilisateur.
+ *
+ * Introduit en PR-03 avant l'existence d'un fournisseur d'identité, il reste
+ * le seul chemin d'authentification des workers d'ingestion et des tests
+ * d'intégration serveur à serveur. Les navigateurs passent, eux, par la
+ * session OIDC (`lib/auth/session`). Cf. ADR-007 § 3.
+ *
+ * La signature HMAC ne prouve que l'origine du contexte : la passerelle qui
+ * l'émet est responsable de l'authentification humaine en amont.
+ */
 const contextSchema = z.object({
   sub: z.string().min(1).max(200),
   organizationId: z.string().uuid(),
   dossierIds: z.array(z.string().uuid()).max(100),
-  roles: z.array(z.enum(["uploader", "reviewer", "admin"])).min(1).max(8),
+  roles: z.array(roleSchema).min(1).max(8),
   exp: z.number().int().positive(),
 });
 
 export type PersistentAuthorizationContext = z.infer<typeof contextSchema>;
 
 export interface PersistentContextResolver {
-  resolve(request: Request): Promise<PersistentAuthorizationContext>;
+  resolve(request: Request): Promise<AuthenticatedPrincipal>;
 }
 
 const CONTEXT_HEADER = "x-probant-auth-context";
 const SIGNATURE_HEADER = "x-probant-auth-signature";
+
+export function hasSignedGatewayHeaders(request: Request): boolean {
+  return Boolean(request.headers.get(CONTEXT_HEADER) && request.headers.get(SIGNATURE_HEADER));
+}
 
 function configuredSecret(): string {
   const secret = process.env.PROBANT_CONTEXT_HMAC_SECRET?.trim();
@@ -39,7 +56,7 @@ function signatureFor(encodedContext: string, secret: string): Buffer {
 }
 
 export class SignedHeaderContextResolver implements PersistentContextResolver {
-  async resolve(request: Request): Promise<PersistentAuthorizationContext> {
+  async resolve(request: Request): Promise<AuthenticatedPrincipal> {
     const secret = configuredSecret();
     const encoded = request.headers.get(CONTEXT_HEADER)?.trim();
     const signature = request.headers.get(SIGNATURE_HEADER)?.trim();
@@ -73,33 +90,22 @@ export class SignedHeaderContextResolver implements PersistentContextResolver {
     if (!parsed.success || parsed.data.exp <= Math.floor(Date.now() / 1000)) {
       throw new ApiError("AUTH_CONTEXT_EXPIRED", "Contexte d'autorisation expiré.", 401);
     }
-    return parsed.data;
-  }
-}
 
-export function assertDossierAccess(
-  context: PersistentAuthorizationContext,
-  dossierId: string,
-  requiredRole: PersistentAuthorizationContext["roles"][number],
-): void {
-  if (!context.roles.includes(requiredRole) && !context.roles.includes("admin")) {
-    throw new ApiError("FORBIDDEN", "Autorisation insuffisante.", 403);
-  }
-  if (!context.dossierIds.includes(dossierId)) {
-    throw new ApiError("DOSSIER_FORBIDDEN", "Le dossier n'est pas autorisé.", 403);
-  }
-}
-
-export function assertDossierAccessForAnyRole(
-  context: PersistentAuthorizationContext,
-  dossierId: string,
-  roles: PersistentAuthorizationContext["roles"],
-): void {
-  if (!roles.some((role) => context.roles.includes(role)) && !context.roles.includes("admin")) {
-    throw new ApiError("FORBIDDEN", "Autorisation insuffisante.", 403);
-  }
-  if (!context.dossierIds.includes(dossierId)) {
-    throw new ApiError("DOSSIER_FORBIDDEN", "Le dossier n'est pas autorisé.", 403);
+    return {
+      subject: parsed.data.sub,
+      organizationId: parsed.data.organizationId,
+      roles: parsed.data.roles,
+      // Le contexte signé énumère explicitement les dossiers accordés : il ne
+      // bénéficie jamais du « tous les dossiers de l'organisation ».
+      dossierIds: parsed.data.dossierIds,
+      authenticationMethod: "signed-gateway-context",
+      // L'appel est machine à machine : la MFA relève de la passerelle amont,
+      // et n'est donc pas constatée ici.
+      amr: [],
+      acr: null,
+      mfaSatisfied: false,
+      expiresAtEpochSeconds: parsed.data.exp,
+    };
   }
 }
 

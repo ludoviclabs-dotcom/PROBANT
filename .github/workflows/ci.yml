@@ -10,11 +10,24 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# Aucun droit par défaut : chaque job demande ce dont il a besoin.
+permissions:
+  contents: read
+
+env:
+  # Node 24 : version utilisée localement (v24.14.0 au 14/08/2026) et runtime
+  # par défaut de Vercel. `package.json` ne déclare aucun champ `engines` —
+  # voir P2-3 dans CURRENT_STATE_MAP.md.
+  NODE_VERSION: "24"
+
 jobs:
+  # ────────────────────────────────────────────────────────────────────
+  # 1. Vérification principale : lint, types, tests, build, migrations
+  # ────────────────────────────────────────────────────────────────────
   verify:
     name: lint · typecheck · test · build
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
 
     services:
       postgres:
@@ -38,26 +51,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      # Node 24 : version utilisée localement (v24.14.0 au 13/08/2026) et
-      # runtime par défaut de Vercel. `package.json` ne déclare aucun champ
-      # `engines` — voir P2-3 dans CURRENT_STATE_MAP.md.
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: npm
 
       # Installation reproductible depuis le lockfile — échoue si
       # package.json et package-lock.json divergent.
       - name: Install (npm ci)
         run: npm ci
-
-      - name: Migrations reproductibles
-        run: |
-          npm run db:check
-          npm run db:generate
-          git diff --exit-code -- drizzle
-          npm run db:migrate
 
       - name: Lint (ESLint CLI)
         run: npm run lint
@@ -71,8 +74,281 @@ jobs:
       - name: Build (Next.js)
         run: npm run build
 
-      # NON BLOQUANT — `xlsx@0.18.5` est supprimé par PR-03. Les alertes
-      # transitives restantes exigent actuellement des mises à niveau majeures
-      # de Next ou de l'outillage Drizzle et restent visibles pour PR-08.
-      - name: Audit de sécurité (informatif, non bloquant)
-        run: npm audit --audit-level=high || true
+  # ────────────────────────────────────────────────────────────────────
+  # 2. Migrations : reproductibles, et réversibles
+  # ────────────────────────────────────────────────────────────────────
+  migrations:
+    name: migrations · aller-retour
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: probant
+          POSTGRES_PASSWORD: probant_ci
+          POSTGRES_DB: probant_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U probant -d probant_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://probant:probant_ci@localhost:5432/probant_ci
+      PGPASSWORD: probant_ci
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install (npm ci)
+        run: npm ci
+
+      # Le schéma TypeScript et les fichiers SQL doivent rester alignés :
+      # une migration régénérée qui produit un diff signale un oubli.
+      - name: Migrations reproductibles
+        run: |
+          npm run db:check
+          npm run db:generate
+          git diff --exit-code -- drizzle
+
+      - name: Appliquer les migrations
+        run: npm run db:migrate
+
+      # Chaque migration a son `.down.sql` : on vérifie qu'il redescend
+      # réellement, puis que la remontée est idempotente. Sans ce contrôle,
+      # une procédure de rollback n'est qu'une intention.
+      - name: Aller-retour descendant puis remontant
+        run: |
+          set -euo pipefail
+          for down in $(ls -r drizzle/*.down.sql); do
+            echo "↓ $down"
+            psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f "$down"
+          done
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+            -c 'drop table if exists drizzle.__drizzle_migrations; drop schema if exists drizzle cascade;'
+          npm run db:migrate
+
+      - name: Vérifier la présence des tables structurantes
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -t -c \
+            "select count(*) from information_schema.tables
+             where table_schema = 'public'
+               and table_name in ('organizations','users','memberships','auth_sessions',
+                                  'dossiers','source_documents','ingestion_jobs','fec_entries',
+                                  'findings','review_events','synthesis_snapshots',
+                                  'report_artifacts','upload_quota_counters');" \
+            | tr -d ' ' | grep -qx '13'
+
+  # ────────────────────────────────────────────────────────────────────
+  # 3. Fixtures d'ingestion : fichiers hostiles et corpus adverse
+  # ────────────────────────────────────────────────────────────────────
+  fixtures:
+    name: fixtures d'ingestion
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install (npm ci)
+        run: npm ci
+
+      # Ces suites décrivent le comportement attendu face à des fichiers
+      # malveillants ou dégradés : elles sont exécutées séparément pour que
+      # leur échec soit lisible dans la liste des checks obligatoires.
+      - name: Fixtures adverses et limites d'ingestion
+        run: |
+          npx vitest run \
+            lib/tabular/__tests__/adversarial-files.test.ts \
+            lib/fec/__tests__/stream-parser.test.ts \
+            lib/ingestion/__tests__ \
+            lib/security/__tests__
+
+  # ────────────────────────────────────────────────────────────────────
+  # 4. E2E Playwright + axe-core
+  # ────────────────────────────────────────────────────────────────────
+  e2e:
+    name: E2E Playwright · axe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install (npm ci)
+        run: npm ci
+
+      # Chaque job reconstruit depuis la même révision plutôt que de se passer
+      # un artefact `.next`. Un build Next est déterministe à commit constant,
+      # donc le partage n'apportait aucune garantie supplémentaire — mais il
+      # introduisait un couplage fragile : un upload qui ne trouve aucun
+      # fichier n'échoue pas, il émet un avertissement, et le job aval tombe
+      # sur un artefact absent.
+      - name: Build (Next.js)
+        run: npm run build
+
+      - name: Installer Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Le parcours FEC durable est ignoré ici (PROBANT_E2E_PERSISTENT absent) :
+      # il exige PostgreSQL, S3, SQS et un IdP. Son statut de release est
+      # NOT_TESTED tant qu'un environnement provisionné ne l'exécute pas.
+      - name: Parcours E2E
+        run: npm run test:e2e
+
+      - name: Publier les traces d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: e2e/.artifacts
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────
+  # 5. Lighthouse CI — laboratoire, non bloquant sur le score global
+  # ────────────────────────────────────────────────────────────────────
+  lighthouse:
+    name: Lighthouse CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: verify
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install (npm ci)
+        run: npm ci
+
+      # Reconstruit sur place — voir la note du job `e2e`.
+      - name: Build (Next.js)
+        run: npm run build
+
+      - name: Autorun Lighthouse CI
+        run: npx --yes @lhci/cli@0.15.x autorun --config=./lighthouserc.json
+
+      - name: Publier les rapports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci
+          retention-days: 7
+
+  # ────────────────────────────────────────────────────────────────────
+  # 6. Chaîne d'approvisionnement : audit, SBOM
+  # ────────────────────────────────────────────────────────────────────
+  supply-chain:
+    name: dependency scan · SBOM
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install (npm ci)
+        run: npm ci
+
+      # BLOQUANT depuis PR-08 : l'arbre est à zéro avis « high » ou
+      # « critical ». Toute remontée doit être traitée ou justifiée dans
+      # docs/release/SOURCE_AUDIT.md, pas contournée en désactivant l'étape.
+      - name: Audit de sécurité (bloquant à partir de « high »)
+        run: npm audit --audit-level=high
+
+      - name: Générer le SBOM CycloneDX
+        env:
+          # Horodatage reproductible : le SBOM ne doit dépendre que du lockfile.
+          SOURCE_DATE_EPOCH: 0
+        run: npm run sbom > sbom.cdx.json
+
+      - name: Publier le SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+          retention-days: 90
+
+  # ────────────────────────────────────────────────────────────────────
+  # 7. Analyse statique de sécurité
+  # ────────────────────────────────────────────────────────────────────
+  codeql:
+    name: CodeQL
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Initialiser CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          queries: security-and-quality
+
+      - name: Analyser
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
+
+  # ────────────────────────────────────────────────────────────────────
+  # 8. Recherche de secrets
+  # ────────────────────────────────────────────────────────────────────
+  secret-scan:
+    name: secret scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          # Profondeur complète : l'action compare la base et la tête de la PR.
+          # Sans l'historique, un secret introduit puis retiré dans un commit
+          # intermédiaire de la branche échapperait au balayage.
+          fetch-depth: 0
+
+      - name: TruffleHog
+        uses: trufflesecurity/trufflehog@main
+        with:
+          # `--fail` est déjà passé par l'action : le répéter ici fait échouer
+          # TruffleHog sur « flag 'fail' cannot be repeated ».
+          # `unknown` couvre les détecteurs sans vérification en ligne — un
+          # secret non vérifiable reste un secret à examiner.
+          extra_args: --results=verified,unknown

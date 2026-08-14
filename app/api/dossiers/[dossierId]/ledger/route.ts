@@ -1,8 +1,5 @@
 import { apiErrorResponse, ApiError, requestIdFrom } from "@/lib/api/errors";
-import {
-  assertDossierAccessForAnyRole,
-  SignedHeaderContextResolver,
-} from "@/lib/auth/persistent-context";
+import { authorizeRequest } from "@/lib/auth/server";
 import { createPersistentIngestionRuntime } from "@/lib/ingestion/runtime";
 import { decodeLedgerCursor } from "@/lib/ingestion/repository";
 
@@ -15,8 +12,10 @@ export async function GET(
   const requestId = requestIdFrom(request);
   try {
     const { dossierId } = await context.params;
-    const auth = await new SignedHeaderContextResolver().resolve(request);
-    assertDossierAccessForAnyRole(auth, dossierId, ["reviewer", "uploader"]);
+    const principal = await authorizeRequest(request, {
+      permission: "dossier:read",
+      dossierId,
+    });
     const url = new URL(request.url);
     const sourceDocumentId = url.searchParams.get("sourceDocumentId");
     if (!sourceDocumentId || !zUuid(sourceDocumentId)) {
@@ -33,7 +32,7 @@ export async function GET(
       throw new ApiError("LEDGER_CURSOR_INVALID", "Curseur invalide.", 400);
     }
     const page = await createPersistentIngestionRuntime().repository.listLedgerPage({
-      organizationId: auth.organizationId,
+      organizationId: principal.organizationId,
       dossierId,
       sourceDocumentId,
       afterLine,

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { apiErrorResponse, ApiError, requestIdFrom } from "@/lib/api/errors";
-import { assertDossierAccess, SignedHeaderContextResolver } from "@/lib/auth/persistent-context";
+import { authorizeRequest } from "@/lib/auth/server";
+import { actingRoleFor } from "@/lib/auth/roles";
 import { getDatabase } from "@/lib/db/client";
 import { DrizzleReviewEventRepository } from "@/lib/dossier/review-repository";
 
@@ -27,19 +28,20 @@ export async function POST(
   const requestId = requestIdFrom(request);
   try {
     const { dossierId } = await context.params;
-    const auth = await new SignedHeaderContextResolver().resolve(request);
-    assertDossierAccess(auth, dossierId, "reviewer");
+    const principal = await authorizeRequest(request, {
+      permission: "dossier:review",
+      dossierId,
+    });
     const parsed = requestSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) {
       throw new ApiError("REVIEW_EVENT_INVALID", "Décision de revue invalide.", 400);
     }
-    const actorRole = auth.roles.includes("reviewer") ? "reviewer" : "admin";
     const snapshot = await new DrizzleReviewEventRepository(getDatabase()).append(
-      { organizationId: auth.organizationId, dossierId },
+      { organizationId: principal.organizationId, dossierId },
       {
         ...parsed.data,
-        actorId: auth.sub,
-        actorRole,
+        actorId: principal.subject,
+        actorRole: actingRoleFor(principal.roles, "dossier:review"),
       },
     );
     return Response.json(snapshot, {

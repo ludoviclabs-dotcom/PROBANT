@@ -646,10 +646,16 @@ export function RiskMatrixHeatmap({
 
           return (
             <div key={s.cycleSlug} role="row" className="contents">
-              <div className="flex min-w-0 items-center gap-1" style={rowEntry}>
+              {/*
+                `role="rowheader"` appartient à ce conteneur et non au bouton
+                qu'il enveloppe : un `role="row"` n'accepte que des
+                `rowheader`/`columnheader`/`gridcell` comme enfants **directs**,
+                et l'ancien div intermédiaire sans rôle rompait cette règle
+                (axe-core `aria-required-children`, impact critique).
+              */}
+              <div role="rowheader" className="flex min-w-0 items-center gap-1" style={rowEntry}>
                 <button
                   type="button"
-                  role="rowheader"
                   onClick={() => onSelect(s.cycleSlug)}
                   title={s.cycleSlug}
                   className={cn(

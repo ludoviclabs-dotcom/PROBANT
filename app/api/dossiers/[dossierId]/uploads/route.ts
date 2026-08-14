@@ -1,9 +1,6 @@
 import { z } from "zod";
 import { apiErrorResponse, ApiError, requestIdFrom } from "@/lib/api/errors";
-import {
-  assertDossierAccess,
-  SignedHeaderContextResolver,
-} from "@/lib/auth/persistent-context";
+import { authorizeRequest } from "@/lib/auth/server";
 import { FEC_STREAM_PARSER_VERSION } from "@/lib/fec/stream-parser";
 import { createPersistentIngestionRuntime } from "@/lib/ingestion/runtime";
 
@@ -27,13 +24,15 @@ export async function POST(
   const requestId = requestIdFrom(request);
   try {
     const { dossierId } = await context.params;
-    const auth = await new SignedHeaderContextResolver().resolve(request);
-    assertDossierAccess(auth, dossierId, "uploader");
+    const principal = await authorizeRequest(request, {
+      permission: "dossier:upload",
+      dossierId,
+    });
     const body = bodySchema.safeParse(await request.json().catch(() => null));
     if (!body.success) throw new ApiError("REQUEST_INVALID", "Paramètres d'upload invalides.", 400);
     const runtime = createPersistentIngestionRuntime();
     const result = await runtime.uploadService.start({
-      organizationId: auth.organizationId,
+      organizationId: principal.organizationId,
       dossierId,
       ...body.data,
       parserVersion: FEC_STREAM_PARSER_VERSION,

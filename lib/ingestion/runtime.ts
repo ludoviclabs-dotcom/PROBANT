@@ -3,6 +3,11 @@ import "server-only";
 import { getDatabase } from "@/lib/db/client";
 import { createS3ObjectStorageFromEnvironment } from "@/lib/storage/s3-object-storage";
 import { readIngestionLimits } from "./limits";
+import {
+  DrizzleUploadQuotaStore,
+  UploadQuotaService,
+  readUploadQuotaPolicy,
+} from "./quota";
 import { DrizzleIngestionRepository } from "./repository";
 import { createJobQueueFromEnvironment } from "./sqs-job-queue";
 import { DirectUploadService } from "./upload-service";
@@ -21,12 +26,17 @@ export function createPersistentIngestionRuntime() {
   const storage = createS3ObjectStorageFromEnvironment();
   const queue = createJobQueueFromEnvironment();
   const limits = readIngestionLimits();
+  const quota = new UploadQuotaService(
+    new DrizzleUploadQuotaStore(getDatabase()),
+    readUploadQuotaPolicy(),
+  );
   return {
     repository,
     storage,
     queue,
     limits,
+    quota,
     uploadTtlSeconds: uploadTtlSeconds(),
-    uploadService: new DirectUploadService(repository, storage, queue, limits),
+    uploadService: new DirectUploadService(repository, storage, queue, limits, quota),
   };
 }
