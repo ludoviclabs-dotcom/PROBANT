@@ -74,17 +74,6 @@ jobs:
       - name: Build (Next.js)
         run: npm run build
 
-      # Le build est réutilisé par les jobs E2E et Lighthouse : le
-      # reconstruire trois fois masquerait une divergence entre artefacts.
-      - name: Publier le build
-        uses: actions/upload-artifact@v4
-        with:
-          name: next-build
-          path: |
-            .next
-            !.next/cache
-          retention-days: 1
-
   # ────────────────────────────────────────────────────────────────────
   # 2. Migrations : reproductibles, et réversibles
   # ────────────────────────────────────────────────────────────────────
@@ -213,11 +202,14 @@ jobs:
       - name: Install (npm ci)
         run: npm ci
 
-      - name: Récupérer le build
-        uses: actions/download-artifact@v4
-        with:
-          name: next-build
-          path: .next
+      # Chaque job reconstruit depuis la même révision plutôt que de se passer
+      # un artefact `.next`. Un build Next est déterministe à commit constant,
+      # donc le partage n'apportait aucune garantie supplémentaire — mais il
+      # introduisait un couplage fragile : un upload qui ne trouve aucun
+      # fichier n'échoue pas, il émet un avertissement, et le job aval tombe
+      # sur un artefact absent.
+      - name: Build (Next.js)
+        run: npm run build
 
       - name: Installer Chromium
         run: npx playwright install --with-deps chromium
@@ -257,11 +249,9 @@ jobs:
       - name: Install (npm ci)
         run: npm ci
 
-      - name: Récupérer le build
-        uses: actions/download-artifact@v4
-        with:
-          name: next-build
-          path: .next
+      # Reconstruit sur place — voir la note du job `e2e`.
+      - name: Build (Next.js)
+        run: npm run build
 
       - name: Autorun Lighthouse CI
         run: npx --yes @lhci/cli@0.15.x autorun --config=./lighthouserc.json
