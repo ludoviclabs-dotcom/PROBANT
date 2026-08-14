@@ -89,9 +89,21 @@ export class DirectUploadService {
     if (input.contentLength > this.storage.maxDirectUploadBytes) {
       throw new ApiError("DIRECT_UPLOAD_PROVIDER_LIMIT", "Taille incompatible avec cet upload direct.", 413);
     }
-    // Rate limit et quota avant la signature : une organisation au-delà de son
-    // quota ne reçoit jamais d'autorisation d'écriture vers le stockage objet.
-    await this.quota?.reserve(input.organizationId, input.contentLength);
+    /**
+     * Rate limit et quota **avant** la création de l'intention : une
+     * organisation au-delà de son quota ne doit ni écrire en base ni recevoir
+     * d'autorisation d'écriture vers le stockage objet.
+     *
+     * La réservation est rendue plus bas si l'intention existait déjà : la
+     * consommation doit suivre les fichiers réellement déposés, pas les
+     * requêtes reçues. Sans cela, quelques rejeux légitimes — un client qui
+     * perd la réponse HTTP et réessaie avec la même clé d'idempotence —
+     * épuiseraient le quota du jour.
+     */
+    const reservation = await this.quota?.reserve(
+      input.organizationId,
+      input.contentLength,
+    );
 
     const record = await this.repository.createOrGetUploadIntent({
       organizationId: input.organizationId,
@@ -107,6 +119,11 @@ export class DirectUploadService {
       requestId: input.requestId,
       storageBucket: this.storage.bucket,
     });
+
+    // Rejeu idempotent : ce fichier a déjà été compté lors du premier appel.
+    if (reservation && !record.created) {
+      await this.quota?.release(reservation);
+    }
 
     const sameIntent =
       record.document.originalName === neutralizeFileName(input.fileName) &&

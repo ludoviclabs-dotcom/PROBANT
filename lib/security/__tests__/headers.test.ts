@@ -66,6 +66,22 @@ describe("politique CSP", () => {
   });
 });
 
+describe("cohérence requête / réponse", () => {
+  it("la politique posée sur la requête est identique à celle de la réponse", () => {
+    // Next.js lit la CSP de la *requête* pour noncer ses scripts d'amorçage.
+    // Si les deux divergeaient, les scripts du framework porteraient un nonce
+    // que la réponse n'autorise pas — hydratation bloquée en enforcement.
+    for (const mode of ["report-only", "enforce"] as const) {
+      const options = { nonce: NONCE, mode, https: true };
+      const headers = buildSecurityHeaders(options);
+      const response =
+        headers["content-security-policy"] ??
+        headers["content-security-policy-report-only"];
+      expect(response).toBe(buildContentSecurityPolicy(options));
+    }
+  });
+});
+
 describe("en-têtes complémentaires", () => {
   const headers = buildSecurityHeaders({ nonce: NONCE, mode: "report-only", https: true });
 

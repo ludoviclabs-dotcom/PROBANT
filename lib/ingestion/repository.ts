@@ -23,6 +23,16 @@ export interface UploadIntentRecord {
   document: SourceDocumentRow;
 }
 
+/**
+ * Résultat de `createOrGetUploadIntent`.
+ *
+ * `created` distingue une création réelle d'un rejeu idempotent — information
+ * nécessaire pour ne compter le quota qu'une fois par fichier déposé.
+ */
+export interface UploadIntentCreation extends UploadIntentRecord {
+  created: boolean;
+}
+
 export interface CreateUploadIntentInput {
   organizationId: string;
   dossierId: string;
@@ -68,13 +78,13 @@ function toRecord(
 export class DrizzleIngestionRepository {
   constructor(private readonly db: ProbantDatabase) {}
 
-  async createOrGetUploadIntent(input: CreateUploadIntentInput): Promise<UploadIntentRecord> {
+  async createOrGetUploadIntent(input: CreateUploadIntentInput): Promise<UploadIntentCreation> {
     const existing = await this.findByIdempotency(
       input.organizationId,
       input.dossierId,
       input.idempotencyKey,
     );
-    if (existing) return existing;
+    if (existing) return { ...existing, created: false };
 
     try {
       return await this.db.transaction(async (tx) => {
@@ -128,7 +138,7 @@ export class DrizzleIngestionRepository {
             requestId: input.requestId,
           })
           .returning();
-        return { job, document };
+        return { job, document, created: true };
       });
     } catch (error) {
       const raced = await this.findByIdempotency(
@@ -136,7 +146,7 @@ export class DrizzleIngestionRepository {
         input.dossierId,
         input.idempotencyKey,
       );
-      if (raced) return raced;
+      if (raced) return { ...raced, created: false };
       throw error;
     }
   }

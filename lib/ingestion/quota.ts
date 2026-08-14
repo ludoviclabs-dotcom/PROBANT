@@ -53,6 +53,14 @@ export function windowStart(kind: QuotaWindow, nowMs: number): Date {
   return new Date(Math.floor(nowMs / size) * size);
 }
 
+/** Consommation effectivement enregistrée, avec ses bornes de fenêtre. */
+export interface QuotaReservation {
+  readonly organizationId: string;
+  readonly bytes: number;
+  readonly minuteStart: Date;
+  readonly dayStart: Date;
+}
+
 export interface QuotaConsumption {
   readonly requestCount: number;
   readonly byteCount: number;
@@ -181,8 +189,12 @@ export class UploadQuotaService {
   /**
    * Réserve un upload. Lève avant toute signature d'URL : l'organisation qui
    * dépasse son quota ne reçoit jamais d'autorisation d'écriture au stockage.
+   *
+   * Retourne une réservation afin que l'appelant puisse la rendre si l'upload
+   * s'avère être un rejeu idempotent — la consommation doit suivre les
+   * fichiers réellement déposés, pas les requêtes reçues.
    */
-  async reserve(organizationId: string, bytes: number): Promise<void> {
+  async reserve(organizationId: string, bytes: number): Promise<QuotaReservation> {
     const now = this.nowMs();
     const minuteStart = windowStart("minute", now);
     const minute = await this.store.consume(organizationId, "minute", minuteStart, bytes);
@@ -213,5 +225,29 @@ export class UploadQuotaService {
         },
       );
     }
+
+    return { organizationId, bytes, minuteStart, dayStart };
+  }
+
+  /**
+   * Rend une réservation.
+   *
+   * Les bornes de fenêtre sont celles capturées à la réservation, jamais
+   * recalculées : si la minute a changé entre-temps, décrémenter la fenêtre
+   * courante retirerait la consommation d'un autre upload.
+   */
+  async release(reservation: QuotaReservation): Promise<void> {
+    await this.store.release(
+      reservation.organizationId,
+      "minute",
+      reservation.minuteStart,
+      reservation.bytes,
+    );
+    await this.store.release(
+      reservation.organizationId,
+      "day",
+      reservation.dayStart,
+      reservation.bytes,
+    );
   }
 }

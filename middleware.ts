@@ -1,5 +1,10 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { buildSecurityHeaders, generateNonce, readCspMode } from "@/lib/security/headers";
+import {
+  buildContentSecurityPolicy,
+  buildSecurityHeaders,
+  generateNonce,
+  readCspMode,
+} from "@/lib/security/headers";
 
 /**
  * Middleware — **en-têtes uniquement**.
@@ -10,15 +15,30 @@ import { buildSecurityHeaders, generateNonce, readCspMode } from "@/lib/security
  */
 export function middleware(request: NextRequest) {
   const nonce = generateNonce();
+  const mode = readCspMode();
+  const development = process.env.NODE_ENV === "development";
+  const policy = buildContentSecurityPolicy({ nonce, mode, development });
+
   const requestHeaders = new Headers(request.headers);
-  // Exposé aux Server Components pour noncer les scripts inline légitimes.
   requestHeaders.set("x-nonce", nonce);
+  /**
+   * Next.js lit la politique sur la **requête** pour en extraire le nonce et
+   * l'appliquer à ses propres scripts d'amorçage et d'hydratation. Sans cet
+   * en-tête, ces scripts ne sont pas noncés : en `enforce`, `strict-dynamic`
+   * bloque l'hydratation de toutes les pages ; en `report-only`, ils
+   * produisent un flot de violations légitimes qui rendrait illisibles les
+   * rapports servant justement à décider de la bascule.
+   *
+   * Le nom `content-security-policy` est celui attendu côté requête, quel que
+   * soit le mode ; seule la **réponse** distingue enforcement et report-only.
+   */
+  requestHeaders.set("content-security-policy", policy);
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
   const headers = buildSecurityHeaders({
     nonce,
-    mode: readCspMode(),
-    development: process.env.NODE_ENV === "development",
+    mode,
+    development,
     https: request.nextUrl.protocol === "https:",
   });
   for (const [name, value] of Object.entries(headers)) {

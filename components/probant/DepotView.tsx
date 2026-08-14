@@ -19,6 +19,7 @@ import { SCENARIOS } from "@/lib/demo/scenarios";
 import { SimulationPanel } from "./SimulationPanel";
 import type { Severity } from "@/lib/canonical-model";
 import { useActiveDossier } from "@/lib/dossier/client";
+import { fetchWithCsrf } from "@/lib/auth/csrf-client";
 import type {
   BalanceValidation,
   ParsedBalance,
@@ -158,7 +159,7 @@ function DepotViewInner() {
         const fileKey = `${activeContext.dossierId}:${file.name}:${file.size}:${file.lastModified}`;
         const idempotencyKey = uploadKeys.current.get(fileKey) ?? crypto.randomUUID();
         uploadKeys.current.set(fileKey, idempotencyKey);
-        const startResponse = await fetch(
+        const startResponse = await fetchWithCsrf(
           `/api/dossiers/${encodeURIComponent(activeContext.dossierId)}/uploads`,
           {
             method: "POST",
@@ -184,7 +185,7 @@ function DepotViewInner() {
         }
         // Toujours rejouer la finalisation : si le PUT avait réussi mais SQS
         // échoué, l'intention idempotente revient `uploaded` sans nouvelle URL.
-        const completeResponse = await fetch(
+        const completeResponse = await fetchWithCsrf(
           `/api/dossiers/${encodeURIComponent(activeContext.dossierId)}/uploads/${encodeURIComponent(started.jobId)}/complete`,
           { method: "POST" },
         );

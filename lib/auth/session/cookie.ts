@@ -10,9 +10,11 @@ import { constantTimeEquals } from "../sealed-cookie";
  * un contexte sécurisé pour les navigateurs, le développement fonctionne donc
  * sans assouplir l'attribut `Secure`.
  */
-export const SESSION_COOKIE = "__Host-probant_session";
-export const OIDC_TRANSACTION_COOKIE = "__Host-probant_oidc_tx";
-export const CSRF_HEADER = "x-probant-csrf";
+export {
+  CSRF_HEADER,
+  OIDC_TRANSACTION_COOKIE,
+  SESSION_COOKIE,
+} from "./constants";
 
 export interface CookieAttributes {
   readonly name: string;
