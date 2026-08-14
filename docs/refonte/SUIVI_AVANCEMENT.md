@@ -7,8 +7,8 @@
 | | |
 |---|---|
 | Dernière mise à jour | 14/08/2026 |
-| État global | **PR-00 → PR-06 fusionnés · PR-07 en cours** — historique de revue et dossier de preuve reproductible |
-| Prochaine action | Revue de PR-07, puis PR-04 (référentiel/crosswalks) — la revue métier R-01 à R-03 de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md) reste ouverte |
+| État global | **PR-00 → PR-07 fusionnés · PR-08 en revue** — release candidate vérifiable |
+| Prochaine action | Revue de PR-08, puis les trois conditions de promotion de [`READINESS_REPORT.md`](../release/READINESS_REPORT.md) § 3 ; ensuite PR-04 (référentiel/crosswalks) — la revue métier R-01 à R-03 de [`docs/knowledge/REVIEW_REQUIRED.md`](../knowledge/REVIEW_REQUIRED.md) reste ouverte |
 
 ---
 
@@ -67,8 +67,8 @@ First Load JS ; `/dashboard/risques` ≈ 207 kB.
 | **PR-04** | Référentiel PCG / NEP / IFRS et crosswalks | PR-01 | ⬜ À faire | — | 3–6 j + revue métier | Élevé |
 | **PR-05** | Moteur de Synthèse déterministe | PR-03, PR-04 | ✅ Fusionné | [#38](https://github.com/ludoviclabs-dotcom/PROBANT/pull/38) | 3–5 j | **Très élevé** |
 | **PR-06** | Cockpit, infographies, accessibilité | PR-05 | ✅ Fusionné | [#39](https://github.com/ludoviclabs-dotcom/PROBANT/pull/39) | 2–4 j | Moyen |
-| **PR-07** | Revue append-only, manifeste, exports | PR-05 | 🟦 En cours | `codex/pr-07-review-evidence` | 3–5 j | Élevé |
-| **PR-08** | Auth, hardening, E2E, observabilité, release | PR-06, PR-07 | ⬜ À faire | — | 2–4 j | Élevé |
+| **PR-07** | Revue append-only, manifeste, exports | PR-05 | ✅ Fusionné | [#40](https://github.com/ludoviclabs-dotcom/PROBANT/pull/40) | 3–5 j | Élevé |
+| **PR-08** | Auth, hardening, E2E, observabilité, release | PR-06, PR-07 | 🟨 En revue | `claude/release-candidate-prep-9779c7` | 2–4 j | Élevé |
 | PR-09+ | Tax Compliance Engine (IS / TVA) | PR-07 | ⏸️ Reporté | — | non estimé | — |
 
 Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estimation, pas engagement.
@@ -95,7 +95,7 @@ Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estim
 
 | # | Sujet | État | Porté par | Détail |
 |---|---|---|---|---|
-| P0-1 | `xlsx@0.18.5` — pollution de prototype et ReDoS sur des fichiers externes. **`npm audit` : `fixAvailable: false`** — aucune version corrigée publiée | 🟥 **Ouvert — blocage documenté** | PR-00 (documentation ✅) → PR-03 (remplacement) | ADR-003 obligatoire avant remplacement |
+| P0-1 | `xlsx@0.18.5` — pollution de prototype et ReDoS sur des fichiers externes | ✅ **Résolu** | PR-03 (remplacement) · PR-08 (vérification) | `xlsx` **absent du lockfile** ; remplacé par `read-excel-file` (ADR-003). `npm audit` : **0 vulnérabilité** |
 | P0-2 | Next.js 15.5.19 — patch de sécurité plus récent disponible sur la branche 15.5 | ✅ **Résolu** — `15.5.23` | PR-00 | 8 avis GHSA corrigés en 15.5.21 ; **pas** de migration 16 |
 | P0-3 | Aucune CI — sept PR structurants sans barrière de non-régression | ✅ **Résolu** | PR-00 | `.github/workflows/ci.yml` : `npm ci` → lint → typecheck → test → build |
 | P0-4 | Trois sources de vérité (`DEMO_DOSSIER`, `sessionStorage`, stores en mémoire) | ⬜ Ouvert | PR-02 | Défaut fonctionnel majeur. Chiffré en PR-00 : **8** imports directs, **8** clés `sessionStorage`, **3** stores |
@@ -112,7 +112,8 @@ Total indicatif PR-00 → PR-08 : **20,5 à 37,5 jours d'ingénierie** — estim
 | ADR-004 | Schéma PostgreSQL / Drizzle | PR-03 | ✅ Rédigée (`docs/adr/ADR-004-database-schema.md`) |
 | ADR-005 | Runtime d'ingestion — jobs, retry, idempotence, limites | PR-03 | ✅ Rédigée (`docs/adr/ADR-005-ingestion-runtime.md`) |
 | ADR-006 | Déterminisme de la Synthèse — canonical JSON, traces, hash | PR-05 | ⬜ À rédiger |
-| ADR-007 | AuthN / AuthZ — OIDC, sessions, rôles, isolation | PR-08 (préparé en PR-03) | ⬜ À rédiger |
+| ADR-007 | AuthN / AuthZ — OIDC, sessions, rôles, isolation | PR-08 (préparé en PR-03) | ✅ Rédigée (`docs/adr/ADR-007-authn-authz.md`) |
+| ADR-009 | Matrice de compatibilité Next.js 16 | PR-08 | ✅ Rédigée (`docs/adr/ADR-009-next-16-compatibility.md`) |
 | ADR-008 | PDF/A et PAdES | PR-07 | ✅ Rédigée (`docs/adr/ADR-008-pdf-a-pades.md`) |
 
 ---
@@ -139,7 +140,8 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 - [ ] `docs/adr/ADR-004-database-schema.md`
 - [ ] `docs/adr/ADR-005-ingestion-runtime.md`
 - [ ] `docs/adr/ADR-006-synthesis-determinism.md`
-- [ ] `docs/adr/ADR-007-authn-authz.md`
+- [x] `docs/adr/ADR-007-authn-authz.md`
+- [x] `docs/adr/ADR-009-next-16-compatibility.md`
 - [x] `docs/adr/ADR-008-pdf-a-pades.md`
 
 ### Connaissance — PR-01 / PR-04
@@ -158,12 +160,13 @@ Le plan liste les fichiers Markdown exacts à produire. Cocher au fur et à mesu
 
 ### Release — PR-08
 
-- [ ] `docs/release/READINESS_REPORT.md`
-- [ ] `docs/release/SOURCE_AUDIT.md`
-- [ ] `docs/release/TEST_REPORT.md`
-- [ ] `docs/release/PERFORMANCE_REPORT.md`
-- [ ] `docs/release/ACCESSIBILITY_REPORT.md`
-- [ ] `docs/release/KNOWN_LIMITATIONS.md`
+- [x] `docs/release/READINESS_REPORT.md`
+- [x] `docs/release/SOURCE_AUDIT.md`
+- [x] `docs/release/TEST_REPORT.md`
+- [x] `docs/release/PERFORMANCE_REPORT.md`
+- [x] `docs/release/ACCESSIBILITY_REPORT.md`
+- [x] `docs/release/KNOWN_LIMITATIONS.md`
+- [x] `docs/release/BRANCH_PROTECTION.md` — ajouté (protection de branche et smoke test)
 
 ---
 
@@ -209,6 +212,7 @@ Une ligne par événement structurant. Le plus récent en haut.
 
 | Date | Événement | Réf. |
 |---|---|---|
+| 14/08/2026 | **PR-08** — release candidate vérifiable : OIDC utilisateur + session serveur opaque (cookie `__Host-`, empreinte SHA-256 en base, double expiration), MFA constatée via `acr`/`amr` sans second facteur maison, autorisation par permission dans chaque service avec **3 verrous d'isolation** et 14 tests négatifs cross-org, CSP Report-Only + 7 en-têtes, upload durci (rate limit et quota en base, magic bytes côté worker, nom neutralisé), logs à allowlist fermée + 6 SLI, RUM natif sans connecteur SaaS, CI portée à **8 jobs** (Playwright, axe, Lighthouse, CodeQL, secret scan, SBOM, migrations aller-retour), 18 E2E sur 4 parcours. **`npm audit` : 7 → 0** par overrides ciblés, sans migration majeure. Défaut critique `aria-required-children` corrigé ; `POST /api/export` n'accepte plus un snapshot non authentifié. **438 tests** (+179). ADR-007 et ADR-009 rédigées, 7 rapports de release | branche `claude/release-candidate-prep-9779c7` |
 | 14/08/2026 | **PR-07** — événements de revue append-only chaînés par SHA-256, snapshots immuables, manifeste versionné et exports reproductibles (JSON canonique, 4 CSV, HTML accessible/imprimable et PDF dérivé sans revendication PDF/A). Garde de contexte DEMO/persistant, limitations de preuve, contrôles d'intégrité et migration PostgreSQL protégée par triggers. 274 tests au total ; build et rendu PDF vérifiés | branche `codex/pr-07-review-evidence` |
 | 14/08/2026 | **PR-06** — restitution Synthèse refondée sur VisualizationDataset (`lib/visualization`) : 14 composants (décision/analyse/exploration, matrice FEC 18 zones, waterfall, heatmap cloison×assertion, pyramide normative, frise, chaîne de preuve), contrat « aucun composant ne recompte les findings » testé, alternative tabulaire sous chaque graphique, axe-core sans violation, reduced-motion, plus de compteur à zéro ni pulsation infinie, responsive vérifié à 5 viewports sans overflow. +25 tests (258 au total) | branche `claude/probant-synthese-ui` |
 | 14/08/2026 | **PR-05** — moteur de Synthèse pur (`lib/synthesis`) : SynthesisSnapshot 5 dimensions sans score composite, exposition sur effets financiers EXPLICITES (fin de la présomption |constaté−seuil|), déduplication 5 étapes (clé stable, graphe, clusters, politique, ambiguïté→revue), centimes entiers, JSON canonique + SHA-256 pur (hash identique navigateur/Node vérifié), 8 limitations générées, note de synthèse déterministe sans LLM (bouton fonctionnel), verdict catégoriel — plus de « exploitable » sans couverture/admissibilité. Page Synthèse = projection du snapshot, calcul métier hors JSX. 39 tests moteur, 233 au total | branche `claude/probant-synthesis-engine` |

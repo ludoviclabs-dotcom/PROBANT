@@ -5,6 +5,11 @@ import { computeDossierSnapshotHash } from "@/lib/dossier/snapshot-state";
 import { FEC_STREAM_PARSER_VERSION, FecStreamError, parseFecStream } from "@/lib/fec/stream-parser";
 import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
 import { ALL_REGISTRIES, runRules, splitAdmissibilite } from "@/lib/rules-engine";
+import {
+  ContentSignatureError,
+  assertSignatureAllowed,
+  peekHead,
+} from "@/lib/security/magic-bytes";
 import type { ObjectStorage } from "@/lib/storage/types";
 import { reusableTerminalStatus } from "./job-idempotency";
 import type { IngestionLimits } from "./limits";
@@ -52,12 +57,32 @@ export class IngestionProcessor {
 
     try {
       await this.repository.prepareParsing(message.jobId, acquired.document.id);
-      const stream = await this.storage.read({
+      const rawStream = await this.storage.read({
         provider: "s3",
         bucket: acquired.document.storageBucket,
         key: acquired.document.storageKey,
         versionId: acquired.document.storageVersionId ?? undefined,
       });
+      /**
+       * Contrôle du contenu réel. L'extension et le MIME ont été vérifiés à la
+       * signature de l'URL, mais ce sont des déclarations du client : c'est ici,
+       * au premier octet lu, que le fichier prouve ce qu'il est. Un binaire
+       * déguisé en `.txt` est mis en quarantaine sans atteindre le parseur.
+       */
+      const { head, stream } = await peekHead(rawStream);
+      try {
+        assertSignatureAllowed(head, "fec");
+      } catch (error) {
+        if (error instanceof ContentSignatureError) {
+          await this.repository.markTerminal(
+            message.jobId,
+            "quarantined",
+            "CONTENT_SIGNATURE_MISMATCH",
+          );
+          return "quarantined";
+        }
+        throw error;
+      }
       const parsed = await parseFecStream(stream, {
         limits: this.limits,
         onBatch: (entries) =>

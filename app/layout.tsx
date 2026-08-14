@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { GuidedTour } from "@/components/probant/GuidedTour";
 import { AxeCoreDevTools } from "@/components/probant/AxeCoreDevTools";
+import { WebVitalsReporter } from "@/components/probant/WebVitalsReporter";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -31,6 +32,7 @@ export default function RootLayout({
         {children}
         <GuidedTour />
         <AxeCoreDevTools />
+        <WebVitalsReporter />
       </body>
     </html>
   );

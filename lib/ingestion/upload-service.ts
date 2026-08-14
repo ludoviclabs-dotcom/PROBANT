@@ -1,7 +1,9 @@
 import { ApiError } from "@/lib/api/errors";
+import { extensionOf, neutralizeFileName } from "@/lib/security/filename";
 import type { ObjectStorage, StoredObjectRef } from "@/lib/storage/types";
 import type { IngestionLimits } from "./limits";
 import type { IngestionJobQueue } from "./queue";
+import type { UploadQuotaService } from "./quota";
 import type { DrizzleIngestionRepository, UploadIntentRecord } from "./repository";
 
 export interface StartDirectUploadInput {
@@ -35,8 +37,14 @@ const EXTENSIONS_BY_DOCUMENT_TYPE: Record<StartDirectUploadInput["documentType"]
   cycle_document: ["xlsx", "csv", "pdf"],
 };
 
+/**
+ * Contrat de fichier vérifié **avant** toute signature d'URL.
+ *
+ * L'extension est lue sur le nom neutralisé : `rapport.txt‮xslx.exe` ne
+ * doit pas passer pour un `.txt`, et `../../etc/passwd` n'a pas d'extension.
+ */
 export function validateFileContract(input: StartDirectUploadInput): void {
-  const extension = input.fileName.toLowerCase().split(".").pop() ?? "";
+  const extension = extensionOf(input.fileName);
   if (extension === "xls") {
     throw new ApiError(
       "XLS_LEGACY_NOT_SUPPORTED",
@@ -67,6 +75,7 @@ export class DirectUploadService {
     private readonly storage: ObjectStorage,
     private readonly queue: IngestionJobQueue,
     private readonly limits: IngestionLimits,
+    private readonly quota: UploadQuotaService | null = null,
   ) {}
 
   async start(input: StartDirectUploadInput) {
@@ -80,11 +89,15 @@ export class DirectUploadService {
     if (input.contentLength > this.storage.maxDirectUploadBytes) {
       throw new ApiError("DIRECT_UPLOAD_PROVIDER_LIMIT", "Taille incompatible avec cet upload direct.", 413);
     }
+    // Rate limit et quota avant la signature : une organisation au-delà de son
+    // quota ne reçoit jamais d'autorisation d'écriture vers le stockage objet.
+    await this.quota?.reserve(input.organizationId, input.contentLength);
 
     const record = await this.repository.createOrGetUploadIntent({
       organizationId: input.organizationId,
       dossierId: input.dossierId,
-      originalName: input.fileName,
+      // Le nom d'origine n'est jamais persisté tel quel : il est réaffiché.
+      originalName: neutralizeFileName(input.fileName),
       documentType: input.documentType,
       contentType: input.contentType,
       contentLength: input.contentLength,
@@ -96,7 +109,7 @@ export class DirectUploadService {
     });
 
     const sameIntent =
-      record.document.originalName === input.fileName &&
+      record.document.originalName === neutralizeFileName(input.fileName) &&
       record.document.documentType === input.documentType &&
       record.document.declaredMimeType === input.contentType &&
       record.document.declaredByteSize === input.contentLength &&

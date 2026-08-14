@@ -33,5 +33,12 @@ yarn-error.log*
 # playwright / screenshots
 .playwright-mcp
 *.png
+/e2e/.artifacts/
+/playwright-report/
+/test-results/
+
+# rapports générés en CI (jamais commités : ils datent d'une exécution)
+/.lighthouseci/
+/sbom.cdx.json
 
 .vercel

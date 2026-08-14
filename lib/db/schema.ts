@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   bigint,
+  boolean,
   check,
   foreignKey,
   index,
@@ -92,6 +93,130 @@ export const organizations = pgTable("organizations", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });
+
+export const probantRoleEnum = pgEnum("probant_role", [
+  "preparer",
+  "reviewer",
+  "signer",
+  "admin",
+]);
+
+/**
+ * Utilisateur provisionné à la volée au premier login OIDC.
+ *
+ * `external_subject` est la paire `issuer|sub` : le même `sub` chez deux
+ * fournisseurs différents ne doit jamais désigner la même personne.
+ */
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey(),
+    externalSubject: text("external_subject").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [uniqueIndex("users_external_subject_uq").on(table.externalSubject)],
+);
+
+/**
+ * Appartenance organisation × utilisateur × rôle.
+ *
+ * ⚠️ Cette table est un **miroir auditable** des rôles émis par l'IdP, pas la
+ * source d'autorisation : la décision se prend sur les rôles portés par la
+ * session (ADR-007 § 4). Elle sert à répondre « qui avait quel rôle, quand ».
+ */
+export const memberships = pgTable(
+  "memberships",
+  {
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: probantRoleEnum("role").notNull(),
+    grantedAt: timestamp("granted_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "memberships_pk",
+      columns: [table.organizationId, table.userId, table.role],
+    }),
+    index("memberships_user_idx").on(table.userId),
+  ],
+);
+
+/**
+ * Session serveur. Le cookie ne transporte qu'un secret opaque ; seule son
+ * empreinte SHA-256 est stockée, pour qu'une fuite de base ne produise aucun
+ * cookie rejouable.
+ */
+export const authSessions = pgTable(
+  "auth_sessions",
+  {
+    id: uuid("id").primaryKey(),
+    tokenSha256: text("token_sha256").notNull(),
+    userId: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    subject: text("subject").notNull(),
+    roles: jsonb("roles").$type<string[]>().notNull(),
+    acr: text("acr"),
+    amr: jsonb("amr").$type<string[]>().notNull().default([]),
+    mfaSatisfied: boolean("mfa_satisfied").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    /** Fenêtre glissante d'inactivité. */
+    idleExpiresAt: timestamp("idle_expires_at", { withTimezone: true }).notNull(),
+    /** Plafond absolu : une session ne se prolonge jamais indéfiniment. */
+    absoluteExpiresAt: timestamp("absolute_expires_at", { withTimezone: true }).notNull(),
+    revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (table) => [
+    uniqueIndex("auth_sessions_token_sha256_uq").on(table.tokenSha256),
+    index("auth_sessions_user_created_idx").on(table.userId, table.createdAt),
+    index("auth_sessions_expiry_idx").on(table.idleExpiresAt),
+    check("auth_sessions_token_sha256_ck", sql`${table.tokenSha256} ~ '^[0-9a-f]{64}$'`),
+    check(
+      "auth_sessions_absolute_after_idle_ck",
+      sql`${table.absoluteExpiresAt} >= ${table.createdAt}`,
+    ),
+  ],
+);
+
+/**
+ * Consommation d'upload par organisation, par fenêtre.
+ *
+ * Sert à la fois au rate limit (nombre de démarrages d'upload) et au quota
+ * volumétrique. Un compteur en base survit au recyclage d'une Function, ce
+ * qu'un compteur mémoire ne fait pas.
+ */
+export const uploadQuotaCounters = pgTable(
+  "upload_quota_counters",
+  {
+    organizationId: uuid("organization_id")
+      .notNull()
+      .references(() => organizations.id, { onDelete: "cascade" }),
+    windowKind: text("window_kind").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    requestCount: integer("request_count").notNull().default(0),
+    byteCount: bigint("byte_count", { mode: "number" }).notNull().default(0),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    primaryKey({
+      name: "upload_quota_counters_pk",
+      columns: [table.organizationId, table.windowKind, table.windowStart],
+    }),
+    index("upload_quota_counters_window_idx").on(table.windowStart),
+    check("upload_quota_counters_request_ck", sql`${table.requestCount} >= 0`),
+    check("upload_quota_counters_byte_ck", sql`${table.byteCount} >= 0`),
+  ],
+);
 
 export const dossiers = pgTable(
   "dossiers",

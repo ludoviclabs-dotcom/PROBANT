@@ -1,8 +1,5 @@
 import { apiErrorResponse, ApiError, requestIdFrom } from "@/lib/api/errors";
-import {
-  assertDossierAccessForAnyRole,
-  SignedHeaderContextResolver,
-} from "@/lib/auth/persistent-context";
+import { authorizeRequest } from "@/lib/auth/server";
 import { getDatabase } from "@/lib/db/client";
 import { DrizzleDossierRepository } from "@/lib/dossier/postgres-repository";
 
@@ -15,10 +12,12 @@ export async function GET(
   const requestId = requestIdFrom(request);
   try {
     const { dossierId } = await context.params;
-    const auth = await new SignedHeaderContextResolver().resolve(request);
-    assertDossierAccessForAnyRole(auth, dossierId, ["reviewer", "uploader"]);
+    const principal = await authorizeRequest(request, {
+      permission: "dossier:read",
+      dossierId,
+    });
     const snapshot = await new DrizzleDossierRepository(getDatabase()).get({
-      organizationId: auth.organizationId,
+      organizationId: principal.organizationId,
       dossierId,
     });
     if (!snapshot) throw new ApiError("SNAPSHOT_NOT_FOUND", "Snapshot introuvable.", 404);
