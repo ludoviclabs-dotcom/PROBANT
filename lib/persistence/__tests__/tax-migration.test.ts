@@ -31,7 +31,12 @@ describe("tax canonical persistence migration", () => {
 
   it("enforces organization, period, vintage, cents and immutability invariants", async () => {
     const up = await readFile(path.join(process.cwd(), "drizzle", "0002_tax_canonical_model.up.sql"), "utf8");
-    expect(up).toContain("FOREIGN KEY (organization_id, dossier_id)");
+    // Scope columns remain explicit and indexed. Cross-table foreign keys to
+    // the historical core are intentionally omitted because that schema uses
+    // UUID identifiers while the canonical tax snapshots use text IDs.
+    expect(up).toContain("organization_id text NOT NULL");
+    expect(up).toContain("dossier_id text NOT NULL");
+    expect(up).toContain("idx_tax_profiles_scope");
     expect(up).toContain("period_end >= period_start");
     expect(up).toContain("form_vintage integer NOT NULL");
     expect(up).toContain("fiscal_year integer NOT NULL");

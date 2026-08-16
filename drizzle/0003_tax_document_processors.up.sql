@@ -29,7 +29,8 @@ ALTER TABLE tax_declaration_fields
   ADD CONSTRAINT ck_tax_declaration_fields_automation_eligibility
     CHECK (processing_status = 'accepted' OR usable_for_automated_calculation = false);
 
-DROP INDEX IF EXISTS uq_tax_declaration_fields_document_vintage_code;
+ALTER TABLE tax_declaration_fields
+  DROP CONSTRAINT IF EXISTS uq_tax_declaration_fields_document_vintage_code;
 CREATE INDEX idx_tax_declaration_fields_document_vintage_code
   ON tax_declaration_fields (
     organization_id,

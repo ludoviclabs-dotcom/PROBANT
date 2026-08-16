@@ -1,5 +1,5 @@
 import { desc, eq } from "drizzle-orm";
-import { getDatabase, isPostgresConfigured } from "@/lib/persistence/db";
+import { getDatabase } from "@/lib/persistence/db";
 import {
   dossiers,
   ingestionJobs,
@@ -11,6 +11,7 @@ import {
   saveIngestionJob as saveMemoryJob,
   updateIngestionJob as updateMemoryJob,
 } from "./memory-store";
+import { isPersistentIngestionConfigured } from "./object-store";
 import type { IngestionJob, IngestionJobStatus } from "./types";
 
 export interface IngestionJobRepository {
@@ -202,7 +203,7 @@ export class PostgresIngestionJobRepository implements IngestionJobRepository {
 }
 
 export function getIngestionJobRepository(): IngestionJobRepository {
-  return isPostgresConfigured()
+  return isPersistentIngestionConfigured()
     ? new PostgresIngestionJobRepository()
     : new MemoryIngestionJobRepository();
 }
@@ -212,7 +213,7 @@ export async function updatePersistedSourceDocument(input: {
   fingerprint: string;
   lineCount: number;
 }): Promise<void> {
-  if (!isPostgresConfigured()) return;
+  if (!isPersistentIngestionConfigured()) return;
   await getDatabase()
     .update(sourceDocuments)
     .set({
