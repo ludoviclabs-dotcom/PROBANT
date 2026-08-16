@@ -35,9 +35,6 @@ CREATE TABLE IF NOT EXISTS tax_profiles (
   content_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_profiles_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT ck_tax_profiles_period CHECK (period_end >= period_start),
   CONSTRAINT ck_tax_profiles_turnover_cents CHECK (
     turnover_amount_cents IS NULL OR turnover_amount_cents >= 0
@@ -70,9 +67,6 @@ CREATE TABLE IF NOT EXISTS tax_periods (
   content_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_periods_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT ck_tax_periods_range CHECK (period_end >= period_start),
   CONSTRAINT ck_tax_periods_fiscal_year CHECK (fiscal_year BETWEEN 2000 AND 2200),
   CONSTRAINT ck_tax_periods_form_vintage CHECK (form_vintage BETWEEN 2000 AND 2200),
@@ -92,7 +86,7 @@ CREATE TABLE IF NOT EXISTS tax_documents (
   dossier_id text NOT NULL,
   entity_id text NOT NULL,
   logical_document_id text NOT NULL,
-  source_document_id text NOT NULL REFERENCES source_documents(id),
+  source_document_id text NOT NULL,
   tax_period_id text NOT NULL,
   tax_period_version text NOT NULL,
   tax_type text NOT NULL,
@@ -106,9 +100,6 @@ CREATE TABLE IF NOT EXISTS tax_documents (
   snapshot_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_documents_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_documents_period_scope
     FOREIGN KEY (organization_id, dossier_id, tax_period_id)
     REFERENCES tax_periods (organization_id, dossier_id, id),
@@ -137,9 +128,6 @@ CREATE TABLE IF NOT EXISTS tax_declaration_fields (
   field_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_declaration_fields_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_declaration_fields_document_scope
     FOREIGN KEY (organization_id, dossier_id, tax_document_id)
     REFERENCES tax_documents (organization_id, dossier_id, id),
@@ -178,9 +166,6 @@ CREATE TABLE IF NOT EXISTS tax_control_executions (
   execution_hash text NOT NULL,
   payload jsonb NOT NULL,
   executed_at timestamptz NOT NULL,
-  CONSTRAINT fk_tax_control_executions_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_control_executions_period_scope
     FOREIGN KEY (organization_id, dossier_id, tax_period_id)
     REFERENCES tax_periods (organization_id, dossier_id, id),
@@ -234,9 +219,6 @@ CREATE TABLE IF NOT EXISTS tax_reconciliation_lines (
   line_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_reconciliation_lines_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_reconciliation_lines_execution_scope
     FOREIGN KEY (organization_id, dossier_id, execution_id)
     REFERENCES tax_control_executions (organization_id, dossier_id, id),
@@ -264,14 +246,11 @@ CREATE TABLE IF NOT EXISTS tax_adjustments (
   tax_amount_cents bigint,
   proposal_status text NOT NULL,
   review_status text NOT NULL,
-  review_event_id text REFERENCES review_events(id),
+  review_event_id text,
   canonical_json text NOT NULL,
   adjustment_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_adjustments_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_adjustments_execution_scope
     FOREIGN KEY (organization_id, dossier_id, execution_id)
     REFERENCES tax_control_executions (organization_id, dossier_id, id),
@@ -303,9 +282,6 @@ CREATE TABLE IF NOT EXISTS tax_computation_snapshots (
   snapshot_hash text NOT NULL,
   payload jsonb NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
-  CONSTRAINT fk_tax_computation_snapshots_scope
-    FOREIGN KEY (organization_id, dossier_id)
-    REFERENCES dossiers (organization_id, id),
   CONSTRAINT fk_tax_computation_snapshots_period_scope
     FOREIGN KEY (organization_id, dossier_id, tax_period_id)
     REFERENCES tax_periods (organization_id, dossier_id, id),

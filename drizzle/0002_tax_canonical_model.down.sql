@@ -31,9 +31,7 @@ DROP INDEX IF EXISTS uq_fiscal_synthesis_scope_period_version;
 ALTER TABLE synthesis_snapshots DROP COLUMN IF EXISTS form_vintage;
 ALTER TABLE synthesis_snapshots DROP COLUMN IF EXISTS fiscal_year;
 ALTER TABLE synthesis_snapshots DROP COLUMN IF EXISTS snapshot_kind;
-ALTER TABLE synthesis_snapshots DROP COLUMN IF EXISTS organization_id;
 DROP INDEX IF EXISTS uq_dossiers_organization_id;
-ALTER TABLE dossiers DROP COLUMN IF EXISTS organization_id;
 
 COMMIT;
 
