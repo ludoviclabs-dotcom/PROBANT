@@ -58,6 +58,15 @@ export const TAX_RECOMMENDATION_RULES: readonly TaxRecommendationRule[] = [
     priority: "required",
   },
   {
+    ruleId: "TAX.RECOMMENDATION.REQUEST_CFE_NOTICE",
+    ruleVersion: "1.0.0",
+    triggerInputCodes: ["document:tax_notice"],
+    kind: "request_document",
+    title: "Obtenir l'avis de CFE de la période",
+    action: "Demander ou saisir l'avis de CFE de chaque établissement pour la période contrôlée.",
+    priority: "required",
+  },
+  {
     ruleId: "TAX.RECOMMENDATION.REQUEST_INVOICES",
     ruleVersion: "1.0.0",
     triggerInputCodes: ["document:invoice"],
