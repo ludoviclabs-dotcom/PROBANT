@@ -31,6 +31,7 @@ ALTER TABLE tax_declaration_fields
 
 ALTER TABLE tax_declaration_fields
   DROP CONSTRAINT IF EXISTS uq_tax_declaration_fields_document_vintage_code;
+DROP INDEX IF EXISTS uq_tax_declaration_fields_document_vintage_code;
 CREATE INDEX idx_tax_declaration_fields_document_vintage_code
   ON tax_declaration_fields (
     organization_id,
