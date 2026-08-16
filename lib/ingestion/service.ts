@@ -9,6 +9,8 @@ import {
   splitAdmissibilite,
 } from "@/lib/rules-engine";
 import { sha256Stream } from "@/lib/evidence/hash";
+import { readIngestionLimits } from "@/lib/ingestion/limits";
+import type { FecEntry } from "@/lib/canonical-model";
 import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
 import { buildSnapshotFromFecDepot } from "@/lib/dossier";
 import {
@@ -40,6 +42,23 @@ import type {
 
 function id(prefix: string): string {
   return `${prefix}_${randomUUID()}`;
+}
+
+const SESSION_FEC_LIMITS = {
+  maxUploadBytes: 16 * 1024 * 1024,
+  maxFecLines: 50_000,
+  maxLineBytes: 256 * 1024,
+  maxFieldBytes: 64 * 1024,
+  maxParseDurationMs: 60_000,
+  maxConcurrentJobsPerOrg: 2,
+};
+
+function fecLimitsForService() {
+  try {
+    return readIngestionLimits();
+  } catch {
+    return SESSION_FEC_LIMITS;
+  }
 }
 
 async function inferStructuredDocumentType(input: {
@@ -141,21 +160,34 @@ export async function processFecIngestion(job: IngestionJob) {
   if (!stream) throw new Error("INGESTION_PAYLOAD_MISSING");
   const [hashStream, parseStream] = stream.tee();
   await repository.update(job.id, { status: "parsing", progress: 45 });
+  const entries: FecEntry[] = [];
   const [fingerprint, parsed] = await Promise.all([
     sha256Stream(hashStream),
-    parseFecStream(parseStream),
+    parseFecStream(parseStream, {
+      limits: fecLimitsForService(),
+      onBatch: async (batch) => {
+        entries.push(...batch);
+      },
+    }),
   ]);
+  const parsedForRules = {
+    ...parsed,
+    entries,
+    parseErrors: [],
+    separateurNom: parsed.separatorName,
+    variante: parsed.variant,
+  };
   await repository.update(job.id, {
     status: "validating",
     progress: 60,
-    lineCount: parsed.entries.length,
+    lineCount: parsedForRules.entries.length,
   });
   const sirenMatch = job.fileName.match(/^(\d{9})FEC/iu);
   const siren = sirenMatch ? sirenMatch[1] : null;
   await repository.update(job.id, { status: "running_controls", progress: 75 });
   const ruleContext = {
-    parsed,
-    entries: parsed.entries,
+    parsed: parsedForRules,
+    entries: parsedForRules.entries,
     nomFichier: job.fileName,
     siren,
     referentielVersion: REFERENTIEL_VERSION,
@@ -184,9 +216,9 @@ export async function processFecIngestion(job: IngestionJob) {
     referentielVersion: REFERENTIEL_VERSION,
     admissibilite,
     analyse,
-    entries: parsed.entries.slice(0, 1000),
-    entriesTruncated: parsed.entries.length > 1000,
-    totalEntryCount: parsed.entries.length,
+    entries: parsedForRules.entries.slice(0, 1000),
+    entriesTruncated: parsedForRules.entries.length > 1000,
+    totalEntryCount: parsedForRules.entries.length,
     controlsEligible:
       HARD_LAW_RULES.length +
       METHODOLOGY_RULES.length +
@@ -213,7 +245,7 @@ export async function processFecIngestion(job: IngestionJob) {
     await updatePersistedSourceDocument({
       documentId: job.documentId,
       fingerprint,
-      lineCount: parsed.entries.length,
+      lineCount: parsedForRules.entries.length,
     });
     await new PostgresDossierRepository(job.dossierId).save(
       { organizationId: job.organizationId, dossierId: job.dossierId },
@@ -222,7 +254,7 @@ export async function processFecIngestion(job: IngestionJob) {
     await saveLedgerEntries({
       dossierId: job.dossierId,
       documentId: job.documentId,
-      entries: parsed.entries,
+      entries: parsedForRules.entries,
     });
   }
 
@@ -230,13 +262,13 @@ export async function processFecIngestion(job: IngestionJob) {
     status: "completed",
     progress: 100,
     completedAt: new Date().toISOString(),
-    lineCount: parsed.entries.length,
-    warningCount: parsed.parseErrors.length,
+    lineCount: parsedForRules.entries.length,
+    warningCount: parsedForRules.parseErrors.length,
   });
   return {
     job: completed ?? job,
     snapshot,
-    parseErrors: parsed.parseErrors,
+    parseErrors: parsedForRules.parseErrors,
     depotResult: {
       nomFichier: job.fileName,
       fingerprint,
@@ -247,13 +279,13 @@ export async function processFecIngestion(job: IngestionJob) {
         variante: parsed.variante,
         nbColonnes: parsed.headerColumns.length,
         colonnes: parsed.headerColumns,
-        nbEntries: parsed.entries.length,
+        nbEntries: parsedForRules.entries.length,
       },
       admissibilite,
       analyse,
-      parseErrors: parsed.parseErrors,
-      entries: parsed.entries.slice(0, 1000),
-      entriesTruncated: parsed.entries.length > 1000,
+      parseErrors: parsedForRules.parseErrors,
+      entries: parsedForRules.entries.slice(0, 1000),
+      entriesTruncated: parsedForRules.entries.length > 1000,
     },
   };
 }

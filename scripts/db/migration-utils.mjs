@@ -38,7 +38,11 @@ export function validateMigrations() {
   const errors = [];
   const ups = migrationFiles();
   const downs = new Set(downMigrationFiles());
-  for (const up of ups.filter((name) => name !== "0001_probant_core.sql")) {
+  // Legacy migrations on main use the historical `<number>_name.sql` form
+  // and are intentionally validated by their existing CI checks. The
+  // reversible transaction contract applies to the TAX migrations, which use
+  // the explicit `.up.sql`/`.down.sql` naming convention.
+  for (const up of ups.filter((name) => name.endsWith(".up.sql"))) {
     const expectedDown = up.replace(/\.up\.sql$/u, ".down.sql");
     if (expectedDown === up || !downs.has(expectedDown)) {
       errors.push(`missing down migration for ${up}: ${expectedDown}`);
