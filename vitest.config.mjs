@@ -6,6 +6,8 @@ import { defineConfig } from "vitest/config";
 const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
+  // React 19 automatic JSX runtime for component tests.
+  esbuild: { jsx: "automatic" },
   test: {
     environment: "node",
     include: [
