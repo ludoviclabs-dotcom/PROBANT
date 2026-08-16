@@ -1,12 +1,14 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 
 export const projectRoot = resolve(import.meta.dirname, "..", "..");
 export const migrationDirectory = resolve(projectRoot, "drizzle");
 
 export function migrationFiles() {
+  const legacyCore = existsSync(resolve(migrationDirectory, "0000_init_durable_ingestion.sql"));
   return readdirSync(migrationDirectory)
     .filter((name) => /^\d{4}_.+\.sql$/u.test(name) && !name.endsWith(".down.sql"))
+    .filter((name) => !(legacyCore && name === "0001_probant_core.sql"))
     .sort();
 }
 

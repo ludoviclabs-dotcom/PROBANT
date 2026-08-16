@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { parseFec } from "@/lib/fec/parser";
 import { parseFecStream } from "@/lib/fec/stream-parser";
 import {
   HARD_LAW_RULES,
@@ -17,7 +18,7 @@ import { buildSnapshotFromFecDepot } from "@/lib/dossier";
 import {
   PostgresDossierRepository,
   saveLedgerEntries,
-} from "@/lib/dossier/postgres-repository";
+} from "@/lib/dossier/tax-postgres-repository";
 import {
   detectFileFormat,
   isIngestionDocumentType,
@@ -60,6 +61,18 @@ function fecLimitsForService() {
   } catch {
     return SESSION_FEC_LIMITS;
   }
+}
+
+async function readStreamText(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+  let text = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    text += decoder.decode(value, { stream: true });
+  }
+  return text + decoder.decode();
 }
 
 async function inferStructuredDocumentType(input: {
@@ -162,23 +175,32 @@ export async function processFecIngestion(job: IngestionJob) {
   const [hashStream, parseStream] = stream.tee();
   await repository.update(job.id, { status: "parsing", progress: 45 });
   const entries: FecEntry[] = [];
-  const [fingerprint, parsed] = await Promise.all([
+  const parsedForRulesPromise: Promise<ParsedFec> = parseFecStream(parseStream, {
+    limits: fecLimitsForService(),
+    onBatch: async (batch) => {
+      entries.push(...batch);
+    },
+  })
+    .then((parsed) => ({
+      separateur: parsed.separator,
+      separateurNom: parsed.separatorName,
+      headerColumns: parsed.headerColumns,
+      variante: parsed.variant,
+      entries,
+      parseErrors: [],
+    }))
+    .catch(async (error) => {
+      // The strict streaming parser quarantines malformed FEC headers. Keep
+      // the historical review path observable so the caller can still see
+      // the admissibility finding and its evidence.
+      const fallbackStream = await objectStore.get(job.privateObjectPath);
+      if (!fallbackStream) throw error;
+      return parseFec(await readStreamText(fallbackStream));
+    });
+  const [fingerprint, parsedForRules] = await Promise.all([
     sha256Stream(hashStream),
-    parseFecStream(parseStream, {
-      limits: fecLimitsForService(),
-      onBatch: async (batch) => {
-        entries.push(...batch);
-      },
-    }),
+    parsedForRulesPromise,
   ]);
-  const parsedForRules: ParsedFec = {
-    separateur: parsed.separator,
-    ...parsed,
-    entries,
-    parseErrors: [],
-    separateurNom: parsed.separatorName,
-    variante: parsed.variant,
-  };
   await repository.update(job.id, {
     status: "validating",
     progress: 60,

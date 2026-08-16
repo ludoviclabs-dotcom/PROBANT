@@ -3,7 +3,6 @@
   "schemaFile": "lib/persistence/schema.ts",
   "up": [
     "0000_init_durable_ingestion.sql",
-    "0001_probant_core.sql",
     "0001_source_document_completion_guard.sql",
     "0002_append_only_review_evidence.sql",
     "0002_tax_canonical_model.up.sql",
