@@ -8,6 +8,7 @@ import {
   Columns3,
   FileCheck2,
   FlaskConical,
+  Landmark,
   Scale,
   ShieldCheck,
   Network,
@@ -20,6 +21,12 @@ const NAV = [
   { href: "/dashboard/synthese", label: "Synthèse", icon: LayoutDashboard },
   { href: "/dashboard/risques", label: "Cartographie des risques", icon: Network },
   { href: "/dashboard/cloisons", label: "Revue par cloison", icon: Columns3 },
+  {
+    href: "/dashboard/fiscalite",
+    label: "Fiscalité",
+    icon: Landmark,
+    description: "Fiscalité — contrôles & réconciliations",
+  },
   { href: "/dashboard/dossier", label: "Dossier & preuve", icon: FileCheck2 },
   { href: "/dashboard/tests", label: "Tests complémentaires", icon: FlaskConical },
   { href: "/dashboard/referentiel", label: "Seuils & référentiel", icon: Scale },
@@ -59,6 +66,8 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              title={"description" in item ? item.description : undefined}
+              aria-label={"description" in item ? item.description : undefined}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-colors",
                 active
