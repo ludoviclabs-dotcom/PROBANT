@@ -17,7 +17,10 @@ export const REFERENTIEL_VERSION = "2024-01-01";
 
 type SourceKey =
   | "LPF_A47A1"
+  | "LPF_A47A1_ACCOUNT_NUMBER"
+  | "LPF_A47A1_CHRONOLOGY"
   | "PCG_STRUCTURE"
+  | "PCG_DOUBLE_ENTRY"
   | "PCG_PERMANENCE"
   | "PCG_CUTOFF_418"
   | "PCG_CCA_PCA"
@@ -46,15 +49,36 @@ const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
     ref: "LPF art. A.47 A-1",
     citation:
       "Les écritures comptables sont remises sous forme de fichiers à plat ou structurés, comportant 18 zones obligatoires dans l'ordre prescrit (JournalCode … Idevise). Les dates sont au format AAAAMMJJ, les montants en caractères sans séparateur de milliers, avec un séparateur de champ unique et non ambigu. Le fichier est unique par exercice, classé par ordre chronologique de validation, et nommé SirenFECAAAAMMJJ.",
-    effectiveDate: "2014-01-01",
-    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027803478",
+    effectiveDate: "2013-08-02",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775/",
+  },
+  LPF_A47A1_ACCOUNT_NUMBER: {
+    ref: "LPF art. A.47 A-1, VII-1°, information 5",
+    citation:
+      "Le numéro de compte comporte trois premiers caractères correspondant à des chiffres respectant les normes du plan comptable français.",
+    effectiveDate: "2013-08-02",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775/",
+  },
+  LPF_A47A1_CHRONOLOGY: {
+    ref: "LPF art. A.47 A-1, VII-1°",
+    citation:
+      "Le fichier des écritures comptables remis contient les écritures classées par ordre chronologique de validation.",
+    effectiveDate: "2013-08-02",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000027804775/",
   },
   PCG_STRUCTURE: {
-    ref: "PCG art. 932-1",
+    ref: "PCG art. 1131-1",
     citation:
-      "Les opérations sont réparties en huit classes de comptes : classes 1 à 5 au bilan, classes 6 et 7 au compte de résultat. Le numéro de compte doit respecter la codification du plan comptable général.",
-    effectiveDate: "2024-01-01",
-    url: "https://www.anc.gouv.fr/",
+      "Le plan de comptes est suffisamment détaillé pour permettre l'enregistrement conforme aux normes comptables ; les opérations sont réparties en huit classes de comptes à deux chiffres.",
+    effectiveDate: "2026-01-01",
+    url: "https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf",
+  },
+  PCG_DOUBLE_ENTRY: {
+    ref: "PCG art. 1031-1",
+    citation:
+      "Toute écriture établit une équivalence entre les montants portés au débit et au crédit des comptes affectés.",
+    effectiveDate: "2026-01-01",
+    url: "https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf",
   },
   PCG_PERMANENCE: {
     ref: "PCG art. 121-5",
@@ -201,7 +225,10 @@ const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
  */
 export const SOURCE_THEME: Record<SourceKey, SourceTheme> = {
   LPF_A47A1: "Admissibilité",
+  LPF_A47A1_ACCOUNT_NUMBER: "Admissibilité",
+  LPF_A47A1_CHRONOLOGY: "Admissibilité",
   PCG_STRUCTURE: "Présentation",
+  PCG_DOUBLE_ENTRY: "Comptabilisation",
   PCG_PERMANENCE: "Présentation",
   PCG_CUTOFF_418: "Rattachement",
   PCG_CCA_PCA: "Rattachement",
@@ -258,3 +285,4 @@ export const SEUILS_INTERNES = {
 } as const;
 
 export type SeuilsInternes = typeof SEUILS_INTERNES;
+

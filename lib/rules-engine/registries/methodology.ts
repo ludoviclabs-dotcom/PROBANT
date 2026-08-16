@@ -1,7 +1,7 @@
 import type { FecEntry } from "@/lib/canonical-model";
 import { siloForCompte } from "@/lib/canonical-model";
 import { SOURCES } from "@/lib/referentiel/sources";
-import type { Rule, RuleContext, RuleFinding } from "../types";
+import type { Rule, RuleFinding } from "../types";
 
 /**
  * Registre METHODOLOGY : présomptions et procédures d'audit/révision
@@ -37,6 +37,7 @@ const R_ME_001: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "majeur",
+  controlStage: "accounting_review",
   titre: "Écritures de journal atypiques en fin de période",
   run(ctx) {
     const max = maxValidDate(ctx.entries);
@@ -83,6 +84,7 @@ const R_ME_002: Rule = {
   version: VERSION,
   cloison: "resultat",
   severity: "majeur",
+  controlStage: "accounting_review",
   titre: "Régularisations significatives sur le chiffre d'affaires",
   run(ctx) {
     const ca = ctx.entries.filter((e) => /^70/u.test(e.compteNum));
@@ -124,6 +126,7 @@ const R_ME_003: Rule = {
   version: VERSION,
   cloison: "bilan-actif",
   severity: "mineur",
+  controlStage: "accounting_review",
   titre: "Rattachement des produits (cut-off)",
   run(ctx) {
     const has418 = ctx.entries.some((e) => /^418/u.test(e.compteNum));
@@ -157,3 +160,4 @@ const R_ME_003: Rule = {
 };
 
 export const METHODOLOGY_RULES: Rule[] = [R_ME_001, R_ME_002, R_ME_003];
+

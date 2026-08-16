@@ -4,6 +4,7 @@ import type {
   Finding,
   FindingFamily,
   Severity,
+  ControlStage,
 } from "@/lib/canonical-model";
 import type { ParsedFec } from "@/lib/fec/parser";
 
@@ -27,6 +28,8 @@ export interface Rule {
   /** Cloison de rattachement par défaut des constats. */
   cloison: CloisonId;
   severity: Severity;
+  /** Étape d'exécution, distincte de la famille et de la gravité. */
+  controlStage: ControlStage;
   titre: string;
   run(ctx: RuleContext): RuleFinding[];
 }
@@ -35,7 +38,11 @@ export interface Rule {
  * Constat produit par une règle, avant enrichissement UI (cibleRowId,
  * statement). L'id est complété par le runner.
  */
-export type RuleFinding = Omit<Finding, "id" | "statutRevue"> & {
+export type RuleFinding = Omit<
+  Finding,
+  "id" | "statutRevue" | "controlStage"
+> & {
   /** Suffixe d'unicité optionnel quand une règle émet plusieurs constats. */
   key?: string;
 };
+

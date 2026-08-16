@@ -1,4 +1,5 @@
 import type { CloisonId } from "./taxonomy";
+import type { TaxFindingDetails } from "./tax";
 
 /**
  * Modèle de constat (« finding »).
@@ -14,7 +15,28 @@ import type { CloisonId } from "./taxonomy";
 
 export type FindingFamily = "hardLaw" | "methodology" | "internal";
 
+/** Domaine métier du constat, indépendant de l'autorité portée par `family`. */
+export type FindingDomain = "accounting" | "audit" | "tax";
+
 export type Severity = "bloquant" | "majeur" | "mineur" | "informatif";
+
+/**
+ * Étape métier à laquelle un contrôle est exécuté.
+ *
+ * Cette qualification est indépendante de la gravité et de l'autorité de la
+ * règle : un constat fiscal ou comptable obligatoire n'est pas, par nature,
+ * un motif de rejet technique du fichier à l'ingestion.
+ */
+export type ControlStage =
+  | "ingestion_admissibility"
+  | "accounting_review"
+  | "tax_review";
+
+export const CONTROL_STAGE_LABEL: Record<ControlStage, string> = {
+  ingestion_admissibility: "Admissibilité technique à l'ingestion",
+  accounting_review: "Revue comptable",
+  tax_review: "Revue fiscale",
+};
 
 export type StatutRevue = "en_attente" | "valide" | "ecarte";
 
@@ -149,32 +171,16 @@ export interface SeuilApplique {
   depasse: boolean;
 }
 
-/**
- * Effet financier EXPLICITE d'un constat sur les états financiers.
- *
- * Champ volontairement distinct de `Mesure` : une mesure décrit un écart par
- * rapport à un seuil de détection, pas un impact comptable. La présomption
- * historique `|constaté − seuil| = impact` surestimait ou sous-estimait
- * l'exposition selon la règle. Depuis le moteur de Synthèse, un constat ne
- * contribue à l'exposition QUE s'il porte ce bloc — sinon il est listé dans
- * `excludedItems` de la trace de calcul, jamais compté en silence.
- *
- * Les montants sont en CENTIMES ENTIERS (voir lib/synthesis/money.ts) : les
- * additions financières en flottant sont interdites dans le moteur.
- */
+/** Effet financier explicite d'un constat, en centimes entiers. */
 export interface FinancialEffect {
-  /** Ampleur de l'effet, en centimes entiers, toujours ≥ 0. */
   amountCents: number;
-  /** Sens de l'effet sur la cible (augmentation / diminution du poste). */
   direction: "increase" | "decrease";
-  /** Poste des états financiers affecté. */
   target:
     | "resultat"
     | "bilan_actif"
     | "bilan_passif"
     | "capitaux_propres"
     | "presentation";
-  /** Assertion d'audit principalement affectée (ISA 315). */
   assertion:
     | "existence"
     | "exhaustivite"
@@ -183,20 +189,9 @@ export interface FinancialEffect {
     | "droits_obligations"
     | "presentation"
     | "rattachement";
-  /** Cause racine normalisée — sert à la clé de déduplication. */
   rootCause: string;
-  /** Période affectée (exercice AAAA, éventuellement AAAA-MM). */
   period: string;
-  /**
-   * Fondement du chiffrage : mesuré sur pièces, ou estimé. Un effet estimé
-   * reste inclus dans l'exposition brute mais est signalé dans la trace.
-   */
   basis: "measured" | "estimated";
-  /**
-   * Taux d'impôt applicable à l'effet (en %), si un effet d'impôt doit être
-   * calculé. Absent = effet d'impôt non évalué (limitation générée, jamais un
-   * taux implicite).
-   */
   taxRatePct?: number;
 }
 
@@ -253,7 +248,16 @@ export interface EvidenceStep {
 export interface Finding {
   id: string;
   family: FindingFamily;
+  /** Absent sur les anciens constats, qui restent interprétés comme comptables. */
+  domain?: FindingDomain;
   severity: Severity;
+
+  /**
+   * Étape explicite pour les constats issus du moteur de règles. Les constats
+   * historiques et de rapprochement peuvent l'omettre : ils ne sont jamais
+   * assimilés à un rejet technique par défaut.
+   */
+  controlStage?: ControlStage;
 
   ruleId: string;
   ruleVersion: string;
@@ -322,12 +326,15 @@ export interface Finding {
    */
   cycleSlug?: string;
 
-  /**
-   * Effet financier explicite sur les états financiers. ABSENT = le constat
-   * ne contribue pas à l'exposition chiffrée (il reste compté dans les
-   * dimensions risque/revue). Voir `FinancialEffect`.
-   */
+  /** Détail fiscal typé, présent uniquement lorsque `domain` vaut `tax`. */
+  taxDetails?: TaxFindingDetails;
+
+  /** Effet financier explicite utilisé par la synthèse comptable. */
   financialEffect?: FinancialEffect;
+}
+
+export function findingDomain(finding: Finding): FindingDomain {
+  return finding.domain ?? "accounting";
 }
 
 /** Détermine si un constat relève d'une non-conformité réglementaire dure. */
@@ -340,3 +347,4 @@ export const FAMILY_OF_SOURCE_KIND = {
   methodology: "méthodologique",
   internal: "interne",
 } as const;
+

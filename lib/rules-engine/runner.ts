@@ -30,6 +30,7 @@ export function runRules(
         id: `${rule.id}#error`,
         family: rule.family,
         severity: "informatif",
+        controlStage: rule.controlStage,
         ruleId: rule.id,
         ruleVersion: rule.version,
         cloison: rule.cloison,
@@ -57,6 +58,7 @@ export function runRules(
       findings.push({
         ...rest,
         id: `${rule.id}#${suffix}`,
+        controlStage: rule.controlStage,
         statutRevue: "en_attente",
       });
     });
@@ -67,7 +69,10 @@ export function runRules(
   );
 }
 
-/** Sépare les constats d'admissibilité (bloquants hardLaw) des autres. */
+/**
+ * Sépare les seuls motifs d'admissibilité technique des constats de revue.
+ * La famille normative et la gravité ne participent pas à cette décision.
+ */
 export function splitAdmissibilite(findings: Finding[]): {
   admissibilite: Finding[];
   analyse: Finding[];
@@ -75,7 +80,7 @@ export function splitAdmissibilite(findings: Finding[]): {
   const admissibilite: Finding[] = [];
   const analyse: Finding[] = [];
   for (const f of findings) {
-    if (f.family === "hardLaw" && f.severity === "bloquant") {
+    if (f.controlStage === "ingestion_admissibility") {
       admissibilite.push(f);
     } else {
       analyse.push(f);
@@ -83,3 +88,13 @@ export function splitAdmissibilite(findings: Finding[]): {
   }
   return { admissibilite, analyse };
 }
+
+/** Un rejet technique ne peut être déclenché que pendant l'admissibilité. */
+export function hasBlockingIngestionFinding(findings: Finding[]): boolean {
+  return findings.some(
+    (finding) =>
+      finding.controlStage === "ingestion_admissibility" &&
+      finding.severity === "bloquant",
+  );
+}
+
