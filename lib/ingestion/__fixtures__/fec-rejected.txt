@@ -1,0 +1,3 @@
+JournalCode;JournalLib;EcritureNum;EcritureDate;CompteNum;CompteLib;CompAuxNum;CompAuxLib;PieceRef;PieceDate;EcritureLib;Debit;Credit;EcritureLet;DateLet;ValidDate;Montantdevise
+VE;Ventes;VE-1;20260115;411000;Clients;C001;CLIENT TEST;FAC-001;20260115;Facture test;1200,00;0;;;20260115;
+

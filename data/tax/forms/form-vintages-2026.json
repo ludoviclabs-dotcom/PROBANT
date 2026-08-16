@@ -1,0 +1,89 @@
+[
+  {
+    "id":"form-2058-a-2026","formNumber":"2058-A-SD","name":"Determination du resultat fiscal","taxType":"corporate_income_tax","regime":"reel_normal","period":"millesime DGFiP 2026; periode d'application exacte review_required","vintage":2026,"sourceId":"form-2050-liasse","sourceVersionId":"form-2050-liasse-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"WA","label":"Benefice comptable de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["XI","XJ"],"description":"Point de depart du passage au resultat fiscal."}]},
+      {"code":"WR","label":"Total des reintegrations","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["WD","WE","WF","WG","WI","WJ","WK","WL","WQ","SX","WZ"],"description":"Total des lignes de reintegration affichees par le formulaire."}]},
+      {"code":"WS","label":"Perte comptable de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["XI","XJ"],"description":"Point de depart alternatif lorsque le resultat comptable est une perte."}]},
+      {"code":"XH","label":"Total des deductions","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["WT","WU","WV","WW","XB","XF"],"description":"Total des lignes de deduction affichees par le formulaire."}]},
+      {"code":"XI","label":"Benefice fiscal avant imputation des deficits","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["WA","WR","WS","XH"],"description":"Resultat positif de la relation I moins II du formulaire."}]},
+      {"code":"XJ","label":"Deficit fiscal avant imputation","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["WA","WR","WS","XH"],"description":"Resultat negatif exprime positivement de la relation II moins I."}]},
+      {"code":"XL","label":"Deficits anterieurs imputes","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["XN"],"description":"Imputation venant diminuer le benefice fiscal avant deficit."}]},
+      {"code":"XN","label":"Benefice fiscal","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2065.C.RESULTAT_FISCAL_BENEFICE"],"description":"Resultat fiscal beneficiaire reporte vers la declaration 2065."}]},
+      {"code":"XO","label":"Deficit fiscal","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2058B.YJ","2065.C.RESULTAT_FISCAL_DEFICIT"],"description":"Deficit reporte au suivi des deficits et a la declaration 2065."}]}
+    ]
+  },
+  {
+    "id":"form-2058-b-2026","formNumber":"2058-B-SD","name":"Deficits, indemnites pour conges a payer et provisions non deductibles","taxType":"corporate_income_tax","regime":"reel_normal","period":"millesime DGFiP 2026; periode d'application exacte review_required","vintage":2026,"sourceId":"form-2050-liasse","sourceVersionId":"form-2050-liasse-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"K4","label":"Deficits restant a reporter au titre de l'exercice precedent","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["K6"],"description":"Stock d'ouverture des deficits."}]},
+      {"code":"K4bis","label":"Deficits transferes","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["K6"],"description":"Augmentation documentee du stock de deficits."}]},
+      {"code":"K5","label":"Deficits imputes sur les resultats de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["K6"],"description":"Utilisation du stock de deficits."}]},
+      {"code":"K6","label":"Deficits reportables avant deficit de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["K4","K4bis","K5"],"description":"Stock precedent augmente des transferts et diminue des imputations."}]},
+      {"code":"YJ","label":"Deficit de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2058A.XO"],"description":"Reprise du deficit courant du tableau 2058-A."}]},
+      {"code":"YK","label":"Total des deficits restant a reporter","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["K6","YJ"],"description":"Stock de cloture des deficits reportables."}]},
+      {"code":"YN","label":"Provisions non deductibles au debut de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["YO"],"description":"Stock d'ouverture des provisions non deductibles."}]},
+      {"code":"YO","label":"Provisions non deductibles a la fin de l'exercice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["2058A.WI","2058A.WU"],"description":"Stock de cloture a rapprocher des reintegrations et deductions."}]}
+    ]
+  },
+  {
+    "id":"form-2033-b-2026","formNumber":"2033-B-SD","name":"Compte de resultat fiscal simplifie","taxType":"corporate_income_tax","regime":"reel_simplifie","period":"millesime DGFiP 2026; periode d'application exacte review_required","vintage":2026,"sourceId":"form-2033-liasse","sourceVersionId":"form-2033-liasse-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"312","label":"Benefice comptable","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Point de depart beneficiaire."}]},
+      {"code":"314","label":"Deficit comptable","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Point de depart deficitaire."}]},
+      {"code":"316","label":"Remunerations et avantages personnels non deductibles","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Reintegration fiscale identifiee par le formulaire."}]},
+      {"code":"318","label":"Amortissements excedentaires et autres amortissements non deductibles","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Reintegration fiscale relative aux amortissements."}]},
+      {"code":"322","label":"Provisions non deductibles","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Reintegration fiscale relative aux provisions."}]},
+      {"code":"324","label":"Impots et taxes non deductibles","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["352","354"],"description":"Reintegration fiscale relative aux impots et taxes."}]},
+      {"code":"352","label":"Resultat fiscal avant imputation des deficits - benefice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["370"],"description":"Benefice avant deficits."}]},
+      {"code":"354","label":"Resultat fiscal avant imputation des deficits - deficit","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["372"],"description":"Deficit avant imputation."}]},
+      {"code":"360","label":"Deficits anterieurs reportables imputes","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["370"],"description":"Deficits utilises sur le benefice."}]},
+      {"code":"370","label":"Resultat fiscal apres imputation - benefice","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2065.C.RESULTAT_FISCAL_BENEFICE"],"description":"Resultat fiscal beneficiaire a reporter."}]},
+      {"code":"372","label":"Resultat fiscal apres imputation - deficit","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2065.C.RESULTAT_FISCAL_DEFICIT"],"description":"Resultat fiscal deficitaire a reporter."}]}
+    ]
+  },
+  {
+    "id":"form-2065-2026","formNumber":"2065-SD","name":"Declaration d'impot sur les societes","taxType":"corporate_income_tax","regime":"reel_normal_ou_simplifie","period":"millesime DGFiP 2026; periode d'application exacte review_required","vintage":2026,"sourceId":"form-2065","sourceVersionId":"form-2065-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"C.RESULTAT_FISCAL_BENEFICE","label":"Resultat fiscal beneficiaire","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2058A.XN","2033B.370"],"description":"Localisateur semantique de la rubrique C, faute de code alphanumerique imprime."}]},
+      {"code":"C.RESULTAT_FISCAL_DEFICIT","label":"Resultat fiscal deficitaire","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"reported_to","relatedBoxCodes":["2058A.XO","2033B.372"],"description":"Localisateur semantique de la rubrique C, faute de code alphanumerique imprime."}]},
+      {"code":"C.RESULTAT_TAUX_NORMAL","label":"Resultat imposable au taux normal","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["C.RESULTAT_FISCAL_BENEFICE"],"description":"Ventilation declarative du resultat imposable."}]},
+      {"code":"C.RESULTAT_TAUX_REDUIT","label":"Resultat imposable au taux reduit","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["C.RESULTAT_FISCAL_BENEFICE"],"description":"Ventilation declarative soumise aux conditions legales du taux reduit."}]}
+    ]
+  },
+  {
+    "id":"form-ca3-2026","formNumber":"3310-CA3-SD","name":"TVA et taxes assimilees - regime reel normal","taxType":"vat","regime":"reel_normal_ou_mini_reel","period":"millesime DGFiP 2026; periodes declaratives exactes review_required","vintage":2026,"sourceId":"form-ca3","sourceVersionId":"form-ca3-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"08","label":"Operations realisees en France metropolitaine au taux normal","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["16"],"description":"Base et taxe contribuant a la TVA brute."}]},
+      {"code":"16","label":"Total de la TVA brute due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["08","09","9B"],"description":"Total de la TVA brute selon les lignes du formulaire."}]},
+      {"code":"19","label":"TVA deductible sur immobilisations","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["23"],"description":"Composante de la TVA deductible."}]},
+      {"code":"20","label":"TVA deductible sur autres biens et services","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["23"],"description":"Composante de la TVA deductible."}]},
+      {"code":"22","label":"Report du credit apparaissant ligne 27 de la precedente declaration","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["23"],"description":"Credit anterieur inclus dans le total deductible."}]},
+      {"code":"23","label":"Total TVA deductible","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["19","20","21","22"],"description":"Total des deductions et reports du formulaire."}]},
+      {"code":"25","label":"Credit de TVA","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["23","16"],"description":"Excedent du total deductible sur la TVA brute."}]},
+      {"code":"TD","label":"TVA due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["16","23"],"description":"Excedent de la TVA brute sur le total deductible."}]},
+      {"code":"27","label":"Credit a reporter","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"carryforward_to","relatedBoxCodes":["22"],"description":"Credit reporte sur la declaration suivante."}]},
+      {"code":"28","label":"TVA nette due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["32"],"description":"TVA nette entrant dans le total a payer."}]},
+      {"code":"32","label":"Total a payer","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["28"],"description":"Montant final a payer selon le formulaire."}]}
+    ]
+  },
+  {
+    "id":"form-ca12-2026","formNumber":"3517-S-SD","name":"TVA et taxes assimilees - regime simplifie","taxType":"vat","regime":"reel_simplifie","period":"millesime DGFiP 2026; periode d'application exacte review_required","vintage":2026,"sourceId":"form-ca12","sourceVersionId":"form-ca12-v2026","status":"review_required","publishedAt":null,"effectiveFrom":null,"effectiveTo":null,"lastVerifiedAt":"2026-08-16",
+    "boxes":[
+      {"code":"16","label":"Total de la TVA due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["5A","06","07","08","09","10","11","12","13"],"description":"Total de TVA due affiche par le formulaire."}]},
+      {"code":"19","label":"TVA brute due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["16","17","18","AD"],"description":"Total brut avant deductions."}]},
+      {"code":"20","label":"TVA deductible sur factures","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["22"],"description":"TVA deductible hors immobilisations."}]},
+      {"code":"22","label":"Sous-total TVA deductible sur biens et services","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["20","21"],"description":"Sous-total des deductions sur biens et services."}]},
+      {"code":"23","label":"TVA deductible sur immobilisations","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["26"],"description":"Composante du total deductible."}]},
+      {"code":"24","label":"Credit reporte de la precedente declaration","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["26"],"description":"Credit anterieur inclus dans les deductions."}]},
+      {"code":"26","label":"Total TVA deductible","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"sum_of","relatedBoxCodes":["22","23","24","25"],"description":"Total des deductions du formulaire."}]},
+      {"code":"28","label":"TVA due avant acomptes","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["19","26"],"description":"Excedent de TVA brute sur TVA deductible."}]},
+      {"code":"29","label":"Credit avant acomptes","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"difference_of","relatedBoxCodes":["26","19"],"description":"Excedent de TVA deductible sur TVA brute."}]},
+      {"code":"33","label":"Solde de TVA a payer","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["54"],"description":"Solde apres prise en compte des acomptes."}]},
+      {"code":"51","label":"Credit a reporter","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"carryforward_to","relatedBoxCodes":["24"],"description":"Credit reporte sur la declaration suivante."}]},
+      {"code":"54","label":"TVA nette due","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["56"],"description":"TVA nette composant le total a payer."}]},
+      {"code":"56","label":"Total a payer","formVintage":2026,"dataType":"amount","sign":"positive","unit":"EUR","relations":[{"kind":"supports","relatedBoxCodes":["54"],"description":"Montant final a payer selon le formulaire."}]}
+    ]
+  }
+]
+

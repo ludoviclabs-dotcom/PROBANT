@@ -1,0 +1,33 @@
+{
+  "formatVersion": 1,
+  "schemaFile": "lib/persistence/schema.ts",
+  "up": [
+    "0001_probant_core.sql",
+    "0002_tax_canonical_model.up.sql",
+    "0003_tax_document_processors.up.sql"
+  ],
+  "down": [
+    "0002_tax_canonical_model.down.sql",
+    "0003_tax_document_processors.down.sql"
+  ],
+  "tables": [
+    "control_executions",
+    "dossiers",
+    "findings",
+    "ingestion_jobs",
+    "ledger_entries",
+    "report_artifacts",
+    "review_events",
+    "source_documents",
+    "synthesis_snapshots",
+    "tax_adjustments",
+    "tax_computation_snapshots",
+    "tax_control_executions",
+    "tax_declaration_fields",
+    "tax_documents",
+    "tax_periods",
+    "tax_profiles",
+    "tax_reconciliation_lines"
+  ]
+}
+
