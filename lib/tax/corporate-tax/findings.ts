@@ -19,7 +19,17 @@ import type {
 import { TAX_CONTROL_DEFINITIONS } from "../control-catalog";
 import type { CorporateTaxSnapshot } from "./types";
 
-export const CORPORATE_TAX_COMPUTATION_CONTROL_ID = "IS.COMPUTATION.RESULT_AND_TAX";
+/**
+ * Deux régimes, deux formulaires, deux contrôles : `IS.RECONCILIATION.2058A` et
+ * `IS.RECONCILIATION.2033B` suivaient déjà cette séparation avant TAX-05. Un
+ * contrôle unique couvrant les deux régimes exigerait alors la présence
+ * simultanée de `liasse_2050_2059` ET `liasse_2033`, ce qui bloque toujours
+ * l'un des deux régimes.
+ */
+export const CORPORATE_TAX_COMPUTATION_CONTROL_IDS: Readonly<Record<CorporateTaxSnapshot["regime"], string>> = {
+  standard: "IS.COMPUTATION.RESULT_AND_TAX.2058A",
+  simplified: "IS.COMPUTATION.RESULT_AND_TAX.2033B",
+};
 export const CORPORATE_TAX_REDUCED_RATE_CONTROL_ID = "IS.RATE.REDUCED.ELIGIBILITY";
 
 export interface CorporateTaxFindingSeed {
@@ -93,11 +103,12 @@ export class CorporateTaxFindingFactory {
   ): readonly CorporateTaxFindingSeed[] {
     const seeds: CorporateTaxFindingSeed[] = [];
     const limitationIds = snapshot.limitations.map((item) => item.id);
+    const computationControlId = CORPORATE_TAX_COMPUTATION_CONTROL_IDS[snapshot.regime];
 
     if (snapshot.status === "blocked") {
       return [{
         code: "computation-blocked",
-        controlId: CORPORATE_TAX_COMPUTATION_CONTROL_ID,
+        controlId: computationControlId,
         outcome: snapshot.outcome === "reconciliation_difference"
           ? "reconciliation_difference"
           : "missing_information",
@@ -110,7 +121,7 @@ export class CorporateTaxFindingFactory {
     if (differing.length > 0) {
       seeds.push({
         code: "reconciliation-difference",
-        controlId: CORPORATE_TAX_COMPUTATION_CONTROL_ID,
+        controlId: computationControlId,
         outcome: "reconciliation_difference",
         reconciliationLineIds: differing.map((line) => line.id),
         limitationIds,
@@ -138,7 +149,7 @@ export class CorporateTaxFindingFactory {
     if (capBreach) {
       seeds.push({
         code: "deficit-offset-above-cap",
-        controlId: CORPORATE_TAX_COMPUTATION_CONTROL_ID,
+        controlId: computationControlId,
         outcome: "potential_tax_risk",
         reconciliationLineIds: [],
         limitationIds: [capBreach.id],
@@ -148,7 +159,7 @@ export class CorporateTaxFindingFactory {
     if (seeds.length === 0) {
       seeds.push({
         code: "computation-passed",
-        controlId: CORPORATE_TAX_COMPUTATION_CONTROL_ID,
+        controlId: computationControlId,
         outcome: snapshot.outcome,
         reconciliationLineIds: reconciliationLines.map((line) => line.id),
         limitationIds,

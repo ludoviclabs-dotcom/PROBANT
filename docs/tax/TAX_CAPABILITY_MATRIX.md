@@ -57,7 +57,8 @@ Les statuts ne forment pas un verdict fiscal. En particulier,
 | `IS.RECONCILIATION.2058A@2026.1.0` | FEC + liasse 2050-2059 + régime IS normal + période alignée | mêmes documents | `form-2050-liasse-v2026`, 2058-A rubriques I à III | `corroborated` | `missing_inputs` car les documents sont minimaux |
 | `IS.RECONCILIATION.2033B@2026.1.0` | FEC + liasse 2033 + régime IS simplifié + période alignée | mêmes documents | `form-2033-liasse-v2026`, 2033-B partie B | `corroborated` | `missing_inputs` |
 | `IS.RATE.REDUCED.ELIGIBILITY@2026.1.0` | déclaration 2065 + régime IS connu | capital libéré, détention et CA documentés | `cgi-art-219-v2026-02-21`, art. 219 I-b | `corroborated` | `inconclusive` |
-| `IS.COMPUTATION.RESULT_AND_TAX@2026.1.0` | liasse 2050-2059 + régime IS normal ou simplifié + période alignée | déclaration 2065, capital libéré, détention et CA documentés | `cgi-art-209-v2023-12-31`, `cgi-art-219-v2026-02-21`, `form-2050-liasse-v2026` | `corroborated` | `inconclusive` (TAX-05) |
+| `IS.COMPUTATION.RESULT_AND_TAX.2058A@2026.1.0` | liasse 2050-2059 + régime IS normal + période alignée | déclaration 2065, capital libéré, détention et CA documentés | `cgi-art-209-v2023-12-31`, `cgi-art-219-v2026-02-21`, `form-2050-liasse-v2026` | `corroborated` | `inconclusive` (TAX-05) |
+| `IS.COMPUTATION.RESULT_AND_TAX.2033B@2026.1.0` | liasse 2033 + régime IS simplifié + période alignée | déclaration 2065, capital libéré, détention et CA documentés | `cgi-art-209-v2023-12-31`, `cgi-art-219-v2026-02-21`, `form-2033-liasse-v2026` | `corroborated` | `inconclusive` (TAX-05) |
 | `VAT.FORM.CA3.RECONCILIATION@2026.1.0` | FEC + CA3 + cases 16 et 23 | mêmes données | `form-ca3-v2026`, cases 16, 23, 25 et TD | `corroborated` | `missing_inputs` |
 | `VAT.DEDUCTIBLE.SUPPORT@2026.1.0` | FEC + CA3 + case 23 | factures associées | `cgi-art-271-v2026-02-21` et `bofip-tva-deduction-v2025-01-08` | `corroborated` | `inconclusive` |
 

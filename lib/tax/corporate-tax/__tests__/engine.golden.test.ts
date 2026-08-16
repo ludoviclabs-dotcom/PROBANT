@@ -490,7 +490,7 @@ describe("CorporateTaxFindingFactory", () => {
     });
 
     expect(findings).toHaveLength(1);
-    expect(findings[0].controlId).toBe("IS.COMPUTATION.RESULT_AND_TAX");
+    expect(findings[0].controlId).toBe("IS.COMPUTATION.RESULT_AND_TAX.2058A");
     expect(findings[0].outcome).toBe("passed");
     expect(findings[0].sourceVersionIds.length).toBeGreaterThan(0);
     expect(findings[0].domain).toBe("tax");

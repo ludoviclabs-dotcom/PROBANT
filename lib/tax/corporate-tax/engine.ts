@@ -504,6 +504,21 @@ export class CorporateTaxComputationEngine {
       limitations,
       notes,
     });
+    // Un total declare (WR, XH) present dans le millesime mais illisible dans
+    // cette liasse n'est jamais traite comme zero : le resultat fiscal serait
+    // faux pour un dossier qui contient reellement des retraitements. Le calcul
+    // est bloque plutot que d'avancer sur une hypothese silencieuse.
+    if (limitations.some((item) => item.code.startsWith("DECLARED_TOTAL_UNAVAILABLE:"))) {
+      return this.blockedAfterReading({
+        input,
+        regime: resolvedRegime,
+        limitations,
+        notes,
+        trace,
+        outcome: "missing_information",
+        sourceRefs: [formSourceRef],
+      });
+    }
     const reintegrationsConfirmed = totalFor(adjustmentLines, "reintegration", "confirmed");
     const reintegrationsProposed = totalFor(adjustmentLines, "reintegration", "candidate");
     const deductionsConfirmed = totalFor(adjustmentLines, "deduction", "confirmed");
@@ -537,6 +552,7 @@ export class CorporateTaxComputationEngine {
       liasse,
       mapping,
       computedCents: taxResultBeforeDeficits,
+      limitations,
     }));
 
     // 5. Deficits -----------------------------------------------------------
@@ -560,6 +576,7 @@ export class CorporateTaxComputationEngine {
         deficits.appliedOffsetCents,
         "final_tax_result",
       ),
+      limitations,
     }));
 
     // 6. Base imposable -----------------------------------------------------
@@ -710,7 +727,10 @@ export class CorporateTaxComputationEngine {
     if (input.documentSnapshots.some((snapshot) =>
       snapshot.organizationId !== input.organizationId ||
       snapshot.dossierId !== input.dossierId ||
-      snapshot.entityId !== input.entityId)) {
+      snapshot.entityId !== input.entityId ||
+      // Un snapshot d'une autre periode fiscale ne doit jamais alimenter ce
+      // calcul, meme s'il porte le meme formulaire et le meme millesime.
+      snapshot.taxPeriodId !== input.period.id)) {
       throw new Error("CORPORATE_TAX_DOCUMENT_SCOPE_MISMATCH");
     }
   }
@@ -1081,6 +1101,18 @@ export class CorporateTaxComputationEngine {
 
     if (!declared) {
       if (availableStock === null) {
+        // Ni l'imputation declaree ni le stock de deficits ne sont connus : le
+        // moteur ne peut pas ecarter l'existence d'un deficit reportable. Une
+        // limitation est requise pour que resolveOutcome ne conclue jamais
+        // `passed` sur cette hypothese non verifiee.
+        limitations.push(limitation({
+          code: "DEFICIT_DATA_UNAVAILABLE",
+          scope: "field",
+          reason: "missing_field",
+          message: `Ni l'imputation declaree (${mapping.deficitsOffset}) ni le stock de deficits (2058-B, ${DEFICIT_BOXES.openingStock}) ne sont exploitables : l'absence de deficit reportable n'est pas presumee.`,
+          requiredInputs: [`field:${mapping.deficitsOffset}`, `document:${DEFICIT_FOLLOW_UP_FORM}`],
+          resolvability: "human_review",
+        }));
         notes.add({
           code: "NO_DEFICIT_DATA",
           kind: "prudence",
@@ -1284,11 +1316,16 @@ export class CorporateTaxComputationEngine {
     readonly liasse: DeclarationReading;
     readonly mapping: (typeof CORPORATE_TAX_FORM_MAPPINGS)[CorporateTaxRegime];
     readonly computedCents: CentAmount;
+    readonly limitations: TaxLimitation[];
   }): readonly TaxReconciliationLine[] {
-    const { input, liasse, mapping, computedCents } = options;
+    const { input, liasse, mapping, computedCents, limitations } = options;
     const profit = amountFor(liasse, mapping.resultBeforeDeficitsProfit);
     const deficit = amountFor(liasse, mapping.resultBeforeDeficitsDeficit);
-    const declared = this.signedDeclaredResult(profit, deficit);
+    const declared = this.signedDeclaredResult(profit, deficit, {
+      limitations,
+      profitFieldCode: mapping.resultBeforeDeficitsProfit,
+      deficitFieldCode: mapping.resultBeforeDeficitsDeficit,
+    });
     return [this.reconciliation({
       input,
       lineKey: "declared_tax_result_before_deficits",
@@ -1308,11 +1345,17 @@ export class CorporateTaxComputationEngine {
     readonly liasse: DeclarationReading;
     readonly mapping: (typeof CORPORATE_TAX_FORM_MAPPINGS)[CorporateTaxRegime];
     readonly computedCents: CentAmount;
+    readonly limitations: TaxLimitation[];
   }): readonly TaxReconciliationLine[] {
-    const { input, liasse, mapping, computedCents } = options;
+    const { input, liasse, mapping, computedCents, limitations } = options;
     const declared = this.signedDeclaredResult(
       amountFor(liasse, mapping.finalProfit),
       amountFor(liasse, mapping.finalDeficit),
+      {
+        limitations,
+        profitFieldCode: mapping.finalProfit,
+        deficitFieldCode: mapping.finalDeficit,
+      },
     );
     return [this.reconciliation({
       input,
@@ -1331,7 +1374,26 @@ export class CorporateTaxComputationEngine {
   private signedDeclaredResult(
     profit: DeclarationAmount | undefined,
     deficit: DeclarationAmount | undefined,
+    context: {
+      readonly limitations: TaxLimitation[];
+      readonly profitFieldCode: string;
+      readonly deficitFieldCode: string;
+    },
   ): { readonly amountCents: CentAmount; readonly snapshotId: string; readonly fieldCode: string } | null {
+    if (profit && deficit && profit.amountCents !== 0 && deficit.amountCents !== 0) {
+      // Benefice et deficit non nuls declares ensemble sur la meme paire de
+      // cases : la valeur declaree est contradictoire. Ni l'une ni l'autre
+      // n'est retenue a la place de l'arbitrage humain requis.
+      context.limitations.push(limitation({
+        code: `DECLARED_RESULT_INCONSISTENT:${context.profitFieldCode}`,
+        scope: "field",
+        reason: "inconsistent_declaration",
+        message: `La liasse declare simultanement un resultat positif (${context.profitFieldCode}) et un resultat negatif (${context.deficitFieldCode}) non nuls ; la valeur declaree ne peut pas etre etablie sans arbitrage humain.`,
+        requiredInputs: [`field:${context.profitFieldCode}`, `field:${context.deficitFieldCode}`],
+        resolvability: "human_review",
+      }));
+      return null;
+    }
     if (profit && profit.amountCents !== 0) {
       return { amountCents: profit.amountCents, snapshotId: profit.snapshotId, fieldCode: profit.fieldCode };
     }
