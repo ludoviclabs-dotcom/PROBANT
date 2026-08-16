@@ -1,0 +1,68 @@
+[
+  {
+    "id": "is-rate-schedule-2026",
+    "taxType": "corporate_income_tax",
+    "fiscalYear": 2026,
+    "formVintages": [2026],
+    "currency": "EUR",
+    "roundingRule": "half_up_cent",
+    "status": "effective",
+    "lastVerifiedAt": "2026-08-16",
+    "brackets": [
+      {
+        "code": "reduced_sme",
+        "order": 1,
+        "label": "Taux reduit PME",
+        "rateBasisPoints": 1500,
+        "baseCapCents": 4250000,
+        "ruleVersionId": "is-taux-reduit-pme-2026",
+        "sourceId": "cgi-art-219",
+        "sourceVersionId": "cgi-art-219-v2026-02-21",
+        "locator": "article 219, I-b",
+        "conditions": [
+          {
+            "code": "turnover_below_threshold",
+            "label": "Chiffre d'affaires hors taxes inferieur ou egal a 10 000 000 EUR",
+            "profileInput": "profile:turnoverAmountCents",
+            "operator": "lte_cents",
+            "thresholdCents": 1000000000
+          },
+          {
+            "code": "capital_fully_paid",
+            "label": "Capital entierement libere",
+            "profileInput": "profile:capitalPaidStatus",
+            "operator": "equals_enum",
+            "expectedValue": "fully_paid"
+          },
+          {
+            "code": "individual_ownership",
+            "label": "Capital detenu a 75 pourcent au moins selon les conditions legales",
+            "profileInput": "profile:ownershipStatus",
+            "operator": "gte_basis_points",
+            "thresholdBasisPoints": 7500
+          }
+        ]
+      },
+      {
+        "code": "normal",
+        "order": 2,
+        "label": "Taux normal",
+        "rateBasisPoints": 2500,
+        "baseCapCents": null,
+        "ruleVersionId": "is-taux-normal-2026",
+        "sourceId": "cgi-art-219",
+        "sourceVersionId": "cgi-art-219-v2026-02-21",
+        "locator": "article 219, I, deuxieme alinea",
+        "conditions": []
+      }
+    ],
+    "deficitCarryforward": {
+      "ruleVersionId": "is-deficits-report-2026",
+      "sourceId": "cgi-art-209",
+      "sourceVersionId": "cgi-art-209-v2023-12-31",
+      "locator": "article 209, I, troisieme alinea",
+      "baseAllowanceCents": 100000000,
+      "marginalRateBasisPoints": 5000
+    }
+  }
+]
