@@ -7,5 +7,6 @@ export * from "./control-planner";
 export * from "./recommendations";
 export * from "./corporate-tax";
 export * from "./declaration-reading";
+export * from "./source-coverage";
 export * from "./vat";
 
