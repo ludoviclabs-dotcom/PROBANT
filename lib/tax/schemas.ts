@@ -26,6 +26,17 @@ export const EvidenceStrengthSchema = z.enum([
   "insufficient",
 ]);
 
+export const TaxControlPlanningStatusSchema = z.enum([
+  "eligible",
+  "not_applicable",
+  "missing_inputs",
+  "ready",
+  "running",
+  "concluded",
+  "inconclusive",
+  "failed",
+]);
+
 const IsoDateSchema = z.string().regex(/^\d{4}-\d{2}-\d{2}$/u, "date ISO YYYY-MM-DD attendue");
 const IsoDateTimeSchema = z.string().datetime({ offset: true });
 const VersionSchema = z.string().min(1).max(100);
@@ -292,8 +303,17 @@ export const TaxControlDefinitionSchema = z.object({
   fiscalYears: z.array(FiscalYearSchema).min(1),
   formVintages: z.array(FormVintageSchema).min(1),
   sourceRefs: z.array(TaxSourceRefSchema).min(1),
+  applicability: z.object({
+    corporateIncomeTaxRegimes: z.array(z.enum(["standard", "simplified", "exempt", "unknown"])),
+    vatRegimes: z.array(z.enum(["real_normal", "mini_real", "real_simplified", "franchise", "exempt", "unknown"])),
+  }),
   requiredDocumentTypes: z.array(z.string().min(1)),
+  conclusiveDocumentTypes: z.array(z.string().min(1)),
   requiredFieldCodes: z.array(z.string().min(1)),
+  conclusiveFieldCodes: z.array(z.string().min(1)),
+  requiredParameterKeys: z.array(z.string().min(1)),
+  conclusiveParameterKeys: z.array(z.string().min(1)),
+  recommendationRuleIds: z.array(z.string().min(1)),
   allowedOutcomes: z.array(TaxControlOutcomeSchema).min(1),
   automation: z.enum(["automatic", "assisted", "manual", "unavailable"]),
   maximumEvidenceStrength: EvidenceStrengthSchema,
@@ -304,6 +324,137 @@ export const TaxControlDefinitionSchema = z.object({
   if (definition.effectiveTo && definition.effectiveTo < definition.effectiveFrom) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["effectiveTo"], message: "la fin d'effet precede le debut" });
   }
+  for (const documentType of definition.requiredDocumentTypes) {
+    if (!definition.conclusiveDocumentTypes.includes(documentType)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["conclusiveDocumentTypes"], message: `le document requis ${documentType} doit rester disponible pour conclure` });
+    }
+  }
+  for (const fieldCode of definition.requiredFieldCodes) {
+    if (!definition.conclusiveFieldCodes.includes(fieldCode)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["conclusiveFieldCodes"], message: `la case requise ${fieldCode} doit rester disponible pour conclure` });
+    }
+  }
+});
+
+export const TaxControlInputDocumentSchema = z.object({
+  organizationId: z.string().min(1),
+  dossierId: z.string().min(1),
+  entityId: z.string().min(1),
+  documentId: z.string().min(1),
+  snapshotId: z.string().min(1),
+  documentType: z.string().min(1),
+  formVintage: FormVintageSchema.nullable(),
+  periodStart: IsoDateSchema,
+  periodEnd: IsoDateSchema,
+  status: z.enum(["active", "review_required", "rejected", "superseded"]),
+  usableFieldCodes: z.array(z.string().min(1)),
+  evidenceStrength: EvidenceStrengthSchema,
+  contentHash: HashSchema,
+}).superRefine((document, ctx) => {
+  if (document.periodEnd < document.periodStart) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["periodEnd"], message: "la fin de période précède le début" });
+  }
+});
+
+export const TaxControlExecutionStateSchema = z.object({
+  organizationId: z.string().min(1),
+  dossierId: z.string().min(1),
+  entityId: z.string().min(1),
+  taxPeriodId: z.string().min(1),
+  controlId: z.string().min(1),
+  controlVersion: VersionSchema,
+  definitionHash: HashSchema,
+  status: z.enum(["running", "concluded", "failed"]),
+  outcome: TaxControlOutcomeSchema.nullable(),
+  evidenceStrength: EvidenceStrengthSchema,
+  calculationPerformed: z.boolean(),
+  executionHash: HashSchema,
+}).superRefine((execution, ctx) => {
+  if (execution.status === "concluded" && execution.outcome === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["outcome"], message: "une exécution conclue doit porter un outcome" });
+  }
+  if (execution.status !== "concluded" && execution.outcome !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["outcome"], message: "une exécution non conclue ne peut porter aucun outcome" });
+  }
+  if (execution.status !== "concluded" && execution.calculationPerformed) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["calculationPerformed"], message: "un calcul achevé exige une exécution conclue" });
+  }
+});
+
+export const TaxControlContextSchema = z.object({
+  organizationId: z.string().min(1),
+  dossierId: z.string().min(1),
+  entityId: z.string().min(1),
+  profile: TaxProfileSchema,
+  period: TaxPeriodSchema,
+  documents: z.array(TaxControlInputDocumentSchema),
+  executionStates: z.array(TaxControlExecutionStateSchema),
+  plannerVersion: VersionSchema,
+});
+
+export const TaxRecommendationSchema = z.object({
+  recommendationId: z.string().min(1),
+  ruleId: z.string().min(1),
+  ruleVersion: VersionSchema,
+  kind: z.enum(["request_document", "request_parameter", "human_confirmation", "additional_evidence"]),
+  title: z.string().min(1),
+  action: z.string().min(1),
+  requestedInputCodes: z.array(z.string().min(1)).min(1),
+  controlIds: z.array(z.string().min(1)).min(1),
+  priority: z.enum(["required", "recommended"]),
+  recommendationHash: HashSchema,
+});
+
+export const TaxControlDataRefSchema = z.object({
+  kind: z.enum(["document", "field", "parameter", "profile", "period", "execution"]),
+  code: z.string().min(1),
+  sourceId: z.string().min(1),
+  contentHash: HashSchema,
+});
+
+export const TaxControlResultSchema = z.object({
+  controlId: z.string().min(1),
+  controlVersion: VersionSchema,
+  definitionHash: HashSchema,
+  title: z.string().min(1),
+  taxType: TaxTypeSchema,
+  stage: z.literal("tax_review"),
+  status: TaxControlPlanningStatusSchema,
+  outcome: TaxControlOutcomeSchema.nullable(),
+  severity: z.null(),
+  evidenceStrength: EvidenceStrengthSchema,
+  maximumEvidenceStrength: EvidenceStrengthSchema,
+  usedData: z.array(TaxControlDataRefSchema),
+  missingData: z.array(z.string().min(1)),
+  sourceRefs: z.array(TaxSourceRefSchema).min(1),
+  limitations: z.array(TaxLimitationSchema),
+  recommendations: z.array(TaxRecommendationSchema),
+  calculationPerformed: z.boolean(),
+  resultHash: HashSchema,
+}).superRefine((result, ctx) => {
+  if (result.status === "concluded" && result.outcome === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["outcome"], message: "un contrôle conclu doit porter l'outcome de son exécution" });
+  }
+  if (result.status !== "concluded" && result.outcome !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["outcome"], message: "le planner ne peut produire un outcome avant conclusion" });
+  }
+});
+
+export const TaxCapabilityMatrixSchema = z.object({
+  organizationId: z.string().min(1),
+  dossierId: z.string().min(1),
+  entityId: z.string().min(1),
+  taxPeriodId: z.string().min(1),
+  plannerVersion: VersionSchema,
+  controls: z.array(TaxControlResultSchema),
+  verifiedControlIds: z.array(z.string().min(1)),
+  calculatedControlIds: z.array(z.string().min(1)),
+  inconclusiveControlIds: z.array(z.string().min(1)),
+  possibleControlIds: z.array(z.string().min(1)),
+  impossibleControlIds: z.array(z.string().min(1)),
+  notApplicableControlIds: z.array(z.string().min(1)),
+  recommendations: z.array(TaxRecommendationSchema),
+  matrixHash: HashSchema,
 });
 
 export const TaxControlExecutionSchema = z.object({
