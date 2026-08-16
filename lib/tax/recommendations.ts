@@ -49,6 +49,15 @@ export const TAX_RECOMMENDATION_RULES: readonly TaxRecommendationRule[] = [
     priority: "required",
   },
   {
+    ruleId: "TAX.RECOMMENDATION.REQUEST_CA12",
+    ruleVersion: "1.0.0",
+    triggerInputCodes: ["document:declaration_tva_ca12"],
+    kind: "request_document",
+    title: "Obtenir la CA12 de l'exercice",
+    action: "Demander la déclaration annuelle CA12 correspondant exactement à l'exercice de TVA contrôlé.",
+    priority: "required",
+  },
+  {
     ruleId: "TAX.RECOMMENDATION.REQUEST_INVOICES",
     ruleVersion: "1.0.0",
     triggerInputCodes: ["document:invoice"],

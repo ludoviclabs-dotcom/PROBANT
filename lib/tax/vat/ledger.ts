@@ -1,0 +1,302 @@
+/**
+ * Reconstruction d'opérations TVA candidates depuis le FEC.
+ *
+ * Tout ce que produit ce module est un **candidat**. Les préfixes de comptes
+ * servent à *repérer* des écritures, jamais à conclure : la règle du lot est
+ * explicite — « aucune conclusion fondée uniquement sur un numéro de compte ».
+ * Les préfixes sont donc injectables, et un dossier au plan comptable atypique
+ * peut les redéfinir sans toucher au moteur.
+ *
+ * Les montants du FEC sont des euros décimaux ; ils sont convertis en centimes
+ * entiers à la frontière, une seule fois, avec un arrondi documenté.
+ */
+import type { BasisPoints, CentAmount, FecEntry } from "@/lib/canonical-model";
+import { stableHash } from "@/lib/synthesis/canonical";
+import type {
+  VatDirection,
+  VatLinkage,
+  VatTransactionCandidate,
+  VatTransactionSignal,
+} from "./types";
+
+/**
+ * Préfixes du plan comptable général français. Valeurs par défaut seulement :
+ * elles sélectionnent des candidats et ne qualifient aucune opération.
+ */
+export interface VatAccountMap {
+  readonly collectedVatPrefixes: readonly string[];
+  readonly deductibleVatPrefixes: readonly string[];
+  readonly payableVatPrefixes: readonly string[];
+  readonly salesBasePrefixes: readonly string[];
+  readonly purchaseBasePrefixes: readonly string[];
+  readonly fixedAssetBasePrefixes: readonly string[];
+}
+
+export const DEFAULT_VAT_ACCOUNT_MAP: VatAccountMap = Object.freeze({
+  collectedVatPrefixes: ["4457"],
+  deductibleVatPrefixes: ["4456"],
+  payableVatPrefixes: ["4455"],
+  salesBasePrefixes: ["70", "71", "72", "75"],
+  purchaseBasePrefixes: ["60", "61", "62", "63", "65"],
+  fixedAssetBasePrefixes: ["20", "21"],
+});
+
+/** Conversion euros décimaux → centimes entiers, arrondi au centime le plus proche. */
+export function eurosToCents(amount: number): CentAmount {
+  if (!Number.isFinite(amount)) throw new Error("VAT_LEDGER_NON_FINITE_AMOUNT");
+  return Math.round(amount * 100);
+}
+
+function startsWithAny(account: string, prefixes: readonly string[]): boolean {
+  return prefixes.some((prefix) => account.startsWith(prefix));
+}
+
+/** Date FEC `AAAAMMJJ` → ISO `AAAA-MM-JJ`. Renvoie `null` si illisible. */
+export function fecDateToIso(raw: string): string | null {
+  if (!/^\d{8}$/u.test(raw)) return null;
+  return `${raw.slice(0, 4)}-${raw.slice(4, 6)}-${raw.slice(6, 8)}`;
+}
+
+interface EntryGroup {
+  readonly journalCode: string;
+  readonly ecritureNum: string;
+  readonly lines: readonly FecEntry[];
+}
+
+function groupByEcriture(entries: readonly FecEntry[]): readonly EntryGroup[] {
+  const groups = new Map<string, FecEntry[]>();
+  for (const entry of entries) {
+    const key = `${entry.journalCode}\u0000${entry.ecritureNum}`;
+    groups.set(key, [...(groups.get(key) ?? []), entry]);
+  }
+  return [...groups.entries()]
+    .map(([key, lines]) => {
+      const [journalCode, ecritureNum] = key.split("\u0000");
+      return { journalCode, ecritureNum, lines };
+    })
+    .sort((left, right) =>
+      `${left.journalCode}:${left.ecritureNum}`.localeCompare(`${right.journalCode}:${right.ecritureNum}`));
+}
+
+/**
+ * Montant orienté selon le sens naturel du poste.
+ *
+ * TVA collectée et produits sont naturellement au crédit ; TVA déductible,
+ * charges et immobilisations au débit. Un avoir inverse ce sens et produit donc
+ * un montant négatif, ce qui est conservé tel quel.
+ */
+function orientedCents(line: FecEntry, naturalSide: "debit" | "credit"): CentAmount {
+  const debit = eurosToCents(line.debit);
+  const credit = eurosToCents(line.credit);
+  return naturalSide === "credit" ? credit - debit : debit - credit;
+}
+
+/**
+ * Taux constaté en points de base, arrondi au point de base le plus proche.
+ * `null` si la base est nulle ou si base et TVA sont de sens opposés — auquel
+ * cas le taux n'a pas de sens et n'est pas inventé.
+ */
+export function deriveObservedRate(
+  baseCents: CentAmount,
+  vatCents: CentAmount,
+): BasisPoints | null {
+  if (baseCents === 0) return null;
+  if ((baseCents > 0) !== (vatCents > 0) && vatCents !== 0) return null;
+  const ratio = (BigInt(vatCents) * 10_000n * 2n) / BigInt(baseCents);
+  const rounded = Number((ratio + (ratio < 0n ? -1n : 1n)) / 2n);
+  if (!Number.isFinite(rounded) || rounded < 0 || rounded > 10_000) return null;
+  return rounded;
+}
+
+export interface VatLedgerInput {
+  readonly entries: readonly FecEntry[];
+  readonly periodStartDate: string;
+  readonly periodEndDate: string;
+  readonly accountMap?: VatAccountMap;
+  /**
+   * Références de pièces effectivement disponibles dans le dossier. `undefined`
+   * signifie « non renseigné » : le contrôle de pièce absente reste alors
+   * inconclusive plutôt que de conclure à l'absence.
+   */
+  readonly availableInvoiceRefs?: readonly string[];
+}
+
+export interface VatLedgerReading {
+  readonly candidates: readonly VatTransactionCandidate[];
+  /** Solde orienté des comptes de TVA, pour le contrôle de sens anormal. */
+  readonly collectedAccountBalanceCents: CentAmount;
+  readonly deductibleAccountBalanceCents: CentAmount;
+  readonly invoiceRefsProvided: boolean;
+}
+
+export function readVatLedger(input: VatLedgerInput): VatLedgerReading {
+  const map = input.accountMap ?? DEFAULT_VAT_ACCOUNT_MAP;
+  const invoiceRefs = input.availableInvoiceRefs
+    ? new Set(input.availableInvoiceRefs.map((ref) => ref.trim()).filter((ref) => ref.length > 0))
+    : null;
+
+  const candidates: VatTransactionCandidate[] = [];
+  let collectedBalance = 0;
+  let deductibleBalance = 0;
+
+  for (const group of groupByEcriture(input.entries)) {
+    const collectedVatLines = group.lines.filter((line) => startsWithAny(line.compteNum, map.collectedVatPrefixes));
+    const deductibleVatLines = group.lines.filter((line) => startsWithAny(line.compteNum, map.deductibleVatPrefixes));
+
+    for (const line of collectedVatLines) collectedBalance += orientedCents(line, "credit");
+    for (const line of deductibleVatLines) deductibleBalance += orientedCents(line, "debit");
+
+    if (collectedVatLines.length === 0 && deductibleVatLines.length === 0) continue;
+
+    // Une écriture portant simultanément TVA collectée et TVA déductible d'un
+    // même montant évoque une autoliquidation. C'est un signal, pas un verdict.
+    const reverseChargeCandidate =
+      collectedVatLines.length > 0 &&
+      deductibleVatLines.length > 0 &&
+      Math.abs(
+        collectedVatLines.reduce((total, line) => total + orientedCents(line, "credit"), 0) -
+        deductibleVatLines.reduce((total, line) => total + orientedCents(line, "debit"), 0),
+      ) === 0;
+
+    const directions: readonly { readonly direction: VatDirection; readonly vatLines: readonly FecEntry[] }[] = [
+      { direction: "collected", vatLines: collectedVatLines },
+      { direction: "deductible", vatLines: deductibleVatLines },
+    ];
+
+    for (const { direction, vatLines } of directions) {
+      if (vatLines.length === 0) continue;
+
+      const vatSide = direction === "collected" ? "credit" : "debit";
+      const vatCents = vatLines.reduce((total, line) => total + orientedCents(line, vatSide), 0);
+
+      const basePrefixes = direction === "collected"
+        ? map.salesBasePrefixes
+        : [...map.purchaseBasePrefixes, ...map.fixedAssetBasePrefixes];
+      const baseSide = direction === "collected" ? "credit" : "debit";
+      const baseLines = group.lines.filter((line) => startsWithAny(line.compteNum, basePrefixes));
+      const baseCents = baseLines.reduce((total, line) => total + orientedCents(line, baseSide), 0);
+
+      const linkage: VatLinkage = baseLines.length > 0 && vatLines.length > 0
+        ? "same_entry"
+        : vatLines.length > 0
+          ? "vat_only"
+          : "unresolved";
+
+      const observedRate = baseLines.length > 0 ? deriveObservedRate(baseCents, vatCents) : null;
+
+      const reference = group.lines.map((line) => line.pieceRef.trim()).find((ref) => ref.length > 0) ?? null;
+      const pieceDateRaw = group.lines.map((line) => line.pieceDate).find((date) => /^\d{8}$/u.test(date)) ?? "";
+      const pieceDate = fecDateToIso(pieceDateRaw);
+      const ecritureDate = fecDateToIso(group.lines[0].ecritureDate) ?? group.lines[0].ecritureDate;
+
+      const signals: VatTransactionSignal[] = [];
+      if (reference === null) signals.push("missing_piece_reference");
+      if (pieceDate === null) signals.push("missing_piece_date");
+      if (linkage !== "same_entry") signals.push("base_not_linked");
+      if (observedRate === null && linkage === "same_entry") signals.push("rate_not_derivable");
+      if (reverseChargeCandidate) signals.push("reverse_charge_candidate");
+      // Décalage : la pièce est datée hors de la période alors que l'écriture y
+      // est enregistrée. Le fait générateur reste à qualifier par une personne.
+      if (pieceDate !== null && (pieceDate < input.periodStartDate || pieceDate > input.periodEndDate)) {
+        signals.push("period_shift_candidate");
+      }
+
+      const body = {
+        direction,
+        journalCode: group.journalCode,
+        ecritureNum: group.ecritureNum,
+        ecritureDate,
+        pieceRef: reference,
+        pieceDate,
+        baseAmountCents: baseLines.length > 0 ? baseCents : null,
+        vatAmountCents: vatCents,
+        observedRateBasisPoints: observedRate,
+        baseAccounts: [...new Set(baseLines.map((line) => line.compteNum))].sort(),
+        vatAccounts: [...new Set(vatLines.map((line) => line.compteNum))].sort(),
+        linkage,
+        signals: [...signals].sort(),
+        // Une lecture d'écritures ne dépasse jamais la preuve dérivée.
+        evidenceStrength: "derived" as const,
+        sourceLineNumbers: [...new Set(group.lines.map((line) => line.ligne))].sort((a, b) => a - b),
+      };
+
+      candidates.push(Object.freeze({
+        ...body,
+        id: `vat-candidate:${direction}:${group.journalCode}:${group.ecritureNum}`,
+        candidateHash: stableHash(body),
+      }));
+    }
+  }
+
+  const withDuplicates = flagDuplicatePieces(candidates);
+  const withMissingPieces = flagMissingInvoices(withDuplicates, invoiceRefs);
+
+  return {
+    candidates: [...withMissingPieces].sort((left, right) => left.id.localeCompare(right.id)),
+    collectedAccountBalanceCents: collectedBalance,
+    deductibleAccountBalanceCents: deductibleBalance,
+    invoiceRefsProvided: invoiceRefs !== null,
+  };
+}
+
+/**
+ * Marque les pièces apparaissant plusieurs fois pour un même sens, une même
+ * référence et un même montant. Deux écritures peuvent légitimement partager
+ * une référence : le signal reste un candidat.
+ */
+function flagDuplicatePieces(
+  candidates: readonly VatTransactionCandidate[],
+): readonly VatTransactionCandidate[] {
+  const counts = new Map<string, number>();
+  for (const candidate of candidates) {
+    if (candidate.pieceRef === null) continue;
+    const key = `${candidate.direction}\u0000${candidate.pieceRef}\u0000${candidate.vatAmountCents}`;
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return candidates.map((candidate) => {
+    if (candidate.pieceRef === null) return candidate;
+    const key = `${candidate.direction}\u0000${candidate.pieceRef}\u0000${candidate.vatAmountCents}`;
+    if ((counts.get(key) ?? 0) < 2) return candidate;
+    return withSignal(candidate, "duplicate_piece_candidate");
+  });
+}
+
+function flagMissingInvoices(
+  candidates: readonly VatTransactionCandidate[],
+  invoiceRefs: ReadonlySet<string> | null,
+): readonly VatTransactionCandidate[] {
+  if (invoiceRefs === null) return candidates;
+  return candidates.map((candidate) =>
+    candidate.pieceRef !== null && !invoiceRefs.has(candidate.pieceRef)
+      ? withSignal(candidate, "missing_piece_reference")
+      : candidate);
+}
+
+/**
+ * Ajoute un signal en recalculant l'empreinte. Le corps est reconstruit
+ * explicitement : `id` et `candidateHash` n'entrent pas dans le hachage.
+ */
+function withSignal(
+  candidate: VatTransactionCandidate,
+  signal: VatTransactionSignal,
+): VatTransactionCandidate {
+  if (candidate.signals.includes(signal)) return candidate;
+  const body = {
+    direction: candidate.direction,
+    journalCode: candidate.journalCode,
+    ecritureNum: candidate.ecritureNum,
+    ecritureDate: candidate.ecritureDate,
+    pieceRef: candidate.pieceRef,
+    pieceDate: candidate.pieceDate,
+    baseAmountCents: candidate.baseAmountCents,
+    vatAmountCents: candidate.vatAmountCents,
+    observedRateBasisPoints: candidate.observedRateBasisPoints,
+    baseAccounts: candidate.baseAccounts,
+    vatAccounts: candidate.vatAccounts,
+    linkage: candidate.linkage,
+    signals: [...candidate.signals, signal].sort(),
+    evidenceStrength: candidate.evidenceStrength,
+    sourceLineNumbers: candidate.sourceLineNumbers,
+  };
+  return Object.freeze({ ...body, id: candidate.id, candidateHash: stableHash(body) });
+}

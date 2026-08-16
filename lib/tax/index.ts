@@ -6,4 +6,6 @@ export * from "./control-catalog";
 export * from "./control-planner";
 export * from "./recommendations";
 export * from "./corporate-tax";
+export * from "./declaration-reading";
+export * from "./vat";
 
