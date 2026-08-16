@@ -28,6 +28,15 @@ try {
       applied_at timestamptz NOT NULL DEFAULT now()
     )
   `);
+  // Down migrations remove the schema but intentionally leave this small
+  // ledger in place. If the core schema is gone, the ledger cannot be trusted
+  // to describe the database and must be rebuilt before the next apply.
+  const [schemaState] = await sql`
+    SELECT to_regclass('public.dossiers') AS dossiers
+  `;
+  if (!schemaState?.dossiers) {
+    await sql`DELETE FROM _probant_migrations`;
+  }
   const appliedRows = await sql`SELECT name FROM _probant_migrations`;
   const applied = new Set(appliedRows.map((row) => row.name));
   for (const name of migrationFiles()) {
