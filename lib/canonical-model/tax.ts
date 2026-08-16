@@ -26,6 +26,15 @@ export type EvidenceStrength =
 export type TaxCapabilityStatus = "available" | "future" | "non_available";
 export type TaxAutomation = "automatic" | "assisted" | "manual" | "unavailable";
 export type TaxFrequency = "annual" | "quarterly" | "monthly" | "event_based";
+export type TaxControlPlanningStatus =
+  | "eligible"
+  | "not_applicable"
+  | "missing_inputs"
+  | "ready"
+  | "running"
+  | "concluded"
+  | "inconclusive"
+  | "failed";
 
 /** Montant monétaire exact. Les schémas runtime imposent un entier sûr. */
 export type CentAmount = number;
@@ -196,8 +205,17 @@ export interface TaxControlDefinition {
   readonly fiscalYears: readonly number[];
   readonly formVintages: readonly number[];
   readonly sourceRefs: readonly TaxSourceRef[];
+  readonly applicability: {
+    readonly corporateIncomeTaxRegimes: readonly TaxProfile["corporateIncomeTaxRegime"][];
+    readonly vatRegimes: readonly TaxProfile["vatRegime"][];
+  };
   readonly requiredDocumentTypes: readonly string[];
+  readonly conclusiveDocumentTypes: readonly string[];
   readonly requiredFieldCodes: readonly string[];
+  readonly conclusiveFieldCodes: readonly string[];
+  readonly requiredParameterKeys: readonly string[];
+  readonly conclusiveParameterKeys: readonly string[];
+  readonly recommendationRuleIds: readonly string[];
   readonly allowedOutcomes: readonly TaxControlOutcome[];
   readonly automation: TaxAutomation;
   readonly maximumEvidenceStrength: EvidenceStrength;
@@ -240,6 +258,106 @@ export interface TaxLimitation {
   readonly requiredInputs: readonly string[];
   readonly relatedIds: readonly string[];
   readonly resolvability: "user_can_supply" | "human_review" | "future_engine" | "not_resolvable";
+}
+
+export interface TaxControlInputDocument {
+  readonly organizationId: string;
+  readonly dossierId: string;
+  readonly entityId: string;
+  readonly documentId: string;
+  readonly snapshotId: string;
+  readonly documentType: string;
+  readonly formVintage: number | null;
+  readonly periodStart: string;
+  readonly periodEnd: string;
+  readonly status: "active" | "review_required" | "rejected" | "superseded";
+  readonly usableFieldCodes: readonly string[];
+  readonly evidenceStrength: EvidenceStrength;
+  readonly contentHash: string;
+}
+
+export interface TaxControlExecutionState {
+  readonly organizationId: string;
+  readonly dossierId: string;
+  readonly entityId: string;
+  readonly taxPeriodId: string;
+  readonly controlId: string;
+  readonly controlVersion: string;
+  readonly definitionHash: string;
+  readonly status: "running" | "concluded" | "failed";
+  readonly outcome: TaxControlOutcome | null;
+  readonly evidenceStrength: EvidenceStrength;
+  readonly calculationPerformed: boolean;
+  readonly executionHash: string;
+}
+
+export interface TaxControlContext {
+  readonly organizationId: string;
+  readonly dossierId: string;
+  readonly entityId: string;
+  readonly profile: TaxProfile;
+  readonly period: TaxPeriod;
+  readonly documents: readonly TaxControlInputDocument[];
+  readonly executionStates: readonly TaxControlExecutionState[];
+  readonly plannerVersion: string;
+}
+
+export interface TaxRecommendation {
+  readonly recommendationId: string;
+  readonly ruleId: string;
+  readonly ruleVersion: string;
+  readonly kind: "request_document" | "request_parameter" | "human_confirmation" | "additional_evidence";
+  readonly title: string;
+  readonly action: string;
+  readonly requestedInputCodes: readonly string[];
+  readonly controlIds: readonly string[];
+  readonly priority: "required" | "recommended";
+  readonly recommendationHash: string;
+}
+
+export interface TaxControlDataRef {
+  readonly kind: "document" | "field" | "parameter" | "profile" | "period" | "execution";
+  readonly code: string;
+  readonly sourceId: string;
+  readonly contentHash: string;
+}
+
+export interface TaxControlResult {
+  readonly controlId: string;
+  readonly controlVersion: string;
+  readonly definitionHash: string;
+  readonly title: string;
+  readonly taxType: TaxType;
+  readonly stage: "tax_review";
+  readonly status: TaxControlPlanningStatus;
+  readonly outcome: TaxControlOutcome | null;
+  readonly severity: null;
+  readonly evidenceStrength: EvidenceStrength;
+  readonly maximumEvidenceStrength: EvidenceStrength;
+  readonly usedData: readonly TaxControlDataRef[];
+  readonly missingData: readonly string[];
+  readonly sourceRefs: readonly TaxSourceRef[];
+  readonly limitations: readonly TaxLimitation[];
+  readonly recommendations: readonly TaxRecommendation[];
+  readonly calculationPerformed: boolean;
+  readonly resultHash: string;
+}
+
+export interface TaxCapabilityMatrix {
+  readonly organizationId: string;
+  readonly dossierId: string;
+  readonly entityId: string;
+  readonly taxPeriodId: string;
+  readonly plannerVersion: string;
+  readonly controls: readonly TaxControlResult[];
+  readonly verifiedControlIds: readonly string[];
+  readonly calculatedControlIds: readonly string[];
+  readonly inconclusiveControlIds: readonly string[];
+  readonly possibleControlIds: readonly string[];
+  readonly impossibleControlIds: readonly string[];
+  readonly notApplicableControlIds: readonly string[];
+  readonly recommendations: readonly TaxRecommendation[];
+  readonly matrixHash: string;
 }
 
 export interface TaxControlExecution {
