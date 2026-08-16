@@ -1,18 +1,20 @@
 import { headerConformite } from "@/lib/fec/parser";
 import { SOURCES } from "@/lib/referentiel/sources";
-import type { Rule, RuleContext, RuleFinding } from "../types";
+import type { Rule, RuleFinding } from "../types";
 
 /**
- * Registre HARD-LAW : contraintes obligatoires d'admissibilité FEC
- * (LPF art. A.47 A-1) et conformité du plan de comptes (PCG).
- * Les manquements structurels sont BLOQUANTS : ils s'opposent à toute
- * analyse financière en aval.
+ * Registre HARD-LAW : exigences obligatoires issues du LPF et du PCG.
+ * Leur autorité normative ne préjuge ni de l'étape de contrôle ni de l'effet
+ * sur l'ingestion : seul `ingestion_admissibility` peut rejeter un fichier.
  */
 
 const VERSION = "1.0.0";
 
 function base(
-  rule: Pick<Rule, "id" | "family" | "version" | "cloison" | "severity">,
+  rule: Pick<
+    Rule,
+    "id" | "family" | "version" | "cloison" | "severity"
+  >,
   partial: Omit<
     RuleFinding,
     "family" | "ruleId" | "ruleVersion" | "cloison" | "severity"
@@ -34,6 +36,7 @@ const R_HL_001: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "bloquant",
+  controlStage: "ingestion_admissibility",
   titre: "Nommage du fichier FEC",
   run(ctx) {
     const re = /^\d{9}FEC\d{8}\.(txt|csv)$/iu;
@@ -65,6 +68,7 @@ const R_HL_002: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "bloquant",
+  controlStage: "ingestion_admissibility",
   titre: "Présence des 18 rubriques",
   run(ctx) {
     const { conforme, manquantes } = headerConformite(ctx.parsed.headerColumns);
@@ -101,6 +105,7 @@ const R_HL_003: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "majeur",
+  controlStage: "ingestion_admissibility",
   titre: "Ordre des rubriques",
   run(ctx) {
     const { ordreRespecte } = headerConformite(ctx.parsed.headerColumns);
@@ -131,6 +136,7 @@ const R_HL_004: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "bloquant",
+  controlStage: "ingestion_admissibility",
   titre: "Format des dates AAAAMMJJ",
   run(ctx) {
     const fautives = ctx.entries
@@ -174,6 +180,7 @@ const R_HL_005: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "bloquant",
+  controlStage: "ingestion_admissibility",
   titre: "Séparateur et variante de montants",
   run(ctx) {
     if (ctx.parsed.variante !== "inconnue") return [];
@@ -205,7 +212,8 @@ const R_HL_006: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "majeur",
-  titre: "Conformité des numéros de compte (PCG)",
+  controlStage: "tax_review",
+  titre: "Codification des numéros de compte (FEC)",
   run(ctx) {
     const fautifs = ctx.entries
       .filter((e) => {
@@ -218,17 +226,17 @@ const R_HL_006: Rule = {
     return [
       base(this, {
         siloId: "journaux",
-        titre: "Numéros de compte hors plan comptable",
-        constat: `${fautifs.length} ligne(s) dont le compte ne débute pas par une classe PCG valide (1 à 8).`,
+        titre: "Numéros de compte à rapprocher du plan comptable français",
+        constat: `${fautifs.length} ligne(s) dont le compte ne débute pas par une classe PCG 1 à 8 attendue.`,
         explication:
-          "Le premier caractère du numéro de compte doit correspondre à l'une des huit classes du plan comptable général. Un préfixe invalide empêche le rattachement à une cloison.",
+          "Le FEC doit restituer un numéro de compte dont les trois premiers caractères respectent les normes du plan comptable français. Ce pré-contrôle ne remplace pas le rapprochement avec le plan de comptes de l'entité ou son référentiel sectoriel et ne rejette pas techniquement le FEC.",
         mesure: {
           constate: fautifs.length,
           seuil: 0,
           unite: "ratio",
           libelle: "comptes non conformes",
         },
-        source: SOURCES.PCG_STRUCTURE,
+        source: SOURCES.LPF_A47A1_ACCOUNT_NUMBER,
         comptesConcernes: comptes,
         lignesSource: fautifs.map((e) => e.ligne),
         faisceau: ["plan de comptes", "classe invalide"],
@@ -246,6 +254,7 @@ const R_HL_007: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "majeur",
+  controlStage: "tax_review",
   titre: "Ordre chronologique de validation",
   run(ctx) {
     const dated = ctx.entries.filter((e) => /^\d{8}$/u.test(e.validDate));
@@ -263,12 +272,12 @@ const R_HL_007: Rule = {
     return [
       base(this, {
         siloId: "journaux",
-        titre: "Validation non strictement chronologique",
+        titre: "Ordre de validation à justifier",
         constat: `${ruptures} rupture(s) d'ordre chronologique sur ValidDate.`,
         explication:
-          "Le FEC doit être classé par ordre chronologique de validation des écritures. Des ruptures peuvent signaler des écritures insérées a posteriori.",
+          "Le FEC remis lors d'un contrôle fiscal est classé par ordre chronologique de validation des écritures. Une rupture est un signal de conformité fiscale à documenter ; elle ne rend pas le fichier techniquement illisible.",
         mesure: { constate: ruptures, seuil: 0, unite: "ratio", libelle: "ruptures d'ordre" },
-        source: SOURCES.LPF_A47A1,
+        source: SOURCES.LPF_A47A1_CHRONOLOGY,
         comptesConcernes: [],
         lignesSource: lignes,
         faisceau: ["chronologie", "ValidDate"],
@@ -283,7 +292,8 @@ const R_HL_008: Rule = {
   family: "hardLaw",
   version: VERSION,
   cloison: "journaux",
-  severity: "bloquant",
+  severity: "majeur",
+  controlStage: "accounting_review",
   titre: "Équilibre débit / crédit par écriture",
   run(ctx) {
     const soldes = new Map<string, number>();
@@ -304,17 +314,17 @@ const R_HL_008: Rule = {
     return [
       base(this, {
         siloId: "journaux",
-        titre: "Écritures déséquilibrées",
+        titre: "Écritures déséquilibrées à revoir",
         constat: `${desequilibrees.length} écriture(s) dont la somme des débits ≠ somme des crédits.`,
         explication:
-          "Le principe de la partie double impose l'équilibre débit/crédit de chaque écriture. Un déséquilibre est une anomalie structurelle majeure.",
+          "Le système de partie double impose une équivalence entre les montants portés au débit et au crédit des comptes affectés par une écriture. Un déséquilibre appelle une revue comptable ; il ne constitue pas un rejet technique du FEC.",
         mesure: {
           constate: desequilibrees.length,
           seuil: 0,
           unite: "ratio",
           libelle: "écritures déséquilibrées",
         },
-        source: SOURCES.PCG_STRUCTURE,
+        source: SOURCES.PCG_DOUBLE_ENTRY,
         comptesConcernes: [],
         lignesSource: lignes,
         faisceau: ["partie double", "équilibre"],
@@ -338,6 +348,7 @@ const R_HL_009: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "bloquant",
+  controlStage: "ingestion_admissibility",
   titre: "Montants numériques",
   run(ctx) {
     if (ctx.parsed.parseErrors.length === 0) return [];
@@ -374,6 +385,7 @@ const R_HL_010: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "mineur",
+  controlStage: "tax_review",
   titre: "Reprise des soldes en ouverture",
   run(ctx) {
     if (ctx.entries.length === 0) return [];
@@ -418,3 +430,4 @@ export const HARD_LAW_RULES: Rule[] = [
   R_HL_009,
   R_HL_010,
 ];
+

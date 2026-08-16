@@ -171,6 +171,30 @@ export interface SeuilApplique {
   depasse: boolean;
 }
 
+/** Effet financier explicite d'un constat, en centimes entiers. */
+export interface FinancialEffect {
+  amountCents: number;
+  direction: "increase" | "decrease";
+  target:
+    | "resultat"
+    | "bilan_actif"
+    | "bilan_passif"
+    | "capitaux_propres"
+    | "presentation";
+  assertion:
+    | "existence"
+    | "exhaustivite"
+    | "exactitude"
+    | "evaluation"
+    | "droits_obligations"
+    | "presentation"
+    | "rattachement";
+  rootCause: string;
+  period: string;
+  basis: "measured" | "estimated";
+  taxRatePct?: number;
+}
+
 /** Une grandeur chiffrée constatée vs son seuil de référence. */
 export interface Mesure {
   /** Valeur constatée dans les comptes. */
@@ -304,6 +328,9 @@ export interface Finding {
 
   /** Détail fiscal typé, présent uniquement lorsque `domain` vaut `tax`. */
   taxDetails?: TaxFindingDetails;
+
+  /** Effet financier explicite utilisé par la synthèse comptable. */
+  financialEffect?: FinancialEffect;
 }
 
 export function findingDomain(finding: Finding): FindingDomain {

@@ -11,6 +11,7 @@ import {
 import { sha256Stream } from "@/lib/evidence/hash";
 import { readIngestionLimits } from "@/lib/ingestion/limits";
 import type { FecEntry } from "@/lib/canonical-model";
+import type { ParsedFec } from "@/lib/fec/parser";
 import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
 import { buildSnapshotFromFecDepot } from "@/lib/dossier";
 import {
@@ -170,7 +171,8 @@ export async function processFecIngestion(job: IngestionJob) {
       },
     }),
   ]);
-  const parsedForRules = {
+  const parsedForRules: ParsedFec = {
+    separateur: parsed.separator,
     ...parsed,
     entries,
     parseErrors: [],
@@ -275,8 +277,8 @@ export async function processFecIngestion(job: IngestionJob) {
       siren,
       referentielVersion: REFERENTIEL_VERSION,
       mapping: {
-        separateur: parsed.separateurNom,
-        variante: parsed.variante,
+        separateur: parsedForRules.separateur,
+        variante: parsedForRules.variante,
         nbColonnes: parsed.headerColumns.length,
         colonnes: parsed.headerColumns,
         nbEntries: parsedForRules.entries.length,

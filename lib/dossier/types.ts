@@ -1,4 +1,3 @@
-
 import type { DossierSnapshot, FecEntry, Finding } from "@/lib/canonical-model";
 
 export type {
@@ -26,11 +25,8 @@ export interface PostgresDossierRepository extends DossierRepository {
 
 export interface FecDepotSnapshotInput {
   dossierId?: string;
-  sourceDocumentId?: string;
   nomFichier: string;
   fingerprint: string;
-  parserVersion?: string;
-  sourceLocation?: import("@/lib/canonical-model").SourceDocumentSummary["location"];
   siren: string | null;
   referentielVersion: string;
   admissibilite: Finding[];

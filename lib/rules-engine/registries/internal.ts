@@ -1,7 +1,7 @@
 import type { FecEntry } from "@/lib/canonical-model";
 import { siloForCompte, SILOS } from "@/lib/canonical-model";
 import { SEUILS_INTERNES } from "@/lib/referentiel/sources";
-import type { Rule, RuleContext, RuleFinding } from "../types";
+import type { Rule, RuleFinding } from "../types";
 
 /**
  * Registre INTERNAL : heuristiques, ratios et scoring propres à PROBANT.
@@ -27,6 +27,7 @@ const R_IN_001: Rule = {
   version: VERSION,
   cloison: "resultat",
   severity: "informatif",
+  controlStage: "accounting_review",
   titre: "Concentration des mouvements par silo",
   run(ctx) {
     const totalAbs = ctx.entries.reduce((s, e) => s + Math.abs(e.montant), 0);
@@ -78,6 +79,7 @@ const R_IN_002: Rule = {
   version: VERSION,
   cloison: "journaux",
   severity: "mineur",
+  controlStage: "accounting_review",
   titre: "Matérialité indicative",
   run(ctx) {
     // Approche du total bilan par la somme des débits de classes 1-5.
@@ -117,3 +119,4 @@ const R_IN_002: Rule = {
 };
 
 export const INTERNAL_RULES: Rule[] = [R_IN_001, R_IN_002];
+

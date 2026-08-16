@@ -2,13 +2,21 @@
   "formatVersion": 1,
   "schemaFile": "lib/persistence/schema.ts",
   "up": [
+    "0000_init_durable_ingestion.sql",
     "0001_probant_core.sql",
+    "0001_source_document_completion_guard.sql",
+    "0002_append_only_review_evidence.sql",
     "0002_tax_canonical_model.up.sql",
-    "0003_tax_document_processors.up.sql"
+    "0003_tax_document_processors.up.sql",
+    "0003_user_identity_and_upload_quota.sql"
   ],
   "down": [
+    "0000_init_durable_ingestion.down.sql",
+    "0001_source_document_completion_guard.down.sql",
+    "0002_append_only_review_evidence.down.sql",
     "0002_tax_canonical_model.down.sql",
-    "0003_tax_document_processors.down.sql"
+    "0003_tax_document_processors.down.sql",
+    "0003_user_identity_and_upload_quota.down.sql"
   ],
   "tables": [
     "control_executions",
@@ -30,4 +38,3 @@
     "tax_reconciliation_lines"
   ]
 }
-
