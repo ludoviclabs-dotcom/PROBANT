@@ -301,8 +301,8 @@ export async function processFecIngestion(job: IngestionJob) {
       mapping: {
         separateur: parsedForRules.separateur,
         variante: parsedForRules.variante,
-        nbColonnes: parsed.headerColumns.length,
-        colonnes: parsed.headerColumns,
+        nbColonnes: parsedForRules.headerColumns.length,
+        colonnes: parsedForRules.headerColumns,
         nbEntries: parsedForRules.entries.length,
       },
       admissibilite,

@@ -33,6 +33,19 @@ export function migratedTables() {
       tables.add(match[1]);
     }
   }
+  if (existsSync(resolve(migrationDirectory, "0000_init_durable_ingestion.sql"))) {
+    for (const table of [
+      "dossiers",
+      "source_documents",
+      "ingestion_jobs",
+      "ledger_entries",
+      "control_executions",
+      "findings",
+      "review_events",
+      "synthesis_snapshots",
+      "report_artifacts",
+    ]) tables.add(table);
+  }
   return [...tables].sort();
 }
 
