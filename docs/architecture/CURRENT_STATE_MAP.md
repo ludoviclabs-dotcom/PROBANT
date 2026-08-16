@@ -21,9 +21,10 @@
 | `/dashboard/dossier` | [`app/dashboard/dossier/page.tsx`](../../app/dashboard/dossier/page.tsx) | Serveur | `DEMO_DOSSIER` (l. 8) | Aucune |
 | `/dashboard/tests` | [`app/dashboard/tests/page.tsx`](../../app/dashboard/tests/page.tsx) | Serveur | `DEMO_DOSSIER` (l. 29) | Aucune |
 | `/dashboard/referentiel` | [`app/dashboard/referentiel/page.tsx`](../../app/dashboard/referentiel/page.tsx) | Serveur | `lib/referentiel/sources.ts` (`SOURCES`, `SEUILS_INTERNES`) | Aucune |
+| `/dashboard/fiscalite` | [`app/dashboard/fiscalite/page.tsx`](../../app/dashboard/fiscalite/page.tsx) | Serveur, `searchParams` (`?impot=`, `?statut=`) | `lib/tax/demo` — moteurs TAX-05/06/07 + planner TAX-04 exécutés en mémoire | Aucune |
 
-**7 routes dashboard**, toutes déclarées dans la navigation
-[`components/probant/Sidebar.tsx:19-25`](../../components/probant/Sidebar.tsx).
+**8 routes dashboard**, toutes déclarées dans la navigation
+[`components/probant/Sidebar.tsx`](../../components/probant/Sidebar.tsx).
 
 ### 1.2 Routes `app/normatif/*` et racine
 

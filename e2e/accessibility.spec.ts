@@ -2,7 +2,7 @@ import path from "node:path";
 import { expect, test } from "@playwright/test";
 
 /**
- * Accessibilité — axe-core sur les sept pages mesurées.
+ * Accessibilité — axe-core sur les huit pages mesurées.
  *
  * `axe-core` est déjà une dépendance du dépôt (tests de composants) : on
  * injecte son bundle dans la page plutôt que d'ajouter `@axe-core/playwright`.
@@ -42,6 +42,14 @@ const PAGES: readonly PageUnderTest[] = [
     name: "dossier-preuve",
     path: "/dashboard/dossier",
     seriousBaseline: { "color-contrast": 17 },
+  },
+  {
+    name: "fiscalite",
+    path: "/dashboard/fiscalite",
+    // Les 7 nœuds relèvent tous du chrome partagé (Sidebar, header, lanceur de
+    // démo) — la dette `--pb-text-faint` documentée. Le contenu du cockpit
+    // lui-même n'apporte aucune violation « serious ».
+    seriousBaseline: { "color-contrast": 7 },
   },
 ];
 

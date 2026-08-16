@@ -49,6 +49,7 @@ test.describe("parcours dossier partiel", () => {
       "/dashboard/risques",
       "/dashboard/cloisons",
       "/dashboard/dossier",
+      "/dashboard/fiscalite",
     ]) {
       await page.goto(route);
       const body = await page.locator("body").innerText();

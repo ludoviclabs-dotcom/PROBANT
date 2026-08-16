@@ -12,7 +12,8 @@
         "http://127.0.0.1:3101/dashboard/risques",
         "http://127.0.0.1:3101/dashboard/cloisons",
         "http://127.0.0.1:3101/dashboard/referentiel",
-        "http://127.0.0.1:3101/dashboard/dossier"
+        "http://127.0.0.1:3101/dashboard/dossier",
+        "http://127.0.0.1:3101/dashboard/fiscalite"
       ],
       "numberOfRuns": 3,
       "settings": {
