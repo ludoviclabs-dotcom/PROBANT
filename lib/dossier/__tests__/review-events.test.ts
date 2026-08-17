@@ -93,4 +93,36 @@ describe("review events append-only", () => {
       createdAt: "2026-08-14T10:00:00.000Z",
     }, new Set([sourceId]))).toThrow(/EVIDENCE_UNKNOWN/u);
   });
+
+  it("couvre l'organisation et l'action fiscale dans le hash persistant", () => {
+    const events = appendReviewEvent([], {
+      id: "event-tax-not-applicable",
+      organizationId: "organization-1",
+      dossierId: snapshot.dossier.id,
+      finding,
+      action: "mark_not_applicable",
+      actorId: "actor-1",
+      actorRole: "tax_reviewer",
+      newStatus: "dismissed",
+      comment: "Hors du périmètre fiscal documenté.",
+      createdAt: "2026-08-17T10:00:00.000Z",
+    });
+    expect(events[0]).toMatchObject({
+      organizationId: "organization-1",
+      action: "mark_not_applicable",
+      newStatus: "dismissed",
+    });
+    expect(verifyReviewEventChain(events).valid).toBe(true);
+    expect(() => appendReviewEvent([], {
+      id: "event-tax-invalid",
+      organizationId: "organization-1",
+      dossierId: snapshot.dossier.id,
+      finding,
+      action: "mark_not_applicable",
+      actorId: "actor-1",
+      actorRole: "tax_reviewer",
+      newStatus: "confirmed",
+      createdAt: "2026-08-17T10:00:00.000Z",
+    })).toThrow(/ACTION_STATUS_MISMATCH/u);
+  });
 });

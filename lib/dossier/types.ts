@@ -6,6 +6,7 @@ export type {
   DossierSnapshot,
   DossierSourceKind,
   ReviewEvent,
+  ReviewEventAction,
   ReviewEventStatus,
   SourceDocumentSummary,
 } from "@/lib/canonical-model";

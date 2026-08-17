@@ -25,6 +25,7 @@ import type {
   TaxTraceStep,
 } from "@/lib/canonical-model";
 import { canonicalJson, stableHash } from "@/lib/synthesis/canonical";
+import { getTaxFormVintage } from "@/lib/knowledge/tax-registry";
 import { createTaxReconciliationLine } from "../canonical";
 import { subtractCents } from "../corporate-tax/arithmetic";
 import { assessNormativeCoverage, type VatSourceRequirement } from "./coverage";
@@ -286,7 +287,11 @@ export class VatControlEngine {
       missingPieces: buildMissingPieceMatrix(ledger.candidates),
     };
 
-    const evidenceTier = this.evidenceTier(declaration, ledger.invoiceRefsProvided);
+    const evidenceTier = this.evidenceTier(
+      declaration,
+      ledger.invoiceRefsProvided,
+      ledger.candidates,
+    );
     const outcome = this.resolveOutcome(controls);
     const evidenceStrength = this.evidenceStrength(evidenceTier, outcome);
 
@@ -372,6 +377,22 @@ export class VatControlEngine {
         resolvability: input.profile.vatRegime === "unknown" ? "human_review" : "not_resolvable",
       }));
     }
+    if (regime !== null) {
+      const mapping = vatFormMappingFor(regime);
+      const form = getTaxFormVintage(mapping.formNumber, input.period.formVintage);
+      if (!form) {
+        found.push(limitation({
+          code: "UNSUPPORTED_VAT_FORM_VINTAGE",
+          scope: "period",
+          reason: "unsupported_millesime",
+          message: `Aucun formulaire ${mapping.formNumber} n'est publie pour le millesime ${input.period.formVintage}.`,
+          requiredInputs: [`form:${mapping.formNumber}:${input.period.formVintage}`],
+          relatedIds: [input.period.id],
+          capabilityStatus: "non_available",
+          resolvability: "future_engine",
+        }));
+      }
+    }
     if (frequency === null) {
       found.push(limitation({
         code: "UNSUPPORTED_VAT_FREQUENCY",
@@ -455,12 +476,34 @@ export class VatControlEngine {
   // -- Contrôles -----------------------------------------------------------
 
   private runControls(context: ControlContext, notes: VatNoteCollector): readonly VatControlResult[] {
-    const results = [
+    let results = [
       ...this.baseAndRateControls(context, notes),
       ...this.accountedControls(context),
       ...this.declarationControls(context, notes),
       ...this.signalControls(context, notes),
     ];
+    // Une absence totale de FEC et de déclaration ne constitue jamais un
+    // contrôle réussi « à zéro ». Les contrôles qui auraient conclu sur des
+    // collections vides sont rabattus vers l'inconclusif, avec preuve
+    // insuffisante. Cette garde est volontairement centrale afin qu'un futur
+    // contrôle ne réintroduise pas ce faux positif par oubli.
+    if (context.input.fecEntries.length === 0 && context.declaration.status !== "available") {
+      results = results.map((control) => {
+        if (!["passed", "confirmed_non_compliance", "reconciliation_difference", "potential_tax_risk"].includes(control.outcome)) {
+          return control;
+        }
+        return this.result({
+          controlId: control.controlId,
+          title: control.title,
+          outcome: "inconclusive",
+          evidenceStrength: "insufficient",
+          evidenceTier: "insufficient",
+          detail: "Contrôle non conclu : aucune écriture FEC ni déclaration exploitable n'est fournie.",
+          limitationIds: control.limitationIds,
+          sourceRefs: control.sourceRefs,
+        });
+      });
+    }
     return results.sort((left, right) => left.controlId.localeCompare(right.controlId));
   }
 
@@ -946,7 +989,14 @@ export class VatControlEngine {
             ? "passed"
             : "potential_tax_risk",
         evidenceStrength: invoiceGuard !== null ? "insufficient" : "corroborated",
-        evidenceTier: invoiceGuard !== null ? "insufficient" : "ledger_declaration_and_invoice",
+        // Un inventaire de pièces permet de constater l'absence, mais ne
+        // justifie pas la déduction concernée. Le niveau « + facture » n'est
+        // acquis que si toutes les opérations déductibles ont leur pièce.
+        evidenceTier: invoiceGuard !== null
+          ? "insufficient"
+          : missing.length === 0
+            ? "ledger_declaration_and_invoice"
+            : "ledger_and_declaration",
         detail: missing.length === 0
           ? "Chaque operation deductible porte une reference presente dans l'inventaire de pieces."
           : `${missing.length} operation(s) deductibles sans piece correspondante dans l'inventaire fourni.`,
@@ -997,9 +1047,16 @@ export class VatControlEngine {
   private evidenceTier(
     declaration: VatDeclarationSnapshot,
     invoiceRefsProvided: boolean,
+    candidates: readonly VatTransactionCandidate[],
   ): VatEvidenceTier {
     if (declaration.status !== "available") return "ledger_only";
-    return invoiceRefsProvided ? "ledger_declaration_and_invoice" : "ledger_and_declaration";
+    if (!invoiceRefsProvided) return "ledger_and_declaration";
+    const deductibleWithoutEvidence = candidates.some((candidate) =>
+      candidate.direction === "deductible" &&
+      candidate.signals.includes("missing_piece_reference"));
+    return deductibleWithoutEvidence
+      ? "ledger_and_declaration"
+      : "ledger_declaration_and_invoice";
   }
 
   private evidenceStrength(tier: VatEvidenceTier, outcome: TaxControlOutcome): EvidenceStrength {

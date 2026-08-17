@@ -33,7 +33,7 @@ export class DrizzleDossierRepository implements PostgresDossierRepository {
     return {
       ...payload,
       sourceKind: "persistent",
-      reviewEvents: await loadReviewEvents(this.db, context.dossierId),
+      reviewEvents: await loadReviewEvents(this.db, context),
     };
   }
 

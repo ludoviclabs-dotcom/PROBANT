@@ -1,6 +1,6 @@
 import type { Finding, StatutRevue } from "@/lib/canonical-model";
 import { canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
-import type { ReviewEvent, ReviewEventStatus } from "./types";
+import type { ReviewEvent, ReviewEventAction, ReviewEventStatus } from "./types";
 
 export const REVIEW_EVENT_STATUSES = [
   "pending",
@@ -21,8 +21,10 @@ export interface ReviewProgress {
 
 export interface AppendReviewEventInput {
   id: string;
+  organizationId?: string;
   dossierId: string;
   finding: Finding;
+  action?: ReviewEventAction;
   actorId: string;
   actorRole: string;
   newStatus: ReviewEventStatus;
@@ -46,6 +48,22 @@ const CLOSED_STATUSES: ReviewEventStatus[] = [
 ];
 const OPEN_STATUSES: ReviewEventStatus[] = ["pending", "needs_evidence"];
 const HASH_PATTERN = /^[0-9a-f]{64}$/u;
+
+export function statusForReviewAction(
+  action: ReviewEventAction,
+  previousStatus: ReviewEventStatus,
+): ReviewEventStatus {
+  switch (action) {
+    case "confirm": return "confirmed";
+    case "dismiss":
+    case "mark_not_applicable": return "dismissed";
+    case "request_evidence": return "needs_evidence";
+    case "correct": return "corrected";
+    case "replace": return "superseded";
+    case "mark_inconclusive": return "pending";
+    case "attach_evidence": return previousStatus;
+  }
+}
 
 function compareEvents(a: ReviewEvent, b: ReviewEvent): number {
   return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
@@ -88,8 +106,10 @@ export function reviewEventHashPayload(
 ): Omit<ReviewEvent, "eventHash"> {
   return {
     id: event.id,
+    organizationId: event.organizationId,
     dossierId: event.dossierId,
     findingId: event.findingId,
+    action: event.action,
     actorId: event.actorId,
     actorRole: event.actorRole,
     previousStatus: event.previousStatus,
@@ -205,6 +225,10 @@ export function appendReviewEvent(
   if (verification.orderedEvents.some((event) => event.dossierId !== input.dossierId)) {
     throw new Error("REVIEW_DOSSIER_CHAIN_MISMATCH");
   }
+  if (input.organizationId && verification.orderedEvents.some((event) =>
+    event.organizationId !== undefined && event.organizationId !== input.organizationId)) {
+    throw new Error("REVIEW_ORGANIZATION_CHAIN_MISMATCH");
+  }
 
   const relatedEvidenceIds = [...new Set(input.relatedEvidenceIds ?? [])].sort();
   if (validEvidenceIds) {
@@ -212,11 +236,16 @@ export function appendReviewEvent(
     if (invalid.length > 0) throw new Error(`REVIEW_EVIDENCE_UNKNOWN:${invalid.join(",")}`);
   }
   const previousStatus = statusAfterReviewEvents(input.finding, verification.orderedEvents);
+  if (input.action && statusForReviewAction(input.action, previousStatus) !== input.newStatus) {
+    throw new Error("REVIEW_ACTION_STATUS_MISMATCH");
+  }
   const previousEventHash = verification.orderedEvents.at(-1)?.eventHash ?? null;
   const unsigned: Omit<ReviewEvent, "eventHash"> = {
     id: input.id,
+    organizationId: input.organizationId,
     dossierId: input.dossierId,
     findingId: input.finding.id,
+    action: input.action,
     actorId: input.actorId.trim(),
     actorRole: input.actorRole.trim(),
     previousStatus,

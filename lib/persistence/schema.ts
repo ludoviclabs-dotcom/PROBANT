@@ -344,6 +344,7 @@ export const reviewEvents = pgTable(
   "review_events",
   {
     id: text("id").primaryKey(),
+    organizationId: text("organization_id"),
     dossierId: text("dossier_id")
       .notNull()
       .references(() => dossiers.id),
@@ -352,6 +353,7 @@ export const reviewEvents = pgTable(
       .references(() => findings.id),
     previousStatus: text("previous_status").notNull(),
     newStatus: text("new_status").notNull(),
+    action: text("action").$type<ReviewEvent["action"]>(),
     comment: text("comment"),
     actorLabel: text("actor_label").notNull(),
     actorRole: text("actor_role").notNull(),

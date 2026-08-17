@@ -44,6 +44,7 @@ export default async function FiscalitePage({
       bundles={bundles}
       initialScope={parseScope(params.impot)}
       initialOutcome={params.statut ?? "tous"}
+      evidenceSource={source}
     />
   );
 }

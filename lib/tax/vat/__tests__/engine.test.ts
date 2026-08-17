@@ -250,7 +250,9 @@ describe("Facture manquante", () => {
 
     const piece = controlOf(snapshot, "VAT.PIECE.MISSING");
     expect(piece.outcome).toBe("potential_tax_risk");
-    expect(piece.evidenceTier).toBe("ledger_declaration_and_invoice");
+    // L'inventaire permet de constater la pièce manquante, mais la déduction
+    // concernée n'atteint pas le niveau de preuve « + facture ».
+    expect(piece.evidenceTier).toBe("ledger_and_declaration");
     expect(snapshot.datasets.missingPieces.cells.length).toBeGreaterThan(0);
   });
 });

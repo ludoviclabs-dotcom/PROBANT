@@ -20,6 +20,7 @@ import type {
   TaxSourceRef,
   TaxType,
 } from "@/lib/canonical-model";
+import { taxKnowledgeRegistry } from "@/lib/knowledge/tax-registry";
 import { formatCents } from "@/lib/synthesis/money";
 import type {
   VisualizationColumn,
@@ -97,7 +98,20 @@ function cycleOfControl(controlId: string): string {
 }
 
 function formatSourceRef(ref: TaxSourceRef): string {
-  return ref.locator ? `${ref.sourceVersionId} — ${ref.locator}` : ref.sourceVersionId;
+  const status = taxKnowledgeRegistry.sourceVersions.find(
+    (version) => version.id === ref.sourceVersionId,
+  )?.status;
+  const statusLabel = status === "review_required"
+    ? "à valider"
+    : status === "effective"
+      ? "en vigueur"
+      : status === "future"
+        ? "future"
+        : status === "superseded"
+          ? "remplacée"
+          : "statut non résolu";
+  const version = `${ref.sourceVersionId} [${statusLabel}]`;
+  return ref.locator ? `${version} — ${ref.locator}` : version;
 }
 
 function cents(amount: number | null): string {
@@ -407,11 +421,11 @@ function buildCapability(
     },
     {
       id: "potential-risks",
-      label: "Risques potentiels",
+      label: "Écarts et risques à qualifier",
       value: String(counts.potential_tax_risk + counts.reconciliation_difference),
       tone:
         counts.potential_tax_risk + counts.reconciliation_difference > 0 ? "warning" : "positive",
-      detail: `${counts.reconciliation_difference} incohérence(s) de rapprochement · ${counts.potential_tax_risk} risque(s) potentiel(s) à qualifier.`,
+      detail: `${counts.reconciliation_difference} écart(s) de rapprochement · ${counts.potential_tax_risk} risque(s) potentiel(s) à qualifier.`,
     },
     {
       id: "missing-data",
@@ -1123,7 +1137,7 @@ function buildFindings(
         difference: control.differenceCents === null ? "—" : formatCents(control.differenceCents),
         status: TAX_OUTCOME_LABEL[control.outcome],
         evidence: EVIDENCE_STRENGTH_LABEL[control.evidenceStrength],
-        source: control.sourceRefs.map((ref) => ref.sourceId).join(" · ") || "—",
+        source: control.sourceRefs.map(formatSourceRef).join(" · ") || "—",
       },
       emphasis:
         TAX_OUTCOME_TONE[control.outcome] === "critical"

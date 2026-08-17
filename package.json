@@ -18,6 +18,8 @@
     "verify:vercel": "node scripts/verify-vercel.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
     "test:e2e": "playwright test",
+    "test:tax-release": "vitest run --config vitest.config.mjs --configLoader runner lib/tax/release/__tests__/release-gate.test.ts",
+    "test:e2e:tax-release": "playwright test e2e/tax-release-gate.spec.ts",
     "test:e2e:install": "playwright install --with-deps chromium"
   },
   "//overrides": "Remontées transitives d'avis de sécurité. Voir docs/release/SOURCE_AUDIT.md pour la justification de chaque ligne et docs/adr/ADR-009-next-16-compatibility.md pour ce qui exige Next 16.",

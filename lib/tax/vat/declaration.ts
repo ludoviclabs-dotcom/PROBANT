@@ -15,6 +15,7 @@ import type { VatDeclarationBox, VatDeclarationSnapshot, VatRegime } from "./typ
 
 interface VatFormMapping {
   readonly formNumber: string;
+  readonly vintage: number;
   readonly sourceId: string;
   readonly sourceVersionId: string;
   readonly locator: string;
@@ -32,6 +33,7 @@ interface VatFormMapping {
 export const VAT_FORM_MAPPINGS: Readonly<Record<VatRegime, VatFormMapping>> = {
   real_normal: {
     formNumber: "3310-CA3-SD",
+    vintage: 2026,
     sourceId: "form-ca3",
     sourceVersionId: "form-ca3-v2026",
     locator: "3310-CA3-SD 2026, cases 16, 23, 25, TD, 27 et 28",
@@ -46,6 +48,7 @@ export const VAT_FORM_MAPPINGS: Readonly<Record<VatRegime, VatFormMapping>> = {
   },
   mini_real: {
     formNumber: "3310-CA3-SD",
+    vintage: 2026,
     sourceId: "form-ca3",
     sourceVersionId: "form-ca3-v2026",
     locator: "3310-CA3-SD 2026, cases 16, 23, 25, TD, 27 et 28",
@@ -60,6 +63,7 @@ export const VAT_FORM_MAPPINGS: Readonly<Record<VatRegime, VatFormMapping>> = {
   },
   real_simplified: {
     formNumber: "3517-S-SD",
+    vintage: 2026,
     sourceId: "form-ca12",
     sourceVersionId: "form-ca12-v2026",
     locator: "3517-S-SD 2026, cases 19, 26, 29, 51 et 54",
@@ -99,11 +103,16 @@ export function readVatDeclaration(input: VatDeclarationInput): VatDeclarationSn
     fieldCodes: mapping.allBoxes,
   });
 
-  const sourceRefs: readonly TaxSourceRef[] = [{
-    sourceId: mapping.sourceId,
-    sourceVersionId: mapping.sourceVersionId,
-    locator: mapping.locator,
-  }];
+  // Ne jamais attribuer une référence 2026 à une déclaration d'un autre
+  // millésime. Le moteur bloque cette combinaison avant lecture ; cette garde
+  // évite aussi qu'un snapshot bloqué annonce une source hors période.
+  const sourceRefs: readonly TaxSourceRef[] = input.formVintage === mapping.vintage
+    ? [{
+        sourceId: mapping.sourceId,
+        sourceVersionId: mapping.sourceVersionId,
+        locator: mapping.locator,
+      }]
+    : [];
 
   const boxes: VatDeclarationBox[] = reading.amounts.map((amount) => ({
     code: amount.fieldCode,

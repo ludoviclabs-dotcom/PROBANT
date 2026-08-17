@@ -16,6 +16,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
+import type { ReviewEventAction } from "@/lib/canonical-model";
 
 export const dossierStatusEnum = pgEnum("dossier_status", ["active", "archived"]);
 
@@ -482,6 +483,8 @@ export const reviewEvents = pgTable(
   "review_events",
   {
     id: uuid("id").primaryKey(),
+    organizationId: uuid("organization_id")
+      .references(() => organizations.id, { onDelete: "restrict" }),
     dossierId: uuid("dossier_id")
       .notNull()
       .references(() => dossiers.id, { onDelete: "restrict" }),
@@ -490,6 +493,7 @@ export const reviewEvents = pgTable(
       .references(() => findings.id, { onDelete: "restrict" }),
     actorId: text("actor_external_id").notNull(),
     actorRole: text("actor_role").notNull(),
+    action: text("action").$type<ReviewEventAction>(),
     previousStatus: reviewEventStatusEnum("previous_status").notNull(),
     newStatus: reviewEventStatusEnum("new_status").notNull(),
     comment: text("comment").notNull().default(""),

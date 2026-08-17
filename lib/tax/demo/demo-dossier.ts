@@ -650,6 +650,8 @@ export function buildDemoTaxCockpitSource(options: DemoTaxCockpitOptions = {}): 
     entityName: ENTITY_NAME,
     fiscalYear: FISCAL_YEAR,
     generatedAt: DEMO_TAX_CREATED_AT,
+    profile,
+    documentSnapshots: documents,
     synthesis,
     corporateTax,
     vat,
