@@ -38,7 +38,7 @@ export function buildSalesByRateDataset(buckets: readonly VatRateBucket[]): VatS
 }
 
 export function buildComparisonDataset(options: {
-  readonly collectedTheoreticalCents: CentAmount;
+  readonly collectedTheoreticalCents: CentAmount | null;
   readonly collectedAccountedCents: CentAmount;
   readonly deductibleAccountedCents: CentAmount;
   readonly declaration: VatDeclarationSnapshot;

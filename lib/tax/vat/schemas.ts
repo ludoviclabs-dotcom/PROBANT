@@ -113,10 +113,10 @@ export const VatRateBucketSchema = z.object({
   direction: VatDirectionSchema,
   rateBasisPoints: BasisPointsSchema.nullable(),
   label: z.string().min(1),
-  baseAmountCents: CentAmountSchema,
+  baseAmountCents: CentAmountSchema.nullable(),
   vatAccountedCents: CentAmountSchema,
-  vatTheoreticalCents: CentAmountSchema,
-  differenceCents: CentAmountSchema,
+  vatTheoreticalCents: CentAmountSchema.nullable(),
+  differenceCents: CentAmountSchema.nullable(),
   transactionCount: SafeIntegerSchema.nonnegative(),
   transactionIds: z.array(z.string().min(1)),
   shareOfBaseBasisPoints: BasisPointsSchema,
@@ -125,7 +125,13 @@ export const VatRateBucketSchema = z.object({
   if (bucket.rateBasisPoints === null && bucket.status !== "unresolved") {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["status"], message: "une tranche sans taux derivable est unresolved" });
   }
-  if (bucket.differenceCents !== bucket.vatAccountedCents - bucket.vatTheoreticalCents) {
+  if ((bucket.rateBasisPoints === null || bucket.baseAmountCents === null) && bucket.vatTheoreticalCents !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["vatTheoreticalCents"], message: "une TVA theorique exige une base et un taux derivables" });
+  }
+  if (bucket.vatTheoreticalCents === null && bucket.differenceCents !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["differenceCents"], message: "aucun ecart certain ne peut etre calcule sans TVA theorique" });
+  }
+  if (bucket.vatTheoreticalCents !== null && bucket.differenceCents !== bucket.vatAccountedCents - bucket.vatTheoreticalCents) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["differenceCents"], message: "l'ecart doit deriver des deux montants" });
   }
 });
@@ -234,7 +240,7 @@ export const VatReconciliationSnapshotSchema = z.object({
   rateBuckets: z.array(VatRateBucketSchema),
   collectedAccountedCents: CentAmountSchema,
   deductibleAccountedCents: CentAmountSchema,
-  collectedTheoreticalCents: CentAmountSchema,
+  collectedTheoreticalCents: CentAmountSchema.nullable(),
   netAccountedCents: CentAmountSchema,
   netDeclaredCents: CentAmountSchema.nullable(),
   controls: z.array(VatControlResultSchema),
@@ -242,7 +248,7 @@ export const VatReconciliationSnapshotSchema = z.object({
   datasets: z.object({
     salesByRate: z.object({
       buckets: z.array(VatRateBucketSchema),
-      totalBaseCents: CentAmountSchema,
+      totalBaseCents: CentAmountSchema.nullable(),
       currency: z.literal("EUR"),
     }),
     comparison: z.object({

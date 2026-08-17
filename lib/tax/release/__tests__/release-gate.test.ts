@@ -23,10 +23,13 @@ const CONCLUSIVE_OUTCOMES = new Set([
   "potential_tax_risk",
 ]);
 
-function controlOf(snapshot: { readonly controls: readonly { readonly controlId: string }[] }, id: string) {
+function controlOf<T extends { readonly controlId: string }>(
+  snapshot: { readonly controls: readonly T[] },
+  id: string,
+): T {
   const control = snapshot.controls.find((candidate) => candidate.controlId === id);
   if (!control) throw new Error(`contrôle absent : ${id}`);
-  return control as (typeof snapshot.controls)[number] & { readonly outcome: string };
+  return control;
 }
 
 function assertExactMonetaryValues(value: unknown, path = "root"): void {
@@ -109,7 +112,7 @@ describe("TAX-10 — golden cases IS", () => {
     expect(runCorporateTaxGoldenCase("is-deficit").snapshot.taxableBaseCents).toBe(6_000_000);
     expect(runCorporateTaxGoldenCase("is-reduced-rate").snapshot.grossTaxCents).toBe(450_000);
     expect(runCorporateTaxGoldenCase("is-reduced-rate-unproven").snapshot.brackets.find((item) => item.code === "reduced_sme")?.allocatedBaseCents).toBe(0);
-    expect(runCorporateTaxGoldenCase("is-inconsistent-return").snapshot.grossTaxCents).toBe(0);
+    expect(runCorporateTaxGoldenCase("is-inconsistent-return").snapshot.grossTaxCents).toBeNull();
     expect(runCorporateTaxGoldenCase("is-divergent-tax-charge").reconciliationLines.some((line) => line.status === "different")).toBe(true);
     expect(runCorporateTaxGoldenCase("is-missing-declaration").snapshot.taxImpactStatus).toBe("not_computed");
   });
@@ -131,7 +134,18 @@ describe("TAX-10 — golden cases TVA", () => {
     expect(controlOf(runVatGoldenCase("vat-multiple-rates").snapshot, "VAT.RATE.UNUSUAL").outcome).toBe("review_recommendation");
     expect(runVatGoldenCase("vat-credit-note").snapshot.transactionCandidates.some((item) => item.vatAmountCents !== null && item.vatAmountCents < 0)).toBe(true);
     expect(runVatGoldenCase("vat-credit").snapshot.netAccountedCents).toBe(-30_000);
-    expect(controlOf(runVatGoldenCase("vat-reverse-charge").snapshot, "VAT.REVERSE_CHARGE.CANDIDATE").outcome).toBe("review_recommendation");
+    const reverseCharge = runVatGoldenCase("vat-reverse-charge").snapshot;
+    const unresolvedCollected = reverseCharge.rateBuckets.find((bucket) =>
+      bucket.direction === "collected" && bucket.status === "unresolved");
+    expect(reverseCharge.collectedTheoreticalCents).toBeNull();
+    expect(unresolvedCollected?.baseAmountCents).toBeNull();
+    expect(unresolvedCollected?.vatTheoreticalCents).toBeNull();
+    expect(unresolvedCollected?.differenceCents).toBeNull();
+    expect(controlOf(reverseCharge, "VAT.THEORETICAL.BY_RATE").outcome).toBe("missing_information");
+    expect(controlOf(reverseCharge, "VAT.THEORETICAL.BY_RATE").differenceCents).toBeNull();
+    expect(controlOf(reverseCharge, "VAT.REVERSE_CHARGE.CANDIDATE").outcome).toBe("review_recommendation");
+    expect(reverseCharge.transactionCandidates.some((candidate) =>
+      candidate.signals.includes("base_not_linked"))).toBe(true);
     expect(controlOf(runVatGoldenCase("vat-shifted-period").snapshot, "VAT.PERIOD.SHIFT").outcome).toBe("review_recommendation");
     expect(runVatGoldenCase("vat-ca12").snapshot.declaration.formNumber).toBe("3517-S-SD");
     expect(runVatGoldenCase("vat-unknown-regime").snapshot.controls).toHaveLength(0);

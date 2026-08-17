@@ -390,7 +390,9 @@ function findingDrafts(source: TaxCockpitSource): FindingDraft[] {
       trace: snapshot.trace,
       outcome: snapshot.outcome,
       amountCents: snapshot.grossTaxCents,
-      detail: `Base imposable ${snapshot.taxableBaseCents} centimes; IS brut ${snapshot.grossTaxCents} centimes.`,
+      detail: snapshot.grossTaxCents === null
+        ? "Calcul IS bloque : aucun impot brut calcule."
+        : `Base imposable ${snapshot.taxableBaseCents} centimes; IS brut ${snapshot.grossTaxCents} centimes.`,
       evidenceLevel: snapshot.evidenceStrength,
       limitationIds: snapshot.limitations.map((limitation) => limitation.id),
     });

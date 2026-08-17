@@ -19,7 +19,11 @@ import { getTaxFormVintage } from "@/lib/knowledge/tax-registry";
 
 export interface DeclarationAmount {
   readonly fieldCode: string;
+  /** Magnitude absolue ; le signe natif reste dans `sign`. */
   readonly amountCents: CentAmount;
+  readonly sign: TaxDeclarationField["sign"];
+  readonly status: "valid" | "normalized_with_warning";
+  readonly diagnostics: readonly string[];
   readonly snapshotId: string;
   readonly contentHash: string;
   readonly evidenceStrength: EvidenceStrength;
@@ -28,12 +32,14 @@ export interface DeclarationAmount {
 export interface DeclarationReadingIssue {
   readonly fieldCode: string;
   readonly formNumber: string;
+  readonly status: "normalized_with_warning" | "invalid" | "missing";
   readonly reason:
     | "missing_field"
     | "field_not_usable"
     | "unsupported_millesime"
     | "box_absent_from_vintage"
-    | "duplicate_field";
+    | "duplicate_field"
+    | "invalid_amount_invariant";
   readonly detail: string;
 }
 
@@ -89,6 +95,7 @@ export function readDeclarationBoxes(options: {
       issues: fieldCodes.map((fieldCode) => ({
         fieldCode,
         formNumber,
+        status: "missing" as const,
         reason: "unsupported_millesime" as const,
         detail: `Le millesime ${formVintage} du formulaire ${formNumber} n'est pas publie par le registre.`,
       })),
@@ -103,6 +110,7 @@ export function readDeclarationBoxes(options: {
       issues.push({
         fieldCode,
         formNumber,
+        status: "missing",
         reason: "box_absent_from_vintage",
         detail: `La case ${fieldCode} n'existe pas dans le millesime ${formVintage} de ${formNumber}.`,
       });
@@ -117,6 +125,7 @@ export function readDeclarationBoxes(options: {
       issues.push({
         fieldCode,
         formNumber,
+        status: "missing",
         reason: "missing_field",
         detail: `La case ${fieldCode} de ${formNumber} n'est presente dans aucun snapshot actif.`,
       });
@@ -126,6 +135,7 @@ export function readDeclarationBoxes(options: {
       issues.push({
         fieldCode,
         formNumber,
+        status: "invalid",
         reason: "duplicate_field",
         detail: `La case ${fieldCode} de ${formNumber} apparait dans ${matches.length} snapshots actifs sans arbitrage.`,
       });
@@ -133,10 +143,22 @@ export function readDeclarationBoxes(options: {
     }
 
     const [{ snapshot, field }] = matches;
-    if (!isUsableForCalculation(field)) {
+    if (field.amountCents !== null && field.amountCents < 0) {
       issues.push({
         fieldCode,
         formNumber,
+        status: "invalid",
+        reason: "invalid_amount_invariant",
+        detail: `La case ${fieldCode} porte un montant negatif contraire a l'invariant canonique (magnitude absolue et signe separe).`,
+      });
+      continue;
+    }
+    if (!isUsableForCalculation(field)) {
+      const normalized = field.warnings.includes("DECLARATION_AMOUNT_SIGN_NORMALIZED");
+      issues.push({
+        fieldCode,
+        formNumber,
+        status: normalized ? "normalized_with_warning" : "invalid",
         reason: "field_not_usable",
         detail: `La case ${fieldCode} de ${formNumber} n'est pas exploitable pour un calcul automatise (statut ${field.processingStatus}).`,
       });
@@ -145,6 +167,11 @@ export function readDeclarationBoxes(options: {
     amounts.push({
       fieldCode,
       amountCents: field.amountCents as CentAmount,
+      sign: field.sign,
+      status: field.warnings.includes("DECLARATION_AMOUNT_SIGN_NORMALIZED")
+        ? "normalized_with_warning"
+        : "valid",
+      diagnostics: [...field.warnings].sort(),
       snapshotId: snapshot.id,
       contentHash: field.fieldHash,
       evidenceStrength: field.evidenceStrength,

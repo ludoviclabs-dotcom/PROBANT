@@ -196,7 +196,8 @@ export const TaxDeclarationFieldSchema = z.object({
   label: z.string().min(1),
   dataType: z.enum(["amount", "date", "text", "boolean", "percentage", "identifier"]),
   rawValue: z.string().nullable(),
-  amountCents: CentAmountSchema.nullable(),
+  // Invariant déclaratif canonique : magnitude absolue, signe séparé.
+  amountCents: CentAmountSchema.nonnegative().nullable(),
   normalizedValue: z.union([z.string(), z.boolean(), z.null()]),
   percentageBasisPoints: BasisPointsSchema.nullable(),
   unit: z.enum(["cent", "date", "text", "boolean", "basis_point", "identifier"]),

@@ -136,6 +136,10 @@ export interface TaxDeclarationField {
   readonly label: string;
   readonly dataType: "amount" | "date" | "text" | "boolean" | "percentage" | "identifier";
   readonly rawValue: string | null;
+  /**
+   * Magnitude absolue en centimes. Elle est toujours positive ou nulle ; le
+   * signe natif éventuel est conservé séparément dans `sign`.
+   */
   readonly amountCents: CentAmount | null;
   readonly normalizedValue: string | boolean | null;
   readonly percentageBasisPoints: BasisPoints | null;

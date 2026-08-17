@@ -186,7 +186,13 @@ function buildFieldDraft(input: {
 }) {
   const warnings: string[] = [];
   const dataType = fieldDataType(input.box, input.raw);
-  const amountCents = dataType === "amount" ? parseFrenchAmount(input.raw.rawValue) : null;
+  const parsedAmountCents = dataType === "amount" ? parseFrenchAmount(input.raw.rawValue) : null;
+  // La frontière d'ingestion est le seul endroit autorisé à normaliser un
+  // signe natif. La magnitude canonique reste absolue et le warning rend la
+  // transformation traçable puis impose une revue humaine.
+  const amountCents = parsedAmountCents !== null && parsedAmountCents < 0
+    ? Math.abs(parsedAmountCents)
+    : parsedAmountCents;
   let normalizedValue: string | boolean | null = null;
   let percentageBasisPoints: number | null = null;
   if (dataType === "text" || dataType === "date" || dataType === "identifier") {
@@ -202,7 +208,10 @@ function buildFieldDraft(input: {
   if (!input.box) warnings.push("UNKNOWN_FORM_BOX");
   if (input.raw.formula) warnings.push("SPREADSHEET_FORMULA_BLOCKED");
   if (dataType === "amount" && amountCents === null) warnings.push("AMOUNT_NORMALIZATION_FAILED");
-  if (amountCents !== null && amountCents < 0 && input.box?.sign === "positive") {
+  if (parsedAmountCents !== null && parsedAmountCents < 0) {
+    warnings.push("DECLARATION_AMOUNT_SIGN_NORMALIZED");
+  }
+  if (parsedAmountCents !== null && parsedAmountCents < 0 && input.box?.sign === "positive") {
     warnings.push("NEGATIVE_AMOUNT_UNEXPECTED");
   }
   if (input.raw.extractionMethod === "text_layer") warnings.push("PDF_FIELD_REQUIRES_REVIEW");
@@ -236,7 +245,11 @@ function buildFieldDraft(input: {
         : dataType === "identifier"
           ? "identifier" as const
           : dataType,
-    sign: input.box?.sign ?? "not_applicable" as const,
+    // Le signe natif est conservé séparément après normalisation de la
+    // magnitude ; il n'est jamais réappliqué à `amountCents`.
+    sign: parsedAmountCents !== null && parsedAmountCents < 0
+      ? "negative" as const
+      : input.box?.sign ?? "not_applicable" as const,
     documentHash: input.documentHash,
     sourceLocation: {
       page: input.raw.page,

@@ -40,19 +40,25 @@ export function buildRateBuckets(options: {
     groups.set(key, [...(groups.get(key) ?? []), candidate]);
   }
 
-  const totalBase = sumCents(
-    relevant.map((candidate) => candidate.baseAmountCents ?? 0),
-    "vat_total_base",
-  );
+  const knownBases = relevant.flatMap((candidate) =>
+    candidate.baseAmountCents === null ? [] : [candidate.baseAmountCents]);
+  // Ce total ne sert qu'au classement relatif des taux résolus. Une base
+  // absente n'est jamais convertie en zéro et reste `null` dans son bucket.
+  const totalKnownBase = sumCents(knownBases, "vat_total_known_base");
 
   const buckets = [...groups.entries()].map(([key, items]) => {
     const rate = key === "unresolved" ? null : Number(key);
-    const baseAmountCents = sumCents(items.map((item) => item.baseAmountCents ?? 0), "bucket_base");
-    const vatAccountedCents = sumCents(items.map((item) => item.vatAmountCents ?? 0), "bucket_vat");
-    const vatTheoreticalCents = rate === null ? 0 : applyBasisPoints(baseAmountCents, rate);
-    const shareOfBaseBasisPoints = totalBase === 0
+    const hasMissingBase = items.some((item) => item.baseAmountCents === null);
+    const itemBases = items.flatMap((item) => item.baseAmountCents === null ? [] : [item.baseAmountCents]);
+    const itemVat = items.flatMap((item) => item.vatAmountCents === null ? [] : [item.vatAmountCents]);
+    const baseAmountCents = hasMissingBase ? null : sumCents(itemBases, "bucket_base");
+    const vatAccountedCents = sumCents(itemVat, "bucket_vat");
+    const vatTheoreticalCents = rate === null || baseAmountCents === null
+      ? null
+      : applyBasisPoints(baseAmountCents, rate);
+    const shareOfBaseBasisPoints = totalKnownBase === 0 || baseAmountCents === null
       ? 0
-      : Math.round(Math.abs(baseAmountCents) * 10_000 / Math.abs(totalBase));
+      : Math.round(Math.abs(baseAmountCents) * 10_000 / Math.abs(totalKnownBase));
 
     return {
       key: `${options.direction}:${key}`,
@@ -62,7 +68,9 @@ export function buildRateBuckets(options: {
       baseAmountCents,
       vatAccountedCents,
       vatTheoreticalCents,
-      differenceCents: vatAccountedCents - vatTheoreticalCents,
+      differenceCents: vatTheoreticalCents === null
+        ? null
+        : vatAccountedCents - vatTheoreticalCents,
       transactionCount: items.length,
       transactionIds: items.map((item) => item.id).sort(),
       shareOfBaseBasisPoints: Math.min(shareOfBaseBasisPoints, 10_000),
@@ -89,14 +97,16 @@ export function buildRateBuckets(options: {
     .sort((left, right) => left.key.localeCompare(right.key));
 }
 
-export function totalTheoreticalCents(buckets: readonly VatRateBucket[]): CentAmount {
-  return sumCents(buckets.map((bucket) => bucket.vatTheoreticalCents), "vat_theoretical_total");
+export function totalTheoreticalCents(buckets: readonly VatRateBucket[]): CentAmount | null {
+  if (buckets.some((bucket) => bucket.vatTheoreticalCents === null)) return null;
+  return sumCents(buckets.map((bucket) => bucket.vatTheoreticalCents as CentAmount), "vat_theoretical_total");
 }
 
 export function totalAccountedCents(buckets: readonly VatRateBucket[]): CentAmount {
   return sumCents(buckets.map((bucket) => bucket.vatAccountedCents), "vat_accounted_total");
 }
 
-export function totalBaseCents(buckets: readonly VatRateBucket[]): CentAmount {
-  return sumCents(buckets.map((bucket) => bucket.baseAmountCents), "vat_base_total");
+export function totalBaseCents(buckets: readonly VatRateBucket[]): CentAmount | null {
+  if (buckets.some((bucket) => bucket.baseAmountCents === null)) return null;
+  return sumCents(buckets.map((bucket) => bucket.baseAmountCents as CentAmount), "vat_base_total");
 }
