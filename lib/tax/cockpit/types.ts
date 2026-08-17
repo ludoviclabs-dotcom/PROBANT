@@ -10,7 +10,9 @@
 import type {
   FiscalSynthesisSnapshot,
   TaxCapabilityMatrix,
+  TaxDocumentSnapshot,
   TaxPeriod,
+  TaxProfile,
   TaxRecommendation,
   TaxType,
 } from "@/lib/canonical-model";
@@ -43,6 +45,9 @@ export interface TaxCockpitSource {
   readonly entityName: string;
   readonly fiscalYear: number;
   readonly generatedAt: string;
+  /** Profil et documents immuables réutilisés par le paquet de preuve TAX-09. */
+  readonly profile: TaxProfile;
+  readonly documentSnapshots: readonly TaxDocumentSnapshot[];
   readonly synthesis: FiscalSynthesisSnapshot;
   readonly corporateTax: CorporateTaxComputationResult | null;
   readonly vat: VatReconciliationResult | null;

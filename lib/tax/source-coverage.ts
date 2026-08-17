@@ -109,8 +109,17 @@ export function assessSourceCoverage(options: {
     const intervals = effectiveIntervalsFor(sourceId);
     const gap = firstUncoveredDay(intervals, startDate, endDate);
 
+    // La couverture peut examiner toutes les versions pour trouver un trou,
+    // mais les références publiées dans le résultat sont exclusivement celles
+    // dont la fenêtre d'effet intersecte la période demandée. Une version
+    // future ou déjà expirée n'est donc jamais présentée comme source du
+    // contrôle courant.
     const versionsForSource = taxKnowledgeRegistry.sourceVersions
-      .filter((version) => version.sourceId === sourceId && version.status === "effective");
+      .filter((version) =>
+        version.sourceId === sourceId &&
+        version.status === "effective" &&
+        (version.effectiveFrom === null || version.effectiveFrom <= endDate) &&
+        (version.effectiveTo === null || version.effectiveTo >= startDate));
     for (const version of versionsForSource) {
       sourceRefs.push({
         sourceId,

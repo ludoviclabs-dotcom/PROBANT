@@ -78,10 +78,32 @@ export type ReviewEventStatus =
   | "corrected"
   | "superseded";
 
+/**
+ * Action métier à l'origine d'un événement de revue.
+ *
+ * Le champ reste optionnel pour préserver la vérification des événements
+ * historiques. Les événements fiscaux le renseignent afin de distinguer, par
+ * exemple, un écartement d'un marquage non applicable sans réécrire le statut
+ * générique ni l'historique.
+ */
+export type ReviewEventAction =
+  | "confirm"
+  | "dismiss"
+  | "request_evidence"
+  | "correct"
+  | "replace"
+  | "mark_not_applicable"
+  | "mark_inconclusive"
+  | "attach_evidence";
+
 export interface ReviewEvent {
   id: string;
+  /** Présent sur les événements fiscaux pour imposer le cloisonnement tenant. */
+  organizationId?: string;
   dossierId: string;
   findingId: string;
+  /** Métadonnée couverte par `eventHash`; absente des événements historiques. */
+  action?: ReviewEventAction;
   actorId: string;
   actorRole: string;
   previousStatus: ReviewEventStatus;

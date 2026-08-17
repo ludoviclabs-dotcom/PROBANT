@@ -27,6 +27,14 @@ Chaque artefact est décrit dans `manifest.artifacts` par son nom, son type MIME
 sa taille, son SHA-256 complet et, pour le PDF, son état de validation
 d'archivage. Le manifeste suit [`MANIFEST_SPEC.md`](./MANIFEST_SPEC.md).
 
+## Extension fiscale TAX-09
+
+Le paquet fiscal spécialisé ajoute les neuf artefacts déterministes documentés
+dans [`TAX_EVIDENCE_EXPORTS.md`](../tax/TAX_EVIDENCE_EXPORTS.md). Il réutilise la
+sérialisation canonique, SHA-256, `ReviewEvent`, la dérivation HTML → PDF et les
+règles de cloisonnement du paquet général. Son manifeste porte la version
+`1.0.0-tax`; il ne revendique jamais PDF/A sans validation enregistrée.
+
 ## Règles de reproductibilité
 
 - Le JSON canonique constitue la représentation de référence avant hash.

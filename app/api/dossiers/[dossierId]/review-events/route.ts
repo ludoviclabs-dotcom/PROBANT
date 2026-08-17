@@ -17,6 +17,16 @@ const requestSchema = z.object({
     "corrected",
     "superseded",
   ]),
+  action: z.enum([
+    "confirm",
+    "dismiss",
+    "request_evidence",
+    "correct",
+    "replace",
+    "mark_not_applicable",
+    "mark_inconclusive",
+    "attach_evidence",
+  ]).optional(),
   comment: z.string().max(4_000).optional(),
   relatedEvidenceIds: z.array(z.string().min(1).max(300)).max(100).optional(),
 });

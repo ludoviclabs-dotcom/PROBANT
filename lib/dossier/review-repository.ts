@@ -1,6 +1,6 @@
 import "server-only";
 
-import { and, asc, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
 import type { ProbantDatabase } from "@/lib/db/client";
 import {
   dossiers,
@@ -9,14 +9,16 @@ import {
   sourceDocuments,
   synthesisSnapshots,
 } from "@/lib/db/schema";
-import type { ReviewEvent, ReviewEventStatus } from "@/lib/canonical-model";
+import type { ReviewEvent, ReviewEventAction, ReviewEventStatus } from "@/lib/canonical-model";
 import { appendReviewDecisionToSnapshot } from "./snapshot-state";
 import type { DossierContext, DossierSnapshot } from "./types";
 
 type ReviewRow = {
   id: string;
+  organizationId: string | null;
   dossierId: string;
   findingKey: string;
+  action: ReviewEventAction | null;
   actorId: string;
   actorRole: string;
   previousStatus: ReviewEventStatus;
@@ -31,8 +33,10 @@ type ReviewRow = {
 function mapReviewRows(rows: ReviewRow[]): ReviewEvent[] {
   return rows.map((row) => ({
     id: row.id,
+    organizationId: row.organizationId ?? undefined,
     dossierId: row.dossierId,
     findingId: row.findingKey,
+    action: row.action ?? undefined,
     actorId: row.actorId,
     actorRole: row.actorRole,
     previousStatus: row.previousStatus,
@@ -47,8 +51,10 @@ function mapReviewRows(rows: ReviewRow[]): ReviewEvent[] {
 
 const reviewSelection = {
   id: reviewEvents.id,
+  organizationId: reviewEvents.organizationId,
   dossierId: reviewEvents.dossierId,
   findingKey: findings.findingKey,
+  action: reviewEvents.action,
   actorId: reviewEvents.actorId,
   actorRole: reviewEvents.actorRole,
   previousStatus: reviewEvents.previousStatus,
@@ -62,13 +68,22 @@ const reviewSelection = {
 
 export async function loadReviewEvents(
   db: ProbantDatabase,
-  dossierId: string,
+  context: DossierContext,
 ): Promise<ReviewEvent[]> {
   const rows = await db
     .select(reviewSelection)
     .from(reviewEvents)
     .innerJoin(findings, eq(findings.id, reviewEvents.findingId))
-    .where(eq(reviewEvents.dossierId, dossierId))
+    .innerJoin(dossiers, eq(dossiers.id, reviewEvents.dossierId))
+    .where(and(
+      eq(reviewEvents.dossierId, context.dossierId),
+      eq(dossiers.organizationId, context.organizationId),
+      // Les événements antérieurs à TAX-09 restent lisibles sans réécriture.
+      or(
+        isNull(reviewEvents.organizationId),
+        eq(reviewEvents.organizationId, context.organizationId),
+      ),
+    ))
     .orderBy(asc(reviewEvents.createdAt), asc(reviewEvents.id));
   return mapReviewRows(rows);
 }
@@ -83,6 +98,7 @@ export class DrizzleReviewEventRepository {
       actorId: string;
       actorRole: string;
       newStatus: ReviewEventStatus;
+      action?: ReviewEventAction;
       comment?: string;
       relatedEvidenceIds?: string[];
     },
@@ -112,9 +128,11 @@ export class DrizzleReviewEventRepository {
       const [findingRow] = await tx
         .select({ id: findings.id })
         .from(findings)
+        .innerJoin(dossiers, eq(dossiers.id, findings.dossierId))
         .where(
           and(
             eq(findings.dossierId, context.dossierId),
+            eq(dossiers.organizationId, context.organizationId),
             eq(findings.findingKey, input.findingId),
           ),
         )
@@ -125,7 +143,15 @@ export class DrizzleReviewEventRepository {
         .select(reviewSelection)
         .from(reviewEvents)
         .innerJoin(findings, eq(findings.id, reviewEvents.findingId))
-        .where(eq(reviewEvents.dossierId, context.dossierId))
+        .innerJoin(dossiers, eq(dossiers.id, reviewEvents.dossierId))
+        .where(and(
+          eq(reviewEvents.dossierId, context.dossierId),
+          eq(dossiers.organizationId, context.organizationId),
+          or(
+            isNull(reviewEvents.organizationId),
+            eq(reviewEvents.organizationId, context.organizationId),
+          ),
+        ))
         .orderBy(asc(reviewEvents.createdAt), asc(reviewEvents.id));
       const current = {
         ...(snapshotRow.payload as unknown as DossierSnapshot),
@@ -135,7 +161,9 @@ export class DrizzleReviewEventRepository {
       const eventId = crypto.randomUUID();
       const next = appendReviewDecisionToSnapshot(current, {
         id: eventId,
+        organizationId: context.organizationId,
         findingId: input.findingId,
+        action: input.action,
         actorId: input.actorId,
         actorRole: input.actorRole,
         newStatus: input.newStatus,
@@ -148,8 +176,10 @@ export class DrizzleReviewEventRepository {
 
       await tx.insert(reviewEvents).values({
         id: event.id,
+        organizationId: event.organizationId,
         dossierId: context.dossierId,
         findingId: findingRow.id,
+        action: event.action,
         actorId: event.actorId,
         actorRole: event.actorRole,
         previousStatus: event.previousStatus,
@@ -178,7 +208,11 @@ export class DrizzleReviewEventRepository {
         const rowsFound = await tx
           .select({ id: sourceDocuments.id })
           .from(sourceDocuments)
-          .where(eq(sourceDocuments.dossierId, context.dossierId));
+          .innerJoin(dossiers, eq(dossiers.id, sourceDocuments.dossierId))
+          .where(and(
+            eq(sourceDocuments.dossierId, context.dossierId),
+            eq(dossiers.organizationId, context.organizationId),
+          ));
         const allowed = new Set(rowsFound.map((row) => row.id));
         if (evidenceIds.some((id) => !allowed.has(id))) {
           throw new Error("REVIEW_EVIDENCE_NOT_FOUND");

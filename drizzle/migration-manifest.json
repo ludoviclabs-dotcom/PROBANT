@@ -7,7 +7,8 @@
     "0002_append_only_review_evidence.sql",
     "0002_tax_canonical_model.up.sql",
     "0003_tax_document_processors.up.sql",
-    "0003_user_identity_and_upload_quota.sql"
+    "0003_user_identity_and_upload_quota.sql",
+    "0004_tax_review_evidence.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -15,7 +16,8 @@
     "0002_append_only_review_evidence.down.sql",
     "0002_tax_canonical_model.down.sql",
     "0003_tax_document_processors.down.sql",
-    "0003_user_identity_and_upload_quota.down.sql"
+    "0003_user_identity_and_upload_quota.down.sql",
+    "0004_tax_review_evidence.down.sql"
   ],
   "tables": [
     "control_executions",

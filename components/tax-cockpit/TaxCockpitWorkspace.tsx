@@ -11,7 +11,9 @@
  */
 
 import { useCallback, useState } from "react";
-import type { TaxCockpitDatasets, TaxCockpitScope } from "@/lib/tax/cockpit";
+import type { ReviewEvent } from "@/lib/canonical-model";
+import type { TaxSupplementalEvidence } from "@/lib/evidence/tax-types";
+import type { TaxCockpitDatasets, TaxCockpitScope, TaxCockpitSource } from "@/lib/tax/cockpit";
 import { TAX_TYPE_LABEL } from "@/lib/tax/cockpit";
 import { FONT, T, focusStyle } from "@/components/synthesis/tokens";
 import { AccountingToTaxWaterfall } from "./AccountingToTaxWaterfall";
@@ -22,6 +24,8 @@ import { TaxFindingTable } from "./TaxFindingTable";
 import { TaxMissingDataPanel } from "./TaxMissingDataPanel";
 import { TaxRiskMatrix } from "./TaxRiskMatrix";
 import { TaxSummaryHeader } from "./TaxSummaryHeader";
+import { TaxEvidenceExportToolbar } from "./TaxEvidenceExportToolbar";
+import { TaxReviewPanel } from "./TaxReviewPanel";
 import { TaxChartCard } from "./TaxSourceFootnote";
 import { VatReconciliationChart } from "./VatReconciliationChart";
 
@@ -46,13 +50,17 @@ export function TaxCockpitWorkspace({
   bundles,
   initialScope,
   initialOutcome,
+  evidenceSource,
 }: {
   bundles: Readonly<Record<TaxCockpitScope, TaxCockpitDatasets>>;
   initialScope: TaxCockpitScope;
   initialOutcome: string;
+  evidenceSource?: TaxCockpitSource;
 }) {
   const [scope, setScope] = useState<TaxCockpitScope>(initialScope);
   const [outcome, setOutcome] = useState(initialOutcome);
+  const [reviewEvents, setReviewEvents] = useState<readonly ReviewEvent[]>([]);
+  const [supplementalEvidence, setSupplementalEvidence] = useState<readonly TaxSupplementalEvidence[]>([]);
   const datasets = bundles[scope];
 
   const changeScope = useCallback(
@@ -83,6 +91,24 @@ export function TaxCockpitWorkspace({
       <style>{focusStyle}</style>
 
       <TaxSummaryHeader summary={datasets.summary} />
+      {evidenceSource && (
+        <>
+          <TaxReviewPanel
+            source={evidenceSource}
+            events={reviewEvents}
+            evidence={supplementalEvidence}
+            onChange={(events, evidence) => {
+              setReviewEvents(events);
+              setSupplementalEvidence(evidence);
+            }}
+          />
+          <TaxEvidenceExportToolbar
+            source={evidenceSource}
+            reviewEvents={reviewEvents}
+            supplementalEvidence={supplementalEvidence}
+          />
+        </>
+      )}
 
       <div role="group" aria-label="Filtrer le cockpit par impôt" style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {(Object.keys(SCOPE_LABEL) as TaxCockpitScope[]).map((candidate) => {
@@ -124,7 +150,7 @@ export function TaxCockpitWorkspace({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
             gap: 14,
           }}
         >
@@ -150,7 +176,7 @@ export function TaxCockpitWorkspace({
         <div
           style={{
             display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))",
+            gridTemplateColumns: "repeat(auto-fit, minmax(min(340px, 100%), 1fr))",
             gap: 14,
           }}
         >
