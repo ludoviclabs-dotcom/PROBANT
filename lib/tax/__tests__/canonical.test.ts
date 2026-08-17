@@ -68,6 +68,7 @@ describe("canonical tax model", () => {
   it("rejects floating cent amounts in every monetary aggregate", () => {
     expect(() => createTaxProfile(profileInput({ turnoverAmountCents: 100.5 }))).toThrow();
     expect(() => createTaxDeclarationField(fieldInput({ amountCents: 100.5 }))).toThrow();
+    expect(() => createTaxDeclarationField(fieldInput({ amountCents: -100 }))).toThrow();
     expect(() => createTaxReconciliationLine(reconciliationInput({ differenceAmountCents: 0.5 }))).toThrow();
     expect(() => createTaxAdjustment(adjustmentInput({ baseAmountCents: 10.5 }))).toThrow();
     expect(() => createTaxComputationSnapshot(computationInput({

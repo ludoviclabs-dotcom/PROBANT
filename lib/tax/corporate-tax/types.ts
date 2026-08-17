@@ -200,7 +200,8 @@ export interface CorporateTaxSnapshot {
   readonly deficits: CorporateTaxDeficitOutcome;
   readonly taxableBaseCents: CentAmount;
   readonly brackets: readonly CorporateTaxBracketAllocation[];
-  readonly grossTaxCents: CentAmount;
+  /** `null` lorsque le calcul est bloqué avant liquidation de l'impôt brut. */
+  readonly grossTaxCents: CentAmount | null;
   readonly taxImpactStatus: "not_computed" | "estimated" | "computed" | "reviewed";
 
   readonly reconciliationLineIds: readonly string[];

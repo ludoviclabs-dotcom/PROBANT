@@ -191,7 +191,7 @@ describe("CorporateTaxComputationEngine — scenarios golden", () => {
     expect(snapshot.status).toBe("blocked");
     expect(snapshot.outcome).toBe("reconciliation_difference");
     expect(snapshot.taxImpactStatus).toBe("not_computed");
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     // Aucun resultat net de 50 000 n'est fabrique a la place du reviseur.
     expect(snapshot.accountingResultCents).toBe(0);
     expect(snapshot.limitations.map((item) => item.code)).toContain("INCONSISTENT_ACCOUNTING_RESULT");
@@ -243,7 +243,7 @@ describe("CorporateTaxComputationEngine — scenarios golden", () => {
 
     expect(snapshot.status).toBe("blocked");
     expect(snapshot.outcome).toBe("missing_information");
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     expect(snapshot.taxImpactStatus).toBe("not_computed");
     expect(snapshot.limitations.map((item) => item.code)).toContain("ACCOUNTING_RESULT_UNAVAILABLE");
   });
@@ -262,7 +262,7 @@ describe("CorporateTaxComputationEngine — scenarios golden", () => {
 
     expect(snapshot.status).toBe("blocked");
     expect(snapshot.rateScheduleId).toBeNull();
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     expect(snapshot.outcome).toBe("missing_information");
     const limitation = snapshot.limitations.find((item) => item.code === "UNSUPPORTED_RATE_SCHEDULE");
     expect(limitation?.reason).toBe("unsupported_millesime");

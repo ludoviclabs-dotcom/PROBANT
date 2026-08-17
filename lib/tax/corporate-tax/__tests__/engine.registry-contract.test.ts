@@ -145,7 +145,7 @@ describe("Un barème que le moteur ne sait pas appliquer", () => {
     }));
 
     expect(snapshot.status).toBe("blocked");
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     expect(snapshot.taxImpactStatus).toBe("not_computed");
     expect(snapshot.limitations.map((item) => item.code)).toContain("TAXABLE_BASE_NOT_ALLOCATABLE");
   });

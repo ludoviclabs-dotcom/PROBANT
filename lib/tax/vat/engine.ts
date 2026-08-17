@@ -159,7 +159,7 @@ interface ControlContext {
   readonly deductibleBuckets: readonly VatRateBucket[];
   readonly collectedAccountedCents: CentAmount;
   readonly deductibleAccountedCents: CentAmount;
-  readonly collectedTheoreticalCents: CentAmount;
+  readonly collectedTheoreticalCents: CentAmount | null;
   readonly collectedAccountBalanceCents: CentAmount;
   readonly deductibleAccountBalanceCents: CentAmount;
   readonly invoiceRefsProvided: boolean;
@@ -626,7 +626,7 @@ export class VatControlEngine {
     // 1. Bases HT par taux.
     const declaredNormalBase = context.declaration.normalRateBaseCents;
     const dominant = context.collectedBuckets.find((bucket) => bucket.status === "dominant");
-    if (declaredNormalBase !== null && dominant) {
+    if (declaredNormalBase !== null && dominant && dominant.baseAmountCents !== null) {
       const line = this.reconciliationLine(context, {
         lineKey: "vat_normal_rate_base",
         label: "Base HT au taux dominant : comptabilisee et declaree",
@@ -670,22 +670,56 @@ export class VatControlEngine {
     }
 
     // 2. TVA théorique par taux.
-    const theoreticalDifference = subtractCents(
-      context.collectedTheoreticalCents,
-      context.collectedAccountedCents,
-      "vat_theoretical_vs_accounted",
-    );
-    results.push(this.result({
-      controlId: "VAT.THEORETICAL.BY_RATE",
-      title: "TVA theorique par taux",
-      outcome: theoreticalDifference === 0 ? "passed" : "reconciliation_difference",
-      evidenceStrength: "derived",
-      evidenceTier: "ledger_only",
-      detail: "TVA recalculee par application du taux constate a la base de chaque tranche, comparee a la TVA comptabilisee.",
-      observedCents: context.collectedTheoreticalCents,
-      comparedCents: context.collectedAccountedCents,
-      transactionIds: context.collectedBuckets.flatMap((bucket) => bucket.transactionIds),
-    }));
+    const unresolvedTheoretical = context.collectedBuckets.filter((bucket) =>
+      bucket.vatTheoreticalCents === null);
+    if (context.collectedTheoreticalCents === null) {
+      const transactionIds = unresolvedTheoretical.flatMap((bucket) => bucket.transactionIds).sort();
+      const item = limitation({
+        code: "VAT_THEORETICAL_BASE_UNAVAILABLE",
+        scope: "control",
+        reason: "missing_field",
+        message: "Au moins une TVA comptabilisee ne peut pas etre rattachee a une base HT et a un taux derivable : aucun total theorique ni ecart certain n'est calcule.",
+        requiredInputs: transactionIds.map((id) => `base_ht_or_support:${id}`),
+        relatedIds: transactionIds,
+        resolvability: "human_review",
+      });
+      context.limitations.push(item);
+      results.push(this.result({
+        controlId: "VAT.THEORETICAL.BY_RATE",
+        title: "TVA theorique par taux",
+        outcome: "missing_information",
+        evidenceStrength: "insufficient",
+        evidenceTier: "ledger_only",
+        detail: "Base HT non rattachee : rattacher l'ecriture a sa base ou a sa piece justificative avant toute reconciliation theorique.",
+        observedCents: null,
+        comparedCents: context.collectedAccountedCents,
+        limitationIds: [item.id],
+        transactionIds,
+      }));
+      notes.add({
+        code: "VAT_BASE_LINKAGE_REVIEW_REQUIRED",
+        kind: "limitation",
+        message: "Revue requise : rattacher chaque TVA sans base HT a l'ecriture de base ou a une piece justificative. L'absence de base ne constitue pas une incoherence chiffree.",
+        relatedControlIds: ["VAT.THEORETICAL.BY_RATE"],
+      });
+    } else {
+      const theoreticalDifference = subtractCents(
+        context.collectedTheoreticalCents,
+        context.collectedAccountedCents,
+        "vat_theoretical_vs_accounted",
+      );
+      results.push(this.result({
+        controlId: "VAT.THEORETICAL.BY_RATE",
+        title: "TVA theorique par taux",
+        outcome: theoreticalDifference === 0 ? "passed" : "reconciliation_difference",
+        evidenceStrength: "derived",
+        evidenceTier: "ledger_only",
+        detail: "TVA recalculee par application du taux constate a la base de chaque tranche, comparee a la TVA comptabilisee.",
+        observedCents: context.collectedTheoreticalCents,
+        comparedCents: context.collectedAccountedCents,
+        transactionIds: context.collectedBuckets.flatMap((bucket) => bucket.transactionIds),
+      }));
+    }
 
     // 10. Taux inhabituel.
     const outliers = [...context.collectedBuckets, ...context.deductibleBuckets]
@@ -1166,7 +1200,7 @@ export class VatControlEngine {
     readonly rateBuckets: readonly VatRateBucket[];
     readonly collectedAccountedCents: CentAmount;
     readonly deductibleAccountedCents: CentAmount;
-    readonly collectedTheoreticalCents: CentAmount;
+    readonly collectedTheoreticalCents: CentAmount | null;
     readonly netAccountedCents: CentAmount;
     readonly netDeclaredCents: CentAmount | null;
     readonly controls: readonly VatControlResult[];

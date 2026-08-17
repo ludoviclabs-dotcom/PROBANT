@@ -199,7 +199,7 @@ export const CorporateTaxSnapshotSchema = z.object({
   deficits: CorporateTaxDeficitOutcomeSchema,
   taxableBaseCents: CentAmountSchema.nonnegative(),
   brackets: z.array(CorporateTaxBracketAllocationSchema),
-  grossTaxCents: CentAmountSchema.nonnegative(),
+  grossTaxCents: CentAmountSchema.nonnegative().nullable(),
   taxImpactStatus: z.enum(["not_computed", "estimated", "computed", "reviewed"]),
   reconciliationLineIds: z.array(z.string().min(1)),
   waterfall: CorporateTaxWaterfallSchema,
@@ -224,11 +224,17 @@ export const CorporateTaxSnapshotSchema = z.object({
   if (snapshot.status === "blocked" && snapshot.taxImpactStatus !== "not_computed") {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["taxImpactStatus"], message: "un calcul bloque ne produit aucun impact chiffre" });
   }
+  if (snapshot.status === "blocked" && snapshot.grossTaxCents !== null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["grossTaxCents"], message: "un calcul bloque ne produit aucun impot brut" });
+  }
+  if (snapshot.status === "computed" && snapshot.grossTaxCents === null) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["grossTaxCents"], message: "un calcul execute doit produire un impot brut, y compris nul" });
+  }
   if (snapshot.status === "computed" && snapshot.rateScheduleId === null) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["rateScheduleId"], message: "un calcul execute doit citer le bareme utilise" });
   }
   const bracketTotal = snapshot.brackets.reduce((total, bracket) => total + bracket.taxCents, 0);
-  if (bracketTotal !== snapshot.grossTaxCents) {
+  if (snapshot.grossTaxCents !== null && bracketTotal !== snapshot.grossTaxCents) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["grossTaxCents"], message: "l'impot brut doit egaler la somme des tranches" });
   }
   const allocated = snapshot.brackets.reduce((total, bracket) => total + bracket.allocatedBaseCents, 0);

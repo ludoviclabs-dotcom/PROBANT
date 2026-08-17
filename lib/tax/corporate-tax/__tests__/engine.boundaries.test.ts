@@ -327,7 +327,7 @@ describe("Régime hors périmètre", () => {
     }));
 
     expect(snapshot.status).toBe("blocked");
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     expect(snapshot.limitations.map((item) => item.code)).toContain("UNSUPPORTED_CIT_REGIME");
   });
 });

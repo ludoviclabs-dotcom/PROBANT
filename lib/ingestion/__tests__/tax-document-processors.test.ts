@@ -222,12 +222,15 @@ describe("tax document processing", () => {
     expect(result.calculationExecuted).toBe(false);
   });
 
-  it("preserves a negative amount but flags a positive-only form box", async () => {
+  it("normalizes a native negative amount explicitly and blocks automation pending review", async () => {
     const { result } = await processJson(taxJson({
       fields: [{ code: "C.RESULTAT_FISCAL_BENEFICE", value: "-1 234,56" }],
     }));
-    expect(result.fieldTraces[0].normalizedValue).toBe(-123_456);
+    expect(result.fieldTraces[0].normalizedValue).toBe(123_456);
+    expect(result.snapshot?.fields[0].sign).toBe("negative");
+    expect(result.fieldTraces[0].warnings).toContain("DECLARATION_AMOUNT_SIGN_NORMALIZED");
     expect(result.fieldTraces[0].warnings).toContain("NEGATIVE_AMOUNT_UNEXPECTED");
+    expect(result.fieldTraces[0].processingStatus).toBe("needs_manual_review");
     expect(result.fieldTraces[0].usableForAutomatedCalculation).toBe(false);
   });
 

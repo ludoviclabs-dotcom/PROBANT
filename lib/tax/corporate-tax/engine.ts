@@ -428,7 +428,7 @@ export class CorporateTaxComputationEngine {
           },
           taxableBaseCents: 0,
           brackets: [],
-          grossTaxCents: 0,
+          grossTaxCents: null,
           taxImpactStatus: "not_computed",
           outcome: "missing_information",
           evidenceStrength: "insufficient",
@@ -823,10 +823,40 @@ export class CorporateTaxComputationEngine {
     const profit = amountFor(liasse, mapping.accountingProfit);
     const loss = amountFor(liasse, mapping.accountingLoss);
 
-    const profitAmount = profit?.amountCents ?? 0;
-    const lossAmount = loss?.amountCents ?? 0;
+    const profitAmount = profit?.amountCents;
+    const lossAmount = loss?.amountCents;
+    const accountingIssues = liasse.issues.filter((issue) =>
+      issue.fieldCode === mapping.accountingProfit ||
+      issue.fieldCode === mapping.accountingLoss);
 
-    if (profitAmount !== 0 && lossAmount !== 0) {
+    const accountingUnavailable = (): null => {
+      const diagnostics = accountingIssues.map((issue) =>
+        `${issue.fieldCode}:${issue.status}:${issue.reason}`);
+      const diagnostic = diagnostics.length > 0
+        ? ` Diagnostics: ${diagnostics.join(", ")}.`
+        : "";
+      limitations.push(limitation({
+        code: "ACCOUNTING_RESULT_UNAVAILABLE",
+        scope: "field",
+        reason: "missing_field",
+        message: `Les cases ${mapping.accountingProfit}/${mapping.accountingLoss} ne permettent pas d'etablir le resultat comptable sans supposer qu'une absence vaut zero.${diagnostic}`,
+        requiredInputs: [`field:${mapping.accountingProfit}`, `field:${mapping.accountingLoss}`],
+      }));
+      notes.add({
+        code: "ACCOUNTING_RESULT_INPUT_INCOMPLETE",
+        kind: "prudence",
+        message: "Le calcul IS est arrete avant tout calcul dependant : la presence, la lisibilite et le millesime des cases de resultat comptable ne sont pas suffisamment etablis.",
+      });
+      return null;
+    };
+
+    // Une case illisible ou contraire à l'invariant canonique ne peut pas être
+    // masquée par une valeur exploitable dans la case opposée.
+    if (accountingIssues.some((issue) => issue.status !== "missing")) {
+      return accountingUnavailable();
+    }
+
+    if (profitAmount !== undefined && profitAmount !== 0 && lossAmount !== undefined && lossAmount !== 0) {
       limitations.push(limitation({
         code: "INCONSISTENT_ACCOUNTING_RESULT",
         scope: "document",
@@ -843,22 +873,27 @@ export class CorporateTaxComputationEngine {
       return null;
     }
 
-    if (!profit && !loss) {
-      limitations.push(limitation({
-        code: "ACCOUNTING_RESULT_UNAVAILABLE",
-        scope: "field",
-        reason: "missing_field",
-        message: `Ni ${mapping.accountingProfit} ni ${mapping.accountingLoss} ne sont exploitables : le resultat comptable ne peut pas etre etabli.`,
-        requiredInputs: [`field:${mapping.accountingProfit}`, `field:${mapping.accountingLoss}`],
-      }));
-      return null;
+    if (!profit && !loss) return accountingUnavailable();
+
+    // Une seule case non nulle identifie sans ambiguïté la branche imprimée.
+    // En revanche, une case présente à zéro ne prouve rien sur la case absente.
+    if ((profitAmount === undefined || profitAmount === 0) &&
+        (lossAmount === undefined || lossAmount === 0) &&
+        (!profit || !loss)) {
+      return accountingUnavailable();
     }
 
-    const source = profitAmount !== 0 ? profit : loss ?? profit;
+    const source = profitAmount !== undefined && profitAmount !== 0
+      ? profit
+      : lossAmount !== undefined && lossAmount !== 0
+        ? loss
+        : profit;
     if (!source) return null;
     const isProfit = source.fieldCode === mapping.accountingProfit;
     return {
-      // `-0` n'est pas un montant : une perte nulle reste zero.
+      // Les cases de perte des formulaires 2058-A/2033-B portent une magnitude
+      // imprimée. Le rôle de la case détermine le sens économique ; `sign`
+      // conserve le signe natif et n'est jamais multiplié une seconde fois.
       amountCents: isProfit ? source.amountCents : -source.amountCents || 0,
       fieldCode: source.fieldCode,
       inputRefs: [source.snapshotId, source.fieldCode],
@@ -1543,7 +1578,7 @@ export class CorporateTaxComputationEngine {
         },
         taxableBaseCents: 0,
         brackets: [],
-        grossTaxCents: 0,
+        grossTaxCents: null,
         taxImpactStatus: "not_computed",
         outcome: options.outcome,
         evidenceStrength: "insufficient",
@@ -1568,7 +1603,7 @@ export class CorporateTaxComputationEngine {
     readonly deficits: CorporateTaxDeficitOutcome;
     readonly taxableBaseCents: CentAmount;
     readonly brackets: readonly CorporateTaxBracketAllocation[];
-    readonly grossTaxCents: CentAmount;
+    readonly grossTaxCents: CentAmount | null;
     readonly taxImpactStatus: CorporateTaxSnapshot["taxImpactStatus"];
     readonly outcome: TaxControlOutcome;
     readonly evidenceStrength: EvidenceStrength;
@@ -1593,7 +1628,7 @@ export class CorporateTaxComputationEngine {
       taxResultBeforeDeficitsCents: options.taxResultBeforeDeficitsCents,
       deficitOffsetCents: options.deficits.appliedOffsetCents,
       taxableBaseCents: options.taxableBaseCents,
-      grossTaxCents: options.grossTaxCents,
+      grossTaxCents: options.grossTaxCents ?? 0,
       adjustmentLines: options.adjustmentLines,
       status: options.status,
       sourceRefs: options.sourceRefs,

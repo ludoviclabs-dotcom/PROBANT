@@ -40,7 +40,7 @@ describe("Codex #1 — un total declare illisible n'est jamais traite comme zero
     expect(snapshot.status).toBe("blocked");
     expect(snapshot.outcome).toBe("missing_information");
     expect(snapshot.taxImpactStatus).toBe("not_computed");
-    expect(snapshot.grossTaxCents).toBe(0);
+    expect(snapshot.grossTaxCents).toBeNull();
     expect(snapshot.limitations.some((item) => item.code.startsWith("DECLARED_TOTAL_UNAVAILABLE:WR"))).toBe(true);
   });
 

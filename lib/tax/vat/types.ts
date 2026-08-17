@@ -131,11 +131,12 @@ export interface VatRateBucket {
   readonly direction: VatDirection;
   readonly rateBasisPoints: BasisPoints | null;
   readonly label: string;
-  readonly baseAmountCents: CentAmount;
+  /** `null` lorsque aucune base HT n'est rattachable au bucket. */
+  readonly baseAmountCents: CentAmount | null;
   readonly vatAccountedCents: CentAmount;
   /** base × taux constaté, arrondi au centime. */
-  readonly vatTheoreticalCents: CentAmount;
-  readonly differenceCents: CentAmount;
+  readonly vatTheoreticalCents: CentAmount | null;
+  readonly differenceCents: CentAmount | null;
   readonly transactionCount: number;
   readonly transactionIds: readonly string[];
   readonly shareOfBaseBasisPoints: BasisPoints;
@@ -215,7 +216,7 @@ export interface VatControlResult {
 
 export interface VatSalesByRateDataset {
   readonly buckets: readonly VatRateBucket[];
-  readonly totalBaseCents: CentAmount;
+  readonly totalBaseCents: CentAmount | null;
   readonly currency: "EUR";
 }
 
@@ -317,7 +318,7 @@ export interface VatReconciliationSnapshot {
 
   readonly collectedAccountedCents: CentAmount;
   readonly deductibleAccountedCents: CentAmount;
-  readonly collectedTheoreticalCents: CentAmount;
+  readonly collectedTheoreticalCents: CentAmount | null;
   readonly netAccountedCents: CentAmount;
   readonly netDeclaredCents: CentAmount | null;
 
