@@ -2,6 +2,7 @@ import type {
   IngestionDocumentType,
   IngestionFileFormat,
 } from "./types";
+import { inspectXlsxContainer, type XlsxSafetyLimits } from "@/lib/tabular/xlsx-safety";
 
 export interface RawTaxFieldInput {
   code: string;
@@ -34,6 +35,13 @@ const MAX_ROWS = 250_000;
 const MAX_COLUMNS = 250;
 const MAX_CELLS = 2_000_000;
 const MAX_SHEETS = 20;
+const PERSISTENT_XLSX_LIMITS: XlsxSafetyLimits = {
+  maxExpandedBytes: 64 * 1024 * 1024,
+  maxCompressionRatio: 100,
+  maxZipEntries: 2_000,
+  maxRows: MAX_ROWS,
+  maxCellBytes: 64 * 1024,
+};
 
 function nullableString(value: unknown): string | null {
   if (value === null || value === undefined) return null;
@@ -282,9 +290,12 @@ function excelCellValue(value: unknown): { text: string | null; formula: boolean
 }
 
 async function parseXlsx(file: File): Promise<ParsedTaxDocumentInput> {
+  // The existing ZIP central-directory guard must run before ExcelJS inflates data.
+  const bytes = await file.arrayBuffer();
+  inspectXlsxContainer(bytes, PERSISTENT_XLSX_LIMITS);
   const { default: ExcelJS } = await import("exceljs/dist/exceljs.min.js");
   const workbook = new ExcelJS.Workbook();
-  await workbook.xlsx.load(await file.arrayBuffer());
+  await workbook.xlsx.load(bytes);
   if (workbook.worksheets.length > MAX_SHEETS) throw new Error("TAX_XLSX_SHEET_LIMIT_EXCEEDED");
   let metadata: Omit<ParsedTaxDocumentInput, "fields" | "warnings"> = {
     schemaVersion: null,

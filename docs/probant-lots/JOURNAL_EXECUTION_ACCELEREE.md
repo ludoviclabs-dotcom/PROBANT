@@ -32,5 +32,6 @@ Méthodes/PBC réelles : `SOURCE REQUISE`. Nouvel atelier non raccordé à OIDC 
 - Build : **passé**, puis recontrôlé après fixation de `outputFileTracingRoot` au worktree ; 149 pages générées. Les sept mêmes avertissements subsistent.
 - E2E Chromium : **32 passés, 1 ignoré** (pipeline persistant nécessitant une infrastructure dédiée). Atelier visuel synthétique à 390/768/1440 px passé.
 - Sécurité et multi-locales ciblées : **5 suites, 54 tests passés**, couvrant isolation, routes, export, upload et hash canonique fr-FR/cs-CZ/lt-LT.
+- QF-19 : garde ZIP existant réutilisé avant décompression XLSX du pipeline fiscal persistant ; 16 tests ciblés passés, dont une archive synthétique pathologique. Typecheck et lint ciblé passés.
 
-Réserves non levées par cette mission : ancien taux de rapprochement main distinct du nouveau contrat non compensable ; effet fiscal inconnu dans la synthèse legacy ; préflight anti-décompression XLSX et limitation de débit distribuée ; E2E persistant non exécuté. Le nouveau parcours réel reste désactivé. Ces réserves ne sont pas présentées comme validées.
+Réserves non levées par cette mission : ancien taux de rapprochement main distinct du nouveau contrat non compensable ; effet fiscal inconnu dans la synthèse legacy ; limitation de débit distribuée ; E2E persistant non exécuté. Le nouveau parcours réel reste désactivé. Ces réserves ne sont pas présentées comme validées.
