@@ -35,6 +35,14 @@ function fixture(dossierId: string, fingerprint: string) {
 }
 
 describe("contextual dossier repositories", () => {
+  it("ne remplace jamais un dossier explicitement demandé mais absent par DEMO SA", async () => {
+    const service = new ActiveDossierService(
+      new DemoDossierRepository(), new SessionDossierRepository(new MemoryStorage()),
+    );
+    await expect(service.resolve({ organizationId: "org-1", dossierId: "absent" }))
+      .rejects.toThrow(/Dossier demandé indisponible/u);
+    expect((await service.resolve()).snapshot.sourceKind).toBe("demo");
+  });
   it("resolves the route context before the selected session context", async () => {
     const repository = new SessionDossierRepository(new MemoryStorage());
     const service = new ActiveDossierService(new DemoDossierRepository(), repository);

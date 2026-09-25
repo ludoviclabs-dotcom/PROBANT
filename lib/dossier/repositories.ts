@@ -147,9 +147,7 @@ export class ActiveDossierService {
           ? await this.persistentRepository?.get(context)
           : await this.sessionRepository.get(context);
       if (snapshot) return { context, snapshot };
-      if (isPersistentContext(context)) {
-        throw new Error(`Dossier persistant indisponible: ${context.dossierId}`);
-      }
+      throw new Error(`Dossier demandé indisponible: ${context.dossierId}`);
     }
 
     const demo = await this.demoRepository.get(DEMO_DOSSIER_CONTEXT);
@@ -186,7 +184,7 @@ export class ActiveDossierService {
 }
 
 export async function getServerDossierSnapshot(
-  context: DossierContext = DEMO_DOSSIER_CONTEXT,
+  context: DossierContext,
 ): Promise<DossierSnapshot> {
   const snapshot = await new DemoDossierRepository().get(context);
   if (!snapshot) throw new Error(`Dossier serveur introuvable: ${context.dossierId}`);
