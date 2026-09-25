@@ -19,7 +19,7 @@ import type { DossierSnapshot } from "@/lib/canonical-model";
 import type { Finding, Severity, FindingFamily } from "@/lib/canonical-model/finding";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
 import { reviewEventsDigest, statusAfterReviewEvents } from "@/lib/dossier/review";
-import { canonicalJson, sha256Hex } from "./canonical";
+import { canonicalCompare, canonicalJson, sha256Hex } from "./canonical";
 import { applyRatePct, sumCents } from "./money";
 import {
   AGGREGATION_POLICY,
@@ -84,12 +84,12 @@ export function buildSynthesisSnapshot(
 
   // Tri stable de toutes les collections d'entrée : l'ordre d'arrivée ne doit
   // jamais influencer le résultat.
-  const findings = [...input.findings].sort((a, b) => a.id.localeCompare(b.id));
+  const findings = [...input.findings].sort((a, b) => canonicalCompare(a.id, b.id));
   const admissibilityFindings = [...input.admissibilityFindings].sort((a, b) =>
-    a.id.localeCompare(b.id),
+    canonicalCompare(a.id, b.id),
   );
   const sourceDocuments = [...input.sourceDocuments].sort((a, b) =>
-    a.id.localeCompare(b.id),
+    canonicalCompare(a.id, b.id),
   );
   const ctx = input.calculationContext;
 
@@ -517,6 +517,7 @@ export function buildSynthesisSnapshot(
     limitations,
     verdict,
     calculationTrace: trace,
+    ...(input.workpaperProjection ? { workpaperProjection: input.workpaperProjection } : {}),
   };
 
   // Le hash couvre le CONTENU, pas l'horodatage : deux générations des mêmes

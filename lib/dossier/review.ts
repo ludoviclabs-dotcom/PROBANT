@@ -1,5 +1,5 @@
 import type { Finding, StatutRevue } from "@/lib/canonical-model";
-import { canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
+import { canonicalCompare, canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
 import type { ReviewEvent, ReviewEventAction, ReviewEventStatus } from "./types";
 
 export const REVIEW_EVENT_STATUSES = [
@@ -66,7 +66,7 @@ export function statusForReviewAction(
 }
 
 function compareEvents(a: ReviewEvent, b: ReviewEvent): number {
-  return a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id);
+  return canonicalCompare(a.createdAt, b.createdAt) || canonicalCompare(a.id, b.id);
 }
 
 export function normalizeReviewStatus(

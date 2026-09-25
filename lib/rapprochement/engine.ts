@@ -71,6 +71,12 @@ export function rapprocher(
   config: RapprochementConfig,
   options: EngineOptions = {},
 ): ResultatRapprochement {
+  if (source.lignes.length === 0 || cible.lignes.length === 0) {
+    throw new Error("Rapprochement impossible : un document ne contient aucune ligne exploitable.");
+  }
+  if ([...source.lignes, ...cible.lignes].some((ligne) => !Number.isFinite(ligne.montant))) {
+    throw new Error("Rapprochement impossible : montant non fini dans les données source.");
+  }
   const cle = cleGroupante(config.cles);
   const tol = Math.max(0, config.toleranceEur);
 

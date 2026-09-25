@@ -23,6 +23,11 @@ export function canonicalJson(value: unknown): string {
   return serialize(value);
 }
 
+/** Ordre UTF-16 indépendant de la langue, de l'ICU et de la plateforme. */
+export function canonicalCompare(a: string, b: string): number {
+  return a < b ? -1 : a > b ? 1 : 0;
+}
+
 function serialize(value: unknown): string {
   if (value === null) return "null";
   switch (typeof value) {
@@ -42,7 +47,7 @@ function serialize(value: unknown): string {
       }
       const entries = Object.entries(value as Record<string, unknown>)
         .filter(([, v]) => v !== undefined)
-        .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+        .sort(([a], [b]) => canonicalCompare(a, b));
       return `{${entries.map(([k, v]) => `${JSON.stringify(k)}:${serialize(v)}`).join(",")}}`;
     }
     default:
@@ -127,3 +132,6 @@ export function sha256Hex(input: string | Uint8Array): string {
 export function stableHash(value: unknown): string {
   return sha256Hex(canonicalJson(value));
 }
+
+/** Alias du contrat des feuilles de travail, même sérialisation que la Synthèse. */
+export const stableSha256 = stableHash;

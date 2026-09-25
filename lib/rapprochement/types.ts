@@ -1,5 +1,6 @@
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
 import type { QualificationEcart, Severity } from "@/lib/canonical-model/finding";
+import type { Money, KnownAmount } from "@/lib/canonical-model/money";
 
 /**
  * Module « Rapprochement & Retraitements ».
@@ -36,6 +37,9 @@ export interface DocumentLigne {
   libelle?: string;
   /** Indique une dépréciation/lettrage déjà constaté (selon le document). */
   lettre?: boolean;
+  letteringStatus?: "matched" | "unmatched" | "unknown";
+  bookedImpairment?: KnownAmount;
+  documentedEstimate?: { amount: Money; evidenceRef: string };
 }
 
 /** Type de document source, pour l'affichage et le choix d'adapter. */
@@ -56,6 +60,9 @@ export type FormatDocument = "fec" | "xlsx" | "csv" | "pdf" | "edi" | "demo";
 
 /** Un document normalisé prêt à être rapproché. */
 export interface DocumentSource {
+  fingerprint?: string;
+  parserVersion?: string;
+  mappingVersion?: string;
   id: string;
   label: string;
   type: TypeDocument;

@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
+import { ApiError, apiErrorResponse, requestIdFrom } from "@/lib/api/errors";
+import { authorizeRequest } from "@/lib/auth/server";
+import { FecStreamError } from "@/lib/fec/stream-parser";
 import {
   createIngestionJob,
   getIngestionJobRepository,
@@ -15,18 +19,32 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET() {
+const dossierIdSchema = z.string().uuid();
+
+export async function GET(req: Request) {
+  const requestId = requestIdFrom(req);
+  try {
+    const dossierId = dossierIdSchema.parse(new URL(req.url).searchParams.get("dossierId"));
+    const principal = await authorizeRequest(req, { permission: "dossier:read", dossierId });
   const repository = getIngestionJobRepository();
   return NextResponse.json(
     {
-      jobs: await repository.list(),
+      jobs: (await repository.list()).filter((job) =>
+        job.organizationId === principal.organizationId && job.dossierId === dossierId),
       storageMode: repository.kind,
     },
     { headers: { "Cache-Control": "private, no-store" } },
   );
+  } catch (error) {
+    return apiErrorResponse(error instanceof z.ZodError
+      ? new ApiError("DOSSIER_ID_INVALID", "Identifiant de dossier invalide.", 400)
+      : error, requestId);
+  }
 }
 
 export async function POST(req: Request) {
+  const requestId = requestIdFrom(req);
+  try {
   if (requestBodyTooLarge(req)) {
     return jsonError(
       "UPLOAD_REQUEST_TOO_LARGE",
@@ -57,6 +75,15 @@ export async function POST(req: Request) {
   if (!form) {
     return jsonError("INVALID_FORM_DATA", "Corps de requete multipart invalide.", 400);
   }
+  // Le dossier est seulement un sélecteur : son appartenance est vérifiée par
+  // le serveur avant tout dépôt. L'organisation n'est jamais fournie au service
+  // par le client, et les autres identifiants de périmètre sont refusés.
+  const dossierId = dossierIdSchema.safeParse(form.get("dossierId")?.toString());
+  if (!dossierId.success) throw new ApiError("DOSSIER_ID_INVALID", "Identifiant de dossier invalide.", 400);
+  if (form.has("organizationId") || form.has("entityId")) {
+    throw new ApiError("CLIENT_SCOPE_FORBIDDEN", "Périmètre client non accepté.", 400);
+  }
+  const principal = await authorizeRequest(req, { permission: "dossier:upload", dossierId: dossierId.data });
   const file = form.get("file");
   if (!(file instanceof File)) {
     return jsonError("FILE_REQUIRED", "Aucun fichier recu.", 400);
@@ -90,9 +117,9 @@ export async function POST(req: Request) {
     mimeType: file.type || "application/octet-stream",
     sizeBytes: file.size,
     file,
-    dossierId: form.get("dossierId")?.toString(),
-    organizationId: form.get("organizationId")?.toString(),
-    entityId: form.get("entityId")?.toString(),
+    dossierId: dossierId.data,
+    organizationId: principal.organizationId,
+    entityId: dossierId.data,
     documentType,
     metadata: {
       formNumber: form.get("formNumber")?.toString(),
@@ -111,10 +138,17 @@ export async function POST(req: Request) {
   if (validation.ok && validation.documentType !== "unknown" && !persistent) {
     try {
       processed = await processIngestionJob(job);
-    } catch {
+    } catch (error) {
+      const limitError = error instanceof FecStreamError && error.code === "FEC_TOO_MANY_LINES";
+      const code = limitError ? "FEC_LINE_LIMIT_EXCEEDED" : "INGESTION_PROCESSING_FAILED";
+      await getIngestionJobRepository().update(job.id, {
+        status: "failed",
+        errorCode: code,
+        errorMessage: limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : "Le traitement local du fichier a échoué.",
+      });
       return jsonError(
-        "INGESTION_PROCESSING_FAILED",
-        "Le traitement local du fichier a échoué.",
+        code,
+        limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : "Le traitement local du fichier a échoué.",
         422,
       );
     }
@@ -129,5 +163,8 @@ export async function POST(req: Request) {
     },
     { status: validation.ok ? 201 : 202 },
   );
+  } catch (error) {
+    return apiErrorResponse(error, requestId);
+  }
 }
 

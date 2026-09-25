@@ -10,7 +10,7 @@ import type {
 import { reviewEventsDigest, verifyReviewEventChain } from "@/lib/dossier/review";
 import { taxKnowledgeRegistry } from "@/lib/knowledge/tax-registry";
 import type { TaxRuleStatus } from "@/lib/knowledge/tax-types";
-import { canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
+import { canonicalCompare, canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
 import type { TaxCockpitSource } from "@/lib/tax/cockpit";
 import { buildCsv } from "./csv";
 import { buildFiscalNoteHtml } from "./fiscal-note";
@@ -114,7 +114,7 @@ function collectNormativeRefs(source: TaxCockpitSource): TaxSourceRef[] {
     snapshot.trace.forEach((step) => add(step.sourceRefs));
   }
   return [...new Map(refs.map((ref) => [sourceRefKey(ref), ref])).values()]
-    .sort((left, right) => sourceRefKey(left).localeCompare(sourceRefKey(right)));
+    .sort((left, right) => canonicalCompare(sourceRefKey(left), sourceRefKey(right)));
 }
 
 function resolveSource(ref: TaxSourceRef): TaxEvidenceSource {
@@ -250,7 +250,7 @@ function collectSourceDocuments(input: BuildTaxEvidencePackageInput): DocumentCo
   }
   for (const evidence of input.supplementalEvidence ?? []) documents.set(evidence.id, evidence);
   return {
-    documents: [...documents.values()].sort((left, right) => left.id.localeCompare(right.id)),
+    documents: [...documents.values()].sort((left, right) => canonicalCompare(left.id, right.id)),
     idsByTaxType: Object.fromEntries(
       [...idsByTaxType.entries()].map(([taxType, ids]) => [taxType, [...ids].sort()]),
     ) as Readonly<Partial<Record<TaxType, readonly string[]>>>,
@@ -324,7 +324,7 @@ function collectData(source: TaxCockpitSource, taxType: TaxType): TaxEvidenceDat
     }
   }
   return data.sort((left, right) =>
-    `${left.sourceDocumentId}:${left.fieldId}`.localeCompare(`${right.sourceDocumentId}:${right.fieldId}`));
+    canonicalCompare(`${left.sourceDocumentId}:${left.fieldId}`, `${right.sourceDocumentId}:${right.fieldId}`));
 }
 
 function sourceStatusForRule(
@@ -348,7 +348,7 @@ function calculations(trace: readonly TaxTraceStep[]): TaxEvidenceCalculationSte
     outputRef: step.outputRef,
     canonicalInputHash: step.canonicalInputHash,
     sourceVersionIds: [...new Set(step.sourceRefs.map((ref) => ref.sourceVersionId))].sort(),
-  })).sort((left, right) => left.id.localeCompare(right.id));
+  })).sort((left, right) => canonicalCompare(left.id, right.id));
 }
 
 function latestReview(events: readonly ReviewEvent[], findingId: string): ReviewEvent | undefined {
@@ -437,7 +437,7 @@ function findingDrafts(source: TaxCockpitSource): FindingDraft[] {
       });
     }
   }
-  return drafts.sort((left, right) => left.id.localeCompare(right.id));
+  return drafts.sort((left, right) => canonicalCompare(left.id, right.id));
 }
 
 export function buildTaxEvidenceFindings(
@@ -485,7 +485,7 @@ function reconciliationLines(source: TaxCockpitSource): TaxReconciliationLine[] 
     ...(source.corporateTax?.reconciliationLines ?? []),
     ...(source.vat?.reconciliationLines ?? []),
     ...(source.cfe?.reconciliationLines ?? []),
-  ].sort((left, right) => left.id.localeCompare(right.id));
+  ].sort((left, right) => canonicalCompare(left.id, right.id));
 }
 
 function controlRows(source: TaxCockpitSource, findings: readonly TaxEvidenceFinding[]): TaxEvidenceControlRow[] {
@@ -520,7 +520,7 @@ function controlRows(source: TaxCockpitSource, findings: readonly TaxEvidenceFin
     });
   }
   return rows.sort((left, right) =>
-    `${left.controlId}:${left.controlVersion}`.localeCompare(`${right.controlId}:${right.controlVersion}`));
+    canonicalCompare(`${left.controlId}:${left.controlVersion}`, `${right.controlId}:${right.controlVersion}`));
 }
 
 function buildCsvFiles(
@@ -716,7 +716,7 @@ function packageLimitations(input: {
       .filter((id) => !knownEvidence.has(id)))],
   );
   return limitations.sort((left, right) =>
-    left.code.localeCompare(right.code) || left.subjects.join("|").localeCompare(right.subjects.join("|")));
+    canonicalCompare(left.code, right.code) || canonicalCompare(left.subjects.join("|"), right.subjects.join("|")));
 }
 
 export async function buildTaxEvidenceExportPackage(

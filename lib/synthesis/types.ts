@@ -186,6 +186,8 @@ export interface Verdict {
 /* ─────────────────────────────── Snapshot ────────────────────────────────── */
 
 export interface SynthesisSnapshot {
+  /** Projection démonstrative verrouillée, jamais assimilée à une validation de production. */
+  workpaperProjection?: import("@/lib/workpapers/projection").WorkpaperProjection;
   schemaVersion: string;
   dossierId: string;
   /** Identifiant adressé par contenu: `sha256:<snapshotHash>`. */

@@ -23,12 +23,15 @@ export interface Societe {
 
 /** Vue d'un silo : Ã©tat reconstruit + constats rattachÃ©s. */
 export interface SiloView {
+  execution?: import("./calculation").CalculationRun;
   siloId: string;
   statement: ReconstitutedStatement;
   findings: Finding[];
 }
 
 export interface Dossier {
+  organizationId?: string;
+  period?: import("./period").AccountingPeriod;
   id: string;
   societe: Societe;
   demoMode: boolean;
@@ -143,6 +146,9 @@ export interface CalculationContext {
  * Toutes les pages de restitution doivent consommer cette meme enveloppe.
  */
 export interface DossierSnapshot {
+  workpaperProjection?: import("@/lib/workpapers/projection").WorkpaperProjection;
+  workpapers?: import("@/lib/workpapers/model").WorkpaperEnvelope;
+  calculationRuns?: import("./calculation").CalculationRun[];
   dossier: Dossier;
   sourceDocuments: SourceDocumentSummary[];
   findings: Finding[];

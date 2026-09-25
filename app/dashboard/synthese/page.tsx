@@ -24,6 +24,7 @@ import { StandardsTimeline } from "@/components/knowledge/StandardsTimeline";
 import { EvidenceFlow } from "@/components/evidence/EvidenceFlow";
 import { EvidenceExportToolbar } from "@/components/evidence/EvidenceExportToolbar";
 import { ReviewEventPanel } from "@/components/evidence/ReviewEventPanel";
+import { ModuleAvailability } from "@/components/probant/ModuleAvailability";
 import { focusStyle } from "@/components/synthesis/tokens";
 
 // ── Design tokens ──────────────────────────────────────────────────────
@@ -84,9 +85,6 @@ function eur(n: number | null | undefined): string {
   if (n >= 1e6) return `${(n / 1e6).toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} M€`;
   if (n >= 1e3) return `${Math.round(n / 1e3).toLocaleString("fr-FR")} k€`;
   return `${Math.round(n).toLocaleString("fr-FR")} €`;
-}
-function eurFull(n: number): string {
-  return `${(n || 0).toLocaleString("fr-FR")} €`;
 }
 /**
  * Montant de l'effet financier EXPLICITE du constat, en euros d'affichage.
@@ -476,6 +474,8 @@ export default function SynthesePage() {
           </span>
         </div>
       </header>
+
+      <ModuleAvailability snapshot={snapshot} />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}
       <DecisionHeader decision={datasets.decision} onDownloadNote={downloadNote} />
