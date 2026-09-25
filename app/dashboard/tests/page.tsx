@@ -4,6 +4,7 @@ import { FlaskConical, ListChecks } from "lucide-react";
 import { PageHeader } from "@/components/probant/PageHeader";
 import { SeverityBadge, FamilyBadge } from "@/components/probant/Badges";
 import { useActiveDossierSnapshot } from "@/lib/dossier/client";
+import { CycleDemonstration } from "@/components/probant/CycleDemonstration";
 
 /** Procédures complémentaires suggérées selon le silo concerné. */
 const PROCEDURES: Record<string, string[]> = {
@@ -38,6 +39,8 @@ export default function TestsPage() {
         title="Tests complémentaires"
         subtitle="Lorsqu'un constat laisse penser à une anomalie significative, des procédures supplémentaires sont requises (ISA 330 / ISRE 2400). Voici les tests suggérés par constat."
       />
+
+      <CycleDemonstration />
 
       <div className="space-y-3">
         {cibles.map((f) => {

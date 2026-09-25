@@ -44,6 +44,9 @@ export default defineConfig({
           // pour les parcours 1, 3 et 4.
           NODE_ENV: "production",
           CSP_MODE: process.env.CSP_MODE ?? "report-only",
+          // Test fixture only: an explicit synthetic demonstration, never a real dossier fallback.
+          PROBANT_DEMONSTRATION_ENABLED: "true",
+          PROBANT_DEMONSTRATION_ORIGIN: baseURL,
         },
       },
 });
