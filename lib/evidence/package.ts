@@ -1,5 +1,6 @@
 import type { DossierContext, DossierSnapshot } from "@/lib/dossier";
 import { reviewEventsDigest } from "@/lib/dossier/review";
+import { canonicalCompare } from "@/lib/synthesis/canonical";
 import {
   canonicalJson,
   sha256Hex,
@@ -31,7 +32,7 @@ function utf8Length(value: string): number {
 
 function manifestSourceDocuments(snapshot: DossierSnapshot): ManifestSourceDocument[] {
   return [...snapshot.sourceDocuments]
-    .sort((a, b) => a.id.localeCompare(b.id))
+    .sort((a, b) => canonicalCompare(a.id, b.id))
     .map((document) => ({
       id: document.id,
       fileName: document.fileName,
@@ -44,7 +45,7 @@ function manifestSourceDocuments(snapshot: DossierSnapshot): ManifestSourceDocum
 
 function controlsFromFindings(snapshot: DossierSnapshot): EvidenceControlRow[] {
   const controls = new Map<string, EvidenceControlRow>();
-  for (const finding of [...snapshot.findings].sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const finding of [...snapshot.findings].sort((a, b) => canonicalCompare(a.id, b.id))) {
     const key = `${finding.ruleId}@${finding.ruleVersion}`;
     const current = controls.get(key) ?? {
       controlId: finding.ruleId,
@@ -59,7 +60,7 @@ function controlsFromFindings(snapshot: DossierSnapshot): EvidenceControlRow[] {
     controls.set(key, current);
   }
   return [...controls.values()].sort(
-    (a, b) => a.controlId.localeCompare(b.controlId) || a.controlVersion.localeCompare(b.controlVersion),
+    (a, b) => canonicalCompare(a.controlId, b.controlId) || canonicalCompare(a.controlVersion, b.controlVersion),
   );
 }
 
@@ -101,10 +102,10 @@ function buildCanonicalExport(
     synthesisSnapshot: synthesis,
     sourceDocuments: sources,
     controls,
-    findings: [...snapshot.findings].sort((a, b) => a.id.localeCompare(b.id)),
+    findings: [...snapshot.findings].sort((a, b) => canonicalCompare(a.id, b.id)),
     reviewEvents: [...snapshot.reviewEvents],
     evidenceChain: [...snapshot.findings]
-      .sort((a, b) => a.id.localeCompare(b.id))
+      .sort((a, b) => canonicalCompare(a.id, b.id))
       .map((finding) => ({
         findingId: finding.id,
         sourceDocumentIds: sourceIdsForFinding(snapshot, finding.id),
@@ -284,7 +285,7 @@ export async function buildEvidenceExportPackage(
     reviewEventsDigest: digest,
     artifacts,
     limitations: [...synthesis.limitations, ...extraLimitations].sort(
-      (a, b) => a.code.localeCompare(b.code) || a.message.localeCompare(b.message),
+      (a, b) => canonicalCompare(a.code, b.code) || canonicalCompare(a.message, b.message),
     ),
   };
   return {

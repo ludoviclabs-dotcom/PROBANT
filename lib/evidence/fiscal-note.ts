@@ -1,5 +1,6 @@
 import type { ReviewEvent, TaxProfile } from "@/lib/canonical-model";
 import { formatCents } from "@/lib/synthesis/money";
+import { canonicalCompare } from "@/lib/synthesis/canonical";
 import type { TaxCockpitSource } from "@/lib/tax/cockpit";
 import {
   EVIDENCE_STRENGTH_LABEL,
@@ -112,7 +113,7 @@ export function buildFiscalNoteHtml(input: FiscalNoteInput): string {
   const recommendations = [...new Map(
     source.capabilityMatrices.flatMap((matrix) => matrix.recommendations)
       .map((recommendation) => [recommendation.recommendationId, recommendation]),
-  ).values()].sort((left, right) => left.recommendationId.localeCompare(right.recommendationId));
+  ).values()].sort((left, right) => canonicalCompare(left.recommendationId, right.recommendationId));
   const limitations = [
     ...source.synthesis.limitations.map((limitation) => `${limitation.code} — ${limitation.message}`),
     ...input.manifestSummary.limitations.map((limitation) =>

@@ -8,8 +8,10 @@
  */
 
 import { createHash } from "node:crypto";
-import { describe, expect, it } from "vitest";
-import { canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
+import { describe, expect, it, vi } from "vitest";
+import { canonicalCompare, canonicalJson, sha256Hex, stableHash } from "@/lib/synthesis/canonical";
+import { buildSynthesisSnapshot } from "@/lib/synthesis/engine";
+import { CLOCK, makeDossierSnapshot, makeFinding } from "./fixtures";
 
 describe("sha256Hex — conformité à node:crypto", () => {
   const vectors = [
@@ -58,5 +60,26 @@ describe("canonicalJson", () => {
 
   it("stableHash : même objet, ordres de clés différents ⇒ même hash", () => {
     expect(stableHash({ x: 1, y: 2 })).toBe(stableHash({ y: 2, x: 1 }));
+  });
+});
+
+describe("empreinte indépendante de la locale", () => {
+  const input = makeDossierSnapshot({
+    findings: [makeFinding("ž-2"), makeFinding("Z-1"), makeFinding("č-3")],
+  });
+  const expected = buildSynthesisSnapshot(input, { clock: CLOCK }).snapshotHash;
+
+  it.each(["fr-FR", "cs-CZ", "lt-LT"])("reste identique en %s", (locale) => {
+    const collator = new Intl.Collator(locale);
+    const spy = vi.spyOn(String.prototype, "localeCompare")
+      .mockImplementation(function (this: string, other: string) {
+        return collator.compare(String(this), other);
+      });
+    try {
+      expect(canonicalCompare("Z", "ž")).toBeLessThan(0);
+      expect(buildSynthesisSnapshot(input, { clock: CLOCK }).snapshotHash).toBe(expected);
+    } finally {
+      spy.mockRestore();
+    }
   });
 });

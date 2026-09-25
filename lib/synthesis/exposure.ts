@@ -23,6 +23,7 @@
 import type { Finding, FinancialEffect } from "@/lib/canonical-model/finding";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
 import { assertCents, sumCents } from "./money";
+import { canonicalCompare } from "./canonical";
 import type {
   AggregationPolicy,
   ExposureClusterView,
@@ -73,7 +74,7 @@ export function collectEffects(
   const records: EffectRecord[] = [];
   const withoutEffect: string[] = [];
 
-  for (const f of [...findings].sort((a, b) => a.id.localeCompare(b.id))) {
+  for (const f of [...findings].sort((a, b) => canonicalCompare(a.id, b.id))) {
     if (!f.financialEffect) {
       withoutEffect.push(f.id);
       continue;
@@ -138,7 +139,7 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
   }
   const representatives: EffectRecord[] = [];
   for (const [key, group] of [...byKey.entries()].sort(([a], [b]) =>
-    a.localeCompare(b),
+    canonicalCompare(a, b),
   )) {
     const [first, ...rest] = group; // déjà triés par findingId (collectEffects)
     representatives.push(first);
@@ -187,9 +188,9 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
   const deduplicatedParts: number[] = [];
 
   for (const [root, members] of [...clusterMembers.entries()].sort(([a], [b]) =>
-    a.localeCompare(b),
+    canonicalCompare(a, b),
   )) {
-    const sorted = [...members].sort((a, b) => a.key.localeCompare(b.key));
+    const sorted = [...members].sort((a, b) => canonicalCompare(a.key, b.key));
     const directions = new Set(sorted.map((m) => m.effect.direction));
     const rootCauses = new Set(sorted.map((m) => m.effect.rootCause));
     const ambiguous =

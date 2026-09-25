@@ -10,6 +10,7 @@ import {
   verifyReviewEventChain,
 } from "@/lib/dossier/review";
 import { createFiscalSynthesisSnapshot } from "@/lib/tax/canonical";
+import { canonicalCompare } from "@/lib/synthesis/canonical";
 import type {
   TaxFindingDecision,
   TaxReviewEventInput,
@@ -113,11 +114,11 @@ export function buildTaxReviewProjection(
   return {
     events: verification.orderedEvents,
     decisionByFinding: Object.fromEntries(
-      [...latest.entries()].sort(([left], [right]) => left.localeCompare(right))
+      [...latest.entries()].sort(([left], [right]) => canonicalCompare(left, right))
         .map(([findingId, event]) => [findingId, event.action ?? "pending"]),
     ) as Readonly<Record<string, TaxFindingDecision>>,
     statusByFinding: Object.fromEntries(
-      [...latest.entries()].sort(([left], [right]) => left.localeCompare(right))
+      [...latest.entries()].sort(([left], [right]) => canonicalCompare(left, right))
         .map(([findingId, event]) => [findingId, event.newStatus]),
     ),
     digest: reviewEventsDigest(verification.orderedEvents),
