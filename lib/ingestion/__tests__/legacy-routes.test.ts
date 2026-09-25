@@ -34,7 +34,7 @@ function form(fields: Record<string, string> = {}) {
 
 describe("anciennes routes d'ingestion — cloisonnement", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     authorizeRequest.mockResolvedValue(principal);
     list.mockResolvedValue([job, { ...job, id: "job-b", organizationId: "org-b", dossierId: OTHER }]);
     get.mockResolvedValue(job);
@@ -46,8 +46,34 @@ describe("anciennes routes d'ingestion — cloisonnement", () => {
     expect((await listJobs(new Request(`http://localhost/api/ingestions?dossierId=${DOSSIER}`))).status).toBe(401);
     expect((await getJob(new Request("http://localhost/api/ingestions/job-1"), { params: Promise.resolve({ id: "job-1" }) })).status).toBe(401);
     expect((await processJob(new Request("http://localhost/api/ingestions/job-1/process", { method: "POST" }), { params: Promise.resolve({ id: "job-1" }) })).status).toBe(401);
+    expect((await getJob(new Request("http://localhost/api/ingestions/absent"), { params: Promise.resolve({ id: "absent" }) })).status).toBe(401);
+    expect(get).not.toHaveBeenCalled();
     expect((await upload(form())).status).toBe(401);
     expect(createIngestionJob).not.toHaveBeenCalled();
+  });
+
+  it("rend un job étranger indistinguable d'un job absent", async () => {
+    get.mockResolvedValueOnce(null);
+    const missing = await getJob(new Request("http://localhost/api/ingestions/absent"), { params: Promise.resolve({ id: "absent" }) });
+    get.mockResolvedValueOnce({ ...job, organizationId: "org-b" });
+    const foreign = await getJob(new Request("http://localhost/api/ingestions/job-b"), { params: Promise.resolve({ id: "job-b" }) });
+    expect(foreign.status).toBe(missing.status);
+    expect(await foreign.json()).toEqual(await missing.json());
+    expect(authorizeRequest).toHaveBeenCalledWith(expect.any(Request), { permission: "dossier:read" });
+    get.mockResolvedValueOnce({ ...job, organizationId: "org-b" });
+    expect((await processJob(new Request("http://localhost/api/ingestions/job-b/process", { method: "POST" }), { params: Promise.resolve({ id: "job-b" }) })).status).toBe(404);
+  });
+
+  it("ne révèle pas un job d'un dossier non autorisé dans la même organisation", async () => {
+    get.mockResolvedValueOnce(null);
+    const missing = await getJob(new Request("http://localhost/api/ingestions/absent"), { params: Promise.resolve({ id: "absent" }) });
+    authorizeRequest.mockResolvedValueOnce(principal).mockRejectedValueOnce(new AuthorizationDenied("DOSSIER_FORBIDDEN", "Dossier non autorisé."));
+    const restricted = await getJob(new Request("http://localhost/api/ingestions/job-1"), { params: Promise.resolve({ id: "job-1" }) });
+    expect(restricted.status).toBe(missing.status);
+    expect(await restricted.json()).toEqual(await missing.json());
+    authorizeRequest.mockResolvedValueOnce(principal).mockRejectedValueOnce(new AuthorizationDenied("DOSSIER_FORBIDDEN", "Dossier non autorisé."));
+    const processRestricted = await processJob(new Request("http://localhost/api/ingestions/job-1/process", { method: "POST" }), { params: Promise.resolve({ id: "job-1" }) });
+    expect(processRestricted.status).toBe(404);
   });
 
   it("filtre la liste à l'organisation et au dossier autorisés", async () => {
