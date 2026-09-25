@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { apiErrorResponse, requestIdFrom } from "@/lib/api/errors";
+import { authorizeRequest } from "@/lib/auth/server";
+import { assertRowBelongsToPrincipal } from "@/lib/auth/dossier-scope";
 import {
   getIngestionJobRepository,
   jsonError,
@@ -8,13 +11,17 @@ import {
 export const runtime = "nodejs";
 
 export async function POST(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const requestId = requestIdFrom(req);
+  try {
   const { id } = await params;
   const repository = getIngestionJobRepository();
   const job = await repository.get(id);
   if (!job) return jsonError("INGESTION_NOT_FOUND", "Job d'ingestion introuvable.", 404);
+  const principal = await authorizeRequest(req, { permission: "dossier:upload", dossierId: job.dossierId });
+  assertRowBelongsToPrincipal(principal, job.organizationId, "ingestion");
   if (job.status === "quarantined") {
     return jsonError("INGESTION_QUARANTINED", "Le fichier est en quarantaine.", 409, job);
   }
@@ -34,6 +41,9 @@ export async function POST(
       "Le traitement du fichier a echoue.",
       422,
     );
+  }
+  } catch (error) {
+    return apiErrorResponse(error, requestId);
   }
 }
 
