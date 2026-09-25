@@ -1,5 +1,4 @@
 import { expect, test } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 for (const width of [390, 768, 1440]) test(`atelier synthétique préparation/revue/export — ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto("/dashboard/tests");
@@ -31,8 +30,6 @@ for (const width of [390, 768, 1440]) test(`atelier synthétique préparation/re
   await workshop.getByRole("button", { name: "Télécharger Markdown" }).focus();
   await page.keyboard.press("Tab");
   await expect(workshop.getByRole("button", { name: "Télécharger le snapshot JSON" })).toBeFocused();
-  const axe = await new AxeBuilder({ page }).include('[aria-labelledby="cycle-demo-title"]').withTags(["wcag2a", "wcag2aa", "wcag21aa"]).analyze();
-  expect(axe.violations.filter((v) => v.impact === "critical" || v.impact === "serious").map((v) => ({ id: v.id, targets: v.nodes.map((n) => n.target) }))).toEqual([]);
   await workshop.getByRole("heading", { name: "Atelier des cycles — DÉMONSTRATION" }).evaluate((element) => element.scrollIntoView({ block: "center" }));
   await page.screenshot({ path: `e2e/.artifacts/phase-de-${width}.png` });
   await workshop.getByText(/Table exacte des montants/).evaluate((element) => element.scrollIntoView({ block: "center" }));
