@@ -25,6 +25,7 @@ import { EvidenceFlow } from "@/components/evidence/EvidenceFlow";
 import { EvidenceExportToolbar } from "@/components/evidence/EvidenceExportToolbar";
 import { ReviewEventPanel } from "@/components/evidence/ReviewEventPanel";
 import { ModuleAvailability } from "@/components/probant/ModuleAvailability";
+import { SyntheticSummary } from "@/components/probant/SyntheticSummary";
 import { focusStyle } from "@/components/synthesis/tokens";
 
 // ── Design tokens ──────────────────────────────────────────────────────
@@ -455,6 +456,10 @@ export default function SynthesePage() {
       sortField === "sev" ? SEVK.indexOf(a.severity) - SEVK.indexOf(b.severity) : findingEffectEuros(b) - findingEffectEuros(a));
   }, [findings, natFilter, sevFilter, cloisonFilter, query, sortField]);
   const hasFilters = !!(natFilter || sevFilter || cloisonFilter || query);
+
+  if (snapshot.dossier.demoMode && snapshot.dossier.organizationId === "SYNTHETIC-DEMO" && snapshot.dossier.id.startsWith("SYN-")) {
+    return <SyntheticSummary snapshot={snapshot} />;
+  }
 
   // ── Render ─────────────────────────────────────────────────────────────
   return (

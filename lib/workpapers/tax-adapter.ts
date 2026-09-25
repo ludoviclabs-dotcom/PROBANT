@@ -1,6 +1,7 @@
 import { cents, money, type KnownAmount, type Money } from "@/lib/canonical-model/money";
 import type { TaxControlContext } from "@/lib/canonical-model/tax";
 import { buildTaxCapabilityMatrix } from "@/lib/tax/control-planner";
+import { findCorporateTaxRateSchedule } from "@/lib/knowledge/tax-rate-schedule";
 import { TaxProfileSchema, TaxPeriodSchema } from "@/lib/tax/schemas";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertContext, assertUnique, type CycleContext } from "./cycle-context";
@@ -31,5 +32,7 @@ export function adaptTaxWorkpaper(input: TaxAdapterInput) {
   });
   const fiscalBridge: KnownAmount = comparable && adjustments.every((a) => a.eligible) ? known(money(adjustments.reduce((s, a) => s + cents(a.value.amount) * (a.kind === "reintegration" ? 1n : -1n), cents(result)))) : unknown("SOURCE REQUISE : résultat cadré et retraitements documentés");
   const capabilities = buildTaxCapabilityMatrix(input.tax);
-  return frozen({ missionId: scope.dossierId, periodId: scope.periodId, mode: scope.mode, sourceVersions: input.sourceVersions, taxProfileId: input.tax.profile.id, taxProfileVersion: input.tax.profile.version, ruleVersion: input.ruleVersion, accountingResult: result, accountingDifference: comparable ? known(money(cents(result) - cents(input.clientAccountingResult.amount))) : unknown("Bases comptables non comparables"), adjustments, fiscalBridge, taxDue: unknown("Moteur IS non exécuté : planification et pont descriptif seulement"), capabilities, inputHash: stableSha256(input), conclusion: null });
+  const schedule = findCorporateTaxRateSchedule({ fiscalYear: input.tax.period.fiscalYear, formVintage: input.tax.period.formVintage });
+  const gateReason = !schedule ? `Millésime ${input.tax.period.formVintage} / exercice ${input.tax.period.fiscalYear} non couvert par le moteur IS` : "Profil, paramètres fiscaux, documents sources et revue confirmée requis avant calcul IS";
+  return frozen({ missionId: scope.dossierId, periodId: scope.periodId, mode: scope.mode, sourceVersions: input.sourceVersions, taxProfileId: input.tax.profile.id, taxProfileVersion: input.tax.profile.version, ruleVersion: input.ruleVersion, accountingResult: result, accountingDifference: comparable ? known(money(cents(result) - cents(input.clientAccountingResult.amount))) : unknown("Bases comptables non comparables"), adjustments, fiscalBridge, taxDue: unknown(gateReason), taxEngine: { status: "blocked" as const, reason: gateReason, calculationVersion: null }, capabilities, inputHash: stableSha256(input), conclusion: null });
 }

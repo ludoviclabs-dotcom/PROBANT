@@ -1,4 +1,12 @@
-# État du projet — reprise après QA finale
+# État du projet — 2026-09-25, démonstrateur intégré local
+
+`main` contient désormais la PR #50 fusionnée et déployée (`482314aa4e7810c3f0ffb88ed0adb163668e176f`). La branche locale `feat/probant-demo-integree` part de ce commit. Aucune publication de ce nouveau lot n'est autorisée à cette étape.
+
+L'atelier ouvre explicitement un dossier synthétique dédié, partagé entre Tests, Synthèse et export. Les dix cycles sont exposés. Les exécutions, revues et projections sont sauvegardées dans un journal local versionné, rejoué et vérifié ; expiration à sept jours et remise à zéro explicite. Cette sauvegarde du navigateur est réservée aux fixtures synthétiques et ne garantit ni inviolabilité ni conservation de production. Le dossier DEMO SA et les dossiers existants restent distincts.
+
+IS 2024 : pont technique disponible, impôt dû bloqué car le moteur ne couvre pas ce millésime. L'accès aux données réelles et la nouvelle API réelle des feuilles restent fermés. Le Guide V1.1 référencé n'a pas été matériellement vérifié dans ce dépôt. Les limites métier et de QA du handoff continuent de s'appliquer.
+
+## Historique — reprise après QA finale, avant fusion de la PR #50
 
 Base de développement : `origin/main` `cd21e0308e0d6eec604ec6be9814291cebea3b0a` (fetch du 2026-09-25), worktree `reprise-probant-lots-ae`, branche `fix/reprise-probant-lots-ae`. L'ancien arbre `7af4981` est archivé localement, sans suppression ni push.
 
