@@ -38,13 +38,15 @@ export function parseMontant(v: unknown): MontantParse {
   if (typeof v !== "string") return { kind: "invalid" };
   const normalized = v.trim().replace(/\s|\u00a0|\u202f/gu, "").replace(/€$/u, "");
   // Séparateurs français ou valeur décimale non groupée ; toute autre graphie
-  // est rejetée, jamais assimilée à zéro.
-  if (!/^[+-]?(?:\d+(?:[,.]\d{1,2})?|\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?)$/u.test(normalized)) {
-    return { kind: "invalid" };
-  }
-  const decimal = normalized.includes(",")
+  // est rejetée, jamais assimilée à zéro. Sans virgule, un seul groupe « .ddd »
+  // (« 12.500 ») est ambigu entre milliers et décimales : il est refusé.
+  const grouped = /^[+-]?\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?$/u.test(normalized);
+  const plain = /^[+-]?\d+(?:[,.]\d{1,2})?$/u.test(normalized);
+  const ambiguous = /^[+-]?\d{1,3}\.\d{3}$/u.test(normalized);
+  if ((!grouped && !plain) || ambiguous) return { kind: "invalid" };
+  const decimal = grouped
     ? normalized.replace(/\./gu, "").replace(",", ".")
-    : normalized;
+    : normalized.replace(",", ".");
   const value = Number(decimal);
   return Number.isFinite(value) ? { kind: "valid", value } : { kind: "invalid" };
 }

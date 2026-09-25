@@ -88,6 +88,16 @@ describe("adaptateur tabulaire", () => {
     expect(parseMontant("illisible")).toEqual({ kind: "invalid" });
   });
 
+  it("ne lit jamais un séparateur de milliers à point comme une décimale", () => {
+    // « 12.500 » est ambigu (12 500 en graphie française, 12,5 sinon) : refusé.
+    expect(parseMontant("12.500")).toEqual({ kind: "invalid" });
+    expect(parseMontant("-1.234")).toEqual({ kind: "invalid" });
+    expect(parseMontant("1.234.567")).toEqual({ kind: "valid", value: 1234567 });
+    expect(parseMontant("1.234.567,89 €")).toEqual({ kind: "valid", value: 1234567.89 });
+    expect(parseMontant("12.50")).toEqual({ kind: "valid", value: 12.5 });
+    expect(parseMontant("12,500")).toEqual({ kind: "invalid" });
+  });
+
   it("refuse les lignes illisibles au lieu de conclure à 100 % sans exception", () => {
     const map = { tiers: "Tiers", montant: "Montant" };
     expect(() => lignesDepuisTableur([{ Tiers: "ACME", Montant: "12 500,00 €" }, { Tiers: "ERREUR", Montant: "N/A" }], map)).toThrow(/invalide.*ligne 2/u);
