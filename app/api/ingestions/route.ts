@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { ApiError, apiErrorResponse, requestIdFrom } from "@/lib/api/errors";
 import { authorizeRequest } from "@/lib/auth/server";
+import { FecStreamError } from "@/lib/fec/stream-parser";
 import {
   createIngestionJob,
   getIngestionJobRepository,
@@ -137,10 +138,17 @@ export async function POST(req: Request) {
   if (validation.ok && validation.documentType !== "unknown" && !persistent) {
     try {
       processed = await processIngestionJob(job);
-    } catch {
+    } catch (error) {
+      const limitError = error instanceof FecStreamError && error.code === "FEC_TOO_MANY_LINES";
+      const code = limitError ? "FEC_LINE_LIMIT_EXCEEDED" : "INGESTION_PROCESSING_FAILED";
+      await getIngestionJobRepository().update(job.id, {
+        status: "failed",
+        errorCode: code,
+        errorMessage: limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : "Le traitement local du fichier a échoué.",
+      });
       return jsonError(
-        "INGESTION_PROCESSING_FAILED",
-        "Le traitement local du fichier a échoué.",
+        code,
+        limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : "Le traitement local du fichier a échoué.",
         422,
       );
     }

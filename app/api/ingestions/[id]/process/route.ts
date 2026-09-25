@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { apiErrorResponse, requestIdFrom } from "@/lib/api/errors";
 import { authorizeRequest } from "@/lib/auth/server";
 import { assertRowBelongsToPrincipal } from "@/lib/auth/dossier-scope";
+import { FecStreamError } from "@/lib/fec/stream-parser";
 import {
   getIngestionJobRepository,
   jsonError,
@@ -31,14 +32,16 @@ export async function POST(
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
+    const limitError = error instanceof FecStreamError && error.code === "FEC_TOO_MANY_LINES";
+    const code = limitError ? "FEC_LINE_LIMIT_EXCEEDED" : "INGESTION_PROCESSING_FAILED";
     await repository.update(id, {
       status: "failed",
-      errorCode: "INGESTION_PROCESSING_FAILED",
-      errorMessage: error instanceof Error ? error.message : "Echec du traitement.",
+      errorCode: code,
+      errorMessage: limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : error instanceof Error ? error.message : "Echec du traitement.",
     });
     return jsonError(
-      "INGESTION_PROCESSING_FAILED",
-      "Le traitement du fichier a echoue.",
+      code,
+      limitError ? "Le FEC dépasse le nombre maximal de lignes configuré." : "Le traitement du fichier a echoue.",
       422,
     );
   }

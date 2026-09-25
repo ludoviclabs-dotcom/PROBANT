@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { parseFec } from "@/lib/fec/parser";
 import { parseFecStream } from "@/lib/fec/stream-parser";
+import { FecStreamError } from "@/lib/fec/stream-parser";
 import {
   HARD_LAW_RULES,
   INTERNAL_RULES,
@@ -48,7 +49,8 @@ function id(prefix: string): string {
 
 const SESSION_FEC_LIMITS = {
   maxUploadBytes: 16 * 1024 * 1024,
-  maxFecLines: 50_000,
+  // Admission is capped at 25 MiB; the line ceiling must not reject an ordinary 50k+ FEC.
+  maxFecLines: 2_000_000,
   maxLineBytes: 256 * 1024,
   maxFieldBytes: 64 * 1024,
   maxParseDurationMs: 60_000,
@@ -193,6 +195,8 @@ export async function processFecIngestion(job: IngestionJob) {
       // The strict streaming parser quarantines malformed FEC headers. Keep
       // the historical review path observable so the caller can still see
       // the admissibility finding and its evidence.
+      // Resource-limit errors must never fall back to the unbounded parser.
+      if (!(error instanceof FecStreamError) || error.code !== "FEC_HEADER_INVALID") throw error;
       const fallbackStream = await objectStore.get(job.privateObjectPath);
       if (!fallbackStream) throw error;
       return parseFec(await readStreamText(fallbackStream));

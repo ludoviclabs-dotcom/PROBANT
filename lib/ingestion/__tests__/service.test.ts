@@ -1,9 +1,18 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { createIngestionJob, processFecIngestion } from "../service";
 
 describe("ingestion service", () => {
+  it("does not bypass a configured FEC line limit through the legacy parser", async () => {
+    const content = await readFile(path.join(process.cwd(), "lib", "ingestion", "__fixtures__", "fec-valid.txt"));
+    const file = new File([content], "123456789FEC20261231.txt", { type: "text/plain" });
+    const { job } = await createIngestionJob({ fileName: file.name, mimeType: file.type, sizeBytes: file.size, file });
+    for (const [name, value] of Object.entries({ MAX_UPLOAD_BYTES: "26214400", MAX_FEC_LINES: "1", MAX_LINE_BYTES: "262144", MAX_FIELD_BYTES: "65536", MAX_PARSE_DURATION_MS: "60000", MAX_CONCURRENT_JOBS_PER_ORG: "2" })) vi.stubEnv(name, value);
+    try {
+      await expect(processFecIngestion(job)).rejects.toMatchObject({ code: "FEC_TOO_MANY_LINES" });
+    } finally { vi.unstubAllEnvs(); }
+  });
   it("runs the observable FEC pipeline and builds one active snapshot", async () => {
     const content = await readFile(
       path.join(
