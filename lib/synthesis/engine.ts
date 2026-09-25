@@ -517,6 +517,7 @@ export function buildSynthesisSnapshot(
     limitations,
     verdict,
     calculationTrace: trace,
+    ...(input.workpaperProjection ? { workpaperProjection: input.workpaperProjection } : {}),
   };
 
   // Le hash couvre le CONTENU, pas l'horodatage : deux générations des mêmes

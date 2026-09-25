@@ -1,0 +1,9 @@
+import { expect, it } from "vitest";
+import { reviewInvestment, type InvestmentInput } from "../investments";
+import { period, scope } from "./fixtures";
+import { proof, known } from "./cutoff-fixtures";
+const v = (s: string) => ({ amount: known(s).value, date: period.closingDate, basis: "SYN-HOLDING", evidence: [proof] });
+function fixture(): InvestmentInput { return { context: { scope, period, purpose: "synthetic_technical" }, securityId: "SYN-1", categoryProposed: "à qualifier", intention: "Fixture synthétique", classificationMethod: null, distribution: v("40.00"), rights: { classId: "SYN-ORDINARY", from: period.startDate, to: period.closingDate, entitlementDate: period.closingDate, numerator: "1", denominator: "4", homogeneous: true, evidence: [proof] }, bookedDividend: v("10.00"), receivedDividend: null, cost: v("100.00"), bookedImpairment: v("10.00"), externalModel: null }; }
+it("40 votés et droits 25 % donnent 10 et non 25", () => { const r = reviewInvestment(fixture()); expect(r.expectedDividend).toEqual(known("10.00")); expect(r.bookedDifference).toEqual(known("0.00")); expect(r.accountingProposal).toBeNull(); });
+it("droits hétérogènes ou hors date bloquent la formule simple", () => { const x = fixture(); x.rights!.homogeneous = false; expect(reviewInvestment(x).expectedDividend.kind).toBe("unknown"); x.rights!.homogeneous = true; x.rights!.from = "2024-07-01"; x.rights!.to = "2024-12-31"; expect(reviewInvestment(x).expectedDividend.kind).toBe("unknown"); });
+it("valeur entreprise ne devient pas valeur de la participation", () => { const x = fixture(); x.externalModel = { id: "MODEL", version: "1", nature: "enterprise_value", securityId: "SYN-1", units: "EUR", value: v("90.00"), assumptions: ["fixture"], scenarios: [] }; expect(reviewInvestment(x).valueDifference.kind).toBe("unknown"); x.externalModel.nature = "holding_value"; expect(reviewInvestment(x).valueDifference).toEqual(known("-10.00")); });
