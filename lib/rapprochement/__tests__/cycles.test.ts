@@ -5,7 +5,9 @@ import { buildFournisseursRapprochementSilo } from "../demo/fournisseurs";
 import { buildStocksRapprochementSilo } from "../demo/stocks";
 import { buildTresorerieRapprochementSilo } from "../demo/tresorerie";
 import { buildFiscalRapprochementSilo } from "../demo/fiscal";
-import { lignesDepuisTableur } from "../adapters/tabular";
+import { lignesDepuisTableur, parseMontant } from "../adapters/tabular";
+import { rapprocher } from "../engine";
+import { CONFIG_CLIENTS } from "../demo/clients";
 
 describe("buildAllRapprochementSilos — couverture multi-cycles", () => {
   const silos = buildAllRapprochementSilos();
@@ -75,5 +77,25 @@ describe("adaptateur tabulaire", () => {
     expect(lignes[0].tiers).toBe("DUPONT");
     expect(lignes[0].montant).toBe(24850);
     expect(lignes[0].lettre).toBe(true);
+  });
+
+  it("distingue montant absent, zéro et valeur invalide", () => {
+    expect(parseMontant(null)).toEqual({ kind: "absent" });
+    expect(parseMontant("")).toEqual({ kind: "absent" });
+    expect(parseMontant("0,00 €")).toEqual({ kind: "valid", value: 0 });
+    expect(parseMontant("12 500,00 €")).toEqual({ kind: "valid", value: 12500 });
+    expect(parseMontant("12\u202f500,00\u00a0€")).toEqual({ kind: "valid", value: 12500 });
+    expect(parseMontant("illisible")).toEqual({ kind: "invalid" });
+  });
+
+  it("refuse les lignes illisibles au lieu de conclure à 100 % sans exception", () => {
+    const map = { tiers: "Tiers", montant: "Montant" };
+    expect(() => lignesDepuisTableur([{ Tiers: "ACME", Montant: "12 500,00 €" }, { Tiers: "ERREUR", Montant: "N/A" }], map)).toThrow(/invalide.*ligne 2/u);
+    const source = { id: "a", label: "A", type: "balance_auxiliaire" as const, format: "csv" as const, lignes: lignesDepuisTableur([{ Tiers: "ACME", Montant: "12 500,00 €" }], map) };
+    const cible = { ...source, id: "b", label: "B", lignes: lignesDepuisTableur([{ Tiers: "AUTRE", Montant: "12 500,00 €" }], map) };
+    const result = rapprocher(source, cible, CONFIG_CLIENTS);
+    expect(result.ecarts.length).toBeGreaterThan(0);
+    expect(result.tauxRapprochement).toBe(1); // égalité des totaux ≠ absence d'exception
+    expect(() => rapprocher({ ...source, lignes: [] }, cible, CONFIG_CLIENTS)).toThrow(/aucune ligne/u);
   });
 });

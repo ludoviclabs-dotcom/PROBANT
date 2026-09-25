@@ -22,13 +22,31 @@ export interface MappageColonnes {
 
 type Enregistrement = Record<string, string | number | boolean | null | undefined>;
 
-function toNombre(v: unknown): number {
-  if (typeof v === "number") return v;
-  if (typeof v === "string") {
-    const n = Number(v.replace(/\s/g, "").replace(/ /g, "").replace(",", "."));
-    return Number.isFinite(n) ? n : 0;
+/** L'absence, le zéro et une valeur illisible ne sont jamais interchangeables. */
+export type MontantParse =
+  | { kind: "absent" }
+  | { kind: "invalid" }
+  | { kind: "valid"; value: number };
+
+export function parseMontant(v: unknown): MontantParse {
+  if (v === null || v === undefined || (typeof v === "string" && v.trim() === "")) {
+    return { kind: "absent" };
   }
-  return 0;
+  if (typeof v === "number") {
+    return Number.isFinite(v) ? { kind: "valid", value: v } : { kind: "invalid" };
+  }
+  if (typeof v !== "string") return { kind: "invalid" };
+  const normalized = v.trim().replace(/\s|\u00a0|\u202f/gu, "").replace(/€$/u, "");
+  // Séparateurs français ou valeur décimale non groupée ; toute autre graphie
+  // est rejetée, jamais assimilée à zéro.
+  if (!/^[+-]?(?:\d+(?:[,.]\d{1,2})?|\d{1,3}(?:\.\d{3})+(?:,\d{1,2})?)$/u.test(normalized)) {
+    return { kind: "invalid" };
+  }
+  const decimal = normalized.includes(",")
+    ? normalized.replace(/\./gu, "").replace(",", ".")
+    : normalized;
+  const value = Number(decimal);
+  return Number.isFinite(value) ? { kind: "valid", value } : { kind: "invalid" };
 }
 
 function toBool(v: unknown): boolean {
@@ -42,8 +60,12 @@ export function lignesDepuisTableur(
   rows: Enregistrement[],
   map: MappageColonnes,
 ): DocumentLigne[] {
-  return rows.map((r) => {
-    const ligne: DocumentLigne = { montant: toNombre(r[map.montant]) };
+  return rows.map((r, index) => {
+    const parsed = parseMontant(r[map.montant]);
+    if (parsed.kind !== "valid") {
+      throw new Error(`Montant ${parsed.kind === "absent" ? "absent" : "invalide"} à la ligne ${index + 1}.`);
+    }
+    const ligne: DocumentLigne = { montant: parsed.value };
     if (map.compte && r[map.compte] != null) ligne.compte = String(r[map.compte]);
     if (map.tiers && r[map.tiers] != null) ligne.tiers = String(r[map.tiers]);
     if (map.piece && r[map.piece] != null) ligne.piece = String(r[map.piece]);
