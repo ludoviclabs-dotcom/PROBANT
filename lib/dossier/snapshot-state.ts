@@ -1,5 +1,5 @@
 import type { DossierSnapshot } from "./types";
-import { stableHash } from "@/lib/synthesis/canonical";
+import { canonicalCompare, stableHash } from "@/lib/synthesis/canonical";
 import { appendReviewEvent, type AppendReviewEventInput } from "./review";
 
 /**
@@ -12,10 +12,10 @@ export function computeDossierSnapshotHash(snapshot: DossierSnapshot): string {
     snapshotVersion: snapshot.snapshotVersion,
     sourceKind: snapshot.sourceKind,
     dossier: snapshot.dossier,
-    sourceDocuments: [...snapshot.sourceDocuments].sort((a, b) => a.id.localeCompare(b.id)),
-    findings: [...snapshot.findings].sort((a, b) => a.id.localeCompare(b.id)),
+    sourceDocuments: [...snapshot.sourceDocuments].sort((a, b) => canonicalCompare(a.id, b.id)),
+    findings: [...snapshot.findings].sort((a, b) => canonicalCompare(a.id, b.id)),
     admissibilityFindings: [...snapshot.admissibilityFindings].sort((a, b) =>
-      a.id.localeCompare(b.id),
+      canonicalCompare(a.id, b.id),
     ),
     reviewEvents: snapshot.reviewEvents,
     calculationContext: snapshot.calculationContext,
