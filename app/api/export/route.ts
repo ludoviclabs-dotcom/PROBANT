@@ -93,10 +93,8 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     recordMetric("export_duration_ms", performance.now() - startedAt, { outcome: "error" });
-    if (error instanceof ApiError) return apiErrorResponse(error, requestId);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Export impossible." },
-      { status: 409, headers: { "x-request-id": requestId } },
-    );
+    // Erreur imprévue (configuration, base, génération) : réponse générique,
+    // jamais le message interne renvoyé à un appelant non authentifié.
+    return apiErrorResponse(error, requestId);
   }
 }
