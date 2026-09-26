@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Barres de comparaison multi-opérandes (IS : calculé/déclaré/comptabilisé ;
- * TVA : théorique/comptabilisé/déclaré). Une valeur `null` est rendue
- * « non disponible » — jamais une barre à zéro. Aucun montant recalculé.
+ * Barres de comparaison multi-opérandes (IS : recalculé/déclaré ; TVA :
+ * théorique/comptabilisé/déclaré ; CFE : avis/comptabilisé/réglé). Une valeur
+ * `null` est rendue « non disponible » sur une piste pointillée — jamais une
+ * barre à zéro. Aucun montant recalculé.
  */
 
 import type { TaxComparisonBarRow } from "@/lib/tax/cockpit";
 import { formatCents } from "@/lib/synthesis/money";
 import { FONT, T, TONE_COLOR, TONE_PREFIX } from "@/components/synthesis/tokens";
+import { AMOUNT, INK_FAINT } from "./cockpit-style";
 
 const OPERAND_COLORS = [T.accent, T.violet, "#2dd4bf"] as const;
 
@@ -30,26 +32,13 @@ export function ComparisonBars({
     1,
     ...rows.flatMap((row) => row.values.map((value) => Math.abs(value.amountCents ?? 0))),
   );
+  let barIndex = 0;
   return (
-    <div
-      role="img"
-      aria-label={ariaLabel}
-      style={{ display: "flex", flexDirection: "column", gap: 14 }}
-    >
+    <div role="img" aria-label={ariaLabel} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
       {rows.map((row) => (
         <div key={row.id}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-              gap: 10,
-              marginBottom: 4,
-            }}
-          >
-            <span style={{ fontSize: FONT.table, fontWeight: 600, color: T.text }}>
-              {row.label}
-            </span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
+            <span style={{ fontSize: FONT.table, fontWeight: 500, color: T.text }}>{row.label}</span>
             <span
               style={{
                 fontSize: FONT.meta,
@@ -61,29 +50,24 @@ export function ComparisonBars({
               <span aria-hidden="true">{TONE_PREFIX[row.tone]} </span>
               {row.statusLabel}
               {row.differenceCents !== null && row.differenceCents !== 0 && (
-                <span style={{ fontFamily: "monospace" }}>
-                  {" "}
-                  ({formatCents(row.differenceCents)})
-                </span>
+                <span style={AMOUNT}> ({formatCents(row.differenceCents)})</span>
               )}
             </span>
           </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 3 }}>
+          <div style={{ marginTop: 8, display: "flex", flexDirection: "column", gap: 4 }}>
             {row.values.map((value, index) => {
               const color = OPERAND_COLORS[index % OPERAND_COLORS.length];
               const available = value.amountCents !== null;
               const width = available ? (Math.abs(value.amountCents!) / maxAbs) * 100 : 0;
+              const delay = barIndex++ * 80;
               return (
-                <div
-                  key={value.key}
-                  style={{ display: "flex", alignItems: "center", gap: 8 }}
-                >
+                <div key={value.key} style={{ display: "flex", alignItems: "center", gap: 10 }}>
                   <span
                     style={{
-                      width: 110,
+                      width: 96,
                       flexShrink: 0,
                       fontSize: FONT.meta,
-                      color: T.muted,
+                      color: INK_FAINT,
                       textAlign: "right",
                     }}
                   >
@@ -92,34 +76,35 @@ export function ComparisonBars({
                   <div
                     style={{
                       flex: 1,
-                      height: 8,
-                      borderRadius: 4,
-                      background: T.surface3,
-                      border: `1px solid ${T.border}`,
+                      minWidth: 0,
+                      height: 9,
+                      borderRadius: 3,
+                      background: "rgba(255,255,255,.04)",
+                      border: available ? undefined : "1px dashed rgba(234,179,8,.4)",
                       overflow: "hidden",
                     }}
                   >
-                    {available && (
+                    {available && width > 0 && (
                       <div
-                        className="pbz-anim"
+                        className="pbz-bar"
                         style={{
                           height: "100%",
                           width: `${width}%`,
+                          borderRadius: 3,
                           background: color,
-                          transition: "width .4s ease",
+                          animationDelay: `${delay}ms`,
                         }}
                       />
                     )}
                   </div>
                   <span
                     style={{
-                      width: 120,
+                      ...AMOUNT,
+                      width: 112,
                       flexShrink: 0,
                       fontSize: FONT.meta,
-                      fontFamily: "monospace",
-                      color: available ? T.text : T.muted,
+                      color: available && value.amountCents !== 0 ? T.text : T.muted,
                       textAlign: "right",
-                      whiteSpace: "nowrap",
                     }}
                   >
                     {available ? formatCents(value.amountCents!) : "non disponible"}

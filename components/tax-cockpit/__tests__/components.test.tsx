@@ -6,7 +6,7 @@
  * (moteurs TAX-05/06/07 exécutés sur le dossier de démonstration), et les
  * assertions comparent le rendu au dataset — jamais à des valeurs recopiées.
  */
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it } from "vitest";
 import axe from "axe-core";
 
@@ -22,6 +22,7 @@ import { AccountingToTaxWaterfall } from "../AccountingToTaxWaterfall";
 import { TaxCapabilityPanel } from "../TaxCapabilityPanel";
 import { TaxCockpitWorkspace } from "../TaxCockpitWorkspace";
 import { TaxFindingTable } from "../TaxFindingTable";
+import { exposureDifferences, verdictSentence } from "../narrative";
 
 declare global {
   // Requis par React 19 pour act() sous testing-library.
@@ -54,13 +55,29 @@ describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
     expect(text).toContain(formatCents(base.runningTotalCents));
   });
 
-  it("le panneau de capacité rend les huit indicateurs du dataset", () => {
-    const { container } = render(<TaxCapabilityPanel dataset={datasets.capability} />);
+  it("le verdict rend la phrase de synthèse, le ruban et les huit indicateurs sous « Sources »", () => {
+    const { container } = render(<TaxCapabilityPanel datasets={datasets} show3d={false} />);
+    expect(screen.getByRole("heading", { level: 2 }).textContent).toBe(verdictSentence(datasets));
+    const ribbon = within(container.querySelector<HTMLElement>(`dl[aria-label="${datasets.capability.title}"]`)!);
+    for (const id of ["applicable-taxes", "controls-concluded", "missing-data"]) {
+      const item = datasets.capability.items.find((candidate) => candidate.id === id)!;
+      expect(ribbon.getAllByText(new RegExp(`^${item.value}`)).length).toBeGreaterThan(0);
+    }
+    // Les huit indicateurs restent consultables dans l'alternative tabulaire repliée.
+    fireEvent.click(screen.getByRole("button", { name: /Sources et méthodologie/ }));
     const text = container.textContent ?? "";
     expect(datasets.capability.items).toHaveLength(8);
     for (const item of datasets.capability.items) {
       expect(text).toContain(item.label);
       expect(text).toContain(item.value);
+    }
+  });
+
+  it("la phrase de synthèse reprend les écarts publiés par le dataset d'exposition", () => {
+    const sentence = verdictSentence(datasets);
+    expect(sentence).toContain(`${datasets.coverage.totalControls} contrôles exécutés`);
+    for (const difference of exposureDifferences(datasets)) {
+      expect(sentence).toContain(difference.amount);
     }
   });
 
@@ -114,7 +131,7 @@ describe("clavier et interactions", () => {
     expect(container.querySelectorAll("tbody tr").length).toBe(expected);
   });
 
-  it("une ligne d'exploration se déplie et expose source, formule et preuve", () => {
+  it("une ligne ouvre le panneau latéral (source, formule, preuve) et Échap le ferme", () => {
     const { container } = render(
       <TaxFindingTable dataset={datasets.findings} outcomeFilter="tous" onOutcomeFilterChange={() => {}} />,
     );
@@ -122,9 +139,34 @@ describe("clavier et interactions", () => {
     expect(toggle).toBeTruthy();
     fireEvent.click(toggle);
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
-    const text = container.textContent ?? "";
-    expect(text).toContain("Formule / normalisations");
-    expect(text).toContain("Historique de revue");
+    const drawer = screen.getByRole("dialog");
+    expect(drawer.textContent).toContain("Formule / normalisations");
+    expect(drawer.textContent).toContain("Historique de revue");
+    expect(document.activeElement?.getAttribute("aria-label")).toBe("Fermer le détail");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(toggle.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("une décision du panneau latéral pré-remplit la barre de décision sans l'enregistrer", () => {
+    const bundles = buildBundles();
+    render(
+      <TaxCockpitWorkspace bundles={bundles} initialScope="all" initialOutcome="tous" evidenceSource={source} />,
+    );
+    const controlRow = datasets.findings.rows.find((row) => row.id.startsWith("control:"))!;
+    fireEvent.click(
+      screen.getByRole("button", { name: `Détail de la ligne « ${String(controlRow.cells.label)} »` }),
+    );
+    fireEvent.change(within(screen.getByRole("dialog")).getByPlaceholderText("Documenter la décision…"), {
+      target: { value: "Revue test" },
+    });
+    fireEvent.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Écarter" }));
+    const bar = screen.getByRole("region", { name: "Revue append-only des constats fiscaux" });
+    const finding = within(bar).getByLabelText("Constat fiscal à revoir") as HTMLSelectElement;
+    expect(finding.value.endsWith(controlRow.id.slice("control:".length))).toBe(true);
+    expect((within(bar).getByLabelText("Action de revue fiscale") as HTMLSelectElement).value).toBe("dismiss");
+    expect((within(bar).getByLabelText("Commentaire de revue fiscale") as HTMLInputElement).value).toBe("Revue test");
+    expect(within(bar).getByRole("status").textContent).toContain("Décision préparée");
   });
 
   it("la matrice impôt × cycle annonce la cellule focalisée dans la zone aria-live", () => {
@@ -132,10 +174,11 @@ describe("clavier et interactions", () => {
     const { container } = render(
       <TaxCockpitWorkspace bundles={bundles} initialScope="all" initialOutcome="tous" />,
     );
-    const cells = container.querySelectorAll('section[aria-label="Matrice impôt × cycle"] [tabindex="0"]');
+    const matrix = container.querySelector('section[aria-label="Matrice impôt × cycle"]')!;
+    const cells = matrix.querySelectorAll('[tabindex="0"]');
     expect(cells.length).toBeGreaterThan(0);
     fireEvent.focus(cells[0]);
-    const live = container.querySelector('[aria-live="polite"]');
+    const live = matrix.querySelector('[aria-live="polite"]');
     expect(live?.textContent).toMatch(/contrôle/);
   });
 
@@ -144,12 +187,15 @@ describe("clavier et interactions", () => {
     const { container } = render(
       <TaxCockpitWorkspace bundles={bundles} initialScope="all" initialOutcome="tous" />,
     );
+    expect(container.textContent).toContain(datasets.corporateReconciliation.title);
     const vatButton = screen.getByRole("button", { name: "TVA" });
     fireEvent.click(vatButton);
     expect(vatButton.getAttribute("aria-pressed")).toBe("true");
     const text = container.textContent ?? "";
-    // Périmètre TVA : le waterfall IS annonce son absence au lieu d'inventer des zéros.
-    expect(text).toContain("Aucun calcul d'impôt sur les sociétés");
+    // Périmètre TVA : seules les réconciliations TVA restent ; le verdict et le waterfall portent sur le dossier.
+    expect(text).toContain(bundles.vat.vatReconciliation.title);
+    expect(text).not.toContain(bundles.all.corporateReconciliation.title);
+    expect(text).toContain(bundles.all.waterfall.title);
   });
 });
 
@@ -172,7 +218,7 @@ describe("accessibilité", () => {
   it("le cockpit complet ne présente aucune violation axe-core", async () => {
     const bundles = buildBundles();
     const { container } = render(
-      <TaxCockpitWorkspace bundles={bundles} initialScope="all" initialOutcome="tous" />,
+      <TaxCockpitWorkspace bundles={bundles} initialScope="all" initialOutcome="tous" evidenceSource={source} />,
     );
     const results = await axe.run(container, {
       rules: { "color-contrast": { enabled: false } },

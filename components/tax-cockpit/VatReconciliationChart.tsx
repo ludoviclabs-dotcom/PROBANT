@@ -8,6 +8,7 @@
 
 import type { TaxCockpitDatasets } from "@/lib/tax/cockpit";
 import { ComparisonBars } from "./ComparisonBars";
+import { vatReading } from "./narrative";
 import { TaxChartCard } from "./TaxSourceFootnote";
 
 export function VatReconciliationChart({
@@ -16,7 +17,7 @@ export function VatReconciliationChart({
   dataset: TaxCockpitDatasets["vatReconciliation"];
 }) {
   return (
-    <TaxChartCard dataset={dataset} eyebrow="Calcul">
+    <TaxChartCard dataset={dataset} reading={vatReading(dataset.bars, dataset.summary)}>
       <ComparisonBars rows={dataset.bars} ariaLabel={dataset.summary} />
     </TaxChartCard>
   );

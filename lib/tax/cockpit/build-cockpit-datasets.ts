@@ -287,9 +287,13 @@ function worstOutcome(outcomes: readonly TaxControlOutcome[]): TaxControlOutcome
   return null;
 }
 
-function periodLabel(source: TaxCockpitSource): string {
+function referencePeriod(source: TaxCockpitSource) {
   const accounting = source.periods.find((period) => period.taxType === "corporate_income_tax");
-  const reference = accounting ?? source.periods[0];
+  return accounting ?? source.periods[0] ?? null;
+}
+
+function periodLabel(source: TaxCockpitSource): string {
+  const reference = referencePeriod(source);
   if (!reference) return `exercice ${source.fiscalYear}`;
   return `exercice ${source.fiscalYear} (${reference.startDate} → ${reference.endDate})`;
 }
@@ -336,6 +340,8 @@ function buildSummary(source: TaxCockpitSource): TaxCockpitSummary {
     dossierId: source.dossierId,
     fiscalYear: source.fiscalYear,
     periodLabel: periodLabel(source),
+    periodStart: referencePeriod(source)?.startDate ?? null,
+    periodEnd: referencePeriod(source)?.endDate ?? null,
     currency: "EUR",
     generatedAt: source.synthesis.generatedAt,
     headlineLabel: label,
@@ -549,6 +555,9 @@ const CORPORATE_COMPARISON_OPERANDS: Readonly<Record<string, readonly [string, s
   declared_reduced_rate_base: ["Recalculé", "Déclaré (2065)"],
   accounted_tax_charge: ["Calculé", "Comptabilisé"],
   accounted_tax_liability: ["Calculé", "Comptabilisé"],
+  cfe_notice_vs_charge: ["Avis", "Comptabilisé"],
+  cfe_notice_vs_settlement: ["Avis", "Réglé"],
+  cfe_charge_vs_settlement: ["Comptabilisé", "Réglé"],
 };
 
 function reconciliationBars(rows: readonly UnifiedReconciliationRow[]): TaxComparisonBarRow[] {
@@ -622,6 +631,30 @@ function buildCorporateReconciliation(
     sourceRefs: source.corporateTax
       ? source.corporateTax.snapshot.sourceRefs.map(formatSourceRef)
       : [],
+    bars: reconciliationBars(rows),
+  };
+}
+
+function buildCfeReconciliation(
+  source: TaxCockpitSource,
+  scope: TaxCockpitScope,
+  reconciliationRows: readonly UnifiedReconciliationRow[],
+): TaxCockpitDatasets["cfeReconciliation"] {
+  const rows = reconciliationRows.filter((row) => row.taxType === "cfe");
+  const differences = rows.filter((row) => row.status === "different").length;
+  return {
+    id: `tax-cfe-reconciliation-${scope}`,
+    title: "CFE : avis, charge comptabilisée, règlements",
+    summary:
+      rows.length === 0
+        ? "Aucune ligne de rapprochement CFE disponible sur ce périmètre."
+        : `${rows.length} rapprochement(s) CFE entre l'avis d'imposition, la charge comptabilisée et les règlements ; ${differences} écart(s) hors tolérance. Montants en euros, ${periodLabel(source)}.`,
+    columns: RECONCILIATION_COLUMNS,
+    rows: reconciliationDatasetRows(rows),
+    sourceMetricIds: rows.map((row) => row.id),
+    methodology:
+      "Lignes de rapprochement produites par le moteur CFE (TAX-07). La cotisation n'est jamais recalculée : le moteur rapproche l'avis de la charge et des règlements, il ne le reconstitue pas.",
+    sourceRefs: source.cfe ? source.cfe.snapshot.sourceRefs.map(formatSourceRef) : [],
     bars: reconciliationBars(rows),
   };
 }
@@ -835,6 +868,7 @@ function buildRiskMatrix(
       );
       if (cellControls.length === 0) continue;
       const worst = worstOutcome(cellControls.map((control) => control.outcome));
+      const cellCounts = countOutcomes(cellControls);
       cells.push({
         taxType,
         cycle,
@@ -842,6 +876,14 @@ function buildRiskMatrix(
         worstOutcomeLabel: worst ? TAX_OUTCOME_LABEL[worst] : null,
         tone: worst ? TAX_OUTCOME_TONE[worst] : "neutral",
         controlTitles: cellControls.map((control) => control.title),
+        outcomeMix: TAX_OUTCOME_ORDER.filter((outcome) => cellCounts[outcome] > 0).map(
+          (outcome) => ({
+            outcome,
+            label: TAX_OUTCOME_LABEL[outcome],
+            count: cellCounts[outcome],
+            tone: TAX_OUTCOME_TONE[outcome],
+          }),
+        ),
       });
     }
   }
@@ -1184,6 +1226,7 @@ export function buildTaxCockpitDatasets(
     waterfall: buildWaterfall(source, scope),
     corporateReconciliation: buildCorporateReconciliation(source, scope, reconciliationRows),
     vatReconciliation: buildVatReconciliation(source, scope),
+    cfeReconciliation: buildCfeReconciliation(source, scope, reconciliationRows),
     exposure: buildExposure(source, scope, reconciliationRows),
     coverage: buildCoverage(scope, controls),
     riskMatrix: buildRiskMatrix(scope, controls),

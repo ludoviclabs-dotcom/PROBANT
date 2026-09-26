@@ -13,6 +13,7 @@ import type {
   TaxDocumentSnapshot,
   TaxPeriod,
   TaxProfile,
+  TaxControlOutcome,
   TaxRecommendation,
   TaxType,
 } from "@/lib/canonical-model";
@@ -107,6 +108,13 @@ export interface TaxRiskMatrixCell {
   readonly worstOutcomeLabel: string | null;
   readonly tone: "critical" | "warning" | "positive" | "neutral";
   readonly controlTitles: readonly string[];
+  /** Décomposition des sorties de la cellule, dans l'ordre de présentation de la taxonomie. */
+  readonly outcomeMix: readonly {
+    readonly outcome: TaxControlOutcome;
+    readonly label: string;
+    readonly count: number;
+    readonly tone: "critical" | "warning" | "positive" | "neutral";
+  }[];
 }
 
 /** Ligne d'exploration (NIVEAU 4) avec son détail preuve/formule/limites. */
@@ -124,6 +132,9 @@ export interface TaxCockpitSummary {
   readonly dossierId: string;
   readonly fiscalYear: number;
   readonly periodLabel: string;
+  /** Bornes de la période de référence (IS, sinon première période) — `null` si aucune. */
+  readonly periodStart: string | null;
+  readonly periodEnd: string | null;
   readonly currency: "EUR";
   readonly generatedAt: string;
   readonly headlineLabel: string;
@@ -150,6 +161,9 @@ export interface TaxCockpitDatasets {
     readonly bars: readonly TaxComparisonBarRow[];
   };
   readonly vatReconciliation: VisualizationDataset & {
+    readonly bars: readonly TaxComparisonBarRow[];
+  };
+  readonly cfeReconciliation: VisualizationDataset & {
     readonly bars: readonly TaxComparisonBarRow[];
   };
   readonly exposure: VisualizationDataset;

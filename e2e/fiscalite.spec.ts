@@ -14,17 +14,21 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("cockpit fiscalité", () => {
-  test("les quatre niveaux sont rendus avec les chiffres des snapshots", async ({ page }, testInfo) => {
+  test("les trois actes et la décision sont rendus avec les chiffres des snapshots", async ({ page }, testInfo) => {
     await page.goto("/dashboard/fiscalite");
-    await expect(page.getByRole("heading", { name: "Capacité et décision", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Calcul", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Analyse", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Exploration", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Exercice 2026 — \d+ contrôles exécutés/u, level: 2 })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Du résultat comptable au résultat fiscal et à l'IS", level: 2 }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Couverture des contrôles et lignes à traiter", level: 2 }),
+    ).toBeVisible();
+    await expect(page.getByRole("region", { name: "Revue append-only des constats fiscaux" })).toBeVisible();
 
     const body = await page.locator("body").innerText();
     // Entité et période visibles (unité et exercice).
     expect(body).toMatch(/DEMO SA/);
-    expect(body).toMatch(/exercice 2026/);
+    expect(body).toMatch(/exercice 2026/iu);
     expect(body).toMatch(/euros/iu);
     // L'écart de démonstration du moteur IS : 24 850,00 EUR (espaces insécables).
     expect(body).toMatch(/24[\s  ]?850,00[\s  ]?€/u);
@@ -42,10 +46,9 @@ test.describe("cockpit fiscalité", () => {
     await page.goto("/dashboard/fiscalite");
     await page.getByRole("button", { name: "TVA", exact: true }).click();
     await expect(page).toHaveURL(/impot=vat/);
-    // Périmètre TVA : le volet IS annonce son absence au lieu d'inventer des zéros.
-    await expect(
-      page.getByText("Aucun calcul d'impôt sur les sociétés", { exact: false }).first(),
-    ).toBeVisible();
+    // Périmètre TVA : seules les réconciliations TVA restent sous le sélecteur.
+    await expect(page.getByRole("heading", { name: "TVA : théorique, comptabilisée, déclarée" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "IS : calculé, déclaré, comptabilisé" })).toHaveCount(0);
 
     // Sens inverse : une URL profonde restaure le filtre.
     await page.goto("/dashboard/fiscalite?impot=cfe");
@@ -55,12 +58,8 @@ test.describe("cockpit fiscalité", () => {
     );
   });
 
-  test("l'exploration s'ouvre au clavier et filtre par statut", async ({ page }) => {
+  test("les lignes se filtrent au clavier et s'ouvrent dans le panneau latéral", async ({ page }) => {
     await page.goto("/dashboard/fiscalite?impot=corporate_income_tax");
-    const summary = page.getByText(/Toutes les lignes de réconciliation et tous les contrôles/);
-    await summary.scrollIntoViewIfNeeded();
-    await summary.focus();
-    await page.keyboard.press("Enter");
 
     const incoherence = page.getByRole("button", { name: "Incohérence", exact: true });
     await expect(incoherence).toBeVisible();
@@ -71,6 +70,14 @@ test.describe("cockpit fiscalité", () => {
     const rows = page.locator('section[aria-label^="Exploration"] tbody tr');
     await expect(rows).toHaveCount(1);
     await expect(rows.first()).toContainText("Incohérence");
+
+    // Entrée sur le libellé ouvre le panneau latéral ; Échap le referme.
+    await rows.first().getByRole("button").focus();
+    await page.keyboard.press("Enter");
+    const drawer = page.getByRole("dialog");
+    await expect(drawer).toContainText("Formule / normalisations");
+    await page.keyboard.press("Escape");
+    await expect(drawer).toHaveCount(0);
   });
 
   test("aucun bouton sans nom accessible, aucun bouton sans action", async ({ page }) => {

@@ -5,16 +5,19 @@
  *
  * `TaxSourceFootnote`, `TaxMethodologyPopover` et `AccessibleTaxChartTable`
  * délèguent aux primitives de la Synthèse : même contrat `VisualizationDataset`,
- * même rendu, aucune divergence de langage visuel. `TaxChartCard` est
- * l'enveloppe standard d'un panneau du cockpit (titre, méthodo, contenu,
- * alternative tabulaire, sources).
+ * aucune divergence de contenu. La refonte les replie derrière un lien discret
+ * « Sources et méthodologie ↓ » : la traçabilité reste à un clic, sans bruit.
+ * `TaxChartCard` est l'enveloppe standard d'un bloc : zone sans bordure,
+ * titre, phrase de lecture, contenu, sources repliées.
  */
 
+import { useId, useState } from "react";
 import type { VisualizationDataset } from "@/lib/visualization/types";
 import { AccessibleChartTable } from "@/components/synthesis/AccessibleChartTable";
 import { MethodologyPopover } from "@/components/synthesis/MethodologyPopover";
 import { SourceFootnote } from "@/components/synthesis/SourceFootnote";
-import { FONT, T } from "@/components/synthesis/tokens";
+import { FONT } from "@/components/synthesis/tokens";
+import { BLOCK_TITLE, EYEBROW, INK_FAINT, QUIET_BUTTON, READING } from "./cockpit-style";
 
 export function TaxSourceFootnote({ dataset }: { dataset: VisualizationDataset }) {
   return <SourceFootnote dataset={dataset} />;
@@ -34,61 +37,94 @@ export function AccessibleTaxChartTable({
   return <AccessibleChartTable dataset={dataset} defaultOpen={defaultOpen} />;
 }
 
-/** Enveloppe standard d'un panneau du cockpit fiscalité. */
+/**
+ * Accordéon « Sources et méthodologie » : méthodologie du dataset, sources
+ * normatives et alternative tabulaire. Replié par défaut.
+ */
+export function SourcesDisclosure({
+  dataset,
+  defaultOpen = false,
+  tableOpen = false,
+  style,
+}: {
+  dataset: VisualizationDataset;
+  defaultOpen?: boolean;
+  tableOpen?: boolean;
+  style?: React.CSSProperties;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  const panelId = useId();
+  return (
+    <div style={style}>
+      <button
+        type="button"
+        className="pbz-focusable pbz-quiet"
+        aria-expanded={open}
+        aria-controls={panelId}
+        onClick={() => setOpen((value) => !value)}
+        style={QUIET_BUTTON}
+      >
+        Sources et méthodologie{" "}
+        <span
+          aria-hidden="true"
+          style={{
+            display: "inline-block",
+            transition: "transform .2s ease",
+            transform: open ? "rotate(180deg)" : undefined,
+          }}
+        >
+          ↓
+        </span>
+      </button>
+      {open && (
+        <div id={panelId} className="pbz-fade" style={{ marginTop: 8, maxWidth: "90ch" }}>
+          {dataset.methodology && (
+            <p style={{ margin: 0, fontSize: FONT.meta, lineHeight: 1.8, color: INK_FAINT }}>
+              {dataset.methodology}
+            </p>
+          )}
+          <TaxSourceFootnote dataset={dataset} />
+          <AccessibleTaxChartTable dataset={dataset} defaultOpen={tableOpen} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Enveloppe standard d'un bloc du cockpit fiscalité (zone sans bordure). */
 export function TaxChartCard({
   dataset,
   eyebrow,
+  reading,
   children,
   tableOpen = false,
+  sourcesOpen = false,
 }: {
   dataset: VisualizationDataset;
   eyebrow?: string;
+  /** Phrase de lecture placée au-dessus du graphique. */
+  reading?: string;
   children: React.ReactNode;
   tableOpen?: boolean;
+  sourcesOpen?: boolean;
 }) {
   return (
-    <section
-      aria-label={dataset.title}
-      style={{
-        border: `1px solid ${T.border}`,
-        borderRadius: 14,
-        background: T.surface2,
-        padding: "16px 18px",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          gap: 10,
-        }}
-      >
-        <div>
-          {eyebrow && (
-            <div
-              style={{
-                fontSize: FONT.meta - 2,
-                fontWeight: 600,
-                textTransform: "uppercase",
-                letterSpacing: ".09em",
-                color: T.muted,
-              }}
-            >
-              {eyebrow}
-            </div>
-          )}
-          <h3 style={{ margin: "3px 0 0", fontSize: FONT.body, fontWeight: 600, color: T.text }}>
-            {dataset.title}
-          </h3>
+    <section aria-label={dataset.title} style={{ display: "flex", flexDirection: "column", minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 10 }}>
+        <div style={{ minWidth: 0 }}>
+          {eyebrow && <div style={{ ...EYEBROW, letterSpacing: ".14em", marginBottom: 6 }}>{eyebrow}</div>}
+          <h3 style={BLOCK_TITLE}>{dataset.title}</h3>
         </div>
         <TaxMethodologyPopover dataset={dataset} />
       </div>
-      <div style={{ marginTop: 12 }}>{children}</div>
-      <AccessibleTaxChartTable dataset={dataset} defaultOpen={tableOpen} />
-      <TaxSourceFootnote dataset={dataset} />
+      {reading && <p style={READING}>{reading}</p>}
+      <div style={{ marginTop: 20 }}>{children}</div>
+      <SourcesDisclosure
+        dataset={dataset}
+        defaultOpen={sourcesOpen || tableOpen}
+        tableOpen={tableOpen}
+        style={{ marginTop: 18 }}
+      />
     </section>
   );
 }

@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Rapprochements IS : valeurs recalculées contre valeurs déclarées (liasse,
- * 2065) et comptabilisées (charge d'impôt). Lignes produites par le moteur
- * TAX-05, tolérance nulle : un écart est une différence à analyser.
+ * Rapprochements CFE : avis d'imposition, charge comptabilisée et règlements
+ * (moteur TAX-07). La cotisation n'est jamais recalculée : le moteur rapproche
+ * l'avis, il ne le reconstitue pas.
  */
 
 import type { TaxCockpitDatasets } from "@/lib/tax/cockpit";
@@ -11,10 +11,10 @@ import { ComparisonBars } from "./ComparisonBars";
 import { reconciliationReading } from "./narrative";
 import { TaxChartCard } from "./TaxSourceFootnote";
 
-export function CorporateTaxReconciliation({
+export function CfeReconciliation({
   dataset,
 }: {
-  dataset: TaxCockpitDatasets["corporateReconciliation"];
+  dataset: TaxCockpitDatasets["cfeReconciliation"];
 }) {
   return (
     <TaxChartCard dataset={dataset} reading={reconciliationReading(dataset.bars, dataset.summary)}>

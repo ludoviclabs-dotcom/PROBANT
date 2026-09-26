@@ -48,9 +48,8 @@ test.describe("TAX-10 — release gate E2E synthétique", () => {
 
   test("capabilities → contrôles → waterfall → revue → preuve → note → export → manifeste", async ({ page }) => {
     await page.goto("/dashboard/fiscalite?impot=corporate_income_tax");
-    await expect(page.getByRole("heading", { name: "Capacité et décision", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Calcul", level: 2 })).toBeVisible();
-    await expect(page.getByText(/Résultat comptable.*résultat fiscal/iu).first()).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Exercice \d{4} — /u, level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /résultat comptable.*résultat fiscal/iu, level: 2 })).toBeVisible();
 
     const review = page.getByRole("region", { name: "Revue append-only des constats fiscaux" });
     await review.getByLabel("Commentaire de revue fiscale").fill("Revue synthétique TAX-10");
@@ -67,7 +66,8 @@ test.describe("TAX-10 — release gate E2E synthétique", () => {
     await expect(review.getByRole("status")).toContainText("Événement append-only 2");
 
     const exports = page.getByRole("region", { name: "Exports du dossier de preuve fiscal" });
-    await exports.getByRole("button", { name: "Vérifier" }).click();
+    await exports.getByRole("button", { name: "Exporter", exact: true }).click();
+    await exports.getByRole("button", { name: "Vérifier les empreintes" }).click();
     await expect(exports.getByRole("status")).toContainText("Hashes vérifiés · 9 artefacts");
 
     const noteDownload = page.waitForEvent("download");
@@ -104,7 +104,7 @@ test.describe("TAX-10 — QA visuelle du cockpit fiscal", () => {
     for (const viewport of VIEWPORTS) {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.goto("/dashboard/fiscalite");
-      await expect(page.getByRole("heading", { name: "Capacité et décision", level: 2 })).toBeVisible();
+      await expect(page.getByRole("heading", { name: /^Exercice \d{4} — /u, level: 2 })).toBeVisible();
       const dimensions = await page.evaluate(() => ({
         scrollWidth: document.documentElement.scrollWidth,
         clientWidth: document.documentElement.clientWidth,
