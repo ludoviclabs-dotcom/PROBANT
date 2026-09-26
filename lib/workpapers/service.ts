@@ -3,7 +3,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import type { CalculationRegistry } from "./calculations";
 import { linkImportedEvidence } from "./evidence";
-import type { MemoryImportRepository } from "./imports";
+import type { ImportBatch } from "./imports";
 import { assertScope, contentHash, validateRun, type ProcedureTemplate, type Population, type SelectionSet, type WorkpaperRun, type WorkpaperScope, type WorkpaperState, type WorkpaperNote } from "./model";
 import { authorize, assertTransition, type Permission, type Principal } from "./policy";
 import type { WorkpaperRepository } from "./repository";
@@ -13,8 +13,12 @@ import { projectLockedWorkpaper } from "./projection";
 /** No production session provider exists yet. Never derive identity from a request body. */
 export type TrustedSession = () => Promise<Principal | null>;
 export const disabledSession: TrustedSession = async () => null;
+export interface WorkpaperImportPort {
+  get(scope: WorkpaperScope, id: string, principal: Principal): ImportBatch;
+  download(scope: WorkpaperScope, id: string, principal: Principal): Uint8Array | null;
+}
 export class WorkpaperService {
-  constructor(private readonly repository: WorkpaperRepository, private readonly imports: MemoryImportRepository,
+  constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString()) {}
   private async actor(scope: WorkpaperScope, permission: Permission) {

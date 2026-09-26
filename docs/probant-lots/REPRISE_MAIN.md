@@ -1,4 +1,10 @@
-# Reprise différentielle sur main
+# Reprise différentielle sur main — état courant 2026-09-25
+
+La transposition A–E décrite ci-dessous a été fusionnée dans la PR #50 et publiée sur `main` au commit `482314aa4e7810c3f0ffb88ed0adb163668e176f`. Elle n'est pas reprise une seconde fois. La finalisation du démonstrateur intégré se fait sur la branche locale `feat/probant-demo-integree`, issue de ce `main`, sans publication distante à cette étape. Les choix du tableau suivant sont conservés comme historique daté de la reprise initiale.
+
+Le nouveau travail raccorde les dix cycles à un dossier synthétique dédié, puis à la synthèse et à l'export du même dossier. Le journal local du navigateur remplace la dépendance à une `Map` serverless pour ce parcours, sans prétendre à une persistance réelle. L'IS demeure bloqué pour l'exercice 2024 non couvert. Les gates d'activation réelle listées ci-dessous ne sont pas levées.
+
+## Historique de décision — 2026-09-25 avant PR #50
 
 Date : 2026-09-25. Base distante vérifiée après `git fetch origin --prune` : `cd21e0308e0d6eec604ec6be9814291cebea3b0a`. Ancien travail conservé sans suppression dans `archive/probant-lots-ae-2026-09-25` (`30c5255`). Reprise : `fix/reprise-probant-lots-ae`.
 

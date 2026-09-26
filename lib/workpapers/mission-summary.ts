@@ -19,12 +19,14 @@ export function summarizeWorkpapers(snapshot: DossierSnapshot) {
     const projected = locked.find((l) => l.rootId === r.rootId);
     return { id: r.id, rootId: r.rootId, label: r.template.objective, state: r.state, revision: r.revision, executed: r.result?.execution === "completed", inconclusive: r.result?.outcome === "inconclusive", projectedRevision: projected?.revision ?? null, stale: !!projected && (r.revision > projected.revision || contentHash(r) !== contentHash(projected)), assertions: r.template.assertions, notes: r.notes, link: `#wp-${encodeURIComponent(r.id)}` };
   });
-  return { sourceRevisions: projection?.sourceRevisions ?? [], rows, planned: rows.length, executed: rows.filter((r) => r.executed).length, approved: locked.length, inconclusive: rows.filter((r) => r.inconclusive).length, coverage: rows.length ? { numerator: locked.length, denominator: rows.length, unit: "procédures projetées / prévues", excluded: "Non applicables non définis ; non concluants inclus et signalés" } : { reason: "Aucune population de procédures définie : non calculable" }, exposures: { kind: "unknown" as const, reason: "Montants conservés par travail ; aucune somme entre catégories ou événements sans regroupement validé" } };
+  const currentLocked = rows.filter((r) => r.state === "locked" && !r.stale).length;
+  return { sourceRevisions: projection?.sourceRevisions ?? [], rows, planned: rows.length, executed: rows.filter((r) => r.executed).length, approved: currentLocked, inconclusive: rows.filter((r) => r.inconclusive).length, coverage: rows.length ? { numerator: currentLocked, denominator: rows.length, unit: "procédures projetées / prévues", excluded: "Non applicables non définis ; non concluants inclus et signalés" } : { reason: "Aucune population de procédures définie : non calculable" }, exposures: { kind: "unknown" as const, reason: "Montants conservés par travail ; aucune somme entre catégories ou événements sans regroupement validé" } };
 }
 /** Exact table paths link each displayed value to its immutable result, not a new computation. */
 export function resultCells(value: unknown, path = "result"): { path: string; value: string }[] {
   if (!value || typeof value !== "object") return [];
   const o = value as Record<string, unknown>;
+  if (o.status === "invalid_input") return [{ path, value: `Donnée invalide : ${String(o.reason)}` }];
   if (o.kind === "unknown" || o.kind === "not_applicable") return [{ path, value: `${o.kind} : ${String(o.reason)}` }];
   if (typeof o.amount === "string" && o.currency === "EUR") return [{ path, value: `${o.amount} EUR` }];
   return Object.entries(o).flatMap(([key, v]) => resultCells(v, `${path}.${key}`));
