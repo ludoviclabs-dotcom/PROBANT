@@ -427,18 +427,12 @@ function IncomeTaxPanel({ bundles }: { bundles: Readonly<Record<TaxCockpitScope,
         <ComparisonBars rows={dataset.bars} ariaLabel={dataset.summary} />
         <SourcesBlock dataset={dataset} />
       </div>
-      <DocumentsColumn bundles={bundles} scoped={scoped} />
+      <DocumentsColumn scoped={scoped} />
     </>
   );
 }
 
-function DocumentsColumn({
-  bundles,
-  scoped,
-}: {
-  bundles: Readonly<Record<TaxCockpitScope, TaxCockpitDatasets>>;
-  scoped: TaxCockpitDatasets;
-}) {
+function DocumentsColumn({ scoped }: { scoped: TaxCockpitDatasets }) {
   const documents = scoped.capability.documents;
   const documentsItem = scoped.capability.items.find((item) => item.id === "documents");
   return (
