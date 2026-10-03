@@ -93,6 +93,9 @@ test.describe("accessibilité axe-core", () => {
     test(`${target.name} — aucune violation critique, dette « serious » non aggravée`, async ({
       page,
     }) => {
+      // Mesure l'état posé : une animation d'entrée en cours (opacité partielle) fausse
+      // le calcul de contraste et le rend dépendant de la vitesse de la machine.
+      await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(target.path);
       await page.waitForLoadState("networkidle");
       const violations = await runAxe(page);

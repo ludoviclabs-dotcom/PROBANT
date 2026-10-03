@@ -35,6 +35,7 @@ import {
   TAX_OUTCOME_LABEL,
   TAX_OUTCOME_ORDER,
   TAX_OUTCOME_TONE,
+  TAX_OUTCOME_WORDING,
   TAX_TYPE_LABEL,
   TAX_TYPE_SHORT_LABEL,
 } from "./labels";
@@ -322,7 +323,14 @@ function mergedRecommendations(
 // Datasets
 // ---------------------------------------------------------------------------
 
+function referencePeriod(source: TaxCockpitSource) {
+  return (
+    source.periods.find((period) => period.taxType === "corporate_income_tax") ?? source.periods[0]
+  );
+}
+
 function buildSummary(source: TaxCockpitSource): TaxCockpitSummary {
+  const reference = referencePeriod(source);
   const headline = source.synthesis.headlineStatus;
   const engineVersions: string[] = [];
   if (source.corporateTax) engineVersions.push(source.corporateTax.snapshot.engineVersion);
@@ -337,6 +345,8 @@ function buildSummary(source: TaxCockpitSource): TaxCockpitSummary {
     fiscalYear: source.fiscalYear,
     periodLabel: periodLabel(source),
     currency: "EUR",
+    periodStartDate: reference?.startDate ?? null,
+    periodEndDate: reference?.endDate ?? null,
     generatedAt: source.synthesis.generatedAt,
     headlineLabel: label,
     headlineTone: tone,
@@ -464,7 +474,45 @@ function buildCapability(
     sourceRefs: [`Synthèse fiscale ${source.synthesis.snapshotHash.slice(0, 12)}`],
     items,
     nextAction,
+    documents: documents
+      .map((doc) => DOCUMENT_TYPE_LABEL[doc.documentType] ?? doc.documentType)
+      .filter((label, index, list) => list.indexOf(label) === index)
+      .map((label) => ({ label })),
   };
+}
+
+/** Sens des étapes « delta » du moteur IS — table statique alignée sur les codes TAX-05. */
+const WATERFALL_DIRECTION: Readonly<Record<string, "add" | "subtract">> = {
+  reintegrations_confirmed: "add",
+  reintegrations_proposed: "add",
+  deductions_confirmed: "subtract",
+  deductions_proposed: "subtract",
+  deficits_offset: "subtract",
+};
+
+/** Pourcentage à une décimale en arithmétique entière (« 7,3 % »). */
+function percentLabel(numeratorCents: number, baseCents: number): string {
+  const tenths = Math.round((Math.abs(numeratorCents) * 1000) / baseCents);
+  const whole = Math.floor(tenths / 10);
+  return `${whole},${tenths % 10} %`;
+}
+
+function waterfallReading(
+  step: { code: string; kind: string; deltaCents: number; runningTotalCents: number; status: string },
+  direction: "add" | "subtract" | null,
+  baseCents: number | null,
+): string | null {
+  if (baseCents === null || baseCents <= 0 || step.status === "unavailable") return null;
+  if (step.kind === "delta" && direction !== null) {
+    if (step.deltaCents === 0) return null;
+    return `${direction === "add" ? "+" : "−"} ${percentLabel(step.deltaCents, baseCents)} du résultat comptable`;
+  }
+  if (step.kind === "subtotal" && step.code === "tax_result_before_deficits") {
+    const variation = step.runningTotalCents - baseCents;
+    const sign = variation < 0 ? "−" : "+";
+    return `${sign} ${formatCents(Math.abs(variation))} (${sign} ${percentLabel(variation, baseCents)}) par rapport au résultat comptable`;
+  }
+  return null;
 }
 
 function buildWaterfall(
@@ -473,21 +521,32 @@ function buildWaterfall(
 ): TaxCockpitDatasets["waterfall"] {
   const included = scopeIncludes(scope, "corporate_income_tax") && source.corporateTax;
   const snapshot = included ? source.corporateTax!.snapshot : null;
+  const baseCents = snapshot
+    ? (snapshot.waterfall.steps.find((step) => step.kind === "base")?.runningTotalCents ?? null)
+    : null;
   const steps: TaxCockpitWaterfallStep[] = snapshot
-    ? snapshot.waterfall.steps.map((step) => ({
-        id: step.code,
-        label: step.label,
-        kind: step.kind,
-        deltaCents: step.deltaCents,
-        runningTotalCents: step.runningTotalCents,
-        status: step.status,
-        note:
-          step.status === "proposed"
-            ? "Candidat de revue — hors cumul retenu"
-            : step.status === "unavailable"
-              ? NOT_AVAILABLE
-              : undefined,
-      }))
+    ? snapshot.waterfall.steps.map((step) => {
+        const direction =
+          step.kind === "delta"
+            ? (WATERFALL_DIRECTION[step.code] ?? (step.deltaCents < 0 ? "subtract" : "add"))
+            : null;
+        return {
+          id: step.code,
+          label: step.label,
+          kind: step.kind,
+          deltaCents: step.deltaCents,
+          runningTotalCents: step.runningTotalCents,
+          status: step.status,
+          note:
+            step.status === "proposed"
+              ? "Candidat de revue — hors cumul retenu"
+              : step.status === "unavailable"
+                ? NOT_AVAILABLE
+                : undefined,
+          direction,
+          readingLabel: waterfallReading(step, direction, baseCents),
+        };
+      })
     : [];
   const columns: VisualizationColumn[] = [
     { key: "label", label: "Étape" },
@@ -835,6 +894,12 @@ function buildRiskMatrix(
       );
       if (cellControls.length === 0) continue;
       const worst = worstOutcome(cellControls.map((control) => control.outcome));
+      const outcomeBreakdown = TAX_OUTCOME_ORDER.map((outcome) => ({
+        outcome,
+        label: TAX_OUTCOME_LABEL[outcome],
+        count: cellControls.filter((control) => control.outcome === outcome).length,
+        tone: TAX_OUTCOME_TONE[outcome],
+      })).filter((entry) => entry.count > 0);
       cells.push({
         taxType,
         cycle,
@@ -842,6 +907,7 @@ function buildRiskMatrix(
         worstOutcomeLabel: worst ? TAX_OUTCOME_LABEL[worst] : null,
         tone: worst ? TAX_OUTCOME_TONE[worst] : "neutral",
         controlTitles: cellControls.map((control) => control.title),
+        outcomeBreakdown,
       });
     }
   }
@@ -1010,7 +1076,24 @@ function buildRequiredDocuments(
   const entries = [...missingByCode.values()].sort((left, right) =>
     left.code.localeCompare(right.code),
   );
-  const limitations = source.synthesis.limitations;
+  // Propriétaire d'une limitation : le moteur qui l'a émise ; à défaut, la période
+  // à laquelle elle se rattache ; sinon elle est réellement globale.
+  const owner = new Map<string, TaxType>();
+  for (const [taxType, engineLimitations] of [
+    ["corporate_income_tax", source.corporateTax?.snapshot.limitations],
+    ["vat", source.vat?.snapshot.limitations],
+    ["cfe", source.cfe?.snapshot.limitations],
+  ] as const) {
+    for (const limitation of engineLimitations ?? []) owner.set(limitation.id, taxType);
+  }
+  const periodTaxType = new Map(source.periods.map((period) => [period.id, period.taxType]));
+  const limitations = source.synthesis.limitations.filter((limitation) => {
+    if (scope === "all") return true;
+    const engineOwner = owner.get(limitation.id);
+    if (engineOwner) return engineOwner === scope;
+    const taxes = limitation.relatedIds.flatMap((id) => periodTaxType.get(id) ?? []);
+    return taxes.length === 0 || taxes.includes(scope);
+  });
   const rows: VisualizationRow[] = entries.map((entry) => {
     const [kind, rawCode] = entry.code.includes(":")
       ? (entry.code.split(":", 2) as [string, string])
@@ -1081,6 +1164,13 @@ function buildFindings(
     const outcome = LINE_STATUS_OUTCOME[line.status];
     outcomeByRowId[line.id] = outcome;
     details[line.id] = {
+      controlId: null,
+      taxLabel: TAX_TYPE_LABEL[line.taxType],
+      reading: TAX_OUTCOME_WORDING[outcome],
+      amountDisplay:
+        outcome !== "passed" && line.differenceCents !== null
+          ? cents(line.differenceCents)
+          : cents(line.leftCents),
       formula:
         line.normalizationNotes.length > 0
           ? line.normalizationNotes.join(" ")
@@ -1120,6 +1210,10 @@ function buildFindings(
   for (const control of controls) {
     outcomeByRowId[control.id] = control.outcome;
     details[control.id] = {
+      controlId: control.controlId,
+      taxLabel: TAX_TYPE_LABEL[control.taxType],
+      reading: control.detail,
+      amountDisplay: control.differenceCents === null ? "—" : formatCents(control.differenceCents),
       formula: control.detail,
       usedData: [],
       limits: [],

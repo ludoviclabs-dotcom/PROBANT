@@ -1,0 +1,306 @@
+/*
+ * Cockpit fiscalité — refonte « cabinet d'audit » (maquette Claude Design).
+ * Animations, états de survol (équivalent des « style-hover » de la maquette)
+ * et repli mobile. Les valeurs inline des composants restent la source de
+ * vérité du desktop ; les !important du repli mobile les surchargent.
+ */
+
+.fx-root {
+  line-height: normal;
+  background: #0a0b0f;
+  color: #e6edf6;
+  font-size: 14px;
+  min-height: 100%;
+  color-scheme: dark;
+  /* Aucun débordement horizontal ne doit élargir la page (clip ≠ scroll : le sticky reste actif). */
+  overflow-x: clip;
+}
+
+@keyframes fxRiseIn {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes fxFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes fxBarIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+@keyframes fxPulseDot {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.45;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.9;
+  }
+}
+@keyframes fxTilt {
+  0%,
+  100% {
+    transform: rotateX(58deg) rotateZ(-42deg);
+  }
+  50% {
+    transform: rotateX(58deg) rotateZ(-34deg);
+  }
+}
+@keyframes fxFlow {
+  0% {
+    transform: translateZ(0) scaleY(0.2);
+    opacity: 0;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateZ(120px) scaleY(1);
+    opacity: 0;
+  }
+}
+@keyframes fxSlideIn {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+/* Position de repos de la scène 3D : conservée quand le mouvement est réduit. */
+.fx-scene-tilt {
+  transform: rotateX(58deg) rotateZ(-42deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fx-root *,
+  .fx-drawer {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ── Survol ── */
+@media (hover: hover) {
+  .fx-wf-row:hover {
+    background: rgba(255, 255, 255, 0.025) !important;
+  }
+  .fx-link:hover {
+    color: #e6edf6 !important;
+  }
+  .fx-btn-primary:hover {
+    background: #7fb2ff !important;
+  }
+  .fx-btn-amber:hover {
+    background: #f5d76b !important;
+  }
+  .fx-btn-ghost:hover,
+  .fx-menu-item:hover {
+    background: rgba(255, 255, 255, 0.06) !important;
+  }
+  .fx-btn-hash:hover,
+  .fx-icon-btn:hover {
+    background: rgba(255, 255, 255, 0.1) !important;
+    color: #e6edf6 !important;
+  }
+  .fx-cell:hover {
+    background: rgba(255, 255, 255, 0.07) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35);
+  }
+  .fx-find-row:hover {
+    background: rgba(255, 255, 255, 0.04) !important;
+  }
+}
+
+.fx-root :focus-visible {
+  outline: 2px solid #5b9dff;
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Les libellés sr-only (position absolue) restent contenus — et rognés — par la liste défilante. */
+.fx-stepper,
+.fx-stepper-m {
+  position: relative;
+}
+.fx-stepper-m {
+  display: none;
+}
+
+/* ── Mobile (< 768 px) ── */
+@media (max-width: 767px) {
+  .fx-ctx-inner {
+    padding: 8px 16px !important;
+    gap: 10px 12px !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between;
+  }
+  .fx-cta,
+  .fx-hash-text,
+  .fx-stepper {
+    display: none !important;
+  }
+  .fx-stepper-m {
+    display: flex !important;
+    margin: 0 0 24px !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .fx-stepper-m::-webkit-scrollbar {
+    display: none;
+  }
+  .fx-stepper-m {
+    justify-content: space-between;
+  }
+  .fx-stepper-m > li > span[aria-hidden="true"] {
+    display: none;
+  }
+  .fx-stepper-m > li > span:not([aria-hidden]) {
+    padding: 6px 6px 8px !important;
+    gap: 6px !important;
+  }
+  .fx-hide-m {
+    display: none;
+  }
+  .fx-pop {
+    right: 16px !important;
+    width: auto !important;
+    left: 16px;
+  }
+  .fx-section {
+    padding: 36px 16px 0 !important;
+  }
+  .fx-h-verdict {
+    font-size: 28px !important;
+  }
+  .fx-h-act {
+    font-size: 26px !important;
+  }
+  .fx-ribbon {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 16px;
+  }
+  .fx-ribbon > * {
+    padding: 0 !important;
+    border-left: 0 !important;
+  }
+  .fx-scene {
+    flex-basis: 100% !important;
+    max-width: none !important;
+  }
+  .fx-next {
+    padding: 16px !important;
+  }
+  .fx-big {
+    font-size: 34px !important;
+  }
+  .fx-split {
+    gap: 28px !important;
+  }
+  .fx-op-label {
+    width: 72px !important;
+  }
+  .fx-op-value {
+    width: 86px !important;
+  }
+  .fx-matrix-row {
+    flex-wrap: wrap;
+  }
+  .fx-matrix-label {
+    width: 100% !important;
+  }
+  .fx-matrix-cells {
+    flex-wrap: wrap;
+  }
+  .fx-cell {
+    flex: 1 1 140px !important;
+  }
+  .fx-find-head {
+    display: none !important;
+  }
+  .fx-find-row {
+    grid-template-columns: minmax(0, 1fr) auto !important;
+    grid-template-areas:
+      "ctrl ctrl"
+      "tax out"
+      "read read"
+      "amt amt";
+    gap: 6px 12px !important;
+  }
+  .fx-c-tax {
+    grid-area: tax;
+  }
+  .fx-c-ctrl {
+    grid-area: ctrl;
+  }
+  .fx-c-out {
+    grid-area: out;
+    text-align: right;
+  }
+  .fx-c-read {
+    grid-area: read;
+  }
+  .fx-c-amt {
+    grid-area: amt;
+    text-align: left !important;
+  }
+  .fx-bar {
+    padding: 8px 16px !important;
+    min-height: 0 !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .fx-bar-summary[data-idle="true"] {
+    display: none;
+  }
+  .fx-bar-fields {
+    display: none !important;
+    flex-direction: column;
+    align-items: stretch !important;
+    gap: 8px !important;
+  }
+  .fx-bar-fields > * {
+    max-width: none !important;
+    width: 100%;
+  }
+  .fx-bar-actions {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+  }
+  .fx-bar-actions > :last-child {
+    flex: 1;
+  }
+  .fx-bar[data-open="true"] .fx-bar-fields {
+    display: flex !important;
+  }
+  .fx-bar-toggle {
+    display: inline-flex !important;
+  }
+  .fx-drawer {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+}
+.fx-bar-toggle {
+  display: none;
+}

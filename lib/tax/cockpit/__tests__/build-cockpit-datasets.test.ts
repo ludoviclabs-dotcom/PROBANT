@@ -202,3 +202,44 @@ describe("langage utilisateur", () => {
     }
   });
 });
+
+describe("limitations par périmètre", () => {
+  it("une limitation rattachée à la période d'un autre impôt n'apparaît pas dans ce périmètre", () => {
+    const periodTax = new Map(source.periods.map((period) => [period.id, period.taxType]));
+    const isScope = buildTaxCockpitDatasets(source, "corporate_income_tax");
+    const cfeScope = buildTaxCockpitDatasets(source, "cfe");
+    const all = buildTaxCockpitDatasets(source, "all");
+    for (const limitation of source.synthesis.limitations) {
+      const taxes = limitation.relatedIds.flatMap((id) => periodTax.get(id) ?? []);
+      if (taxes.length === 0) continue;
+      expect(isScope.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(
+        taxes.includes("corporate_income_tax"),
+      );
+      expect(cfeScope.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(
+        taxes.includes("cfe"),
+      );
+      // Le périmètre « tous impôts » les restitue toutes.
+      expect(all.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(true);
+    }
+  });
+
+  it("une limitation émise par un moteur n'apparaît que dans le périmètre de ce moteur", () => {
+    const engines = [
+      ["corporate_income_tax", source.corporateTax?.snapshot.limitations ?? []],
+      ["vat", source.vat?.snapshot.limitations ?? []],
+      ["cfe", source.cfe?.snapshot.limitations ?? []],
+    ] as const;
+    for (const [owner, limitations] of engines) {
+      for (const limitation of limitations) {
+        for (const scope of ["corporate_income_tax", "vat", "cfe"] as const) {
+          const present = buildTaxCockpitDatasets(source, scope).requiredDocuments.rows.some(
+            (row) => row.id === limitation.id,
+          );
+          if (source.synthesis.limitations.some((candidate) => candidate.id === limitation.id)) {
+            expect(present, `${limitation.id} dans ${scope}`).toBe(scope === owner);
+          }
+        }
+      }
+    }
+  });
+});
