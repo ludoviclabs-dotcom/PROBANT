@@ -1,6 +1,7 @@
 import { canonicalCompare, stableSha256 } from "@/lib/synthesis/canonical";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import { assertScope, contentHash, periodId, validateRun, type WorkpaperRun } from "./model";
+import { resultPresentation } from "./result-contract";
 /** Projection consumer only: never recalculates a cycle or merges the five legacy dimensions. */
 export function summarizeWorkpapers(snapshot: DossierSnapshot) {
   const drafts = snapshot.workpapers?.runs ?? [], projection = snapshot.workpaperProjection;
@@ -17,10 +18,19 @@ export function summarizeWorkpapers(snapshot: DossierSnapshot) {
   [...locked, ...drafts].forEach((r) => { const old = latest.get(r.rootId); if (!old || r.revision > old.revision || (r.revision === old.revision && r.version > old.version)) latest.set(r.rootId, r); });
   const rows = [...latest.values()].sort((a, b) => canonicalCompare(a.rootId, b.rootId)).map((r) => {
     const projected = locked.find((l) => l.rootId === r.rootId);
-    return { id: r.id, rootId: r.rootId, label: r.template.objective, state: r.state, revision: r.revision, executed: r.result?.execution === "completed", inconclusive: r.result?.outcome === "inconclusive", projectedRevision: projected?.revision ?? null, stale: !!projected && (r.revision > projected.revision || contentHash(r) !== contentHash(projected)), assertions: r.template.assertions, notes: r.notes, link: `#wp-${encodeURIComponent(r.id)}` };
+    const presentation = resultPresentation(r);
+    return { id: r.id, rootId: r.rootId, label: r.template.objective, state: r.state, revision: r.revision,
+      executed: r.result?.execution === "completed" && !presentation.contractOutdated,
+      blocked: r.result?.execution === "blocked",
+      inconclusive: presentation.incomplete > 0 || r.result?.outcome === "inconclusive" || presentation.contractOutdated,
+      conclusive: r.result?.execution === "completed" && r.result.outcome !== "inconclusive" && presentation.incomplete === 0 && !presentation.contractOutdated,
+      presentation, projectedRevision: projected?.revision ?? null,
+      stale: presentation.contractOutdated || !!projected && (r.revision > projected.revision || contentHash(r) !== contentHash(projected)),
+      assertions: r.template.assertions, notes: r.notes, link: `#wp-${encodeURIComponent(r.id)}` };
+
   });
   const currentLocked = rows.filter((r) => r.state === "locked" && !r.stale).length;
-  return { sourceRevisions: projection?.sourceRevisions ?? [], rows, planned: rows.length, executed: rows.filter((r) => r.executed).length, approved: currentLocked, inconclusive: rows.filter((r) => r.inconclusive).length, coverage: rows.length ? { numerator: currentLocked, denominator: rows.length, unit: "procédures projetées / prévues", excluded: "Non applicables non définis ; non concluants inclus et signalés" } : { reason: "Aucune population de procédures définie : non calculable" }, exposures: { kind: "unknown" as const, reason: "Montants conservés par travail ; aucune somme entre catégories ou événements sans regroupement validé" } };
+  return { sourceRevisions: projection?.sourceRevisions ?? [], rows, planned: rows.length, executed: rows.filter((r) => r.executed).length, approved: currentLocked, blocked: rows.filter((r) => r.blocked).length, conclusive: rows.filter((r) => r.conclusive).length, subControlsExecuted: rows.reduce((n, r) => n + (r.presentation.contractOutdated ? 0 : r.presentation.executed), 0), exceptions: rows.reduce((n, r) => n + r.presentation.exceptions, 0), inconclusive: rows.filter((r) => r.inconclusive).length, coverage: rows.length ? { numerator: currentLocked, denominator: rows.length, unit: "procédures projetées / prévues", excluded: "Non applicables non définis ; non concluants inclus et signalés" } : { reason: "Aucune population de procédures définie : non calculable" }, exposures: { kind: "unknown" as const, reason: "Montants conservés par travail ; aucune somme entre catégories ou événements sans regroupement validé" } };
 }
 /** Exact table paths link each displayed value to its immutable result, not a new computation. */
 export function resultCells(value: unknown, path = "result"): { path: string; value: string }[] {

@@ -1,3 +1,4 @@
+import { legacyCents } from "@/lib/canonical-model/money";
 import type { DocumentLigne, DocumentSource, FormatDocument, TypeDocument } from "../types";
 
 /**
@@ -16,7 +17,7 @@ export interface MappageColonnes {
   echeance?: string;
   montant: string;
   libelle?: string;
-  /** Colonne booléenne/texte indiquant un poste déjà lettré/déprécié. */
+  /** Colonne booléenne/texte indiquant un poste lettré. */
   lettre?: string;
 }
 
@@ -33,7 +34,7 @@ export function parseMontant(v: unknown): MontantParse {
     return { kind: "absent" };
   }
   if (typeof v === "number") {
-    return Number.isFinite(v) ? { kind: "valid", value: v } : { kind: "invalid" };
+    try { legacyCents(v); return { kind: "valid", value: v }; } catch { return { kind: "invalid" }; }
   }
   if (typeof v !== "string") return { kind: "invalid" };
   const normalized = v.trim().replace(/\s|\u00a0|\u202f/gu, "").replace(/€$/u, "");
@@ -48,7 +49,7 @@ export function parseMontant(v: unknown): MontantParse {
     ? normalized.replace(/\./gu, "").replace(",", ".")
     : normalized.replace(",", ".");
   const value = Number(decimal);
-  return Number.isFinite(value) ? { kind: "valid", value } : { kind: "invalid" };
+  try { legacyCents(value); return { kind: "valid", value }; } catch { return { kind: "invalid" }; }
 }
 
 function toBool(v: unknown): boolean {
@@ -74,7 +75,11 @@ export function lignesDepuisTableur(
     if (map.date && r[map.date] != null) ligne.date = String(r[map.date]);
     if (map.echeance && r[map.echeance] != null) ligne.echeance = String(r[map.echeance]);
     if (map.libelle && r[map.libelle] != null) ligne.libelle = String(r[map.libelle]);
-    if (map.lettre) ligne.lettre = toBool(r[map.lettre]);
+    if (map.lettre) {
+      const value = r[map.lettre];
+      ligne.lettre = toBool(value);
+      ligne.letteringStatus = value == null || String(value).trim() === "" ? "unknown" : ligne.lettre ? "matched" : "unmatched";
+    }
     return ligne;
   });
 }

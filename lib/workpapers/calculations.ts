@@ -1,17 +1,21 @@
 import { z } from "zod";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { cents, money } from "@/lib/canonical-model/money";
-import type { CalculationRun } from "@/lib/canonical-model/calculation";
+import type { CalculationRun, ResultAssessment } from "@/lib/canonical-model/calculation";
+import { assessmentSchema, assessmentOutcome } from "./result-contract";
 import { periodIssues, type AccountingPeriod } from "@/lib/canonical-model/period";
 import { assertScope, frozen, moneySchema, periodId, type Population, type RuleReference, type SelectionSet, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
 import { validateSelectionSources } from "./selection";
+
+class InvalidCalculationInput extends Error {}
 
 interface RegisteredCalculation {
   reference: RuleReference;
   evaluate(input: unknown, parameters: unknown): unknown;
   outcome(result: unknown): CalculationRun["outcome"];
   validateContext(request: CalculationRequest): void;
+  assess?(result: unknown): ResultAssessment;
 }
 export interface CalculationRequest {
   scope: WorkpaperScope; period: AccountingPeriod; rule: { id: string; version: string };
@@ -20,10 +24,14 @@ export interface CalculationRequest {
 /** Version-addressed registry. Functions receive only frozen, validated inputs. */
 export class CalculationRegistry {
   private readonly definitions = new Map<string, RegisteredCalculation>();
-  register<I, P, O>(reference: RuleReference, input: z.ZodType<I>, parameters: z.ZodType<P>, output: z.ZodType<O>, compute: (input: I, parameters: P) => O, classify: (output: O) => CalculationRun["outcome"] = () => "no_exception_detected", validateContext: (request: CalculationRequest) => void = () => {}) {
+  register<I, P, O>(reference: RuleReference, input: z.ZodType<I>, parameters: z.ZodType<P>, output: z.ZodType<O>, compute: (input: I, parameters: P) => O, classify: (output: O) => CalculationRun["outcome"] = () => "no_exception_detected", validateContext: (request: CalculationRequest) => void = () => {}, assess?: (output: O) => ResultAssessment) {
     const key = `${reference.id}@${reference.version}`;
     if (this.definitions.has(key)) throw new Error("CALCULATION_VERSION_ALREADY_REGISTERED");
-    this.definitions.set(key, { reference: frozen(reference), evaluate: (i, p) => output.parse(compute(frozen(input.parse(i)), frozen(parameters.parse(p)))), outcome: (result) => classify(output.parse(result)), validateContext });
+    this.definitions.set(key, { reference: frozen(reference), evaluate: (i, p) => {
+      const validatedInput = input.safeParse(i), validatedParameters = parameters.safeParse(p);
+      if (!validatedInput.success || !validatedParameters.success) throw new InvalidCalculationInput("CALCULATION_INPUT_INVALID");
+      return output.parse(compute(frozen(validatedInput.data), frozen(validatedParameters.data)));
+    }, outcome: (result) => classify(output.parse(result)), validateContext, assess: assess ? (result) => assessmentSchema.parse(assess(output.parse(result))) : undefined });
   }
   execute(request: CalculationRequest): CalculationRun {
     const definition = this.definitions.get(`${request.rule.id}@${request.rule.version}`);
@@ -51,10 +59,14 @@ export class CalculationRegistry {
       const values = selected.map((i) => ({ id: i!.id, amount: i!.amount }));
       const first = definition!.evaluate(values, request.parameters), second = definition!.evaluate(values, request.parameters);
       if (stableSha256(first) !== stableSha256(second)) throw new Error("NONDETERMINISTIC_CALCULATION");
-      const outcome = definition!.outcome(first);
-      if (!["no_exception_detected", "exceptions_detected", "inconclusive"].includes(outcome) || definition!.outcome(first) !== outcome) throw new Error("CALCULATION_OUTCOME_INVALID");
-      return frozen({ ...common, execution: "completed", outcome, result: first });
-    } catch {
+      const assessment = definition!.assess?.(first);
+      const outcome = assessment ? assessmentOutcome(assessment) : definition!.outcome(first);
+      if (!["no_exception_detected", "exceptions_detected", "inconclusive"].includes(outcome)) throw new Error("CALCULATION_OUTCOME_INVALID");
+      if (assessment ? stableSha256(definition!.assess!(first)) !== stableSha256(assessment) : definition!.outcome(first) !== outcome) throw new Error("NONDETERMINISTIC_CLASSIFICATION");
+      const execution = assessment?.execution ?? "completed";
+      return frozen({ ...common, execution, outcome, result: first, ...(assessment ? { assessment, blockedControls: assessment.subControls.filter((c) => c.execution === "blocked").map((c) => `${c.label} : ${c.reason}`) } : {}) });
+    } catch (error) {
+      if (error instanceof InvalidCalculationInput) return frozen({ ...common, execution: "blocked", outcome: "inconclusive", result: { status: "invalid_input", reason: "Entrées ou paramètres invalides : calcul non exécuté." }, blockedControls: [...blockedControls, "CALCULATION_INPUT_INVALID"] });
       return frozen({ ...common, execution: "failed", outcome: "inconclusive", result: null, warnings: ["CALCULATION_VALIDATION_OR_EXECUTION_FAILED"] });
     }
   }

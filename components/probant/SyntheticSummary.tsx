@@ -29,6 +29,6 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
     <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap gap-5"><Link className="underline" href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className="underline" onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status">{message}</p>
-    {bundle && <div className="my-4 flex gap-4"><button className="underline" onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button className="underline" onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button className="underline" onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}
+    {bundle && bundle.manifest.sourceSnapshotHash === snapshot.snapshotHash && <div className="my-4 flex gap-4"><button className="underline" onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button className="underline" onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button className="underline" onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}
   </main>;
 }

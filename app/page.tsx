@@ -186,8 +186,8 @@ export default function Home() {
 
         <p style={{ margin: "18px 0 0", maxWidth: 640, fontSize: 15, lineHeight: 1.65, color: "#8a99af", animation: "pb-fade-in 0.7s 0.1s ease both" }}>
           Orchestrateur de conformité analytique des états financiers français.
-          Ingestion FEC, détection d'anomalies par cloison, dossier de preuve
-          opposable — avec une séparation stricte entre droit dur, méthode
+          Ingestion FEC, détection d'anomalies par cloison, résultats traçables
+          selon le mode de traitement — avec une séparation entre droit dur, méthode
           d'audit et heuristiques internes.
         </p>
 

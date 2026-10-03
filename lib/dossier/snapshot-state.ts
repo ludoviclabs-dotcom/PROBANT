@@ -19,6 +19,7 @@ export function computeDossierSnapshotHash(snapshot: DossierSnapshot): string {
     ),
     reviewEvents: snapshot.reviewEvents,
     calculationContext: snapshot.calculationContext,
+    ...(snapshot.uploadExecutions ? { uploadExecutions: snapshot.uploadExecutions, uploadBaselineContext: snapshot.uploadBaselineContext } : {}),
   });
 }
 

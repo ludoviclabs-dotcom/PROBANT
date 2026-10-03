@@ -6,7 +6,7 @@ export default function DepotPage() {
     <div className="p-6">
       <PageHeader
         title="Dépôt & ingestion"
-        subtitle="Déposez un FEC : empreinte, parsing, validation réglementaire (LPF art. A.47 A-1) et exécution du moteur s'enchaînent. Les anomalies bloquantes d'admissibilité sont traitées avant toute analyse financière."
+        subtitle="Dans un dossier persistant autorisé, le FEC est transmis au stockage et traité par le moteur d’ingestion. Les autres formats et les dépôts par cycle sont lus dans le navigateur ; leurs résultats doivent être qualifiés et revus."
       />
       <DepotView />
     </div>

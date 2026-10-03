@@ -45,7 +45,17 @@ function manifestSourceDocuments(snapshot: DossierSnapshot): ManifestSourceDocum
 
 function controlsFromFindings(snapshot: DossierSnapshot): EvidenceControlRow[] {
   const controls = new Map<string, EvidenceControlRow>();
+  const uploads = snapshot.uploadExecutions ?? [];
+  const uploadFindingIds = new Set(uploads.flatMap((run) => run.silo.findings.map((f) => f.id)));
+  for (const run of uploads.filter((candidate) => candidate.state === "active")) controls.set(run.identity, {
+    controlId: `UPLOAD-${run.cycleId}`, controlVersion: run.contractVersion, runId: run.id,
+    execution: run.status === "blocked" ? "blocked" : "completed",
+    status: run.status !== "compared" ? "not_concluded" : run.silo.findings.length ? "finding_emitted" : "completed_without_finding",
+    findingIds: run.silo.findings.map((f) => f.id),
+    normativeReferences: [...new Set(run.silo.findings.map((f) => `${f.source.ref}@${f.source.effectiveDate}`))].sort(),
+  });
   for (const finding of [...snapshot.findings].sort((a, b) => canonicalCompare(a.id, b.id))) {
+    if (uploadFindingIds.has(finding.id)) continue;
     const key = `${finding.ruleId}@${finding.ruleVersion}`;
     const current = controls.get(key) ?? {
       controlId: finding.ruleId,
@@ -65,6 +75,8 @@ function controlsFromFindings(snapshot: DossierSnapshot): EvidenceControlRow[] {
 }
 
 function sourceIdsForFinding(snapshot: DossierSnapshot, findingId: string): string[] {
+  const upload = snapshot.uploadExecutions?.find((run) => run.state === "active" && run.silo.findings.some((f) => f.id === findingId));
+  if (upload) return upload.documents.map((doc) => doc.id).sort();
   const finding = snapshot.findings.find((candidate) => candidate.id === findingId);
   if (!finding) return [];
   const hashes = new Set((finding.preuve ?? []).map((step) => step.hash).filter(Boolean));
@@ -98,6 +110,7 @@ function buildCanonicalExport(
   const controls = controlsFromFindings(snapshot);
   return {
     exportSchemaVersion: "1.0.0",
+    ...(snapshot.uploadExecutions ? { uploadExecutions: snapshot.uploadExecutions } : {}),
     dossier: snapshot.dossier,
     synthesisSnapshot: synthesis,
     sourceDocuments: sources,
@@ -239,6 +252,11 @@ export async function buildEvidenceExportPackage(
   ];
   const sources = report.sourceDocuments;
   const extraLimitations: EvidenceManifest["limitations"] = [];
+  if (snapshot.uploadExecutions?.length) extraLimitations.push({
+    code: "session_upload_not_archived",
+    message: "Dépôt historique en session d’onglet : résultats versionnés, originaux non archivés. Les exécutions périmées sont exclues des contrôles actifs ; aucune preuve opposable n’est établie.",
+    subjects: snapshot.uploadExecutions.map((run) => run.id),
+  });
   const invalidHashes = sources.filter((source) => !SHA256_PATTERN.test(source.sha256));
   if (invalidHashes.length > 0) {
     extraLimitations.push({

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { buildDemoDossierSnapshot } from "@/lib/dossier/snapshot-builder";
 import { buildSynthesisSnapshot } from "@/lib/synthesis/engine";
 import { MemoryWorkpaperRepository } from "../repository";
@@ -16,7 +17,8 @@ function baseline() {
 async function fixture() {
   const { batch, repo: imports } = await importedFixture(), repository = new MemoryWorkpaperRepository();
   let actor: Principal | null = preparer;
-  const service = new WorkpaperService(repository, imports, syntheticRegistry(), async () => actor, () => "2024-08-01T00:00:00Z");
+  const registry = syntheticRegistry();
+  const service = new WorkpaperService(repository, imports, registry, async () => actor, () => "2024-08-01T00:00:00Z");
   let run = await service.create(scope, period, { ...fixtureRun().template, kind: "calculated", rule: SYNTHETIC_SUM_RULE }, "synthetic-case");
   const { population, selection } = populationFixture(batch);
   run = await service.attachInputs(scope, run.id, run.version, population, selection);
@@ -24,7 +26,7 @@ async function fixture() {
   run = await service.execute(scope, run.id, run.version, {});
   run = await service.addEvidence(scope, run.id, run.version, batch.id, batch.rows[0].id, "Synthetic source", "B2");
   run = await service.conclude(scope, run.id, run.version, "Somme synthétique exacte, aucune opinion d’audit.");
-  return { service, repository, run, batch, setActor: (next: Principal | null) => { actor = next; } };
+  return { service, repository, registry, run, batch, setActor: (next: Principal | null) => { actor = next; } };
 }
 async function submitAndApprove(f: Awaited<ReturnType<typeof fixture>>, run = f.run) {
   run = await f.service.transition(scope, run.id, run.version, "awaiting_review");
@@ -95,7 +97,8 @@ describe("CORE-205/206 isolated workflow integration", () => {
     let next = await f.service.revise(scope, oldLocked.id, oldLocked.version);
     next = await f.service.transition(scope, next.id, next.version, "ready");
     next = await f.service.execute(scope, next.id, next.version, { invalid: true });
-    expect(next.state).toBe("failed");
+    expect(next.state).toBe("blocked");
+    expect(next.result).toMatchObject({ execution: "blocked", result: { status: "invalid_input" } });
     next = await f.service.revise(scope, next.id, next.version);
     next = await f.service.transition(scope, next.id, next.version, "ready");
     next = await f.service.execute(scope, next.id, next.version, {});
@@ -114,10 +117,12 @@ describe("CORE-205/206 isolated workflow integration", () => {
     manual = await f.service.transition(scope, manual.id, manual.version, "ready");
     manual = await f.service.recordManual(scope, manual.id, manual.version, "Pièce non suffisante", "inconclusive");
     expect(manual.result?.outcome).toBe("inconclusive");
+    const brokenRule = { ...SYNTHETIC_SUM_RULE, id: "broken-engine" };
+    f.registry.register(brokenRule, z.unknown(), z.object({}).strict(), z.number().finite(), () => NaN);
     for (const kind of ["failed", "blocked"] as const) {
-      const run: WorkpaperRun = { ...fixtureRun(), id: kind, rootId: kind, state: "ready", template: { ...f.run.template, rule: kind === "blocked" ? { ...SYNTHETIC_SUM_RULE, id: "unavailable" } : SYNTHETIC_SUM_RULE }, importIds: f.run.importIds, population: f.run.population, selection: f.run.selection };
+      const run: WorkpaperRun = { ...fixtureRun(), id: kind, rootId: kind, state: "ready", template: { ...f.run.template, rule: kind === "blocked" ? { ...SYNTHETIC_SUM_RULE, id: "unavailable" } : brokenRule }, importIds: f.run.importIds, population: f.run.population, selection: f.run.selection };
       await f.repository.create(run);
-      const result = await f.service.execute(scope, run.id, 1, kind === "failed" ? { invalid: true } : {});
+      const result = await f.service.execute(scope, run.id, 1, {});
       expect(result.state).toBe(kind); expect(result.findings).toEqual([]);
       expect((await f.service.revise(scope, run.id, result.version)).state).toBe("draft");
     }

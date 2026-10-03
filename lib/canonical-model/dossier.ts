@@ -23,6 +23,7 @@ export interface Societe {
 
 /** Vue d'un silo : Ã©tat reconstruit + constats rattachÃ©s. */
 export interface SiloView {
+  rapprochement?: import("@/lib/rapprochement/types").ResultatRapprochement;
   execution?: import("./calculation").CalculationRun;
   siloId: string;
   statement: ReconstitutedStatement;
@@ -119,6 +120,7 @@ export interface ReviewEvent {
 }
 
 export interface CalculationContext {
+  limitedToUploadedDocuments?: boolean;
   entriesTotal: number;
   entriesAnalysed: number;
   controlsEligible: number;
@@ -146,6 +148,8 @@ export interface CalculationContext {
  * Toutes les pages de restitution doivent consommer cette meme enveloppe.
  */
 export interface DossierSnapshot {
+  uploadExecutions?: import("@/lib/rapprochement/upload-contract").UploadExecution[];
+  uploadBaselineContext?: CalculationContext;
   workpaperProjection?: import("@/lib/workpapers/projection").WorkpaperProjection;
   workpapers?: import("@/lib/workpapers/model").WorkpaperEnvelope;
   calculationRuns?: import("./calculation").CalculationRun[];

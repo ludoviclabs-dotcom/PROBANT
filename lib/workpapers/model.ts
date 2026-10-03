@@ -2,6 +2,7 @@ import { z } from "zod";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import type { Finding } from "@/lib/canonical-model/finding";
 import type { CalculationRun, CalculationScope } from "@/lib/canonical-model/calculation";
+import { assessmentSchema, assessmentOutcome } from "./result-contract";
 import { cents, type KnownAmount, type Money } from "@/lib/canonical-model/money";
 import { isCivilDate, periodIssues, type AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
@@ -105,6 +106,10 @@ export function validateRun(run: WorkpaperRun): WorkpaperRun {
   if (run.approval && (run.approval.actorId === run.preparedBy || !run.approval.note.trim() || run.approval.snapshotHash !== contentHash(run) || !Number.isFinite(Date.parse(run.approval.at)))) throw new Error("APPROVAL_INVALID");
   if (["approved", "locked", "superseded"].includes(run.state) && !run.approval) throw new Error("APPROVAL_REQUIRED");
   if (run.result && run.result.execution !== "completed" && run.result.outcome !== "inconclusive") throw new Error("FAILED_RESULT_CANNOT_CONCLUDE");
+  if (run.result?.assessment) {
+    const a = assessmentSchema.parse(run.result.assessment);
+    if (a.execution !== run.result.execution || assessmentOutcome(a) !== run.result.outcome || a.subControls.some((c) => c.mode !== run.scope.mode)) throw new Error("RESULT_ASSESSMENT_MISMATCH");
+  }
   if (new Set(run.findings.map((f) => f.id)).size !== run.findings.length) throw new Error("DUPLICATE_FINDING");
   return run;
 }

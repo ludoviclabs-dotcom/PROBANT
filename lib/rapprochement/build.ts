@@ -34,12 +34,12 @@ export function buildRapprochementSilo(
       { label: labelC, statut: "analyse" },
     ],
     rows: [
-      { id: "rappro-source", label: `Solde ${labelS}`, valeur: Math.round(result.totalSource), kind: "ligne" },
-      { id: "rappro-cible", label: `Solde ${labelC}`, valeur: Math.round(result.totalCible), kind: "ligne" },
+      { id: "rappro-source", label: `Solde ${labelS}`, valeur: result.totalSource, kind: "ligne" },
+      { id: "rappro-cible", label: `Solde ${labelC}`, valeur: result.totalCible, kind: "ligne" },
       {
         id: "rappro-ecart",
         label: "Écart de rapprochement",
-        valeur: Math.round(result.ecartGlobal),
+        valeur: result.ecartGlobal,
         kind: "total",
         flaggedBy: findings[0]?.id,
         severity: findings[0]?.severity,
@@ -47,5 +47,5 @@ export function buildRapprochementSilo(
     ],
   };
 
-  return { siloId: config.siloId, statement, findings };
+  return { siloId: config.siloId, statement, findings, rapprochement: result };
 }

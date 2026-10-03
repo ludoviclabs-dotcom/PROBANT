@@ -124,6 +124,7 @@ export async function parseTabularDocument(
     if (idx !== undefined) colonnesDetectees[champ] = header[idx];
   }
 
+  const sourceLines: number[] = [];
   const enregistrements: Record<string, string | number | boolean | null | undefined>[] = [];
   for (let i = headerIdx + 1; i < rows.length; i++) {
     const r = rows[i] ?? [];
@@ -134,6 +135,7 @@ export async function parseTabularDocument(
       if (nomColonne) enregistrement[nomColonne] = r[idx] as string | number | boolean | null | undefined;
     });
     enregistrements.push(enregistrement);
+    sourceLines.push(i + 1);
   }
 
   const nomColonneMontant = colonnesDetectees.montant;
@@ -162,6 +164,10 @@ export async function parseTabularDocument(
     enregistrements,
     mappage,
   );
+
+  documentSource.parserVersion = "rapprochement-tabular-2.0.0";
+  documentSource.mappingVersion = "auto-columns-1.0.0";
+  documentSource.lignes.forEach((line, i) => { line.sourceLine = sourceLines[i]; });
 
   const avertissements: string[] = [];
   if (documentSource.lignes.length === 0) {

@@ -10,6 +10,24 @@ export interface CalculationSourceRef {
   parserVersion: string;
   mappingVersion: string;
 }
+export interface SubControlResult {
+  id: string;
+  label: string;
+  availability: "available" | "blocked";
+  mode: "demo" | "real";
+  prerequisites: { id: string; label: string; status: "met" | "missing"; sourceHref: string }[];
+  execution: "completed" | "blocked" | "not_run";
+  outcome: "no_exception_detected" | "exceptions_detected" | "inconclusive";
+  reason: string;
+  uncertainty: string;
+  nextAction: string;
+  sourceHref: string;
+}
+export interface ResultAssessment {
+  version: "2.0.0";
+  execution: CalculationRun["execution"];
+  subControls: SubControlResult[];
+}
 /** Minimal result envelope for existing engines, not another procedure engine. */
 export interface CalculationRun {
   id: string;
@@ -26,4 +44,5 @@ export interface CalculationRun {
   findings: Finding[];
   warnings: string[];
   blockedControls: string[];
+  assessment?: ResultAssessment;
 }

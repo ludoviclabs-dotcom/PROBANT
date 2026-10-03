@@ -368,10 +368,10 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
                   <span>·</span>
                   <span
                     className="flex items-center gap-1.5"
-                    title="Cycles couverts par un dépôt de documents rapproché"
+                    title="Comparaisons enregistrées sur les documents fournis ; aucune couverture de cycle démontrée"
                   >
                     {coverage.coveredCycleSlugs.length}/{coverage.total} cycles
-                    couverts (dépôt)
+                    comparés (dépôt limité)
                     <span
                       aria-hidden
                       className="inline-block h-1 w-[60px] overflow-hidden rounded-full bg-[var(--pb-surface-3)]"

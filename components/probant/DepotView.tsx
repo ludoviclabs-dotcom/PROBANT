@@ -318,10 +318,10 @@ function DepotViewInner() {
         />
         <DropzoneArt active={drag} />
         <div className="mt-3 text-sm font-semibold text-[var(--pb-text)]">
-          Déposez votre dossier. Le reste se fait.
+          Déposez un fichier à qualifier.
         </div>
         <div className="mt-1 text-[12px] text-[var(--pb-text-faint)]">
-          FEC . Balance . Liasse — analysées, croisées, structurées en quelques secondes
+          FEC dans un dossier persistant autorisé ; balance et liasse lues dans le navigateur.
         </div>
         <div className="mt-3 flex flex-wrap justify-center gap-2 text-[11px]">
           <span
@@ -581,7 +581,7 @@ function LiasseResult({ data }: { data: ParsedLiasse }) {
           <p className="mt-2 text-[12px] leading-relaxed text-[var(--pb-text-muted)]">
             L'extraction automatique n'a pas pu structurer ce PDF de façon
             fiable (liasse scannée ou mise en page non tabulaire). Le fichier est
-            bien reçu et reste local ; une saisie ou un retraitement manuel des
+            lu dans le navigateur, sans archivage de l’original ; une saisie ou un retraitement manuel des
             postes est nécessaire.
           </p>
           {data.textPreview && (

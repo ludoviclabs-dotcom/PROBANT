@@ -140,6 +140,7 @@ export interface ReviewDimension {
 /* ────────────────────────────── Autres blocs ─────────────────────────────── */
 
 export type LimitationCode =
+  | "limited_upload_comparison"
   | "missing_document"
   | "missing_evidence"
   | "control_not_run"

@@ -21,6 +21,8 @@ export type CleRapprochement = "compte" | "tiers" | "piece" | "periode" | "monta
 
 /** Une ligne normalisée d'un document, quel que soit son format d'origine. */
 export interface DocumentLigne {
+  /** Numéro de ligne dans le fichier, en incluant l’en-tête. */
+  sourceLine?: number;
   /** Numéro de compte général PCG (ex. "411DUPONT" → compte "411"). */
   compte?: string;
   /** Code tiers / auxiliaire (client, fournisseur). */
@@ -35,7 +37,7 @@ export interface DocumentLigne {
   montant: number;
   /** Libellé court. */
   libelle?: string;
-  /** Indique une dépréciation/lettrage déjà constaté (selon le document). */
+  /** Lettrage historique ; ne prouve aucune dépréciation. */
   lettre?: boolean;
   letteringStatus?: "matched" | "unmatched" | "unknown";
   bookedImpairment?: KnownAmount;
@@ -83,13 +85,12 @@ export interface RapprochementConfig {
   cloison: CloisonId;
   /** Clés de matching, par ordre de priorité. */
   cles: CleRapprochement[];
-  /** Tolérance d'écart en euros sous laquelle on ne signale rien. */
+  /** Tolérance technique, distincte du seuil de signification. */
   toleranceEur: number;
   /** Seuil d'antériorité (jours) au-delà duquel un poste est ancien. */
   seuilAncienneteJours?: number;
   /**
-   * Active la détection de dépréciation insuffisante sur les postes anciens
-   * non lettrés (pertinent pour les créances ; faux pour les autres cycles).
+   * Active le signal d’ancienneté ; l’âge seul ne mesure aucune perte.
    */
   detecterProvision?: boolean;
   /**
@@ -109,6 +110,7 @@ export type NiveauEcart = "total" | "compte" | "granulaire";
 
 /** Un écart de rapprochement brut (avant conversion en Finding). */
 export interface EcartRapprochement {
+  presentSource?: boolean;
   /** Clé d'identification (tiers/compte/pièce selon le niveau). */
   cle: string;
   niveau: NiveauEcart;
@@ -142,7 +144,30 @@ export interface ResultatRapprochement {
   totalCible: number;
   /** Écart global (doit tendre vers 0). */
   ecartGlobal: number;
-  /** Taux de rapprochement : 1 − |écartGlobal| / max(|totaux|). */
+  /** Part des lignes dans des groupes univoques concordants. */
   tauxRapprochement: number;
   ecarts: EcartRapprochement[];
+  ecartBrut: number;
+  groupes: GroupeRapprochement[];
+  lignes: Record<StatutGroupe, { source: number; cible: number }>;
+}
+
+export type StatutGroupe = "rapproche" | "ecart" | "ambigu" | "non_testable";
+export interface LigneRapprochement {
+  documentId: string;
+  line: number;
+  montant: number;
+  piece?: string;
+  date?: string;
+}
+export interface GroupeRapprochement {
+  cle: string;
+  statut: StatutGroupe;
+  cause: string;
+  montantSource: number;
+  montantCible: number;
+  ecart: number;
+  ecartBrut: number;
+  source: LigneRapprochement[];
+  cible: LigneRapprochement[];
 }

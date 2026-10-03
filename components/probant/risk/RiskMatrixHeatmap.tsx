@@ -685,7 +685,7 @@ export function RiskMatrixHeatmap({
                     className="h-3 w-3 shrink-0 text-[#22c55e]"
                     aria-hidden
                   >
-                    <title>Documents déposés pour ce cycle</title>
+                    <title>Documents comparés ; couverture du cycle non démontrée</title>
                   </CheckCircle2>
                 )}
                 {!isDepositCovered && isDepositEligible && (

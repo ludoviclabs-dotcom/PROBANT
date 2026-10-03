@@ -568,3 +568,13 @@ body[data-pb-guide] [data-tour-anno] {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Highlights the result boundary only; monetary values never animate. */
+@keyframes pbResultUpdate {
+  from { outline-color: #b45309; }
+  to { outline-color: transparent; }
+}
+.pb-result-update {
+  outline: 1px solid transparent;
+  animation: pbResultUpdate 500ms ease-out;
+}

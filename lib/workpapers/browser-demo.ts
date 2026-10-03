@@ -2,7 +2,7 @@ import { z } from "zod";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { DEMO_PERIOD, createDemoSession } from "./demo-session";
-import { demoParameterSchema, type DemoCycle } from "./demo-cycles";
+import { demoParameterSchema, type DemoCycle, type DemoParameters } from "./demo-cycles";
 import type { WorkpaperRun } from "./model";
 
 const eventSchema = z.discriminatedUnion("action", [
@@ -11,10 +11,19 @@ const eventSchema = z.discriminatedUnion("action", [
   z.object({ action: z.enum(["submit", "approve", "changes", "revise", "lock"]), cycle: demoParameterSchema.shape.cycle, note: z.string().trim().min(1).max(1000) }).strict(),
 ]);
 export type DemoEvent = z.infer<typeof eventSchema>;
-const recordSchema = z.object({ version: z.literal(1), dossierId: z.string().regex(/^SYN-[A-Za-z0-9-]+$/), createdAt: z.number().int().nonnegative(), expiresAt: z.number().int().positive(), events: z.array(eventSchema).max(200), snapshotHash: z.string().regex(/^[a-f0-9]{64}$/), checksum: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
+const recordSchema = z.object({ version: z.literal(2), dossierId: z.string().regex(/^SYN-[A-Za-z0-9-]+$/), createdAt: z.number().int().nonnegative(), expiresAt: z.number().int().positive(), events: z.array(eventSchema).max(200), snapshotHash: z.string().regex(/^[a-f0-9]{64}$/), checksum: z.string().regex(/^[a-f0-9]{64}$/) }).strict();
 export type DemoRecord = z.infer<typeof recordSchema>;
-export const DEMO_STORAGE_PREFIX = "probant:synthetic-workpapers:v1:";
+export const DEMO_STORAGE_PREFIX = "probant:synthetic-workpapers:v2:";
 export const DEMO_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Restore the cycle and the parameters actually used, including after a review event. */
+export function latestDemoParameters(record: DemoRecord): DemoParameters | undefined {
+  const last = record.events.at(-1);
+  if (!last) return undefined;
+  const cycle = "parameters" in last ? last.parameters.cycle : last.cycle;
+  const source = [...record.events].reverse().find((e) => "parameters" in e && e.parameters.cycle === cycle);
+  return source && "parameters" in source ? source.parameters : undefined;
+}
 
 export function syntheticBaseline(dossierId: string): DossierSnapshot {
   if (!/^SYN-[A-Za-z0-9-]+$/.test(dossierId)) throw new Error("SYNTHETIC_DOSSIER_REQUIRED");
@@ -22,7 +31,7 @@ export function syntheticBaseline(dossierId: string): DossierSnapshot {
   return { ...body, snapshotHash: stableSha256(body) } as DossierSnapshot;
 }
 
-function withRun(snapshot: DossierSnapshot, run: WorkpaperRun): DossierSnapshot {
+export function withDemoRun(snapshot: DossierSnapshot, run: WorkpaperRun): DossierSnapshot {
   const runs = [...(snapshot.workpapers?.runs ?? []).filter((r) => r.rootId !== run.rootId), run];
   const { snapshotHash: _old, ...body } = { ...snapshot, workpapers: { version: "1.0.0" as const, runs } };
   void _old;
@@ -31,10 +40,11 @@ function withRun(snapshot: DossierSnapshot, run: WorkpaperRun): DossierSnapshot 
 
 function checksum(record: Omit<DemoRecord, "checksum">) { return stableSha256(record); }
 export function createDemoRecord(dossierId: string, now = Date.now()): DemoRecord {
-  const body = { version: 1 as const, dossierId, createdAt: now, expiresAt: now + DEMO_EXPIRY_MS, events: [] as DemoEvent[], snapshotHash: syntheticBaseline(dossierId).snapshotHash };
+  const body = { version: 2 as const, dossierId, createdAt: now, expiresAt: now + DEMO_EXPIRY_MS, events: [] as DemoEvent[], snapshotHash: syntheticBaseline(dossierId).snapshotHash };
   return { ...body, checksum: checksum(body) };
 }
 export function verifyDemoRecord(value: unknown, now = Date.now()): DemoRecord {
+  if (value && typeof value === "object" && "version" in value && value.version !== 2) throw new Error("DEMO_RESULT_CONTRACT_OUTDATED_RESET_REQUIRED");
   const record = recordSchema.parse(value);
   if (record.expiresAt <= now || record.expiresAt !== record.createdAt + DEMO_EXPIRY_MS) throw new Error("DEMO_EXPIRED");
   const { checksum: stored, ...body } = record;
@@ -54,7 +64,7 @@ export async function replayDemo(record: DemoRecord, checkSnapshot = true) {
       if (sessions.has(cycle)) throw new Error("DEMO_CYCLE_ALREADY_CREATED");
       const session = await createDemoSession(record.dossierId, event.parameters);
       sessions.set(cycle, session); runs.set(cycle, session.initial);
-      snapshot = withRun(snapshot, session.initial);
+      snapshot = withDemoRun(snapshot, session.initial);
       continue;
     }
     const cycle = event.action === "edit" ? event.parameters.cycle : event.cycle;
@@ -71,7 +81,7 @@ export async function replayDemo(record: DemoRecord, checkSnapshot = true) {
       next = (await session.service.get(session.scope, current.id))!;
     }
     runs.set(cycle, next);
-    snapshot = withRun(snapshot, next);
+    snapshot = withDemoRun(snapshot, next);
   }
   if (checkSnapshot && snapshot.snapshotHash !== record.snapshotHash) throw new Error("DEMO_REPLAY_MISMATCH");
   return { snapshot, runs };

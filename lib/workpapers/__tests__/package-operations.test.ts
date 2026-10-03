@@ -8,7 +8,7 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 function req(body: unknown) { return new Request("http://local/api/workpapers", { method: "PUT", headers: { "content-type": "application/json", "x-probant-demonstration": "synthetic-only" }, body: JSON.stringify(body) }); }
 it("export figé idempotent, permissions, intégrité et rollback sans mutation", async () => {
-  const h = createDemoHttp(() => true); let r = await (await h(req({ action: "create", parameters: { cycle: "clients", missingEvidence: true, methodAvailable: false } }))).json();
+  const h = createDemoHttp(() => true); let r = await (await h(req({ action: "create", parameters: { cycle: "clients", missingEvidence: false, methodAvailable: true } }))).json();
   expect((await h(req({ action: "export", token: r.token, version: r.run.version, note: "demo" }))).status).toBe(409);
   for (const action of ["submit", "approve", "lock", "export"]) { const res = await h(req({ action, token: r.token, version: r.run.version, note: "Synthétique sans conclusion métier" })); expect(res.status).toBe(200); r = await res.json(); }
   const again = await (await h(req({ action: "export", token: r.token, version: r.run.version, note: "demo" }))).json(); expect(again.package).toEqual(r.package);

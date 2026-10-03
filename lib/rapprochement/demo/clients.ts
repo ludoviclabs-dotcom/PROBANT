@@ -54,7 +54,7 @@ export const CONFIG_CLIENTS: RapprochementConfig = {
   cles: ["tiers", "montant", "periode"],
   toleranceEur: 500,
   seuilAncienneteJours: 360,
-  detecterProvision: true, // cycle à créances : dépréciation des postes anciens
+  detecterProvision: true, // cycle à créances : signal d’ancienneté, sans estimation de perte
   sources: { provision_insuffisante: "PCG_CREANCES", anteriorite: "PCG_CREANCES" },
 };
 

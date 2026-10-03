@@ -21,6 +21,7 @@ const SEVERITY_LABELS: [string, string][] = [
 ];
 
 const LIMITATION_LABEL: Record<Limitation["code"], string> = {
+  limited_upload_comparison: "Comparaison limitée aux documents fournis",
   missing_document: "Document manquant",
   missing_evidence: "Preuve manquante",
   control_not_run: "Contrôle non exécuté",
