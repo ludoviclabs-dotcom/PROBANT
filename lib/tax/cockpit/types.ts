@@ -76,6 +76,13 @@ export interface TaxCockpitWaterfallStep {
   /** `proposed` = candidat de revue, hors cumul retenu (règle TAX-05). */
   readonly status: "computed" | "proposed" | "declared" | "unavailable";
   readonly note?: string;
+  /** Sens d'une étape « delta » : `add` (réintégration) ou `subtract` (déduction, déficit). */
+  readonly direction: "add" | "subtract" | null;
+  /**
+   * Lecture relative à la base (« + 7,3 % du résultat comptable »), formatée côté
+   * projection en arithmétique entière — jamais calculée dans React.
+   */
+  readonly readingLabel: string | null;
 }
 
 /** Barre de comparaison à deux ou trois opérandes (IS et TVA). */
@@ -107,10 +114,25 @@ export interface TaxRiskMatrixCell {
   readonly worstOutcomeLabel: string | null;
   readonly tone: "critical" | "warning" | "positive" | "neutral";
   readonly controlTitles: readonly string[];
+  /** Décomposition des sorties de la cellule, dans l'ordre d'attention de la taxonomie. */
+  readonly outcomeBreakdown: readonly {
+    readonly outcome: string;
+    readonly label: string;
+    readonly count: number;
+    readonly tone: "critical" | "warning" | "positive" | "neutral";
+  }[];
 }
 
 /** Ligne d'exploration (NIVEAU 4) avec son détail preuve/formule/limites. */
 export interface TaxFindingRowDetail {
+  /** Identifiant de contrôle du moteur (`null` pour une ligne de rapprochement). */
+  readonly controlId: string | null;
+  /** Libellé long de l'impôt (« Impôt sur les sociétés »). */
+  readonly taxLabel: string;
+  /** Lecture factuelle : wording imposé de la taxonomie ou détail du moteur. */
+  readonly reading: string;
+  /** Montant porteur de la ligne (écart si la sortie n'est pas « Vérifié », sinon valeur). */
+  readonly amountDisplay: string;
   readonly formula: string;
   readonly usedData: readonly string[];
   readonly limits: readonly string[];
@@ -125,6 +147,9 @@ export interface TaxCockpitSummary {
   readonly fiscalYear: number;
   readonly periodLabel: string;
   readonly currency: "EUR";
+  /** Bornes de l'exercice (ISO `AAAA-MM-JJ`), `null` si aucune période n'est connue. */
+  readonly periodStartDate: string | null;
+  readonly periodEndDate: string | null;
   readonly generatedAt: string;
   readonly headlineLabel: string;
   readonly headlineTone: "critical" | "warning" | "positive" | "neutral";
@@ -140,6 +165,8 @@ export interface TaxCockpitDatasets {
   readonly capability: VisualizationDataset & {
     readonly items: readonly TaxCapabilityItem[];
     readonly nextAction: TaxRecommendation | null;
+    /** Pièces disponibles au dossier (libellés dédoublonnés). */
+    readonly documents: readonly { readonly label: string }[];
   };
   readonly waterfall: VisualizationDataset & {
     readonly steps: readonly TaxCockpitWaterfallStep[];

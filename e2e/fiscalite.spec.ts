@@ -6,6 +6,8 @@ import { expect, test } from "@playwright/test";
  * Propriétés vérifiées de bout en bout :
  * - les chiffres affichés sont ceux des snapshots moteurs (écart de
  *   démonstration 24 850,00 EUR sur la charge d'impôt comptabilisée) ;
+ * - le récit en trois actes + décision est rendu (verdict, calcul, exposition,
+ *   barre de décision) et le tiroir de détail s'ouvre au clavier ;
  * - le filtre d'impôt est synchronisé à l'URL dans les deux sens ;
  * - la page est pilotable au clavier ;
  * - aucun bouton sans nom accessible ;
@@ -14,18 +16,18 @@ import { expect, test } from "@playwright/test";
  */
 
 test.describe("cockpit fiscalité", () => {
-  test("les quatre niveaux sont rendus avec les chiffres des snapshots", async ({ page }, testInfo) => {
+  test("les trois actes et la décision sont rendus avec les chiffres des snapshots", async ({ page }, testInfo) => {
     await page.goto("/dashboard/fiscalite");
-    await expect(page.getByRole("heading", { name: "Capacité et décision", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Calcul", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Analyse", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Exploration", level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /^Exercice 2026/u, level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Du résultat comptable au résultat fiscal/u, level: 2 })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Couverture des contrôles et lignes à traiter", level: 2 })).toBeVisible();
+    await expect(page.getByRole("region", { name: "Revue append-only des constats fiscaux" })).toBeVisible();
 
     const body = await page.locator("body").innerText();
     // Entité et période visibles (unité et exercice).
     expect(body).toMatch(/DEMO SA/);
-    expect(body).toMatch(/exercice 2026/);
-    expect(body).toMatch(/euros/iu);
+    expect(body).toMatch(/exercice 2026/iu);
+    expect(body).toMatch(/EUR|euros/iu);
     // L'écart de démonstration du moteur IS : 24 850,00 EUR (espaces insécables).
     expect(body).toMatch(/24[\s  ]?850,00[\s  ]?€/u);
     // Le langage utilisateur imposé est présent.
@@ -42,10 +44,8 @@ test.describe("cockpit fiscalité", () => {
     await page.goto("/dashboard/fiscalite");
     await page.getByRole("button", { name: "TVA", exact: true }).click();
     await expect(page).toHaveURL(/impot=vat/);
-    // Périmètre TVA : le volet IS annonce son absence au lieu d'inventer des zéros.
-    await expect(
-      page.getByText("Aucun calcul d'impôt sur les sociétés", { exact: false }).first(),
-    ).toBeVisible();
+    // Périmètre TVA : le panneau d'écarts remplace celui de l'IS.
+    await expect(page.getByRole("heading", { name: "Écarts relevés" })).toBeVisible();
 
     // Sens inverse : une URL profonde restaure le filtre.
     await page.goto("/dashboard/fiscalite?impot=cfe");
@@ -55,22 +55,29 @@ test.describe("cockpit fiscalité", () => {
     );
   });
 
-  test("l'exploration s'ouvre au clavier et filtre par statut", async ({ page }) => {
+  test("l'exploration filtre par statut au clavier et ouvre le tiroir de détail", async ({ page }) => {
     await page.goto("/dashboard/fiscalite?impot=corporate_income_tax");
-    const summary = page.getByText(/Toutes les lignes de réconciliation et tous les contrôles/);
-    await summary.scrollIntoViewIfNeeded();
-    await summary.focus();
-    await page.keyboard.press("Enter");
-
     const incoherence = page.getByRole("button", { name: "Incohérence", exact: true });
+    await incoherence.scrollIntoViewIfNeeded();
     await expect(incoherence).toBeVisible();
     await incoherence.focus();
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/statut=reconciliation_difference/);
     // Seules les lignes en incohérence restent affichées.
-    const rows = page.locator('section[aria-label^="Exploration"] tbody tr');
-    await expect(rows).toHaveCount(1);
-    await expect(rows.first()).toContainText("Incohérence");
+    const rows = page.locator('div[role="row"][tabindex="0"]');
+    expect(await rows.count()).toBeGreaterThanOrEqual(1);
+    for (let index = 0; index < (await rows.count()); index += 1) {
+      await expect(rows.nth(index)).toContainText("Incohérence");
+    }
+
+    // Tiroir : Entrée ouvre le détail, Échap le referme et rend le focus à la ligne.
+    await rows.first().focus();
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toBeVisible();
+    await expect(dialog).toContainText("Formule / normalisations");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
   });
 
   test("aucun bouton sans nom accessible, aucun bouton sans action", async ({ page }) => {

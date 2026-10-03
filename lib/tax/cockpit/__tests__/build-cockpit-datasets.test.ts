@@ -202,3 +202,24 @@ describe("langage utilisateur", () => {
     }
   });
 });
+
+describe("limitations par périmètre", () => {
+  it("une limitation rattachée à la période d'un autre impôt n'apparaît pas dans ce périmètre", () => {
+    const periodTax = new Map(source.periods.map((period) => [period.id, period.taxType]));
+    const isScope = buildTaxCockpitDatasets(source, "corporate_income_tax");
+    const cfeScope = buildTaxCockpitDatasets(source, "cfe");
+    const all = buildTaxCockpitDatasets(source, "all");
+    for (const limitation of source.synthesis.limitations) {
+      const taxes = limitation.relatedIds.flatMap((id) => periodTax.get(id) ?? []);
+      if (taxes.length === 0) continue;
+      expect(isScope.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(
+        taxes.includes("corporate_income_tax"),
+      );
+      expect(cfeScope.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(
+        taxes.includes("cfe"),
+      );
+      // Le périmètre « tous impôts » les restitue toutes.
+      expect(all.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(true);
+    }
+  });
+});
