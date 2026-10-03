@@ -1,0 +1,201 @@
+/*
+ * Page Référentiel — styles d'état (hover) et animations.
+ *
+ * Le gabarit de la maquette Claude Design est rendu hors Tailwind : mêmes
+ * défauts navigateur (content-box, line-height normal). On les rétablit sur
+ * .rf-root pour que les valeurs inline de la maquette produisent le même rendu.
+ */
+
+.rf-root {
+  line-height: normal;
+  background: #0a0e14;
+  color: #e6edf6;
+}
+.rf-root *,
+.rf-root *::before,
+.rf-root *::after {
+  box-sizing: content-box;
+}
+.rf-root button {
+  box-sizing: border-box;
+}
+.rf-root a {
+  text-decoration: none;
+}
+.rf-root input {
+  text-overflow: ellipsis;
+}
+.rf-root input::placeholder {
+  color: #757575;
+  opacity: 1;
+}
+
+@keyframes rfRise {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes rfStrataIn {
+  from {
+    opacity: 0;
+    transform: translateZ(calc(var(--z) - 80px));
+  }
+  to {
+    opacity: 1;
+    transform: translateZ(var(--z));
+  }
+}
+@keyframes rfIdle {
+  0%,
+  100% {
+    transform: rotateX(58deg) rotateZ(-41deg);
+  }
+  50% {
+    transform: rotateX(58deg) rotateZ(-49deg);
+  }
+}
+@keyframes rfFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rf-root * {
+    animation: none !important;
+  }
+}
+
+/* ── Hover (équivalent des « style-hover » de la maquette), pointeurs précis uniquement ── */
+@media (hover: hover) {
+  .rf-search:hover {
+    border-color: #324563 !important;
+  }
+  .rf-note-btn:hover {
+    color: #c7d3e4 !important;
+  }
+  .rf-clear:hover,
+  .rf-year-clear:hover,
+  .rf-copy:hover,
+  .rf-src:hover {
+    color: #e6edf6 !important;
+  }
+  .rf-more:hover {
+    color: #adb8ff !important;
+  }
+  .rf-reset:hover {
+    border-color: #8b9cff !important;
+  }
+  .rf-row:hover {
+    background: #131a26 !important;
+  }
+  .rf-strata-hit:hover {
+    transform: translateZ(18px) !important;
+    filter: brightness(1.16) !important;
+  }
+  .rf-entry:hover {
+    background: #131a26;
+    transform: translateY(-2px);
+    --act: 1;
+  }
+  .rf-marg:hover {
+    background: #131a26;
+    --act: 1;
+  }
+}
+
+.rf-acts {
+  opacity: var(--act, 0.7);
+  transition: opacity 0.15s ease;
+}
+
+/* ── Mobile (< 768 px) ──
+ * La scène 3D cède la place à une frise horizontale, l'index des thèmes devient
+ * une bande défilante, la marginalia passe sur une colonne. Les !important
+ * priment sur les valeurs inline de la version desktop, qui restent inchangées. */
+.rf-frieze {
+  display: none;
+}
+@media (max-width: 767px) {
+  .rf-wrap {
+    /* Marge basse : laisse la place au bouton flottant « Importer mon FEC ». */
+    padding: 24px 16px 96px !important;
+  }
+  .rf-h2 {
+    font-size: 30px !important;
+  }
+  .rf-kbd {
+    display: none !important;
+  }
+  .rf-strata {
+    padding: 16px !important;
+    margin-top: 24px !important;
+  }
+  .rf-strata-3d {
+    display: none !important;
+  }
+  .rf-frieze {
+    display: block;
+  }
+  .rf-volet {
+    flex-basis: 100% !important;
+    border-left: 0 !important;
+    padding-left: 0 !important;
+    border-top: 1px solid #1c2635;
+    padding-top: 16px;
+  }
+  .rf-index {
+    position: static !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    flex-basis: 100% !important;
+  }
+  .rf-index-list {
+    flex-direction: row !important;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+    scrollbar-width: none;
+  }
+  .rf-index-list::-webkit-scrollbar {
+    display: none;
+  }
+  .rf-row {
+    width: auto !important;
+    flex: 0 0 auto;
+    border-radius: 6px;
+  }
+  .rf-row-label {
+    flex: none !important;
+    overflow: visible !important;
+    white-space: nowrap;
+  }
+  .rf-entry {
+    gap: 12px !important;
+    padding: 16px 8px 16px 6px !important;
+  }
+  .rf-marg {
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 10px !important;
+    padding: 14px 6px !important;
+  }
+  .rf-marg-meta {
+    border-right: 0 !important;
+    border-left: 3px solid var(--c);
+    padding: 0 0 0 12px !important;
+    text-align: left !important;
+  }
+  .rf-marg-meta .rf-acts {
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 16px !important;
+  }
+}
