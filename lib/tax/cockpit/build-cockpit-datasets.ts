@@ -1076,10 +1076,21 @@ function buildRequiredDocuments(
   const entries = [...missingByCode.values()].sort((left, right) =>
     left.code.localeCompare(right.code),
   );
-  // Une limitation rattachée à une période d'un autre impôt ne concerne pas ce périmètre.
+  // Propriétaire d'une limitation : le moteur qui l'a émise ; à défaut, la période
+  // à laquelle elle se rattache ; sinon elle est réellement globale.
+  const owner = new Map<string, TaxType>();
+  for (const [taxType, engineLimitations] of [
+    ["corporate_income_tax", source.corporateTax?.snapshot.limitations],
+    ["vat", source.vat?.snapshot.limitations],
+    ["cfe", source.cfe?.snapshot.limitations],
+  ] as const) {
+    for (const limitation of engineLimitations ?? []) owner.set(limitation.id, taxType);
+  }
   const periodTaxType = new Map(source.periods.map((period) => [period.id, period.taxType]));
   const limitations = source.synthesis.limitations.filter((limitation) => {
     if (scope === "all") return true;
+    const engineOwner = owner.get(limitation.id);
+    if (engineOwner) return engineOwner === scope;
     const taxes = limitation.relatedIds.flatMap((id) => periodTaxType.get(id) ?? []);
     return taxes.length === 0 || taxes.includes(scope);
   });

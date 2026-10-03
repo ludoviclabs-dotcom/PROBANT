@@ -305,6 +305,7 @@ export function TaxExposure({
                   key={row.id}
                   role="row"
                   tabIndex={0}
+                  data-row-id={row.id}
                   className="fx-find-row"
                   onClick={(event) => onOpenRow(row.id, event.currentTarget)}
                   onKeyDown={(event) => {

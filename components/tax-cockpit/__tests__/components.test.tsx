@@ -59,10 +59,16 @@ function renderWorkspace(options: { outcome?: string; scope?: TaxCockpitScope; w
   );
 }
 
-/** Ligne d'exploration dont le texte correspond au motif (comparaison par expression régulière). */
-function findRow(pattern: RegExp): HTMLElement {
-  return screen.getAllByRole("row").find((row) => pattern.test(row.textContent ?? ""))!;
+/** Ligne d'exploration identifiée par l'id de son dataset (jamais par un fragment de texte). */
+function rowById(id: string): HTMLElement {
+  return document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)!;
 }
+
+const controlRowId = (controlId: string) =>
+  Object.entries(datasets.findings.details).find(([, detail]) => detail.controlId === controlId)![0];
+const accountedChargeRowId = datasets.findings.rows.find((row) =>
+  row.id.startsWith("corporate-tax-line:") && datasets.findings.outcomeByRowId[row.id] === "reconciliation_difference",
+)!.id;
 
 describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
   it("l'acte I rend la phrase de synthèse et le ruban issus du dataset", () => {
@@ -167,7 +173,7 @@ describe("clavier et interactions", () => {
 
   it("une ligne ouvre le tiroir de détail (formule, preuve), Échap le referme", () => {
     renderWorkspace();
-    const row = findRow(/VAT\.NET/u);
+    const row = rowById(controlRowId("VAT.NET"));
     fireEvent.click(row);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Formule / normalisations")).toBeTruthy();
@@ -178,7 +184,7 @@ describe("clavier et interactions", () => {
 
   it("le tiroir d'une ligne de rapprochement désactive les décisions et le dit", () => {
     renderWorkspace();
-    const row = findRow(/Impot brut estime et charge/u);
+    const row = rowById(accountedChargeRowId);
     fireEvent.click(row);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByRole("button", { name: "Confirmer" }).hasAttribute("disabled")).toBe(true);
@@ -253,7 +259,7 @@ describe("accessibilité", () => {
 
   it("le tiroir ouvert ne présente aucune violation axe-core", async () => {
     const { container } = renderWorkspace();
-    fireEvent.click(findRow(/VAT\.NET/u));
+    fireEvent.click(rowById(controlRowId("VAT.NET")));
     const results = await axe.run(container, {
       rules: { "color-contrast": { enabled: false } },
     });

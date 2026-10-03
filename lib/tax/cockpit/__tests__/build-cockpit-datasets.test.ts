@@ -222,4 +222,24 @@ describe("limitations par périmètre", () => {
       expect(all.requiredDocuments.rows.some((row) => row.id === limitation.id)).toBe(true);
     }
   });
+
+  it("une limitation émise par un moteur n'apparaît que dans le périmètre de ce moteur", () => {
+    const engines = [
+      ["corporate_income_tax", source.corporateTax?.snapshot.limitations ?? []],
+      ["vat", source.vat?.snapshot.limitations ?? []],
+      ["cfe", source.cfe?.snapshot.limitations ?? []],
+    ] as const;
+    for (const [owner, limitations] of engines) {
+      for (const limitation of limitations) {
+        for (const scope of ["corporate_income_tax", "vat", "cfe"] as const) {
+          const present = buildTaxCockpitDatasets(source, scope).requiredDocuments.rows.some(
+            (row) => row.id === limitation.id,
+          );
+          if (source.synthesis.limitations.some((candidate) => candidate.id === limitation.id)) {
+            expect(present, `${limitation.id} dans ${scope}`).toBe(scope === owner);
+          }
+        }
+      }
+    }
+  });
 });

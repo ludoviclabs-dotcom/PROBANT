@@ -152,11 +152,13 @@ function stepColor(step: TaxCockpitWaterfallStep): string {
 function Waterfall({ dataset }: { dataset: TaxCockpitDatasets["waterfall"] }) {
   const steps = dataset.steps;
   const blocked = steps.length === 0 || steps.some((step) => step.status === "unavailable");
-  const max = Math.max(
-    1,
-    ...steps.flatMap((step) => [Math.abs(step.runningTotalCents), Math.abs(step.deltaCents)]),
-  );
-  const pct = (cents: number) => (Math.abs(cents) / max) * 100;
+  // Axe signé : l'origine (zéro) reste dans le domaine, un résultat ou un cumul
+  // négatif se place donc à sa vraie coordonnée au lieu de s'inverser.
+  const totals = steps.filter((step) => step.status !== "unavailable").map((step) => step.runningTotalCents);
+  const lo = Math.min(0, ...totals);
+  const span = Math.max(1, Math.max(0, ...totals) - lo);
+  const pos = (cents: number) => ((cents - lo) / span) * 100;
+  const len = (cents: number) => (Math.abs(cents) / span) * 100;
 
   return (
     <div style={{ marginTop: 32 }}>
@@ -200,10 +202,10 @@ function Waterfall({ dataset }: { dataset: TaxCockpitDatasets["waterfall"] }) {
                 <div
                   style={{
                     position: "absolute",
-                    left: 0,
+                    left: `${pos(Math.min(0, step.runningTotalCents))}%`,
                     top: 0,
                     height: "100%",
-                    width: `${pct(step.runningTotalCents)}%`,
+                    width: `${len(step.runningTotalCents)}%`,
                     borderRadius: 4,
                     background:
                       step.kind === "base"
@@ -217,15 +219,17 @@ function Waterfall({ dataset }: { dataset: TaxCockpitDatasets["waterfall"] }) {
                 />
               );
             } else if (proposed) {
-              const width = pct(step.deltaCents);
+              // Un candidat « soustractif » s'étend de (cumul − montant) au cumul ; un candidat
+              // additif, du cumul à (cumul + montant). Le cumul retenu, lui, ne bouge pas.
+              const proposedStart = step.direction === "subtract" ? before - step.deltaCents : before;
               fill = (
                 <div
                   style={{
                     position: "absolute",
-                    left: `min(${pct(before)}%, calc(100% - 14px))`,
+                    left: `min(${pos(proposedStart)}%, calc(100% - 14px))`,
                     top: 0,
                     height: "100%",
-                    width: `max(14px, ${width}%)`,
+                    width: `max(14px, ${len(step.deltaCents)}%)`,
                     borderRadius: 3,
                     border: "1px dashed rgba(234,179,8,.6)",
                     background: "repeating-linear-gradient(45deg, rgba(234,179,8,.35) 0 4px, transparent 4px 8px)",
@@ -239,10 +243,10 @@ function Waterfall({ dataset }: { dataset: TaxCockpitDatasets["waterfall"] }) {
                 <div
                   style={{
                     position: "absolute",
-                    left: `${pct(start)}%`,
+                    left: `${pos(start)}%`,
                     top: 0,
                     height: "100%",
-                    width: `${pct(step.deltaCents)}%`,
+                    width: `${len(step.deltaCents)}%`,
                     borderRadius: 4,
                     background: color,
                     transformOrigin: step.direction === "subtract" ? "right" : "left",
@@ -435,8 +439,8 @@ function DocumentsColumn({
   bundles: Readonly<Record<TaxCockpitScope, TaxCockpitDatasets>>;
   scoped: TaxCockpitDatasets;
 }) {
-  const documents = bundles.all.capability.documents;
-  const documentsItem = bundles.all.capability.items.find((item) => item.id === "documents");
+  const documents = scoped.capability.documents;
+  const documentsItem = scoped.capability.items.find((item) => item.id === "documents");
   return (
     <div>
       {heading("Documents mobilisés par le calcul")}
