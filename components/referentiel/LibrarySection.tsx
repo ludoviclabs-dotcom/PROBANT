@@ -17,7 +17,6 @@ export type LibraryVariant = "recueil" | "marginalia";
 /** Seuil (caractères) au-delà duquel une paraphrase est repliée à 2 lignes. */
 const LONG_CITATION = 150;
 const REGISTRY_LABEL: Record<Registry, string> = { "droit-dur": "Opposable", methode: "Méthode interne" };
-const FALLBACK_URL = "https://www.legifrance.gouv.fr/";
 
 const plural = (n: number, one: string, many: string) => `${n} ${n > 1 ? many : one}`;
 
@@ -74,10 +73,16 @@ export function LibrarySection({
 
   const copy = (source: SourceNormative) => {
     const text = `${source.ref} — v.${source.effectiveDate}`;
-    if (navigator.clipboard) navigator.clipboard.writeText(text).catch(() => {});
-    setCopied(source.ref);
-    if (copyTimer.current) clearTimeout(copyTimer.current);
-    copyTimer.current = setTimeout(() => setCopied(null), 1600);
+    // Retour « copié » uniquement si l'écriture a réellement abouti.
+    if (!navigator.clipboard) return;
+    navigator.clipboard.writeText(text).then(
+      () => {
+        setCopied(source.ref);
+        if (copyTimer.current) clearTimeout(copyTimer.current);
+        copyTimer.current = setTimeout(() => setCopied(null), 1600);
+      },
+      () => {},
+    );
   };
 
   const counts = useMemo(() => themeCounts(regScope), [regScope]);
@@ -449,7 +454,7 @@ function entryMeta(source: SourceNormative) {
   return {
     color: reg === "droit-dur" ? DD : ME,
     registryLabel: REGISTRY_LABEL[reg],
-    url: source.url || FALLBACK_URL,
+    url: source.url,
     long: source.citation.length > LONG_CITATION,
   };
 }
@@ -568,15 +573,17 @@ function RecueilEntry({ source, clampDefault, open, copied, onToggle, onCopy }: 
             >
               {copied ? "Référence copiée" : "Copier la référence"}
             </button>
-            <a
-              className="rf-src"
-              href={url}
-              target="_blank"
-              rel="noreferrer"
-              style={{ fontSize: 11.5, color: "#8a99af" }}
-            >
-              Source ↗
-            </a>
+            {url && (
+              <a
+                className="rf-src"
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                style={{ fontSize: 11.5, color: "#8a99af" }}
+              >
+                Source ↗
+              </a>
+            )}
           </div>
         </div>
       </div>
@@ -645,9 +652,11 @@ function MarginaliaEntry({ source, copied, onCopy }: EntryProps) {
           >
             {copied ? "Référence copiée" : "Copier la référence"}
           </button>
-          <a className="rf-src" href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#8a99af" }}>
-            Source ↗
-          </a>
+          {url && (
+            <a className="rf-src" href={url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: "#8a99af" }}>
+              Source ↗
+            </a>
+          )}
         </div>
       </div>
       <p style={{ margin: 0, fontSize: 13.5, lineHeight: 1.68, color: "#b9c5d6", textWrap: "pretty" }}>
