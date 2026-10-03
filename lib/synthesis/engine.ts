@@ -40,8 +40,8 @@ import type {
 } from "./types";
 
 export const SYNTHESIS_SCHEMA_VERSION = "1.0.0";
-export const SYNTHESIS_ENGINE_VERSION = "1.0.0";
-export const SYNTHESIS_POLICY_VERSION = "1.0.0";
+export const SYNTHESIS_ENGINE_VERSION = "1.1.0";
+export const SYNTHESIS_POLICY_VERSION = "1.1.0";
 
 /**
  * Seuils de la politique de couverture. Bornes exactes documentées :
@@ -134,7 +134,7 @@ export function buildSynthesisSnapshot(
   );
   const coverage: CoverageDimension = {
     status:
-      governingRatio >= COVERAGE_SUBSTANTIAL_MIN
+      governingRatio >= COVERAGE_SUBSTANTIAL_MIN && !ctx.limitedToUploadedDocuments
         ? "substantial"
         : governingRatio > 0
           ? "partial"
@@ -159,13 +159,14 @@ export function buildSynthesisSnapshot(
       controlsEligible: ctx.controlsEligible,
       controlsConcluded: ctx.controlsConcluded,
       governingRatio,
+      limitedToUploadedDocuments: ctx.limitedToUploadedDocuments ? "yes" : "no",
       substantialMin: COVERAGE_SUBSTANTIAL_MIN,
     },
     excludedItems: [],
     output: coverage.status,
     unit: "status",
     rounding: "ratios arrondis à 4 décimales",
-    explanation: `min(ratio écritures, ratio contrôles conclus) ; substantial si ≥ ${COVERAGE_SUBSTANTIAL_MIN}, partial si > 0, none sinon.`,
+    explanation: `min(ratio écritures, ratio contrôles conclus) ; substantial si ≥ ${COVERAGE_SUBSTANTIAL_MIN}, partial si > 0, none sinon. Un dépôt historique reste limité aux documents fournis.`,
   });
 
   // Statut de revue de chaque constat (dernier événement, sinon statut porté
@@ -392,6 +393,12 @@ export function buildSynthesisSnapshot(
       .map((f) => f.id),
   };
 
+  if (ctx.limitedToUploadedDocuments) limitations.push({
+    code: "limited_upload_comparison",
+    message: "Comparaisons limitées aux documents fournis : l’égalité des totaux et les contrôles conclus ne démontrent pas l’exhaustivité ou la couverture des cycles. Fichiers originaux non archivés ; preuve opposable non établie.",
+    subjects: [],
+  });
+
   /* ── Limitations ───────────────────────────────────────────────────────── */
   const expected = ctx.expectedDocumentTypes ?? [];
   if (evidence.findingsWithoutEvidenceChain.length > 0) {
@@ -420,7 +427,7 @@ export function buildSynthesisSnapshot(
   if (ctx.controlsNotConcluded > 0) {
     limitations.push({
       code: "control_inconclusive",
-      message: `${ctx.controlsNotConcluded} contrôle(s) exécuté(s) sans conclusion.`,
+      message: `${ctx.controlsNotConcluded} contrôle(s) sans conclusion exploitable.`,
       subjects: [],
     });
   }

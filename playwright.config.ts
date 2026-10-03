@@ -35,7 +35,7 @@ export default defineConfig({
   webServer: process.env.PROBANT_E2E_BASE_URL
     ? undefined
     : {
-        command: `npm run start -- --port ${PORT}`,
+        command: `npm run start -- --hostname 127.0.0.1 --port ${PORT}`,
         url: baseURL,
         reuseExistingServer: !process.env.CI,
         timeout: 180_000,

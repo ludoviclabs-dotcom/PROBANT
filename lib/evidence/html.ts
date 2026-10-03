@@ -49,6 +49,11 @@ export function buildAccessibleEvidenceHtml(report: CanonicalEvidenceExport): st
     esc(source.parserVersion ?? "non renseigné"),
     esc(source.location ? `${source.location.provider}:${source.location.key}` : "non renseignée"),
   ]);
+  const uploadSection = report.uploadExecutions?.length ? `<section aria-labelledby="depots"><h2 id="depots">Comparaisons des dépôts</h2><p>Documents fournis uniquement ; originaux non archivés. Une égalité des totaux nets ne démontre pas l’exhaustivité.</p>${table("Exécutions et versions", ["Cycle", "Version", "État", "Résultat", "Période", "Écart net", "Écart brut", "Lignes A/B rapprochées / ambiguës / non testables"], report.uploadExecutions.map((run) => {
+    const result = run.silo.rapprochement;
+    const counts = result?.lignes;
+    return [esc(run.cycleId), esc(run.version), esc(run.state), esc(run.status), esc(run.qualification.period?.closingDate ?? "inconnue"), esc(result?.ecartGlobal), esc(result?.ecartBrut), esc(counts ? `${counts.rapproche.source}/${counts.rapproche.cible} · ${counts.ambigu.source}/${counts.ambigu.cible} · ${counts.non_testable.source}/${counts.non_testable.cible}` : "non vérifié")];
+  }))}</section>` : "";
   const limitationItems = synthesis.limitations.length
     ? synthesis.limitations
         .map((limitation) => `<li><strong>${esc(limitation.code)}</strong> — ${esc(limitation.message)}</li>`)
@@ -86,6 +91,7 @@ export function buildAccessibleEvidenceHtml(report: CanonicalEvidenceExport): st
     <div class="card">Couverture<strong>${esc(synthesis.coverage.status)}</strong></div>
   </div><p>${esc(synthesis.verdict.detail)}</p></section>
   <section aria-labelledby="limites"><h2 id="limites">Limitations</h2><ul>${limitationItems}</ul></section>
+  ${uploadSection}
   <section aria-labelledby="sources"><h2 id="sources">Documents sources</h2>${table("Sources et empreintes", ["ID", "Document", "Type", "SHA-256", "Parser", "Localisation"], sourceRows)}</section>
   <section aria-labelledby="constats"><h2 id="constats">Constats</h2>${table("Constats, contrôles et sources normatives", ["ID", "Titre", "Gravité", "Famille", "Contrôle/version", "Source", "Version source"], findingsRows)}</section>
   <section aria-labelledby="revue"><h2 id="revue">Historique de revue</h2>${table("Événements append-only", ["ID", "Constat", "Acteur", "Rôle", "Transition", "Commentaire", "Hash"], eventRows)}</section>

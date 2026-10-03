@@ -65,10 +65,13 @@ export interface EvidenceControlRow {
   status: "finding_emitted" | "completed_without_finding" | "not_concluded";
   findingIds: string[];
   normativeReferences: string[];
+  execution?: "completed" | "blocked";
+  runId?: string;
 }
 
 export interface CanonicalEvidenceExport {
   exportSchemaVersion: "1.0.0";
+  uploadExecutions?: DossierSnapshot["uploadExecutions"];
   dossier: DossierSnapshot["dossier"];
   synthesisSnapshot: SynthesisSnapshot;
   sourceDocuments: ManifestSourceDocument[];

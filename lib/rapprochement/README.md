@@ -44,8 +44,8 @@ export const CONFIG_X: RapprochementConfig = {
   siloId: "rapprochement-x", // + entrée dans SILOS (taxonomy.ts)
   cloison: "...",
   cles: ["tiers", "montant", "periode"],
-  toleranceEur: 500,
-  detecterProvision: false,  // true uniquement pour les cycles à créances
+  toleranceEur: 0,          // technique uniquement ; aucun seuil de signification
+  detecterProvision: false,  // signal d’ancienneté uniquement, aucune perte depuis l’âge
   sources: { rapprochement_solde: "..." }, // surcharge de source au besoin
 };
 export const buildXRapprochementSilo = (th) =>
@@ -67,3 +67,27 @@ des fichiers réels :
 
 Tout `DocumentSource` (quelle que soit sa provenance) se rapproche via le même
 moteur `rapprocher(source, cible, config)`.
+
+## Dépôt historique — contrat v2
+
+Les onze cartes réutilisent ces moteurs. `build-from-upload.ts` fixe séparément
+la tolérance technique (0 EUR par défaut), sans importer les 500 EUR des
+fixtures. Toutes les lignes sont sélectionnées ; la signification reste inconnue
+sans seuil fourni. Les montants invalides, ambigus, sous-centime ou hors plage
+sont refusés par la frontière monétaire existante.
+
+`engine.ts` conserve les lignes sans clé, mesure les écarts bruts par clé et par
+signe et distingue groupes univoques, écarts, groupes multiples ambigus et lignes
+non testables. Le taux représente des lignes univoques concordantes, pas un
+rapprochement de totaux nets ni une assurance d’exhaustivité.
+
+L’entité, la période civile et les bases de comparaison sont confirmées dans
+`upload-contract.ts`. Une qualification absente conserve seulement un diagnostic
+bloqué ; aucune année courante n’est inventée. La clôture explicite est transmise
+au moteur pour l’ancienneté. Le lettrage reste indépendant de la dépréciation.
+
+Le snapshot versionne les exécutions par dossier et cycle, périme les anciennes
+versions dès modification et retire leurs constats actifs. Les mutations de
+session passent par `updateSnapshot` et sa file séquentielle. Ce parcours utilise
+la session de l’onglet, sans archivage des fichiers originaux ni raccord durable
+pour ces cartes. Les dossiers persistants restent bloqués sur ce parcours.

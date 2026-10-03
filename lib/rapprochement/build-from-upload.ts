@@ -10,10 +10,11 @@ export function buildRapprochementDepuisDepot(
   cible: DocumentSource,
   th: MaterialityThresholds | null = null,
   dateCloture?: string,
+  technicalToleranceEur = 0,
 ): SiloView {
   const cycle = cycleById(cycleId);
   if (!cycle) throw new Error(`Cycle d'audit inconnu : ${cycleId}`);
-  return buildRapprochementSilo(source, cible, cycle.config, th, { dateReference: dateCloture });
+  return buildRapprochementSilo(source, cible, { ...cycle.config, toleranceEur: technicalToleranceEur }, th, { dateReference: dateCloture });
 }
 
 // Spécialisation utile uniquement quand l'appelant doit rester agnostique du

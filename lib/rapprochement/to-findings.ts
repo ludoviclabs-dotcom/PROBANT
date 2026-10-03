@@ -14,6 +14,8 @@ import type { EcartRapprochement, ResultatRapprochement } from "./types";
  * tout point à ceux du moteur FEC : ils s'affichent tels quels dans l'UI.
  */
 
+const amountLabel = (value: number) => value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
 type SourceKey = keyof typeof SOURCES;
 
 /** Famille dérivée de la nature de la source (opposable vs présomption). */
@@ -25,7 +27,7 @@ function familyFromSource(key: string): FindingFamily {
 
 const EXPLICATION: Record<QualificationEcart, string> = {
   rapprochement_solde:
-    "Un écart de solde entre deux documents censés concorder traduit un défaut de rapprochement : erreur de saisie, écriture manquante ou double comptabilisation. À investiguer avant conclusion.",
+    "Un écart de solde entre les documents appelle une justification de leur base de comparaison. Une erreur, une écriture manquante ou un doublon restent des hypothèses à investiguer.",
   perimetre:
     "Un élément présent dans un seul des deux documents révèle un écart de périmètre : la complétude (exhaustivité) n'est pas démontrée. À rapprocher ou justifier.",
   lettrage:
@@ -41,7 +43,7 @@ const EXPLICATION: Record<QualificationEcart, string> = {
   fiscal:
     "L'écart emporte une incidence potentielle sur une base imposable (IS, TVA) : un retraitement extra-comptable peut être requis.",
   a_justifier:
-    "L'écart dépasse le seuil de signification sans cause identifiée : une diligence complémentaire est requise avant de conclure.",
+    "La comparaison est ambiguë ou non testable : une clé ou une justification complémentaire est requise avant de conclure.",
 };
 
 function ecartToFinding(
@@ -60,14 +62,14 @@ function ecartToFinding(
   if (e.ancienneteJours != null) faisceau.push(`ancienneté ${e.ancienneteJours} j`);
   if (e.qualification === "perimetre") faisceau.push("présent dans un seul document");
   if (e.qualification === "provision_insuffisante") faisceau.push("aucune dépréciation");
-  faisceau.push(`écart ${Math.round(Math.abs(e.ecart)).toLocaleString("fr-FR")} €`);
+  faisceau.push(`écart ${amountLabel(Math.abs(e.ecart))} €`);
 
   const base: Finding = {
     id: `RAPPRO-${config.cycleSlug}-${index + 1}`,
     family,
     severity: e.severite,
     ruleId: `R-RAPPRO-${e.qualification}`,
-    ruleVersion: "1.0.0",
+    ruleVersion: "2.0.0",
     cloison: config.cloison,
     siloId: config.siloId,
     titre: `${QUALIFICATION_LABEL[e.qualification]} — ${e.libelle}`,
@@ -85,18 +87,18 @@ function ecartToFinding(
     faisceau,
     annotation:
       e.qualification === "provision_insuffisante"
-        ? `Dépréciation attendue ≈ ${Math.round(Math.abs(e.montantSource)).toLocaleString("fr-FR")} €`
-        : `Écart ${Math.round(e.ecart).toLocaleString("fr-FR")} €`,
+        ? `Dépréciation attendue ≈ ${amountLabel(Math.abs(e.montantSource))} €`
+        : `Écart ${amountLabel(e.ecart)} €`,
     preuve: [
       { etape: "Source", detail: `Rapprochement ${config.cycleSlug} — clé « ${e.cle} »` },
       {
         etape: "Transformation",
-        detail: `Agrégation par ${config.cles[0]} : source ${Math.round(e.montantSource).toLocaleString("fr-FR")} € vs contrôle ${Math.round(e.montantCible).toLocaleString("fr-FR")} €`,
+        detail: `Agrégation par ${config.cles[0]} : source ${amountLabel(e.montantSource)} € vs contrôle ${amountLabel(e.montantCible)} €`,
       },
       { etape: "Règle", detail: `${QUALIFICATION_LABEL[e.qualification]} — ${source.ref}` },
       {
         etape: "Résultat",
-        detail: `Écart de ${Math.round(e.ecart).toLocaleString("fr-FR")} € ${th ? "confronté au seuil ISA 320" : "(seuil non calculé : profil entité absent)"}`,
+        detail: `Écart de ${amountLabel(e.ecart)} € ${th ? "confronté au seuil ISA 320" : "(seuil non calculé : profil entité absent)"}`,
       },
     ],
     statutRevue: "en_attente",

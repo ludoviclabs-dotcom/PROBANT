@@ -17,8 +17,8 @@ import { CONFIG_RESULTAT_EXCEPTIONNEL } from "./demo/resultat-exceptionnel";
  * Catalogue déclaratif des cycles d'audit ouverts au dépôt multi-documents.
  *
  * Chaque `AuditCycle` référence la `RapprochementConfig` déjà définie côté
- * démo (lib/rapprochement/demo/*) : source de vérité unique pour le moteur,
- * que les documents proviennent de la démo ou d'un dépôt réel.
+ * démo (lib/rapprochement/demo/*) : clés et sources réutilisées.
+ * Le dépôt réel fixe séparément sa tolérance technique, sans hériter des fixtures.
  */
 export interface AuditCycle {
   id: string;

@@ -105,7 +105,8 @@ describe("adaptateur tabulaire", () => {
     const cible = { ...source, id: "b", label: "B", lignes: lignesDepuisTableur([{ Tiers: "AUTRE", Montant: "12 500,00 €" }], map) };
     const result = rapprocher(source, cible, CONFIG_CLIENTS);
     expect(result.ecarts.length).toBeGreaterThan(0);
-    expect(result.tauxRapprochement).toBe(1); // égalité des totaux ≠ absence d'exception
+    expect(result.tauxRapprochement).toBe(0); // totaux égaux, aucune ligne concordante
+    expect(result.ecartBrut).toBe(25000);
     expect(() => rapprocher({ ...source, lignes: [] }, cible, CONFIG_CLIENTS)).toThrow(/aucune ligne/u);
   });
 });

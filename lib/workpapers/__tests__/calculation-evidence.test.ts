@@ -19,7 +19,11 @@ describe("CORE-203 calculation registry", () => {
     const { batch } = await importedFixture(), request = { scope, period, rule: SYNTHETIC_SUM_RULE, imports: [batch], ...populationFixture(batch), parameters: {} };
     const registry = syntheticRegistry();
     expect(registry.execute({ ...request, imports: [] }).execution).toBe("blocked");
-    expect(registry.execute({ ...request, parameters: { unexpected: true } }).execution).toBe("failed");
+    expect(registry.execute({ ...request, parameters: { unexpected: true } })).toMatchObject({ execution: "blocked", outcome: "inconclusive", result: { status: "invalid_input" } });
+    let executions = 0;
+    const guarded = new CalculationRegistry(); guarded.register(SYNTHETIC_SUM_RULE, z.unknown(), z.object({}).strict(), z.number(), () => ++executions);
+    expect(guarded.execute({ ...request, parameters: { unexpected: true } }).execution).toBe("blocked");
+    expect(executions).toBe(0);
     expect(registry.execute({ ...request, rule: { id: "missing", version: "1" } }).outcome).toBe("inconclusive");
     const broken = new CalculationRegistry(); broken.register(SYNTHETIC_SUM_RULE, z.unknown(), z.unknown(), z.number().finite(), () => NaN);
     expect(broken.execute(request).execution).toBe("failed");

@@ -13,7 +13,7 @@ export interface DepositCoverage {
 export function useDepositCoverage(): DepositCoverage {
   const snapshot = useActiveDossierSnapshot();
   return useMemo(() => {
-    const coveredDepositIds = snapshot.calculationContext.cycleIdsCovered ?? [];
+    const coveredDepositIds = snapshot.uploadExecutions?.filter((run) => run.state === "active").map((run) => run.cycleId) ?? [];
     const covered = new Set(coveredDepositIds);
     return {
       total: AUDIT_CYCLES.length,
@@ -22,5 +22,5 @@ export function useDepositCoverage(): DepositCoverage {
         .filter((cycle) => covered.has(cycle.id))
         .map((cycle) => cycle.config.cycleSlug),
     };
-  }, [snapshot.calculationContext.cycleIdsCovered]);
+  }, [snapshot.uploadExecutions]);
 }

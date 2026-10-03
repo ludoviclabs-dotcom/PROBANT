@@ -17,7 +17,7 @@ it("opt-in obligatoire et refus des paramètres non synthétiques", async () => 
 });
 it("préparer, soumettre, revoir et verrouiller une projection synthétique", async () => {
   const h = createDemoHttp(() => true);
-  let r = await (await h(request({ action: "create", parameters: { cycle: "clients", missingEvidence: true, methodAvailable: false } }))).json();
+  let r = await (await h(request({ action: "create", parameters: { cycle: "clients", missingEvidence: false, methodAvailable: true } }))).json();
   expect(r.run.state).toBe("executed");
   for (const action of ["submit", "approve", "lock"]) {
     const response = await h(request({ action, token: r.token, version: r.run.version, note: "Revue technique synthétique, aucune validation métier" }));
@@ -38,11 +38,25 @@ it("extinction de flag bloque aussi une session déjà préparée", async () => 
 });
 it("correction conserve la note et crée une nouvelle révision à revoir", async () => {
   const h = createDemoHttp(() => true);
-  let r = await (await h(request({ action: "create", parameters: { cycle: "clients", missingEvidence: true, methodAvailable: false } }))).json();
+  let r = await (await h(request({ action: "create", parameters: { cycle: "clients", missingEvidence: false, methodAvailable: true } }))).json();
   const originalId = r.run.id;
   for (const action of ["submit", "changes", "revise", "submit", "approve"]) {
     const response = await h(request({ action, token: r.token, version: r.run.version, note: "Réponse synthétique : limite documentée, aucune preuve réelle ajoutée" }));
     expect(response.status).toBe(200); r = await response.json();
   }
   expect(r.run.id).not.toBe(originalId); expect(r.run.revision).toBe(2); expect(r.run.notes[0].resolution.text).toContain("limite documentée"); expect(r.run.state).toBe("approved");
+});
+
+it("API : diagnostic bloqué et télémétrie cohérente, puis correction sans approbation fabriquée", async () => {
+  const h = createDemoHttp(() => true);
+  let r = await (await h(request({ action: "create", parameters: { cycle: "cash", scenario: "invalid", missingEvidence: false, methodAvailable: true } }))).json();
+  expect(r.metrics.status).toBe("blocked");
+  const exported = await h(request({ action: "export", token: r.token, version: r.run.version, note: "Diagnostic uniquement" }));
+  expect(exported.status).toBe(200);
+  expect(JSON.parse((await exported.json()).package.json).summary).toMatchObject({ executed: 0, approved: 0, blocked: 1 });
+  const corrected = await h(request({ action: "edit", token: r.token, version: r.run.version, parameters: { cycle: "cash", scenario: "nominal", missingEvidence: false, methodAvailable: true } }));
+  expect(corrected.status).toBe(200); r = await corrected.json();
+  expect(r.run.state).toBe("executed");
+  expect(r.run.approval).toBeUndefined();
+  expect(r.run.result.assessment.subControls[0].outcome).toBe("no_exception_detected");
 });

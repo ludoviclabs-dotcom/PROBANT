@@ -21,7 +21,7 @@ export function assertTransition(run: WorkpaperRun, target: WorkpaperState, prin
   if (target === "executed" && run.result?.execution !== "completed") throw new Error("COMPLETED_RESULT_REQUIRED");
   if (target === "blocked" && run.result?.execution !== "blocked") throw new Error("BLOCKED_RESULT_REQUIRED");
   if (target === "failed" && run.result?.execution !== "failed") throw new Error("FAILED_RESULT_REQUIRED");
-  if (target === "awaiting_review" && (!run.conclusion?.trim() || !run.evidence.some((e) => e.status === "verified") || !run.result)) throw new Error("PREPARATION_INCOMPLETE");
+  if (target === "awaiting_review" && (!run.conclusion?.trim() || !run.evidence.some((e) => e.status === "verified") || run.result?.execution !== "completed")) throw new Error("PREPARATION_INCOMPLETE");
   if (target === "approved" && (expectedHash !== run.submittedHash || contentHash(run) !== run.submittedHash)) throw new Error("STALE_REVIEW");
   if (target === "approved" && run.notes.some((n) => n.blocking && !n.resolution)) throw new Error("UNRESOLVED_BLOCKING_NOTE");
   if (target === "locked" && (!run.approval || run.approval.snapshotHash !== contentHash(run))) throw new Error("STALE_APPROVAL");

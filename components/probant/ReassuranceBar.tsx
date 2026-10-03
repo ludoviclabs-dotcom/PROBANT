@@ -3,19 +3,19 @@ import { Lock, Scale, Zap } from "lucide-react";
 const ITEMS = [
   {
     icon: Lock,
-    title: "Traitement local",
-    description: "Aucun fichier n'est stocké sur nos serveurs",
+    title: "Traitement selon le format",
+    description: "CSV/XLSX/PDF lus dans le navigateur ; FEC transmis au stockage durable dans un dossier persistant autorisé.",
   },
   {
     icon: Zap,
-    title: "Résultat quasi instantané",
+    title: "Résultat après validation",
     description:
-      "L'empreinte, la validation réglementaire et le moteur de règles s'enchaînent immédiatement",
+      "Un format illisible reste bloqué ou à revoir. Un dépôt ne garantit aucune conclusion.",
   },
   {
     icon: Scale,
     title: "LPF art. A.47 A-1",
-    description: "Validation réglementaire du FEC à l'entrée",
+    description: "Contrôles du format FEC à l’entrée ; leurs résultats restent soumis à la revue des données et des sources.",
   },
 ] as const;
 

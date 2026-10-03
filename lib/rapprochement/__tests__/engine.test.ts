@@ -29,18 +29,20 @@ describe("rapprocher — cycle Clients (démo)", () => {
     expect(result.ecartGlobal).toBe(9500);
   });
 
-  it("ne signale ni les postes rapprochés récents ni les anciens déjà dépréciés", () => {
+  it("ne signale pas les postes récents mais distingue lettrage et ancienneté", () => {
     expect(byTiers("MARTIN SARL")).toBeUndefined(); // rapproché, récent
-    expect(byTiers("PETIT SA")).toBeUndefined(); // ancien mais lettré (déprécié)
+    expect(byTiers("PETIT SA")?.qualification).toBe("anteriorite"); // lettré ne signifie pas déprécié
   });
 
-  it("qualifie une créance ancienne non dépréciée en dépréciation insuffisante", () => {
+  it("signale l’ancienneté sans inventer de dépréciation", () => {
     const dupont = byTiers("DUPONT SA");
     expect(dupont).toBeDefined();
-    expect(dupont!.qualification).toBe("provision_insuffisante");
-    expect(dupont!.severite).toBe("majeur");
+    expect(dupont!.qualification).toBe("anteriorite");
+    expect(dupont!.severite).toBe("mineur");
     expect(dupont!.montantSource).toBe(24850);
-    expect(dupont!.montantCible).toBe(0);
+    expect(dupont!.montantCible).toBe(24850);
+    expect(dupont!.ecart).toBe(0);
+    expect(dupont!.constat).toContain("aucune perte");
     expect(dupont!.sourceKey).toBe("PCG_CREANCES");
   });
 
@@ -65,11 +67,12 @@ describe("rapprocher — cycle Clients (démo)", () => {
   });
 
   it("calcule un taux de rapprochement cohérent", () => {
-    expect(result.tauxRapprochement).toBeCloseTo(1 - 9500 / 103850, 4);
+    expect(result.tauxRapprochement).toBe(0.6); // 3 groupes univoques, 6 lignes sur 10
+    expect(result.ecartBrut).toBe(27500);
   });
 
-  it("produit 4 écarts au total", () => {
-    expect(result.ecarts).toHaveLength(4);
+  it("produit trois écarts structurels et deux signaux d’ancienneté", () => {
+    expect(result.ecarts).toHaveLength(5);
   });
 });
 
@@ -77,7 +80,7 @@ describe("resultToFindings — conversion canonique", () => {
   const findings = resultToFindings(runClientsRapprochement());
 
   it("produit un Finding par écart, marqué origine rapprochement", () => {
-    expect(findings).toHaveLength(4);
+    expect(findings).toHaveLength(5);
     for (const f of findings) {
       expect(f.origine).toBe("rapprochement");
       expect(f.qualification).toBeDefined();
@@ -108,7 +111,7 @@ describe("buildClientsRapprochementSilo", () => {
     const silo = buildClientsRapprochementSilo();
     expect(silo.siloId).toBe("rapprochement-clients");
     expect(silo.statement.rows).toHaveLength(3);
-    expect(silo.findings.length).toBe(4);
+    expect(silo.findings.length).toBe(5);
     const ecartRow = silo.statement.rows.find((r) => r.id === "rappro-ecart");
     expect(ecartRow?.valeur).toBe(9500);
     expect(ecartRow?.flaggedBy).toBe(silo.findings[0].id);

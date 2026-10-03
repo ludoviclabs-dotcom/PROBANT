@@ -1,29 +1,14 @@
-
 "use client";
 
-import { Suspense, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import {
-  UploadCloud,
-  CheckCircle2,
-  XCircle,
-  Loader2,
-  FileSpreadsheet,
-  RotateCcw,
-} from "lucide-react";
-import {
-  AUDIT_CYCLES,
-  documentTypesForCycle,
-  type AuditCycle,
-  type DocumentType,
-} from "@/lib/rapprochement/catalog";
+import { UploadCloud, CheckCircle2, XCircle, Loader2, RotateCcw } from "lucide-react";
+import { AUDIT_CYCLES, documentTypesForCycle, type AuditCycle, type DocumentType } from "@/lib/rapprochement/catalog";
 import { parseTabularDocument } from "@/lib/rapprochement/parse-upload";
 import { buildRapprochementDepuisDepot } from "@/lib/rapprochement/build-from-upload";
 import type { DocumentSource } from "@/lib/rapprochement/types";
-import type { SiloView } from "@/lib/canonical-model";
-import {
-  addRapprochementToSnapshot,
-} from "@/lib/dossier";
+import { qualificationIssues, type UploadExecution, type UploadQualification } from "@/lib/rapprochement/upload-contract";
+import { addRapprochementToSnapshot, invalidateRapprochementInSnapshot } from "@/lib/dossier";
 import { useActiveDossier } from "@/lib/dossier/client";
 import { SeverityBadge } from "./Badges";
 import { cn } from "@/lib/utils";
@@ -35,236 +20,147 @@ interface DocState {
   fingerprint?: string;
   erreur?: string;
 }
-interface PanelState {
-  cycleId: string | null;
-  docs: Record<string, DocState>;
-  silo: SiloView | null;
-  erreurRapprochement: string | null;
-}
-
-type Action =
-  | { type: "SELECT_CYCLE"; cycleId: string }
-  | { type: "START_PARSE"; documentTypeId: string; fichier: File }
-  | {
-      type: "PARSE_OK";
-      documentTypeId: string;
-      documentSource: DocumentSource;
-      fingerprint: string;
-    }
-  | { type: "PARSE_ERROR"; documentTypeId: string; erreur: string }
-  | { type: "SET_SILO"; silo: SiloView | null; erreurRapprochement: string | null }
-  | { type: "RESET" };
-
-const INITIAL_STATE: PanelState = {
-  cycleId: null,
-  docs: {},
-  silo: null,
-  erreurRapprochement: null,
-};
-
 async function fingerprintFile(file: File): Promise<string> {
   const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
-  return [...new Uint8Array(digest)]
-    .map((value) => value.toString(16).padStart(2, "0"))
-    .join("");
+  return [...new Uint8Array(digest)].map((v) => v.toString(16).padStart(2, "0")).join("");
 }
-
-function reducer(state: PanelState, action: Action): PanelState {
-  switch (action.type) {
-    case "SELECT_CYCLE":
-      return { cycleId: action.cycleId, docs: {}, silo: null, erreurRapprochement: null };
-    case "START_PARSE":
-      return {
-        ...state,
-        docs: {
-          ...state.docs,
-          [action.documentTypeId]: { statut: "en_cours", fichier: action.fichier },
-        },
-      };
-    case "PARSE_OK":
-      return {
-        ...state,
-        docs: {
-          ...state.docs,
-          [action.documentTypeId]: {
-            statut: "ok",
-            fichier: state.docs[action.documentTypeId]?.fichier,
-            documentSource: action.documentSource,
-            fingerprint: action.fingerprint,
-          },
-        },
-      };
-    case "PARSE_ERROR":
-      return {
-        ...state,
-        docs: {
-          ...state.docs,
-          [action.documentTypeId]: {
-            statut: "erreur",
-            fichier: state.docs[action.documentTypeId]?.fichier,
-            erreur: action.erreur,
-          },
-        },
-      };
-    case "SET_SILO":
-      return { ...state, silo: action.silo, erreurRapprochement: action.erreurRapprochement };
-    case "RESET":
-      return INITIAL_STATE;
-    default:
-      return state;
-  }
-}
-
 export function CycleUploadPanel() {
-  return (
-    <Suspense fallback={null}>
-      <CycleUploadPanelInner />
-    </Suspense>
-  );
+  return <Suspense fallback={null}><CycleUploadPanelInner /></Suspense>;
 }
-
 function CycleUploadPanelInner() {
-  const { snapshot, saveSnapshot } = useActiveDossier();
-  const [state, dispatch] = useReducer(reducer, INITIAL_STATE);
-  const searchParams = useSearchParams();
-  const cycle = state.cycleId
-    ? AUDIT_CYCLES.find((c) => c.id === state.cycleId) ?? null
-    : null;
-  // documentTypesForCycle() renvoie un nouveau tableau à chaque appel : mémoïser
-  // est indispensable ici, sinon la référence change à chaque rendu et le
-  // useEffect ci-dessous se redéclenche en boucle infinie après chaque SET_SILO.
-  const documentTypes = useMemo(
-    () => (cycle ? documentTypesForCycle(cycle.id) : []),
-    [cycle],
-  );
+  const { snapshot, updateSnapshot } = useActiveDossier();
+  const params = useSearchParams();
+  const [cycleId, setCycleId] = useState<string | null>(() => params.get("cycle"));
+  const [docs, setDocs] = useState<Record<string, DocState>>({});
+  const [entity, setEntity] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [closingDate, setClosingDate] = useState("");
+  const [asOfDate, setAsOfDate] = useState("");
+  const [confirmed, setConfirmed] = useState(false);
+  const [tolerance, setTolerance] = useState("0");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [changed, setChanged] = useState(false);
+  const generation = useRef(0);
+  const previousDemo = useRef(snapshot.dossier.demoMode);
+  const requests = useRef(new Map<string, string>());
+  const cycle = AUDIT_CYCLES.find((c) => c.id === cycleId);
+  const types = useMemo(() => cycle ? documentTypesForCycle(cycle.id) : [], [cycle]);
+  const qualification: UploadQualification = {
+    entity, period: startDate || closingDate || asOfDate ? { startDate, closingDate, asOfDate, currency: "EUR", validation: confirmed ? "confirmed" : "provisional" } : undefined,
+    comparisonBasisConfirmed: confirmed,
+    technicalToleranceEur: tolerance.trim() === "" ? NaN : Number(tolerance),
+    selection: "all_imported_rows", materialityAmount: null,
+  };
+  const issues = qualificationIssues(qualification);
+  const active = snapshot.uploadExecutions?.find((run) => run.cycleId === cycleId && run.state === "active");
+  const history = snapshot.uploadExecutions?.filter((run) => run.cycleId === cycleId && run.state === "stale") ?? [];
+  const persistent = snapshot.sourceKind === "persistent";
 
-  // Deep-link : ?cycle=<id> sélectionne automatiquement le cycle au montage.
+  // Un dossier changé pendant une lecture ne reçoit jamais la réponse de l'ancien fichier.
   useEffect(() => {
-    const cycleParam = searchParams.get("cycle");
-    if (cycleParam && AUDIT_CYCLES.some((c) => c.id === cycleParam)) {
-      dispatch({ type: "SELECT_CYCLE", cycleId: cycleParam });
+    generation.current += 1; requests.current.clear();
+    if (!previousDemo.current) setDocs({});
+    previousDemo.current = snapshot.dossier.demoMode;
+    const saved = snapshot.uploadExecutions?.find((run) => run.state === "active" && run.cycleId === cycleId) ?? snapshot.uploadExecutions?.find((run) => run.state === "active");
+    if (saved && !entity && !startDate && !closingDate) {
+      setEntity(saved.qualification.entity);
+      setStartDate(saved.qualification.period?.startDate ?? "");
+      setClosingDate(saved.qualification.period?.closingDate ?? "");
+      setAsOfDate(saved.qualification.period?.asOfDate ?? "");
+      setConfirmed(saved.qualification.comparisonBasisConfirmed);
+      setTolerance(String(saved.qualification.technicalToleranceEur));
     }
+    // L’identité change lors de la première comparaison depuis DEMO ; les fichiers restent ouverts.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [snapshot.dossier.id]);
 
-  async function handleFile(documentType: DocumentType, fichier: File) {
-    dispatch({ type: "START_PARSE", documentTypeId: documentType.id, fichier });
+  function selectCycle(id: string | null) {
+    generation.current += 1;
+    requests.current.clear();
+    setCycleId(id); setDocs({}); setError(""); setChanged(false);
+  }
+  function invalidate(reason: string) {
+    setChanged(true);
+    setError("");
+    if (cycleId && !persistent) void updateSnapshot((current) => invalidateRapprochementInSnapshot(current, cycleId, reason)).catch((e) => setError(String(e.message ?? e)));
+  }
+  function changeParameter(change: () => void) {
+    change(); setConfirmed(false); invalidate("Paramètres modifiés : comparaison à relancer.");
+  }
+  async function handleFile(type: DocumentType, file: File) {
+    if (busy || persistent) return;
+    const request = crypto.randomUUID(), currentGeneration = generation.current;
+    requests.current.set(type.id, request);
+    setDocs((current) => ({ ...current, [type.id]: { statut: "en_cours", fichier: file } }));
+    invalidate("Nouvel import : résultats précédents périmés.");
     try {
-      const resultat = await parseTabularDocument(fichier, documentType);
-      const fingerprint = await fingerprintFile(fichier);
-      dispatch({
-        type: "PARSE_OK",
-        documentTypeId: documentType.id,
-        documentSource: resultat.documentSource,
-        fingerprint,
-      });
+      const parsed = await parseTabularDocument(file, type);
+      const fingerprint = await fingerprintFile(file);
+      if (generation.current !== currentGeneration || requests.current.get(type.id) !== request) return;
+      setDocs((current) => ({ ...current, [type.id]: { statut: "ok", fichier: file, documentSource: { ...parsed.documentSource, fingerprint }, fingerprint } }));
     } catch (e) {
-      dispatch({
-        type: "PARSE_ERROR",
-        documentTypeId: documentType.id,
-        erreur: e instanceof Error ? e.message : "Erreur de lecture du fichier.",
-      });
+      if (generation.current !== currentGeneration || requests.current.get(type.id) !== request) return;
+      setDocs((current) => ({ ...current, [type.id]: { statut: "erreur", fichier: file, erreur: e instanceof Error ? e.message : "Lecture impossible." } }));
     }
   }
-
-  useEffect(() => {
-    if (!cycle) return;
-    const docTypeSource = documentTypes.find((d) => d.role === "source");
-    const docTypeCible = documentTypes.find((d) => d.role === "cible");
-    if (!docTypeSource || !docTypeCible) return;
-
-    const docSource = state.docs[docTypeSource.id];
-    const docCible = state.docs[docTypeCible.id];
-    if (
-      docSource?.statut !== "ok" ||
-      !docSource.documentSource ||
-      docCible?.statut !== "ok" ||
-      !docCible.documentSource
-    ) {
-      return;
-    }
-
+  async function compare() {
+    if (!cycle || busy || persistent) return;
+    const sourceType = types.find((t) => t.role === "source")!, targetType = types.find((t) => t.role === "cible")!;
+    const a = docs[sourceType.id], b = docs[targetType.id];
+    if (!a?.documentSource || !b?.documentSource) return;
+    setBusy(true); setError("");
     try {
-      const silo = buildRapprochementDepuisDepot(
-        cycle.id,
-        docSource.documentSource,
-        docCible.documentSource,
-      );
-      dispatch({ type: "SET_SILO", silo, erreurRapprochement: null });
-      void saveSnapshot(
-        addRapprochementToSnapshot(snapshot, {
-          cycleId: cycle.id,
-          silo,
-          documents: [
-            {
-              id: `${cycle.id}-${docTypeSource.id}`,
-              fileName: docSource.fichier?.name ?? docTypeSource.libelle,
-              fingerprint: docSource.fingerprint ?? "fingerprint-unavailable",
-              lineCount: docSource.documentSource.lignes.length,
-            },
-            {
-              id: `${cycle.id}-${docTypeCible.id}`,
-              fileName: docCible.fichier?.name ?? docTypeCible.libelle,
-              fingerprint: docCible.fingerprint ?? "fingerprint-unavailable",
-              lineCount: docCible.documentSource.lignes.length,
-            },
-          ],
-        }),
-      );
-    } catch (e) {
-      dispatch({
-        type: "SET_SILO",
-        silo: null,
-        erreurRapprochement: e instanceof Error ? e.message : "Erreur de rapprochement.",
-      });
-    }
-  }, [state.docs, cycle, documentTypes, saveSnapshot, snapshot]);
-
-  return (
-    <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {AUDIT_CYCLES.map((c) => (
-          <CycleCard
-            key={c.id}
-            cycle={c}
-            active={c.id === state.cycleId}
-            onClick={() => dispatch({ type: "SELECT_CYCLE", cycleId: c.id })}
-          />
-        ))}
+      const validPeriod = issues.length === 0 ? qualification.period : undefined;
+      const silo = buildRapprochementDepuisDepot(cycle.id, a.documentSource, b.documentSource, null, validPeriod?.closingDate.replaceAll("-", ""), qualification.technicalToleranceEur);
+      await updateSnapshot((current) => addRapprochementToSnapshot(current, {
+        cycleId: cycle.id, silo, qualification,
+        documents: [a, b].map((doc) => ({ id: doc.documentSource!.id, fileName: doc.fichier!.name, fingerprint: doc.fingerprint!, lineCount: doc.documentSource!.lignes.length, parserVersion: doc.documentSource!.parserVersion, mappingVersion: doc.documentSource!.mappingVersion })),
+      }));
+      setChanged(false);
+    } catch (e) { setError(e instanceof Error ? e.message : "Comparaison impossible."); }
+    finally { setBusy(false); }
+  }
+  const ready = types.length === 2 && types.every((t) => docs[t.id]?.statut === "ok");
+  const inputClass = "mt-1 w-full rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1.5 text-sm";
+  return <section aria-label="Dépôt historique des onze cycles" className="space-y-4">
+    <p className="text-xs text-[var(--pb-text-muted)]">Mode navigateur : lecture des CSV/XLSX sur cet appareil. Les résultats, les empreintes et les références de lignes sont conservés dans la session de cet onglet ; les fichiers originaux ne sont pas archivés. Cette comparaison ne constitue pas une preuve opposable ni une couverture du cycle.</p>
+    <fieldset disabled={busy || persistent} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {AUDIT_CYCLES.map((c) => <CycleCard key={c.id} cycle={c} active={c.id === cycleId} onClick={() => selectCycle(c.id)} />)}
+    </fieldset>
+    {persistent && <p role="alert">Dossier persistant : ces cartes ne disposent pas du raccord durable autorisé. Dépôt et écriture bloqués.</p>}
+    {cycle && <>
+      <fieldset id="qualification-depot" disabled={busy || persistent} className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
+        <legend className="px-1 text-sm font-semibold">Qualification — {cycle.nom}</legend>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs">Entité<input className={inputClass} value={entity} onChange={(e) => changeParameter(() => setEntity(e.target.value))} /></label>
+          <label className="text-xs">Début de période<input type="date" className={inputClass} value={startDate} onChange={(e) => changeParameter(() => setStartDate(e.target.value))} /></label>
+          <label className="text-xs">Clôture<input type="date" className={inputClass} value={closingDate} onChange={(e) => changeParameter(() => setClosingDate(e.target.value))} /></label>
+          <label className="text-xs">Date de revue<input type="date" className={inputClass} value={asOfDate} onChange={(e) => changeParameter(() => setAsOfDate(e.target.value))} /></label>
+        </div>
+        <p className="mt-3 text-xs">Bases de comparaison : {types.map((t) => t.libelle).join(" ↔ ")}. Montants signés en EUR ; regroupement par {cycle.config.cles.find((c) => ["tiers", "compte", "piece"].includes(c))}.</p>
+        <label className="mt-3 block text-xs"><input type="checkbox" checked={confirmed} onChange={(e) => { setConfirmed(e.target.checked); invalidate("Qualification modifiée : comparaison à relancer."); }} /> Je confirme la même entité, période, clôture, périmètre et convention de signe dans les deux documents.</label>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3 text-xs">
+          <label>Tolérance technique (EUR)<input type="number" min="0" step="0.01" className={inputClass} value={tolerance} onChange={(e) => changeParameter(() => setTolerance(e.target.value))} /></label>
+          <p>Sélection : toutes les lignes importées. Aucun seuil de sélection hérité des exemples.</p>
+          <p>Signification : seuil absent, importance non évaluée. La tolérance technique ne vaut pas matérialité.</p>
+        </div>
+        <p className="mt-3 text-xs">Statut des paramètres : {issues.length ? "incomplets — diagnostic uniquement" : "confirmés pour la comparaison"}.</p>
+      </fieldset>
+      <fieldset disabled={busy || persistent} className="space-y-3">{types.map((t) => <DocumentDropRow key={t.id} documentType={t} state={docs[t.id] ?? { statut: "vide" }} onFile={(file) => void handleFile(t, file)} />)}</fieldset>
+      <div className="rounded-xl border border-[var(--pb-border)] p-3 text-xs">
+        <button type="button" disabled={!ready || busy || persistent} onClick={() => void compare()} className="rounded-lg border border-[var(--pb-border)] px-3 py-2 disabled:opacity-50">{busy ? "Enregistrement…" : issues.length ? "Comparer — diagnostic bloqué" : "Comparer les documents"}</button>
+        {!ready && <p className="mt-2">Deux documents lisibles sont requis pour comparer.</p>}
+        {issues.length > 0 && <div className="mt-2"><ul>{issues.map((issue) => <li key={issue}>{issue}</li>)}</ul><a href="#qualification-depot" className="underline">Renseigner les paramètres et vérifier les sources A/B</a></div>}
+        <p className="mt-2">Le dépôt seul n’exécute aucun contrôle. Le diagnostic reste bloqué si la qualification manque.</p>
       </div>
-
-      {cycle && (
-        <div className="space-y-3">
-          {documentTypes.map((docType) => (
-            <DocumentDropRow
-              key={docType.id}
-              documentType={docType}
-              state={state.docs[docType.id] ?? { statut: "vide" }}
-              onFile={(fichier) => handleFile(docType, fichier)}
-            />
-          ))}
-        </div>
-      )}
-
-      {state.erreurRapprochement && (
-        <div className="flex items-center gap-2 rounded-xl border border-[#ef4444]/50 bg-[#2a1416] p-4 text-sm text-[#ef4444]">
-          <XCircle className="h-4 w-4" /> {state.erreurRapprochement}
-        </div>
-      )}
-
-      {state.silo && <RapprochementResult silo={state.silo} />}
-
-      {(state.cycleId || state.silo) && (
-        <button
-          onClick={() => dispatch({ type: "RESET" })}
-          className="flex items-center gap-2 rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface)] px-3 py-2 text-[12px] font-medium text-[var(--pb-text-muted)] hover:border-[var(--pb-border-strong)] hover:text-[var(--pb-text)]"
-        >
-          <RotateCcw className="h-3.5 w-3.5" />
-          Réinitialiser
-        </button>
-      )}
-    </div>
-  );
+    </>}
+    {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
+    {changed && history.length > 0 && <p role="status" className="text-xs">Résultats précédents périmés ; comparaison à relancer après l’import ou la qualification.</p>}
+    {!changed && active && <RapprochementResult key={active.id} run={active} />}
+    {history.length > 0 && <details className="text-xs"><summary>Historique : {history.length} exécution(s) périmée(s)</summary>{history.map((run) => <p key={run.id}>Version {run.version} — périmée — {run.staleReason} ({run.silo.findings.length} anciens constats exclus des résultats actifs)</p>)}</details>}
+    {cycleId && <button type="button" disabled={busy} onClick={() => selectCycle(null)} className="flex items-center gap-2 text-xs"><RotateCcw className="h-3.5 w-3.5" />Fermer les fichiers ouverts</button>}
+  </section>;
 }
 
 function CycleCard({
@@ -331,6 +227,10 @@ function DocumentDropRow({
         const f = e.dataTransfer.files?.[0];
         if (f) onFile(f);
       }}
+      role="button"
+      tabIndex={0}
+      aria-label={`Déposer ${documentType.libelle}`}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); inputRef.current?.click(); } }}
       onClick={() => inputRef.current?.click()}
       className={cn(
         "flex cursor-pointer items-start gap-3 rounded-xl border-2 border-dashed px-4 py-3 transition-colors",
@@ -342,11 +242,13 @@ function DocumentDropRow({
       <input
         ref={inputRef}
         type="file"
+        aria-label={`Fichier ${documentType.libelle}`}
         accept={extAccept(documentType)}
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
           if (f) onFile(f);
+          e.target.value = "";
         }}
       />
       <UploadCloud className="mt-0.5 h-6 w-6 shrink-0 text-[var(--pb-accent)]" />
@@ -403,69 +305,35 @@ function DocStateIndicator({ state }: { state: DocState }) {
   );
 }
 
-function RapprochementResult({ silo }: { silo: SiloView }) {
-  return (
-    <div className="space-y-4">
-      <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-        <div className="flex items-center gap-2 text-sm font-semibold text-[var(--pb-text)]">
-          <FileSpreadsheet className="h-4 w-4 text-[var(--pb-accent)]" />
-          {silo.statement.titre}
-        </div>
-        {silo.statement.documents && silo.statement.documents.length > 0 && (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {silo.statement.documents.map((doc) => (
-              <span
-                key={doc.label}
-                className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
-                style={{
-                  border: "1px solid rgba(34,197,94,0.35)",
-                  background: "rgba(34,197,94,0.1)",
-                  color: "#4ade80",
-                }}
-              >
-                ✓ {doc.label}
-              </span>
-            ))}
-          </div>
-        )}
-        <div className="tnum mt-3 space-y-1">
-          {silo.statement.rows.map((row) => (
-            <div
-              key={row.id}
-              className="flex items-center justify-between border-t border-[var(--pb-border)] py-1.5 text-[12px] first:border-t-0 first:pt-0"
-            >
-              <span className="text-[var(--pb-text-muted)]">{row.label}</span>
-              <span className="font-semibold text-[var(--pb-text)]">
-                {row.valeur.toLocaleString("fr-FR")} €
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
 
-      <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-        <h3 className="text-sm font-semibold text-[var(--pb-text)]">
-          <span className="tnum">{silo.findings.length}</span> constat(s) détecté(s)
-        </h3>
-        {silo.findings.length > 0 && (
-          <ul className="mt-3 space-y-2">
-            {silo.findings.slice(0, 5).map((f) => (
-              <li
-                key={f.id}
-                className="flex items-start gap-3 rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-3"
-              >
-                <SeverityBadge severity={f.severity} />
-                <div className="min-w-0">
-                  <div className="text-[13px] font-semibold text-[var(--pb-text)]">
-                    {f.titre}
-                  </div>
-                  <div className="text-[12px] text-[var(--pb-text-muted)]">{f.constat}</div>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+const STATUS = { rapproche: "Rapprochées", ecart: "Non rapprochées", ambigu: "Ambiguës", non_testable: "Non testables" };
+const euro = (value: number) => `${value.toLocaleString("fr-FR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} €`;
+export function RapprochementResult({ run }: { run: UploadExecution }) {
+  const [selected, setSelected] = useState<number | null>(null);
+  const result = run.silo.rapprochement;
+  if (!result) return <p>Résultat historique non qualifié : comparaison à relancer.</p>;
+  const group = selected === null ? null : result.groupes[selected];
+  return <div key={run.id} className="space-y-4" aria-label="Résultat de comparaison">
+    <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 text-xs">
+      <h3 className="text-sm font-semibold">{run.silo.statement.titre}</h3>
+      <p className="mt-2">Version {run.version} · {run.qualification.entity || "Entité inconnue"} · {run.qualification.period ? `${run.qualification.period.startDate} → ${run.qualification.period.closingDate}` : "Période inconnue"}</p>
+      <p className="mt-2 font-semibold">{run.status === "blocked" ? "Bloquée — diagnostic exportable, aucun contrôle concluant" : run.status === "inconclusive" ? "Comparaison partiellement non concluante" : "Comparaison exécutée sur les éléments fournis"}</p>
+      {run.issues.map((issue) => <p key={issue}>{issue}</p>)}
+      <dl className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <div><dt>Total net A</dt><dd className="tnum">{euro(result.totalSource)}</dd></div>
+        <div><dt>Total net B</dt><dd className="tnum">{euro(result.totalCible)}</dd></div>
+        <div><dt>Écart net</dt><dd className="tnum">{euro(result.ecartGlobal)}</dd></div>
+        <div><dt>Écarts bruts sans compensation</dt><dd className="tnum">{euro(result.ecartBrut)}</dd></div>
+        {Object.entries(STATUS).map(([key, label]) => { const count = result.lignes[key as keyof typeof STATUS]; return <div key={key}><dt>Lignes {label.toLowerCase()}</dt><dd>A : {count.source} · B : {count.cible}</dd></div>; })}
+      </dl>
+      <p className="mt-3">Part de lignes univoques concordantes : {(result.tauxRapprochement * 100).toFixed(1)} %. L’égalité des totaux nets ne démontre pas l’exhaustivité. Les groupes multiples restent ambigus ; l’âge et le lettrage ne mesurent aucune perte.</p>
+      <p className="mt-2">Signification : {run.qualification.materialityAmount === null ? "non évaluée (seuil absent)" : euro(run.qualification.materialityAmount)}. Prochaine action : justifier les écarts, lever les ambiguïtés et revoir les sources avant toute conclusion de cycle.</p>
     </div>
-  );
+    <div className="overflow-x-auto rounded-xl border border-[var(--pb-border)] p-4 text-xs">
+      <table className="w-full text-left"><caption className="mb-2 text-left font-semibold">Groupes et sources</caption><thead><tr><th>Clé</th><th>Statut</th><th>A</th><th>B</th><th>Écart brut</th><th>Détail</th></tr></thead><tbody>{result.groupes.map((g, i) => <tr key={`${g.cle}-${i}`} onDoubleClick={() => setSelected(i)} className="border-t border-[var(--pb-border)]"><td className="py-2">{g.cle}</td><td>{STATUS[g.statut]}</td><td className="tnum">{euro(g.montantSource)}</td><td className="tnum">{euro(g.montantCible)}</td><td className="tnum">{euro(g.ecartBrut)}</td><td><button type="button" aria-expanded={selected === i} onClick={() => setSelected(selected === i ? null : i)} className="px-2 underline">Détails {g.cle}</button></td></tr>)}</tbody></table>
+      {group && <section aria-label={`Sources du groupe ${group.cle}`} className="mt-3 rounded-lg border border-[var(--pb-border)] p-3"><h4 className="font-semibold">{group.cle} — {STATUS[group.statut]}</h4><p>{group.cause}</p>{(["source", "cible"] as const).map((side) => <div key={side} className="mt-2"><h5>Document {side === "source" ? "A" : "B"}</h5>{group[side].length === 0 ? <p>Aucune ligne dans ce document.</p> : group[side].map((line) => { const doc = run.documents.find((d) => d.id === line.documentId); return <p key={`${line.documentId}-${line.line}`}>{doc?.fileName ?? line.documentId} · ligne {line.line} · {euro(line.montant)}{line.piece ? ` · pièce ${line.piece}` : ""}{line.date ? ` · date ${line.date}` : ""} · empreinte {doc?.fingerprint.slice(0, 12) ?? "inconnue"}</p>; })}</div>)}</section>}
+    </div>
+    <div className="rounded-xl border border-[var(--pb-border)] p-4 text-xs"><h3>{run.silo.findings.length} constat(s) actif(s) — un constat n’est pas un contrôle exécuté</h3><ul className="mt-2 space-y-2">{run.silo.findings.map((f) => <li key={f.id} className="flex gap-3"><SeverityBadge severity={f.severity} /><div><strong>{f.titre}</strong><p>{f.constat}</p></div></li>)}</ul></div>
+    <details className="text-xs"><summary>Détail technique de l’exécution</summary><pre className="mt-2 overflow-auto">{JSON.stringify(run, null, 2)}</pre></details>
+  </div>;
 }

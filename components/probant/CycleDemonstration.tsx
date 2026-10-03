@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useActiveDossier } from "@/lib/dossier/client";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
-import { appendDemoEvent, createDemoRecord, DEMO_STORAGE_PREFIX, replayDemo, syntheticBaseline, verifyDemoRecord, type DemoEvent, type DemoRecord } from "@/lib/workpapers/browser-demo";
+import { appendDemoEvent, createDemoRecord, DEMO_STORAGE_PREFIX, latestDemoParameters, replayDemo, syntheticBaseline, verifyDemoRecord, type DemoEvent, type DemoRecord } from "@/lib/workpapers/browser-demo";
 import { demoCycleSchema, type DemoCycle, type DemoParameters } from "@/lib/workpapers/demo-cycles";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import { WorkpaperPanel } from "./WorkpaperPanel";
@@ -23,9 +23,13 @@ export function CycleDemonstration() {
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false), [packageReady, setPackageReady] = useState<ReturnType<typeof buildWorkpaperPackage> | null>(null);
   const current = runs.get(cycle), parameters: DemoParameters = { cycle, scenario, missingEvidence, methodAvailable };
+  function restoreParameters(stored: DemoRecord) {
+    const p = latestDemoParameters(stored);
+    if (p) { setCycle(p.cycle); setScenario(p.scenario ?? "nominal"); setMissing(p.missingEvidence); setMethod(p.methodAvailable); }
+  }
   useEffect(() => {
     if (!active) {
-      setRecord(null); setRuns(new Map());
+      setRecord(null); setRuns(new Map()); setPackageReady(null);
       const candidates: DemoRecord[] = [];
       for (let i = 0; i < localStorage.length; i++) {
         const key = localStorage.key(i);
@@ -37,13 +41,13 @@ export function CycleDemonstration() {
     }
     let cancelled = false;
     const raw = localStorage.getItem(`${DEMO_STORAGE_PREFIX}${dossier.context.dossierId}`);
-    if (!raw) { setMessage("Journal local absent. Utilisez la remise à zéro explicite pour reprendre ce dossier."); return; }
+    if (!raw) { setRecord(null); setRuns(new Map()); setPackageReady(null); setMessage("Journal absent ou ancien contrat v1 : une remise à zéro explicite est requise pour appliquer le contrat v2. Les anciens résultats ne sont pas requalifiés silencieusement."); return; }
     void (async () => {
       try {
         const stored = verifyDemoRecord(JSON.parse(raw)), restored = await replayDemo(stored);
         if (cancelled) return;
         await dossier.saveSnapshot(restored.snapshot, { organizationId: "SYNTHETIC-DEMO", dossierId: stored.dossierId });
-        setRecord(stored); setRuns(restored.runs); setMessage("Dossier synthétique repris et intégrité locale vérifiée.");
+        setRecord(stored); setRuns(restored.runs); restoreParameters(stored); setMessage("Dossier synthétique repris et intégrité locale vérifiée.");
       } catch (error) { if (!cancelled) setMessage(`Reprise refusée : ${error instanceof Error ? error.message : "journal invalide"}. Remise à zéro explicite disponible.`); }
     })();
     return () => { cancelled = true; };
@@ -67,7 +71,7 @@ export function CycleDemonstration() {
       if (!raw) throw new Error("JOURNAL_LOCAL_ABSENT");
       const stored = verifyDemoRecord(JSON.parse(raw)), restored = await replayDemo(stored);
       await dossier.saveSnapshot(restored.snapshot, { organizationId: "SYNTHETIC-DEMO", dossierId: stored.dossierId });
-      setRecord(stored); setRuns(restored.runs); setMessage("Dossier synthétique repris après vérification.");
+      setRecord(stored); setRuns(restored.runs); restoreParameters(stored); setMessage("Dossier synthétique repris après vérification.");
     } catch (error) { setMessage(error instanceof Error ? error.message : "Reprise impossible"); } finally { setBusy(false); }
   }
   async function reset() {
@@ -92,7 +96,7 @@ export function CycleDemonstration() {
   }
   function exportPackage() {
     try {
-      if (!active || ![...runs.values()].some((r) => r.state === "locked")) throw new Error("VERROUILLAGE_REQUIS");
+      if (!active) throw new Error("DOSSIER_SYNTHETIQUE_REQUIS");
       const scope = { organizationId: "SYNTHETIC-DEMO", dossierId: dossier.context.dossierId, periodId: periodId(dossier.snapshot.dossier.period!), mode: "demo" as const };
       const actor = { id: "SYN-PREPARER", grants: [{ scope, permissions: ["read", "download"] as ("read" | "download")[] }] };
       setPackageReady(buildWorkpaperPackage(dossier.snapshot, scope, actor)); setMessage("Export du même dossier préparé.");
@@ -103,19 +107,21 @@ export function CycleDemonstration() {
     <p className="my-2 text-sm">Fixtures exclusivement synthétiques. Rôles simulés. Sauvegarde dans ce navigateur pendant sept jours : contrôle d’intégrité, ni preuve inviolable ni persistance de production. Aucune donnée réelle.</p>
     <p className="font-semibold">Dossier actif : {dossier.snapshot.dossier.societe.raisonSociale} · {dossier.context.dossierId}</p>
     {!active ? <div className="my-3 flex gap-4"><button type="button" className="rounded bg-slate-900 px-4 py-2 text-white" disabled={busy} onClick={() => void openNew()}>Ouvrir un dossier synthétique dédié</button>{resumeId && <button type="button" className="rounded border bg-white px-4 py-2" disabled={busy} onClick={() => void resume()}>Reprendre le dossier synthétique {resumeId}</button>}</div> : <>
-      <p>Période : 01/07/2023–30/06/2024 · revue : 31/07/2024. {runs.size}/10 cycles exécutés.</p>
+      <p>Période : 01/07/2023–30/06/2024 · revue : 31/07/2024. {[...runs.values()].filter((r) => r.result?.execution === "completed").length}/10 cycles exécutés · {[...runs.values()].filter((r) => r.state === "blocked").length} bloqués.</p>
       <div className="my-3 flex flex-wrap items-end gap-4">
         <label>Cycle<select className="ml-2 rounded border p-2" value={cycle} onChange={(e) => setCycle(demoCycleSchema.parse(e.target.value))} disabled={busy}>{demoCycleSchema.options.map((id) => <option key={id} value={id}>{labels[id]}</option>)}</select></label>
         <label>Scénario<select className="ml-2 rounded border p-2" value={scenario} onChange={(e) => setScenario(e.target.value as typeof scenario)} disabled={busy}><option value="nominal">Nominal</option><option value="exception">Exception</option><option value="invalid">Donnée invalide</option></select></label>
         <label><input type="checkbox" checked={missingEvidence} onChange={(e) => setMissing(e.target.checked)} disabled={busy} /> Pièce manquante</label>
         <label><input type="checkbox" checked={methodAvailable} onChange={(e) => setMethod(e.target.checked)} disabled={busy} /> Méthode synthétique documentée</label>
-        {!current ? <button type="button" className="rounded bg-slate-900 px-4 py-2 text-white" disabled={busy || !record} onClick={() => void act({ action: "create", parameters })}>Exécuter ce cycle</button> : current.state === "locked" ? <button type="button" className="rounded border bg-white p-2" disabled={busy} onClick={() => void act({ action: "edit", parameters })}>Modifier : invalider la revue de ce cycle</button> : null}
+        {!current ? <button type="button" className="rounded bg-slate-900 px-4 py-2 text-white" disabled={busy || !record} onClick={() => void act({ action: "create", parameters })}>Exécuter ce cycle</button> : ["locked", "blocked", "failed"].includes(current.state) ? <button type="button" className="rounded border bg-white p-2" disabled={busy} onClick={() => void act({ action: "edit", parameters })}>{current.state === "locked" ? "Modifier : invalider la revue de ce cycle" : "Corriger les paramètres et réexécuter"}</button> : null}
       </div>
+      {current?.result?.execution === "blocked" && <p role="status" className="my-2 rounded border p-2 text-sm">{current.result.blockedControls.join(" ; ")} La soumission, l’approbation et le verrouillage sont indisponibles. <Link className="underline" href={cycle === "is" ? "/dashboard/fiscalite" : "/dashboard/depot"}>Voir la source requise</Link>. Le diagnostic peut être exporté.</p>}
+      {current?.state === "locked" && <p className="text-sm">Toute modification remplace le résultat courant et périme la revue ; une nouvelle revue sera nécessaire avant export.</p>}
       {current && <><WorkpaperPanel runs={[current]} /><label className="block">Note de préparation ou revue simulée<textarea className="my-2 block w-full rounded border p-2" value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} /></label><div className="flex flex-wrap gap-2">
         {([ ["submit", "Soumettre", "executed"], ["approve", "Approuver", "awaiting_review"], ["changes", "Demander correction", "awaiting_review"], ["revise", "Réviser", "changes_requested"], ["lock", "Verrouiller", "approved"] ] as const).map(([action, label, state]) => <button key={action} type="button" className="rounded border bg-white p-2 disabled:opacity-50" disabled={busy || current.state !== state || !note.trim()} onClick={() => void act({ action, cycle, note })}>{label}</button>)}
       </div></>}
-      <div className="my-4 flex flex-wrap gap-4"><Link className="underline" href="/dashboard/synthese">Voir la synthèse du même dossier →</Link><button type="button" className="underline disabled:opacity-50" disabled={busy || ![...runs.values()].some((r) => r.state === "locked")} onClick={exportPackage}>Préparer l’export</button><button type="button" className="underline" disabled={busy} onClick={() => void reset()}>Remise à zéro explicite</button></div>
-      {packageReady && <div className="flex flex-wrap gap-3"><button type="button" className="underline" onClick={() => download("workpapers.json", packageReady.json, "application/json")}>Snapshot JSON</button><button type="button" className="underline" onClick={() => download("workpapers.md", packageReady.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className="underline" onClick={() => download("manifest.json", JSON.stringify(packageReady.manifest, null, 2), "application/json")}>Manifeste</button></div>}
+      <div className="my-4 flex flex-wrap gap-4"><Link className="underline" href="/dashboard/synthese">Voir la synthèse du même dossier →</Link><button type="button" className="underline disabled:opacity-50" disabled={busy || ![...runs.values()].some((r) => r.state === "locked" || r.state === "blocked")} onClick={exportPackage}>Préparer l’export</button><button type="button" className="underline" disabled={busy} onClick={() => void reset()}>Remise à zéro explicite</button></div>
+      {packageReady && packageReady.manifest.sourceSnapshotHash === dossier.snapshot.snapshotHash && <div className="flex flex-wrap gap-3"><button type="button" className="underline" onClick={() => download("workpapers.json", packageReady.json, "application/json")}>Snapshot JSON</button><button type="button" className="underline" onClick={() => download("workpapers.md", packageReady.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className="underline" onClick={() => download("manifest.json", JSON.stringify(packageReady.manifest, null, 2), "application/json")}>Manifeste</button></div>}
     </>}
     <p role="status" aria-live="polite" className="my-3 text-sm">{message}</p>
   </section>;

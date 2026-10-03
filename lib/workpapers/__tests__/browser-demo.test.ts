@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { appendDemoEvent, createDemoRecord, replayDemo, syntheticBaseline, verifyDemoRecord } from "../browser-demo";
+import { appendDemoEvent, createDemoRecord, latestDemoParameters, replayDemo, syntheticBaseline, verifyDemoRecord } from "../browser-demo";
 import { buildSynthesisSnapshot } from "@/lib/synthesis";
 import { buildWorkpaperPackage } from "../package";
 import { periodId } from "../model";
@@ -12,6 +12,7 @@ it("rejoue un dossier synthétique après rechargement et verrouille la projecti
   await run({ action: "submit", cycle: "clients", note: "Travail synthétique préparé" });
   await run({ action: "approve", cycle: "clients", note: "Revue simulée, limites conservées" });
   await run({ action: "lock", cycle: "clients", note: "Projection synthétique" });
+  expect(latestDemoParameters(record)).toMatchObject({ cycle: "clients", scenario: "nominal" });
   const saved = JSON.parse(JSON.stringify(record));
   const restored = await replayDemo(verifyDemoRecord(saved));
   expect(restored.snapshot.dossier.id).toBe("SYN-integrated");
@@ -22,8 +23,9 @@ it("rejoue un dossier synthétique après rechargement et verrouille la projecti
   expect(pkg.json).toContain("SYN-integrated");
   expect(pkg.manifest.files).toHaveLength(2);
   await run({ action: "edit", parameters: { cycle: "clients", scenario: "exception", missingEvidence: true, methodAvailable: false } });
+  expect(latestDemoParameters(record)).toMatchObject({ cycle: "clients", scenario: "exception", missingEvidence: true, methodAvailable: false });
   expect(state.snapshot.workpaperProjection?.lockedRuns).toHaveLength(1);
-  expect(state.runs.get("clients")?.state).toBe("executed");
+  expect(state.runs.get("clients")?.state).toBe("blocked");
   expect(() => buildWorkpaperPackage(state.snapshot, scope, { id: "SYN-PREPARER", grants: [{ scope, permissions: ["read", "download"] }] })).toThrow("STALE_REVIEW_EXPORT_BLOCKED");
 });
 
@@ -34,5 +36,9 @@ it("refuse les journaux expirés ou altérés et les dossiers réels", async () 
   expect(() => verifyDemoRecord({ ...record, events: [{ action: "create", parameters: { cycle: "cash", missingEvidence: false, methodAvailable: true } }] })).toThrow("DEMO_INTEGRITY_INVALID");
   expect(() => verifyDemoRecord(record, record.expiresAt)).toThrow("DEMO_EXPIRED");
   const next = await appendDemoEvent(record, { action: "create", parameters: { cycle: "cash", scenario: "invalid", missingEvidence: false, methodAvailable: true } });
-  expect(next.runs.get("cash")?.result?.result).toMatchObject({ status: "invalid_input" });
+  expect(next.runs.get("cash")?.result?.result).toMatchObject({ technical: { status: "invalid_input" } });
+});
+
+it("refuse explicitement le contrat v1 sans requalifier ni rejouer les anciens résultats", () => {
+  expect(() => verifyDemoRecord({ ...createDemoRecord("SYN-legacy"), version: 1 })).toThrow("DEMO_RESULT_CONTRACT_OUTDATED_RESET_REQUIRED");
 });
