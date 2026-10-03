@@ -59,6 +59,11 @@ function renderWorkspace(options: { outcome?: string; scope?: TaxCockpitScope; w
   );
 }
 
+/** Ligne d'exploration dont le texte correspond au motif (comparaison par expression régulière). */
+function findRow(pattern: RegExp): HTMLElement {
+  return screen.getAllByRole("row").find((row) => pattern.test(row.textContent ?? ""))!;
+}
+
 describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
   it("l'acte I rend la phrase de synthèse et le ruban issus du dataset", () => {
     const { container } = renderWorkspace();
@@ -162,9 +167,7 @@ describe("clavier et interactions", () => {
 
   it("une ligne ouvre le tiroir de détail (formule, preuve), Échap le referme", () => {
     renderWorkspace();
-    const row = screen
-      .getAllByRole("row")
-      .find((candidate) => candidate.textContent?.includes("VAT.NET"))!;
+    const row = findRow(/VAT\.NET/u);
     fireEvent.click(row);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Formule / normalisations")).toBeTruthy();
@@ -175,9 +178,7 @@ describe("clavier et interactions", () => {
 
   it("le tiroir d'une ligne de rapprochement désactive les décisions et le dit", () => {
     renderWorkspace();
-    const row = screen
-      .getAllByRole("row")
-      .find((candidate) => candidate.textContent?.includes("Impot brut estime et charge"))!;
+    const row = findRow(/Impot brut estime et charge/u);
     fireEvent.click(row);
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByRole("button", { name: "Confirmer" }).hasAttribute("disabled")).toBe(true);
@@ -252,7 +253,7 @@ describe("accessibilité", () => {
 
   it("le tiroir ouvert ne présente aucune violation axe-core", async () => {
     const { container } = renderWorkspace();
-    fireEvent.click(screen.getAllByRole("row").find((row) => row.textContent?.includes("VAT.NET"))!);
+    fireEvent.click(findRow(/VAT\.NET/u));
     const results = await axe.run(container, {
       rules: { "color-contrast": { enabled: false } },
     });
