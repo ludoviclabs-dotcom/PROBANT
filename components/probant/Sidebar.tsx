@@ -32,16 +32,34 @@ const NAV = [
   { href: "/dashboard/referentiel", label: "Seuils & référentiel", icon: Scale },
 ];
 
+/**
+ * Navigation latérale. Dès `md` (768 px) elle est fixe dans la grille ; en
+ * dessous elle devient un tiroir hors-champ, ouvert par le bouton du bandeau
+ * (voir app/dashboard/layout.tsx) et refermé à chaque navigation.
+ */
 export function Sidebar({
   badges,
+  open = false,
+  onNavigate,
 }: {
   badges?: Partial<Record<string, number>>;
+  open?: boolean;
+  onNavigate?: () => void;
 }) {
   const pathname = usePathname();
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-[var(--pb-border)] bg-[var(--pb-surface)]">
+    <aside
+      id="dashboard-nav"
+      className={cn(
+        "flex h-full w-60 shrink-0 flex-col border-r border-[var(--pb-border)] bg-[var(--pb-surface)]",
+        "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-2xl max-md:shadow-black/50",
+        "max-md:transition-[transform,visibility] max-md:duration-200",
+        open ? "max-md:translate-x-0" : "max-md:invisible max-md:-translate-x-full",
+      )}
+    >
       <Link
         href="/dashboard/synthese"
+        onClick={onNavigate}
         className="flex items-center gap-2.5 px-5 py-4"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--pb-accent)]/15 text-[var(--pb-accent)]">
@@ -66,6 +84,7 @@ export function Sidebar({
             <Link
               key={item.href}
               href={item.href}
+              onClick={onNavigate}
               title={"description" in item ? item.description : undefined}
               aria-label={"description" in item ? item.description : undefined}
               className={cn(
