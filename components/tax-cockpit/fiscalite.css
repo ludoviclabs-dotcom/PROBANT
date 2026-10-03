@@ -12,6 +12,8 @@
   font-size: 14px;
   min-height: 100%;
   color-scheme: dark;
+  /* Aucun débordement horizontal ne doit élargir la page (clip ≠ scroll : le sticky reste actif). */
+  overflow-x: clip;
 }
 
 @keyframes fxRiseIn {
@@ -134,6 +136,11 @@
   border-radius: 6px;
 }
 
+/* Les libellés sr-only (position absolue) restent contenus — et rognés — par la liste défilante. */
+.fx-stepper,
+.fx-stepper-m {
+  position: relative;
+}
 .fx-stepper-m {
   display: none;
 }
