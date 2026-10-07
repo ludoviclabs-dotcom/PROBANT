@@ -19,7 +19,7 @@ Les scripts pnpm du socle peuvent exécuter les mêmes commandes ; le dépôt fo
 
 ## Scénarios couverts
 
-- Import, aperçu et mapping approuvé par identité serveur, population complète, calcul versionné avec résidus bruts +20 EUR / net zéro.
+- Import, aperçu et mapping approuvé par identité serveur ; réimport des mêmes octets sous un autre nom sans réécriture du premier aperçu ; population complète, calcul versionné avec résidus bruts +20 EUR / net zéro.
 - Cloisonnement entre organisations et dossiers, permission de préparation refusée au relecteur.
 - Rôle, acteur et approbation fabriqués dans le JSON refusés ; CSRF absent refusé.
 - Rejeu avec une seule version créée ; clé réutilisée avec contenu différent refusée.
@@ -27,7 +27,7 @@ Les scripts pnpm du socle peuvent exécuter les mêmes commandes ; le dépôt fo
 - Auto-approbation refusée même lorsque le préparateur dispose aussi du rôle de relecteur.
 - Note bloquante non résolue : approbation refusée ; demande de correction, révision, résolution, soumission, approbation distincte et verrouillage.
 - UPDATE / DELETE de versions ou sources refusés par PostgreSQL.
-- Fermeture de toutes les connexions puis nouveau runtime / nouveau magasin de sessions : reprise des versions, sources et identité depuis la base.
+- Fermeture de toutes les connexions, redémarrage du conteneur PostgreSQL 17 jetable en CI, puis nouveau runtime / nouveau magasin de sessions : reprise des versions, sources et identité depuis la base. Prolongation de la session testée contre les vrais horodatages PostgreSQL.
 - Téléchargements autorisés dans le périmètre, refusés transversalement et après expiration.
 - Source remplacée : commandes invalidées et nouvelle révision sans réécriture de la décision verrouillée.
 
@@ -35,7 +35,7 @@ Les tests de composant vérifient attente d'accusé, échec réseau et rejeu ave
 
 ## Limites de la recette
 
-La reprise testée ferme les connexions et recrée le runtime applicatif ; elle ne redémarre pas le serveur PostgreSQL. Aucun fournisseur OIDC extérieur n'est provisionné : les sessions de test sont créées par le magasin serveur avec des identités synthétiques, puis résolues par le vrai authorizer. Le flux de connexion OIDC reste couvert par les tests existants du socle, pas par une nouvelle recette avec un IdP externe.
+En CI, la reprise redémarre PostgreSQL via l'identifiant du service jetable fourni par GitHub Actions, puis recrée le runtime applicatif et ses connexions. Hors CI, si cet identifiant manque, seule la recréation du runtime / des connexions est exécutée. Aucun fournisseur OIDC extérieur n'est provisionné : les sessions de test sont créées par le magasin serveur avec des identités synthétiques, puis résolues par le vrai authorizer. Le flux de connexion OIDC reste couvert par les tests existants du socle, pas par une nouvelle recette avec un IdP externe.
 
 La recette Vercel authentifiée avec une base dédiée et un IdP dédié n'est pas exécutée sans ces dépendances. Pas de production. Les résultats effectivement exécutés et les réserves sont consignés dans VALIDATION.md.
 

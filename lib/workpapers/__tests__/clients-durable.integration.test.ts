@@ -1,5 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import postgres from "postgres";
 import { drizzle } from "drizzle-orm/postgres-js";
 import * as schema from "@/lib/db/schema";
@@ -35,7 +37,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
             ...(typeof body === "string" ? { "Content-Type": "application/json" } : {}) }, body
     });
     async function connect() {
-        client = postgres(databaseUrl!, { max: 5, prepare: false });
+        client = postgres(databaseUrl!, { max: 5, prepare: false, connect_timeout: 3 });
         const db = drizzle(client, { schema });
         const sessions = new DrizzleSessionStore(db);
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
@@ -96,6 +98,18 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const batches = [];
         for (const type of ["clients_general", "clients_auxiliary", "clients_aged"])
             batches.push(await importSource(type));
+        // Identical bytes and mapping reuse the persisted preview, including its first file name/hash.
+        const repeated = new FormData();
+        repeated.set("file", new File([csv("clients_general")], "renamed-general.csv", { type: "text/csv" }));
+        repeated.set("mapping", JSON.stringify(mapping));
+        repeated.set("period", JSON.stringify(period));
+        repeated.set("documentType", "clients_general");
+        const repeatedResponse = await handlers.importsPOST(request(preparer, "POST", repeated));
+        expect(repeatedResponse.status).toBe(200);
+        const repeatedBatch = (await repeatedResponse.json()).batch;
+        expect(repeatedBatch.id).toBe(batches[0].id);
+        expect(repeatedBatch.previewHash).toBe(batches[0].previewHash);
+        expect(repeatedBatch.document.fileName).toBe(batches[0].document.fileName);
         importIds = batches.map(b => b.id);
         sourceId = batches[0].document.id;
         run = await success({ command: "create", period, instanceKey: randomUUID() });
@@ -168,10 +182,22 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         await expect(client `UPDATE clients_workpaper_versions SET run=run WHERE id=${run.id}`).rejects.toThrow("CLIENTS_APPEND_ONLY");
         await expect(client `DELETE FROM clients_imports WHERE dossier_id=${dossierA}`).rejects.toThrow("CLIENTS_APPEND_ONLY");
     });
-    it("reprend après fermeture des connexions avec sessions, versions et sources persistées", async () => {
+    it("reprend après recréation du runtime et redémarrage PostgreSQL en CI", async () => {
         const locked = structuredClone(run);
         await client.end();
+        const container = process.env.PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER;
+        if (container) {
+            if (!/^[a-f0-9]{12,64}$/.test(container)) throw new Error("DISPOSABLE_CONTAINER_ID_INVALID");
+            await promisify(execFile)("docker", ["restart", container], { timeout: 20000 });
+        }
         await connect();
+        for (let attempt = 0; ; attempt++) {
+            try { await client`SELECT 1`; break; }
+            catch (error) {
+                if (attempt >= 4) throw error;
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+        }
         // Native PostgreSQL must encode timestamps for both lookup and sliding-session touch.
         now += 1800;
         const resumed = await (await handlers.GET(request(preparer))).json();
@@ -181,7 +207,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect(resumed.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
         expect(resumed.actorId).toBe("preparer-real");
         expect((await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=download&id=" + sourceId))).status).toBe(200);
-    });
+    }, 30000);
     it("applique le même contrôle d’accès aux téléchargements et refuse les sessions expirées", async () => {
         const extra = "&operation=download&id=" + sourceId;
         const download = await handlers.GET(request(preparer, "GET", undefined, dossierA, extra));
