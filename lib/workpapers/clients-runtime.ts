@@ -84,7 +84,10 @@ export class ClientsRuntime {
             const currentRuns = (await Promise.all(ids.map((r) => repository.get(scope, r.id)))).filter((r): r is WorkpaperRun => !!r);
             const runs = version !== undefined && id ? (await repository.history(scope, id)).filter(r => r.version === version) : currentRuns;
             if (version !== undefined && !runs.length) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
-            return { actorId: actor.id, permissions: actor.grants[0].permissions, runs, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
+            const lineageHeads = await rows<{ id: string; version: number; root_id: string; revision: number }>(tx, sql`SELECT h.id,h.version,v.run->>'rootId' AS root_id,(v.run->>'revision')::int AS revision FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId}`);
+            const lineageCurrent: Record<string, { id: string; version: number; revision: number }> = {};
+            for (const h of lineageHeads) if (!lineageCurrent[h.root_id] || h.revision > lineageCurrent[h.root_id].revision) lineageCurrent[h.root_id] = { id: h.id, version: h.version, revision: h.revision };
+            return { actorId: actor.id, permissions: actor.grants[0].permissions, runs, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
                 sourcesCurrent: Object.fromEntries(runs.map((r) => [r.id, r.importIds.every((i) => heads.some((h) => h.import_id === i))])),
                 ...(history && id ? { history: await repository.history(scope, id) } : {}) };
         });

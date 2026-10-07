@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ImportBatch } from "@/lib/workpapers/imports";
-import { missionSheetHref, type MissionFilter } from "@/lib/workpapers/client-mission";
+import { type MissionFilter } from "@/lib/workpapers/client-mission";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 type View = {
@@ -17,6 +17,7 @@ type View = {
     }[];
     sourcesCurrent: Record<string, boolean>;
     currentVersions?: Record<string, number>;
+    lineageCurrent?: Record<string, { id: string; version: number; revision: number }>;
 };
 const sourceLabels = { clients_general: "Grand livre Clients", clients_auxiliary: "Auxiliaire Clients", clients_aged: "Balance âgée" };
 const initialPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
@@ -124,7 +125,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
             try {
                 const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" }), identity = await sessionResponse.json();
                 if (!sessionResponse.ok || !identity.authenticated || !identity.csrfToken) throw new Error("Session requise ou expirée. Reconnectez-vous pour reprendre.");
-                const q = new URLSearchParams({ dossierId: initialDossierId, periodId: requested.periodId, ...(requested.id && requested.version !== undefined ? { operation: "version", id: requested.id, version: String(requested.version) } : {}) });
+                const q = new URLSearchParams({ dossierId: initialDossierId, periodId: requested.periodId, ...(requested.id ? { id: requested.id, ...(requested.version !== undefined ? { operation: "version", version: String(requested.version) } : {}) } : {}) });
                 const response = await fetch("/api/workpapers/clients?" + q, { cache: "no-store" }), data = await response.json();
                 if (!response.ok) throw new Error(failureMessage(data.error));
                 if (!active) return;
@@ -221,7 +222,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
       <button className={controlClass} onClick={() => { setConclusion(conflict.current.conclusion ?? ""); setView(v => v ? { ...v, runs: v.runs.map(r => r.id === conflict.current.id ? conflict.current : r) } : v); setConflict(null); setStatus("idle"); }}>Reprendre le texte serveur</button>
     </section>}
     {view && <>
-      {exactVersion && <section className="rounded border border-[var(--pb-border)] p-4"><p>Examen de la version {run?.version} · version courante {run ? view.currentVersions?.[run.id] ?? "inconnue" : "—"}. Vue en lecture seule.</p><a className="underline" href={run ? missionSheetHref(run.scope, { id: run.id, version: run.version }, "all").split("&id=")[0] : "/clients-framing"}>Travailler sur la version courante</a></section>}
+      {exactVersion && <section className="rounded border border-[var(--pb-border)] p-4"><p>Examen de la version {run?.version} · version courante {run ? view.currentVersions?.[run.id] ?? "inconnue" : "—"}. {run && view.lineageCurrent?.[run.rootId] && `Révision courante ${view.lineageCurrent[run.rootId].revision}, version ${view.lineageCurrent[run.rootId].version}.`} Vue en lecture seule.</p><a className="underline" href={run ? "/clients-framing?" + new URLSearchParams({ dossierId: run.scope.dossierId, periodId: run.scope.periodId, id: view.lineageCurrent?.[run.rootId]?.id ?? run.id }) : "/clients-framing"}>Travailler sur la version courante</a></section>}
       <nav aria-label="Filtre de la feuille" className="flex flex-wrap gap-2">{(["all","blocked","exceptions","evidence","review","stale"] as MissionFilter[]).map(f => <button key={f} className="rounded border px-3 py-1" aria-pressed={sheetFilter === f} onClick={() => setSheetFilter(f)}>{{all:"Toute la feuille",blocked:"Blocages",exceptions:"Exceptions",evidence:"Pièces",review:"Revue",stale:"Périmé"}[f]}</button>)}</nav>
       <p>Identité connectée : {view.actorId}{run ? " · Préparateur réel : " + run.preparedBy : ""}</p>
       <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4">

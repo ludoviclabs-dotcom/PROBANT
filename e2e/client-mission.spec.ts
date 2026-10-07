@@ -40,11 +40,13 @@ test("Synthèse Clients : programme, résidus après revue, preuve, version exac
 test("Feuille Clients : traitement documenté après accusé, animation courte, focus et position conservés", async ({ page }) => {
   const f = await clientMissionFixture();
   let run: WorkpaperRun = { ...f.run, state: "executed" as const, submittedHash: undefined, notes: f.run.notes.map(n => ({ ...n, resolution: undefined })) };
+  let releaseAck: () => void = () => {};
+  const ack = new Promise<void>(resolve => { releaseAck = resolve; });
   await page.route("**/api/auth/session", r => r.fulfill({ json: { authenticated: true, csrfToken: "test-csrf" } }));
   await page.route("**/api/workpapers/clients?**", async r => {
     if (r.request().method() === "POST") {
       const input = r.request().postDataJSON(); expect(input.command).toBe("resolve");
-      await new Promise(resolve => setTimeout(resolve, 150));
+      await ack;
       run = { ...run, version: run.version + 1, notes: run.notes.map(n => ({ ...n, resolution: { text: input.text, authorId: "actual-preparer", at: "2025-02-01T00:00:00Z" } })) };
       return r.fulfill({ json: { run } });
     }
@@ -56,7 +58,9 @@ test("Feuille Clients : traitement documenté après accusé, animation courte, 
   await button.focus(); await button.scrollIntoViewIfNeeded();
   const before = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY }));
   await button.click();
-  await expect(page.getByText("Sauvegarde en cours…", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status").filter({ hasText: "Sauvegarde en cours…" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Traitement documenté : Explication documentée du résidu" })).toHaveCount(0);
+  releaseAck();
   await expect(page.getByRole("button", { name: "Traitement documenté : Explication documentée du résidu" })).toBeFocused();
   const after = await page.evaluate(() => ({ x: window.scrollX, y: window.scrollY })); expect(after).toEqual(before);
 });

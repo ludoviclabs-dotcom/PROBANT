@@ -137,7 +137,8 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect((await handlers.exportPOST(exportRequest(snapshot, "diagnostic", other))).status).toBe(403);
         expect((await handlers.exportPOST(exportRequest(snapshot, "diagnostic", preparer, dossierB))).status).toBe(403);
         const forged = exportRequest(snapshot); const payload = await forged.json();
-        expect((await handlers.exportPOST(request(preparer, "POST", JSON.stringify({ ...payload, role: "reviewer", mission: snapshot, approval: true })))).status).toBe(400);
+        expect((await handlers.exportPOST(request(preparer, "POST", JSON.stringify({ ...payload, role: "reviewer", approval: true })))).status).toBe(400);
+        expect((await handlers.exportPOST(request(preparer, "POST", JSON.stringify({ ...payload, mission: snapshot })))).status).toBe(413);
     });
     it("refuse accès inter-organisation, rôle inadéquat, autorité client, CSRF et périmètre dossier", async () => {
         expect((await handlers.GET(request(other))).status).toBe(403);
@@ -279,6 +280,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect(run.importIds).toEqual([]);
         const after = await (await handlers.GET(request(preparer))).json();
         expect(after.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+        expect(after.lineageCurrent[run.rootId]).toEqual({ id: run.id, revision: run.revision, version: run.version });
         expect((await command({ command: "freeze", ...target(), importIds })).status).toBe(422);
     });
 });
