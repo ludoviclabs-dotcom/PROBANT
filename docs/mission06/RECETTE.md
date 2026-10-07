@@ -14,7 +14,7 @@
 | Compteurs sans anomalie, affectation unique ou explicite | Tests purs du programme |
 | Procédure partielle : numérateur, dénominateur, exclusions | Test de couverture et rendu HTML |
 | Revue conserve les résidus +10 / -10 et leur provenance | Tests purs, UI, Chromium et PostgreSQL |
-| Écran / export : même état canonique et mêmes identités | JSON et manifeste vérifiés, HTML téléchargé dans Chromium, empreinte réponse HTTP PostgreSQL |
+| Écran / export : même état canonique et mêmes identités | JSON et manifeste vérifiés, HTML téléchargé dans Chromium, empreintes HTML / manifeste / CSV identiques sur des requêtes PostgreSQL séparées dans le temps |
 | Diagnostic distinct du paquet approuvé | Titres, noms et manifeste ; refus avant verrouillage |
 | Source périmée visible ; ancienne décision inchangée | Remplacement PostgreSQL, Synthèse périmée, diagnostic permis, paquet approuvé refusé |
 | Concurrence entre affichage et export | Empreinte obsolète → 409 sans fichier |
