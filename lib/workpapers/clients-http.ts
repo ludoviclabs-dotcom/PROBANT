@@ -56,7 +56,8 @@ async function bounded(request: Request, max: number) {
     }
     return new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
 }
-export function clientsHandlers(create: () => ClientsRuntime, enabled: () => void = requireDisposableClients) {
+export function clientsHandlers(create: () => ClientsRuntime, enabled: () => void = requireDisposableClients, observeError?: (error: unknown) => void) {
+    const fail = (error: unknown) => { observeError?.(error); return failure(error); };
     return {
         GET: async (request: Request) => {
             try {
@@ -73,7 +74,7 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                 return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history"), { headers });
             }
             catch (error) {
-                return failure(error);
+                return fail(error);
             }
         },
         POST: async (request: Request) => {
@@ -86,7 +87,7 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                 return Response.json(result, { headers });
             }
             catch (error) {
-                return failure(error);
+                return fail(error);
             }
         },
         importsPOST: async (request: Request) => {
@@ -113,7 +114,7 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                 return Response.json(await runtime.approveImport(request, q.dossierId, q.periodId, command, key), { headers });
             }
             catch (error) {
-                return failure(error);
+                return fail(error);
             }
         }
     };

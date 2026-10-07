@@ -40,7 +40,9 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const sessions = new DrizzleSessionStore(db);
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
         runtime = new ClientsRuntime(db, authorizer, () => now);
-        handlers = clientsHandlers(() => runtime, () => { });
+        handlers = clientsHandlers(() => runtime, () => { }, error => {
+            if (error instanceof Error) console.error("CLIENTS_RECIPE_ERROR", error.name, error.message, error.cause instanceof Error ? error.cause.message : "");
+        });
         return sessions;
     }
     async function session(store: DrizzleSessionStore, org: string, subject: string, roles: ProbantRole[]) {

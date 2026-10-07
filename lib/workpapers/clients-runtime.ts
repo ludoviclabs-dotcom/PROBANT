@@ -102,7 +102,7 @@ export class ClientsRuntime {
             return this.receipt(tx, scope, actor, key, { operation: "preview", period, batchHash: batch.previewHash }, async () => {
                 await tx.execute(sql `INSERT INTO clients_imports (organization_id,dossier_id,period_id,id,document_type,preview,original_base64)
           VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${batch.id},${type},${JSON.stringify(batch)}::jsonb,${Buffer.from(await safeFile.arrayBuffer()).toString("base64")}) ON CONFLICT DO NOTHING`);
-                return { batch };
+                return { batch: (await ClientsImports.load(tx, scope)).get(scope, batch.id, actor) };
             });
         });
     }
