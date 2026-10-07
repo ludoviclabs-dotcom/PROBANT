@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, eq, isNull, lt, or, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, or, sql } from "drizzle-orm";
 import type { ProbantDatabase } from "@/lib/db/client";
 import { authSessions, memberships, users } from "@/lib/db/schema";
 import { normalizeRoles, type ProbantRole } from "../roles";
@@ -129,8 +129,8 @@ export class DrizzleSessionStore implements SessionStore {
         and(
           eq(authSessions.tokenSha256, digest),
           isNull(authSessions.revokedAt),
-          sql`${authSessions.idleExpiresAt} > ${now}`,
-          sql`${authSessions.absoluteExpiresAt} > ${now}`,
+          gt(authSessions.idleExpiresAt, now),
+          gt(authSessions.absoluteExpiresAt, now),
         ),
       )
       .limit(1);
@@ -159,7 +159,7 @@ export class DrizzleSessionStore implements SessionStore {
         and(
           eq(authSessions.id, id),
           // Ne jamais repousser au-delà du plafond absolu.
-          sql`${authSessions.absoluteExpiresAt} > ${idleExpiresAt} or ${authSessions.absoluteExpiresAt} > now()`,
+          or(gt(authSessions.absoluteExpiresAt, idleExpiresAt), sql`${authSessions.absoluteExpiresAt} > now()`),
         ),
       );
   }

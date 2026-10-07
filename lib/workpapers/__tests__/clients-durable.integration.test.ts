@@ -41,7 +41,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
         runtime = new ClientsRuntime(db, authorizer, () => now);
         handlers = clientsHandlers(() => runtime, () => { }, error => {
-            if (error instanceof Error) console.error("CLIENTS_RECIPE_ERROR", error.name, error.message, error.cause instanceof Error ? error.cause.message : "");
+            if (error instanceof Error) console.error("CLIENTS_RECIPE_ERROR", error.name, error.message.split("\n")[0], error.cause instanceof Error ? error.cause.message : "");
         });
         return sessions;
     }
@@ -172,7 +172,12 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const locked = structuredClone(run);
         await client.end();
         await connect();
+        // Native PostgreSQL must encode timestamps for both lookup and sliding-session touch.
+        now += 1800;
         const resumed = await (await handlers.GET(request(preparer))).json();
+        const [sessionRow] = await client`SELECT extract(epoch from idle_expires_at) AS expiry FROM auth_sessions WHERE token_sha256=${sessionTokenDigest(preparer.secret)}`;
+        expect(Number(sessionRow.expiry)).toBe(now + 3600);
+        now -= 1800;
         expect(resumed.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
         expect(resumed.actorId).toBe("preparer-real");
         expect((await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=download&id=" + sourceId))).status).toBe(200);
