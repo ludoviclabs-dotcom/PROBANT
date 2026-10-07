@@ -6,7 +6,7 @@ import { authorize, type Principal } from "./policy";
 
 export const SOURCE_REQUIRED = "SOURCE REQUISE";
 export const CYCLE_FRAMEWORK_VERSION = "1.0.0";
-export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real" }
+export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "clients.frame" }
 export interface SourcedAmount { amount: Money; date: string; source: SourceRow }
 export interface PostClosingWindow { startDate: string; endDate: string; documentVersionIds: string[]; coverage: "documented" | "incomplete" }
 export function assertContext(context: CycleContext) {

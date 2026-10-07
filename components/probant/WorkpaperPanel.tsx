@@ -7,15 +7,16 @@ import { WorkpaperResult } from "./WorkpaperResult";
 
 const stateLabels: Record<WorkpaperRun["state"], string> = { draft: "Brouillon", ready: "Prêt", executed: "Exécuté", awaiting_review: "En revue", changes_requested: "Correction demandée", approved: "Travail approuvé", locked: "Verrouillé", superseded: "Remplacé", blocked: "Bloqué", failed: "Échec" };
 /** Read-only shell: never invent a reviewer or enable real mutations without server auth. */
-export function WorkpaperPanel({ runs = [], loading = false, error }: { runs?: WorkpaperRun[]; loading?: boolean; error?: string }) {
+export function WorkpaperPanel({ runs = [], loading = false, error, durable = false }: { runs?: WorkpaperRun[]; loading?: boolean; error?: string; durable?: boolean }) {
   const id = useId();
   return <section aria-labelledby={`${id}-title`} className="my-5 space-y-3 rounded-xl border border-[var(--pb-border)] p-4">
     <h2 id={`${id}-title`} className="font-semibold">Feuilles de travail</h2>
-    <p id={`${id}-disabled`} className="text-sm">Usage réel désactivé. Les actions de préparation et de revue simulées sont dans l’atelier du dossier synthétique.</p>
+    <p id={`${id}-disabled`} className="text-sm">{durable ? "Cadrage Clients sur infrastructure jetable · versions sauvegardées par le serveur." : "Usage réel désactivé. Les actions de préparation et de revue simulées sont dans l’atelier du dossier synthétique."}</p>
     {loading ? <p role="status">Chargement des feuilles…</p> : error ? <p role="alert">Feuilles indisponibles : {error}</p> : !runs.length ? <p>Aucune feuille de travail activée. Les missions historiques ne sont pas converties automatiquement.</p> : runs.map((run) => <article key={run.id} id={`wp-${encodeURIComponent(run.id)}`} className="min-w-0 space-y-2 border-t pt-3">
       <h3 className="font-semibold">{run.template.objective} — {stateLabels[run.state]}</h3>
       <p>Mission {run.scope.dossierId} · {run.period.startDate} au {run.period.closingDate} · Revue au {run.period.asOfDate} · Révision {run.revision}, version {run.version}</p>
       <p>{run.state === "locked" ? "Conclusion verrouillée" : "Progression provisoire, non publiée"} : {run.conclusion ?? "Conclusion non renseignée"}</p>
+      {durable && <p>Préparateur : {run.preparedBy} · Dernier auteur : {run.events.at(-1)?.actorId ?? run.preparedBy}</p>}
       <p>Données : {run.importIds.length} imports · Population : {run.population?.items.length ?? "non définie"} · Sélection : {run.selection?.selectedIds.length ?? "non définie"}</p>
       <WorkpaperResult run={run} />
       {run.result?.calculationKey === "cash.bridge.synthetic" && <CycleTechnicalPanel run={run} />}

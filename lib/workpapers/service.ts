@@ -10,7 +10,7 @@ import type { WorkpaperRepository } from "./repository";
 import { validateSelectionSources } from "./selection";
 import { projectLockedWorkpaper } from "./projection";
 
-/** No production session provider exists yet. Never derive identity from a request body. */
+/** Identity is supplied by the server session adapter, never the request body. */
 export type TrustedSession = () => Promise<Principal | null>;
 export const disabledSession: TrustedSession = async () => null;
 export interface WorkpaperImportPort {
@@ -20,10 +20,11 @@ export interface WorkpaperImportPort {
 export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
-    private readonly clock: () => string = () => new Date().toISOString()) {}
+    private readonly clock: () => string = () => new Date().toISOString(),
+    private readonly realAdapter?: "clients.frame") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo") throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && this.realAdapter !== "clients.frame") throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -34,6 +35,7 @@ export class WorkpaperService {
   async history(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.history(scope, id); }
   async download(scope: WorkpaperScope, documentId: string) { const actor = await this.actor(scope, "download"); return this.imports.download(scope, documentId, actor); }
   async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string) {
+    if (scope.mode === "real" && (template.id !== "clients.frame" || template.rule?.id !== "clients.frame" || template.rule.version !== "1.0.0")) throw new Error("CLIENT_TEMPLATE_REQUIRED");
     const actor = await this.actor(scope, "prepare"); if (!instanceKey.trim()) throw new Error("INSTANCE_KEY_REQUIRED");
     const id = `workpaper-${stableSha256({ scope, template: { id: template.id, version: template.version }, instanceKey })}`;
     return this.repository.create(this.stamp(validateRun({ id, rootId: id, revision: 1, version: 1, schemaVersion: "1.0.0", scope, period, template,
@@ -124,7 +126,16 @@ export class WorkpaperService {
       return this.stamp({ ...old, id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
-        evidence: old.evidence.map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
+        ...(scope.mode === "real" ? { importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
+        evidence: (scope.mode === "real" ? [] : old.evidence).map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
+    });
+  }
+  async lock(scope: WorkpaperScope, id: string, version: number) {
+    if (scope.mode !== "real" || this.realAdapter !== "clients.frame") throw new Error("CLIENT_LOCK_ONLY");
+    const actor = await this.actor(scope, "review");
+    return this.repository.compareAndSwap(scope, id, version, (run) => {
+      assertTransition(run, "locked", actor);
+      return this.stamp({ ...run, state: "locked", version: version + 1 }, actor, "locked");
     });
   }
   async projection(scope: WorkpaperScope) { await this.actor(scope, "read"); return this.repository.projection(scope); }
