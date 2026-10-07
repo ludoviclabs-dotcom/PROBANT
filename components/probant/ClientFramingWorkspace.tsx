@@ -1,8 +1,9 @@
 "use client";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ImportBatch } from "@/lib/workpapers/imports";
+import { missionSheetHref, type MissionFilter } from "@/lib/workpapers/client-mission";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 type View = {
@@ -15,6 +16,7 @@ type View = {
         import_id: string;
     }[];
     sourcesCurrent: Record<string, boolean>;
+    currentVersions?: Record<string, number>;
 };
 const sourceLabels = { clients_general: "Grand livre Clients", clients_auxiliary: "Auxiliaire Clients", clients_aged: "Balance âgée" };
 const initialPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
@@ -46,9 +48,10 @@ function failureMessage(code?: string) {
     };
     return code && labels[code] ? labels[code] : "L’opération a été refusée. Rechargez la feuille et vérifiez ses sources, sa période et vos permissions.";
 }
-export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodValue = initialPeriod }: {
+export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodValue = initialPeriod, requested }: {
     initialDossierId?: string;
     initialPeriodValue?: AccountingPeriod;
+    requested?: { periodId: string; id?: string; version?: number; filter: MissionFilter; noteId?: string };
 }) {
     const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState(initialPeriodValue);
     const [view, setView] = useState<View | null>(null), [activeId, setActiveId] = useState("");
@@ -61,6 +64,9 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const [file, setFile] = useState<File | null>(null), [type, setType] = useState<keyof typeof sourceLabels>("clients_general");
     const [columns, setColumns] = useState({ key: "id", amount: "amount", date: "date", account: "account", party: "party", sheet: "" });
     const [format, setFormat] = useState({ delimiter: ";", decimal: ".", dateFormat: "ISO", sign: "1" });
+    const [exactVersion] = useState(!!requested?.id && requested.version !== undefined);
+    const [resolvedNoteId, setResolvedNoteId] = useState<string | null>(null);
+    const [sheetFilter, setSheetFilter] = useState<MissionFilter>(requested?.filter ?? "all");
     const [blocking, setBlocking] = useState(true);
     const busy = useRef(false), csrf = useRef(""), pending = useRef<{
         body: Record<string, unknown> | FormData;
@@ -68,11 +74,11 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         key: string;
     } | null>(null);
     const run = view?.runs.find(r => r.id === activeId) ?? null;
-    const canPrepare = !!view?.permissions.includes("prepare"), canReview = !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+    const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
     const current = run ? view?.sourcesCurrent[run.id] !== false : true;
     const editable = !!run && ["draft", "executed"].includes(run.state) && canPrepare && run.preparedBy === view?.actorId;
     const saving = status === "saving";
-    const endpoint = (imports = false) => "/api/workpapers/clients" + (imports ? "/imports" : "") + "?dossierId=" + encodeURIComponent(dossierId) + "&periodId=" + encodeURIComponent(periodId(period));
+    const endpoint = (imports = false) => "/api/workpapers/clients" + (imports ? "/imports" : "") + "?dossierId=" + encodeURIComponent(dossierId) + "&periodId=" + encodeURIComponent(requested?.periodId || periodId(period));
     async function session() {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
         const identity = await response.json();
@@ -81,7 +87,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         csrf.current = identity.csrfToken;
     }
     async function refresh(preferred?: string, keepDraft = false) {
-        const response = await fetch(endpoint(), { cache: "no-store" });
+        const response = await fetch(endpoint() + (exactVersion ? "&operation=version&id=" + encodeURIComponent(requested!.id!) + "&version=" + requested!.version : ""), { cache: "no-store" });
         const data = await response.json();
         if (!response.ok)
             throw new Error(failureMessage(data.error));
@@ -110,9 +116,34 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
             setLoading(false);
         }
     }
+    useEffect(() => {
+        if (!initialDossierId || !requested?.periodId) return;
+        let active = true;
+        setLoading(true);
+        void (async () => {
+            try {
+                const sessionResponse = await fetch("/api/auth/session", { cache: "no-store" }), identity = await sessionResponse.json();
+                if (!sessionResponse.ok || !identity.authenticated || !identity.csrfToken) throw new Error("Session requise ou expirée. Reconnectez-vous pour reprendre.");
+                const q = new URLSearchParams({ dossierId: initialDossierId, periodId: requested.periodId, ...(requested.id && requested.version !== undefined ? { operation: "version", id: requested.id, version: String(requested.version) } : {}) });
+                const response = await fetch("/api/workpapers/clients?" + q, { cache: "no-store" }), data = await response.json();
+                if (!response.ok) throw new Error(failureMessage(data.error));
+                if (!active) return;
+                csrf.current = identity.csrfToken; setView(data);
+                const selected = data.runs.find((r: WorkpaperRun) => r.id === requested.id) ?? data.runs.at(-1);
+                if (selected) { setActiveId(selected.id); setPeriod(selected.period); setConclusion(selected.conclusion ?? ""); }
+            } catch (e) { if (active) setError(e instanceof Error ? e.message : "Chargement impossible"); }
+            finally { if (active) setLoading(false); }
+        })();
+        return () => { active = false; };
+    }, [initialDossierId, requested]);
+    useEffect(() => {
+        if (!loading && requested?.noteId && run) document.getElementById("wp-note-" + encodeURIComponent(requested.noteId))?.focus();
+    }, [loading, requested?.noteId, run]);
     async function mutate(body: Record<string, unknown> | FormData, imports = false, key = crypto.randomUUID()) {
         if (busy.current)
             return;
+        const focus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+        const scroll = { x: window.scrollX, y: window.scrollY };
         busy.current = true;
         pending.current = { body, imports, key };
         setStatus("saving");
@@ -149,6 +180,10 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
                 setError("Sauvegarde confirmée ; actualisation indisponible. Rechargez avant la prochaine commande.");
             }
             setStatus("saved");
+            if (!(body instanceof FormData) && body.command === "resolve") {
+                setResolvedNoteId(String(body.noteId));
+                requestAnimationFrame(() => { focus?.focus({ preventScroll: true }); window.scrollTo(scroll.x, scroll.y); });
+            }
         }
         catch (e) {
             setStatus("failed");
@@ -167,13 +202,14 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const controlClass = "rounded border border-[var(--pb-border)] bg-transparent p-2";
     return <main className="mx-auto max-w-6xl space-y-5 p-6">
     <header><p className="text-sm">Recette jetable · identité serveur</p><h1 className="text-2xl font-semibold">Cadrage Clients</h1>
-      <p>Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus.</p></header>
+      <p>Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus.</p><a className="underline" href={"/clients-framing/synthesis?" + new URLSearchParams({ dossierId, periodId: requested?.periodId || periodId(period), ...(run ? { rootId: run.rootId } : {}) })}>Ouvrir la Revue et Synthèse de mission</a></header>
+    <style>{`@keyframes pb-exception-resolved{from{background:#293d54}to{background:transparent}}.pb-exception-resolved{animation:pb-exception-resolved 180ms ease-out}@media(prefers-reduced-motion:reduce){.pb-exception-resolved{animation:none}}`}</style>
     <form onSubmit={e => { e.preventDefault(); void load(); }} className="flex flex-wrap gap-3 rounded-xl border border-[var(--pb-border)] p-4">
       <label>Dossier<input aria-label="Dossier" className={controlClass} value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); dirty(); }}/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((key, i) => <label key={key}>{["Début", "Clôture", "Date de revue"][i]}<input type="date" className={controlClass} value={period[key]} required disabled={saving || loading} onChange={e => { setPeriod(p => ({ ...p, [key]: e.target.value })); setView(null); dirty(); }}/></label>)}
       <button className={controlClass} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le cadrage"}</button>
     </form>
-    <p role="status" aria-live="polite">{saveLabels[status]}{run ? " · Révision " + run.revision + " · Version courante " + run.version : ""}</p>
+    <p role="status" aria-live="polite">{saveLabels[status]}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
     {error && <p role="alert">{error}</p>}
     {status === "failed" && pending.current && <button className={controlClass} onClick={() => { const p = pending.current!; void mutate(p.body, p.imports, p.key); }}>Réessayer la même commande</button>}
     {conflict && <section role="alert" className="space-y-3 rounded-xl border border-amber-600 p-4">
@@ -185,6 +221,8 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
       <button className={controlClass} onClick={() => { setConclusion(conflict.current.conclusion ?? ""); setView(v => v ? { ...v, runs: v.runs.map(r => r.id === conflict.current.id ? conflict.current : r) } : v); setConflict(null); setStatus("idle"); }}>Reprendre le texte serveur</button>
     </section>}
     {view && <>
+      {exactVersion && <section className="rounded border border-[var(--pb-border)] p-4"><p>Examen de la version {run?.version} · version courante {run ? view.currentVersions?.[run.id] ?? "inconnue" : "—"}. Vue en lecture seule.</p><a className="underline" href={run ? missionSheetHref(run.scope, { id: run.id, version: run.version }, "all").split("&id=")[0] : "/clients-framing"}>Travailler sur la version courante</a></section>}
+      <nav aria-label="Filtre de la feuille" className="flex flex-wrap gap-2">{(["all","blocked","exceptions","evidence","review","stale"] as MissionFilter[]).map(f => <button key={f} className="rounded border px-3 py-1" aria-pressed={sheetFilter === f} onClick={() => setSheetFilter(f)}>{{all:"Toute la feuille",blocked:"Blocages",exceptions:"Exceptions",evidence:"Pièces",review:"Revue",stale:"Périmé"}[f]}</button>)}</nav>
       <p>Identité connectée : {view.actorId}{run ? " · Préparateur réel : " + run.preparedBy : ""}</p>
       <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4">
         <h2 className="font-semibold">1. Imports et mapping approuvés</h2>
@@ -223,7 +261,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
           {view.permissions.includes("download") && <a className="underline" href={endpoint() + "&operation=download&id=" + encodeURIComponent(batch.document.id)}>Télécharger cette version source</a>}
         </article>)}
       </section>
-      <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">2. Population figée et calcul versionné</h2>
+      <section hidden={!["all","blocked","stale"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">2. Population figée et calcul versionné</h2>
         {view.runs.length > 0 && <label>Feuille<select className={controlClass} disabled={saving} value={activeId} onChange={e => { const selected = view.runs.find(r => r.id === e.target.value)!; setActiveId(selected.id); setConclusion(selected.conclusion ?? ""); dirty(); }}>
           {view.runs.map(r => <option value={r.id} key={r.id}>Révision {r.revision} · {r.state} · v{r.version}</option>)}</select></label>}
         {!run && canPrepare && <button className={controlClass} disabled={saving} onClick={() => void mutate({ command: "create", period, instanceKey: "clients-framing-pilot" })}>Créer la feuille pilote</button>}
@@ -232,15 +270,15 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         {run?.state === "ready" && canPrepare && <button className={controlClass} disabled={saving || !current} onClick={() => action("execute")}>Exécuter le cadrage</button>}
         {run && canPrepare && <button className={controlClass} disabled={saving} onClick={() => action("revise")}>Créer une nouvelle révision</button>}
       </section>
-      {run && <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">3. Exceptions et conclusion</h2>
+      {run && <section hidden={!["all","exceptions","blocked"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">3. Exceptions et conclusion</h2>
         <label className="block">Conclusion<textarea aria-label="Conclusion" className={"block w-full " + controlClass} value={conclusion} disabled={saving || !editable || !current} onChange={e => { setConclusion(e.target.value); dirty(); }}/></label>
         {editable && <button className={controlClass} disabled={saving || !conclusion.trim() || !current} onClick={() => action("conclude", { text: conclusion })}>Sauvegarder la conclusion</button>}
         {editable && <><label className="block">Commentaire ou justification<textarea className={"block w-full " + controlClass} value={comment} disabled={saving || !current} onChange={e => { setComment(e.target.value); dirty(); }}/></label>
           <label><input type="checkbox" checked={blocking} disabled={saving} onChange={e => setBlocking(e.target.checked)}/> Bloquer la revue tant que le point est ouvert</label>
           <button className={controlClass} disabled={saving || !comment.trim() || !current} onClick={() => action("note", { note: { id: crypto.randomUUID(), kind: "observation", text: comment, amount: { kind: "unknown", reason: "Observation à documenter" }, blocking } })}>Ajouter le commentaire</button>
-          {run.notes.filter(n => !n.resolution).map(n => <p key={n.id}>{n.text} <button className={controlClass} disabled={saving || !comment.trim() || !current} onClick={() => action("resolve", { noteId: n.id, text: comment })}>Documenter le traitement avec ce texte</button></p>)}</>}
+          {run.notes.map(n => <p key={n.id} id={"note-" + encodeURIComponent(n.id)} className={resolvedNoteId === n.id ? "pb-exception-resolved" : ""}>{n.text} <button id={"resolve-" + encodeURIComponent(n.id)} className={controlClass} aria-disabled={!!n.resolution || saving || !comment.trim() || !current} onClick={() => { if (!n.resolution && !saving && comment.trim() && current) action("resolve", { noteId: n.id, text: comment }); }}>{n.resolution ? "Traitement documenté : " + n.resolution.text : "Documenter le traitement avec ce texte"}</button></p>)}</>}
       </section>}
-      {run && <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">4. Soumission, revue et verrouillage</h2>
+      {run && <section hidden={!["all","review"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">4. Soumission, revue et verrouillage</h2>
         {run.state === "executed" && canPrepare && <button className={controlClass} disabled={saving || !current || conclusion !== run.conclusion} onClick={() => action("submit")}>Soumettre cette version</button>}
         {run.state === "awaiting_review" && canReview && <><label>Note de revue<textarea className={"block w-full " + controlClass} value={review} disabled={saving} onChange={e => { setReview(e.target.value); dirty(); }}/></label>
           {(["approved", "changes_requested"] as const).map(decision => <button key={decision} className={controlClass} disabled={saving || !review.trim() || !current} onClick={() => action("review", { decision, text: review, submittedHash: run.submittedHash })}>{decision === "approved" ? "Approuver le cadrage" : "Demander une correction"}</button>)}</>}
@@ -248,7 +286,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         {run.state === "approved" && canReview && <button className={controlClass} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
         {run.approval && <p>Décision de {run.approval.actorId} · {run.approval.at} · Version {run.approval.version}</p>}
       </section>}
-      <WorkpaperPanel runs={run ? [run] : []} durable/>
+      <WorkpaperPanel runs={run ? [run] : []} durable filter={sheetFilter} noteId={requested?.noteId}/>
     </>}
   </main>;
 }

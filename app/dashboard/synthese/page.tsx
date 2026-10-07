@@ -480,6 +480,7 @@ export default function SynthesePage() {
         </div>
       </header>
 
+      <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
       <ModuleAvailability snapshot={snapshot} />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}

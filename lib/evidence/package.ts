@@ -139,7 +139,7 @@ function buildCanonicalExport(
   };
 }
 
-function artifact(
+export function artifact(
   format: EvidenceArtifactFormat,
   fileName: string,
   mediaType: string,

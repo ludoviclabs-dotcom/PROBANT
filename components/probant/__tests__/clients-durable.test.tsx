@@ -8,8 +8,8 @@ import { period } from "@/lib/workpapers/__tests__/clients-framing-fixtures";
 const dossier = "11111111-1111-4111-8111-111111111111";
 const initial: WorkpaperRun = { id: "pilot", rootId: "pilot", revision: 1, version: 1, schemaVersion: "1.0.0", scope: { organizationId: "real-org", dossierId: dossier, periodId: periodId(period), mode: "real" },
     period, template: CLIENT_FRAME_TEMPLATE, state: "draft", preparedBy: "actual-preparer", importIds: [], evidence: [], findings: [], notes: [], events: [] };
-function mount(post: (body: Record<string, unknown>, headers: HeadersInit) => Promise<Response>) {
-    let current = initial;
+function mount(post: (body: Record<string, unknown>, headers: HeadersInit) => Promise<Response>, seed = initial) {
+    let current = seed;
     const fetchMock = vi.fn(async (url: string, options?: RequestInit) => {
         if (url === "/api/auth/session")
             return Response.json({ authenticated: true, csrfToken: "server-csrf" });
@@ -43,6 +43,21 @@ describe("feuille pilote durable — accusés et conflits", () => {
         ack(Response.json({ run: { ...initial, version: 2, conclusion: "Ma conclusion", events: [{ id: "pilot:2", action: "conclusion", actorId: "actual-preparer", at: "2025-02-01T00:00:00Z", version: 2 }] } }));
         await screen.findByText(/Sauvegardée — accusé serveur reçu/);
         expect(screen.getByText(/Version courante 2/)).toBeTruthy();
+    });
+    it("garde le focus et la position après l’accusé de traitement d’une exception", async () => {
+        const seed: WorkpaperRun = { ...initial, state: "executed", notes: [{ id: "exception", kind: "observation", text: "Résidu à expliquer", amount: { kind: "unknown", reason: "Écart distinct" }, authorId: initial.preparedBy, blocking: true }] };
+        let ack: (response: Response) => void = () => {};
+        const scrollTo = vi.fn(); vi.stubGlobal("scrollTo", scrollTo); vi.stubGlobal("requestAnimationFrame", (cb: FrameRequestCallback) => { cb(0); return 1; });
+        mount(() => new Promise<Response>(resolve => { ack = resolve; }), seed);
+        await screen.findByText(/Identité connectée/);
+        fireEvent.change(screen.getByLabelText("Commentaire ou justification"), { target: { value: "Explication documentée" } });
+        const button = screen.getByText("Documenter le traitement avec ce texte"); button.focus(); fireEvent.click(button);
+        await screen.findByText(/Sauvegarde en cours/);
+        expect(screen.queryByText(/Traitement documenté :/)).toBeNull();
+        ack(Response.json({ run: { ...seed, version: 2, notes: [{ ...seed.notes[0], resolution: { text: "Explication documentée", authorId: initial.preparedBy, at: "2025-02-01T00:00:00Z" } }] } }));
+        await screen.findByText("Traitement documenté : Explication documentée");
+        expect(document.activeElement).toBe(button); expect(scrollTo).toHaveBeenCalledWith(0,0);
+        expect(button.getAttribute("aria-disabled")).toBe("true");
     });
     it("garde la même clé et le même contenu après une panne réseau", async () => {
         const requests: {

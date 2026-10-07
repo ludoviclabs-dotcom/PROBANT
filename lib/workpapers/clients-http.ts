@@ -6,7 +6,8 @@ import { clientsApprovalSchema, clientsCommandSchema, clientsPeriodSchema } from
 import { periodId } from "./model";
 import type { ClientsRuntime } from "./clients-runtime";
 const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100),
-    operation: z.enum(["list", "history", "download"]).optional(), id: z.string().min(1).max(200).optional() }).strict();
+    operation: z.enum(["list", "history", "download", "mission", "version"]).optional(), id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
+const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(), kind: z.enum(["diagnostic","approved"]), format: z.enum(["json","html","pdf","manifest"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
 const headers = { "Cache-Control": "private, no-store" };
 export function requireDisposableClients(env: Record<string, string | undefined> = process.env) {
     if (env.VERCEL_ENV === "production" || env.PROBANT_CLIENTS_DURABLE !== "disposable")
@@ -15,7 +16,7 @@ export function requireDisposableClients(env: Record<string, string | undefined>
 function failure(error: unknown) {
     if (error instanceof ClientsConflict)
         return Response.json({ error: error.message, expectedVersion: error.expectedVersion, current: error.current }, { status: 409, headers });
-    if (error instanceof z.ZodError)
+    if (error instanceof SyntaxError || error instanceof z.ZodError)
         return Response.json({ error: "CLIENT_REQUEST_INVALID" }, { status: 400, headers });
     if (error instanceof ApiError)
         return Response.json({ error: error.code }, { status: error.status, headers });
@@ -29,7 +30,9 @@ function scope(request: Request) {
     const params = new URL(request.url).searchParams;
     if (new Set(params.keys()).size !== [...params.keys()].length)
         throw new Error("CLIENT_QUERY_INVALID");
-    return query.parse(Object.fromEntries(params));
+    const parsed = query.parse(Object.fromEntries(params));
+    if (parsed.version !== undefined && !parsed.id) throw new Error("CLIENT_QUERY_INVALID");
+    return parsed;
 }
 async function bounded(request: Request, max: number) {
     const reader = request.body?.getReader();
@@ -71,7 +74,10 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                         return Response.json({ error: "SOURCE_NOT_FOUND" }, { status: 404, headers });
                     return new Response(Uint8Array.from(bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": 'attachment; filename="source-clients"', "X-Content-Type-Options": "nosniff" } });
                 }
-                return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history"), { headers });
+                if (q.operation === "mission") return Response.json(await runtime.mission(request, q.dossierId, q.periodId, { rootId: q.rootId, id: q.id, version: q.version }), { headers });
+                if (q.operation === "version" && (!q.id || q.version === undefined)) throw new Error("WORKPAPER_VERSION_REQUIRED");
+                if (q.version !== undefined && q.operation !== "version") throw new Error("CLIENT_QUERY_INVALID");
+                return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history", q.version), { headers });
             }
             catch (error) {
                 return fail(error);
@@ -89,6 +95,17 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
             catch (error) {
                 return fail(error);
             }
+        },
+        exportPOST: async (request: Request) => {
+            try {
+                enabled();
+                const input = exportBody.parse(await (await bounded(request, 4096)).json()), runtime = create();
+                const pack = await runtime.missionExport(request, input.dossierId, input.periodId, { rootId: input.rootId, id: input.id, version: input.version }, input.kind, input.expectedSnapshotHash);
+                const format = input.format === "json" ? "canonical_json" : input.format === "html" ? "accessible_html" : input.format;
+                const entry = pack.manifest.artifacts.find(a => a.format === format);
+                const content = input.format === "json" ? pack.canonicalJson : input.format === "manifest" ? pack.manifestJson : input.format === "html" ? pack.html : Uint8Array.from(pack.pdf).buffer;
+                return new Response(content, { headers: { ...headers, "Content-Type": entry?.mediaType ?? "application/json", "Content-Disposition": 'attachment; filename="' + (entry?.fileName ?? "probant-clients-" + input.kind + "-manifest.json") + '"', "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'", "X-Probant-Snapshot": pack.manifest.snapshotSha256 } });
+            } catch (error) { return fail(error); }
         },
         importsPOST: async (request: Request) => {
             try {
