@@ -19,6 +19,33 @@ type View = {
 const sourceLabels = { clients_general: "Grand livre Clients", clients_auxiliary: "Auxiliaire Clients", clients_aged: "Balance âgée" };
 const initialPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
 const saveLabels: Record<SaveState, string> = { idle: "Modifications non sauvegardées", saving: "Sauvegarde en cours…", saved: "Sauvegardée — accusé serveur reçu", failed: "Échec de sauvegarde", conflict: "Conflit de modification" };
+function failureMessage(code?: string) {
+    const labels: Record<string, string> = {
+        CLIENTS_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette.",
+        CLIENTS_DURABLE_UNAVAILABLE: "Le service de sauvegarde est indisponible. Réessayez la même commande.",
+        SESSION_INVALID: "Votre session a expiré. Reconnectez-vous pour reprendre.",
+        AUTHENTICATION_REQUIRED: "Connectez-vous pour accéder à ce dossier.",
+        FORBIDDEN: "Votre identité ne dispose pas de la permission nécessaire.",
+        RESOURCE_NOT_FOUND: "Ce dossier est introuvable dans votre périmètre autorisé.",
+        CLIENT_SOURCE_REPLACED_REVISION_REQUIRED: "Une source a été remplacée. Rechargez puis créez une nouvelle révision.",
+        CLIENT_SOURCE_HEAD_CONFLICT: "Une autre source a été approuvée. Rechargez avant de confirmer votre mapping.",
+        UNRESOLVED_BLOCKING_NOTE: "Documentez le traitement des points bloquants avant l’approbation.",
+        SELF_APPROVAL_FORBIDDEN: "Une autre identité autorisée doit approuver cette version.",
+        PREPARATION_INCOMPLETE: "Une conclusion et les preuves du cadrage sont nécessaires avant la soumission.",
+        PREPARATION_EDIT_FORBIDDEN: "Cette version ne peut plus être modifiée par votre identité. Créez une révision si nécessaire.",
+        WORKPAPER_TRANSITION_FORBIDDEN: "Cette action ne correspond plus à l’état de la feuille. Rechargez sa version courante.",
+        CLIENT_CLOSING_BALANCE_REQUIRED: "Chaque ligne doit contenir un solde valide à la date de clôture.",
+        CLIENT_ACCOUNT_REQUIRED: "Vérifiez la colonne compte : ce cadrage attend des comptes Clients commençant par 41.",
+        CLIENT_PARTY_REQUIRED: "Chaque ligne de la colonne client doit identifier le client concerné.",
+        CLIENT_PARTY_COLUMN_REQUIRED: "Renseignez la colonne client pour l’auxiliaire et la balance âgée.",
+        MAPPING_COLUMNS_INVALID: "Vérifiez les noms des colonnes du mapping dans votre fichier.",
+        CLIENT_FILE_LIMIT: "Le fichier dépasse la limite de 3 Mio de cette recette.",
+        CLIENT_BODY_LIMIT: "L’import dépasse la taille autorisée pour cette recette.",
+        CLIENT_PREVIEW_LIMIT: "L’aperçu contient trop de données pour cette recette limitée.",
+        CLIENT_STATE_LIMIT: "La feuille contient trop de données pour cette recette limitée.",
+    };
+    return code && labels[code] ? labels[code] : "L’opération a été refusée. Rechargez la feuille et vérifiez ses sources, sa période et vos permissions.";
+}
 export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodValue = initialPeriod }: {
     initialDossierId?: string;
     initialPeriodValue?: AccountingPeriod;
@@ -57,7 +84,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         const response = await fetch(endpoint(), { cache: "no-store" });
         const data = await response.json();
         if (!response.ok)
-            throw new Error(data.error ?? "Chargement impossible");
+            throw new Error(failureMessage(data.error));
         setView(data);
         const selected = data.runs.find((r: WorkpaperRun) => r.id === preferred) ?? data.runs.reduce((a: WorkpaperRun | null, b: WorkpaperRun) => !a || b.revision > a.revision ? b : a, null);
         if (selected) {
@@ -105,7 +132,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
                 }
                 if (response.status < 500)
                     pending.current = null;
-                throw new Error(data.error ?? "Commande refusée");
+                throw new Error(failureMessage(data.error));
             }
             if (!data.run && !data.batch)
                 throw new Error("Accusé serveur incomplet. Vérifiez la version avant de reprendre.");
