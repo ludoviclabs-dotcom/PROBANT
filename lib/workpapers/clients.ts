@@ -3,7 +3,7 @@ import { calculateReceivables, type ReceivableInvoice } from "@/lib/rapprochemen
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
 import { assertScope, frozen, type EvidenceLink } from "./model";
-import { compareSupported, evidence, methodEligible, reconcileBalances, unknown, type BalanceLine, type DocumentedMethod, type SupportedAmount } from "./cycle-review";
+import { compareSupported, evidence, methodEligible, reconcileClientFrameBalances, unknown, type BalanceLine, type DocumentedMethod, type SupportedAmount } from "./cycle-review";
 import { analyzeCutoff, type CutoffInput } from "./cutoff";
 import { validateConfirmation, type ConfirmationRecord } from "./confirmations";
 
@@ -50,7 +50,8 @@ export function clientImpairment(context: CycleContext, booked: SupportedAmount 
   return compareSupported(context, estimate, booked);
 }
 export function frameClients(context: CycleContext, general: BalanceLine[], auxiliary: BalanceLine[], aged: BalanceLine[], adjustments: { kind: "FAE" | "PCA"; booked: BalanceLine[]; detail: BalanceLine[] }[]) {
-  return { generalToAuxiliary: reconcileBalances(context, general, auxiliary, "account"), auxiliaryToAged: reconcileBalances(context, auxiliary, aged, "party"), adjustments: adjustments.map((a) => ({ kind: a.kind, comparison: reconcileBalances(context, a.booked, a.detail, "account") })), creditBalances: auxiliary.filter((r) => cents(r.value.amount) < 0n).map((r) => ({ ...r, status: "à justifier, pas une erreur automatique" })) };
+  if (context.scope.mode === "real" && adjustments.length) throw new Error("CLIENT_ADJUSTMENTS_OUT_OF_SCOPE");
+  return { generalToAuxiliary: reconcileClientFrameBalances(context, general, auxiliary, "account"), auxiliaryToAged: reconcileClientFrameBalances(context, auxiliary, aged, "party"), adjustments: adjustments.map((a) => ({ kind: a.kind, comparison: reconcileClientFrameBalances(context, a.booked, a.detail, "account") })), creditBalances: auxiliary.filter((r) => cents(r.value.amount) < 0n).map((r) => ({ ...r, status: "à justifier, pas une erreur automatique" })) };
 }
 export function clientEvidence(context: CycleContext, confirmations: ConfirmationRecord[], cutoff: CutoffInput[]) {
   assertContext(context);

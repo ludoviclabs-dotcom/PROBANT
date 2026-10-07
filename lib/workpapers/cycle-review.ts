@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { cents, money, type Money, type KnownAmount } from "@/lib/canonical-model/money";
-import { isCivilDate } from "@/lib/canonical-model/period";
+import { isCivilDate, periodIssues } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { assertScope, frozen, moneySchema, scopeSchema, type EvidenceLink } from "./model";
+import { assertScope, frozen, moneySchema, scopeSchema, periodId, type EvidenceLink } from "./model";
 import { assertContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
 
 export const CYCLE_REVIEW_VERSION = "1.0.0";
@@ -33,6 +33,18 @@ export function ratio(numerator: Money, denominator: Money) {
 export interface BalanceLine { id: string; key: string; account?: string; party?: string; value: SupportedAmount }
 export function reconcileBalances(context: CycleContext, left: BalanceLine[], right: BalanceLine[], dimension: "key" | "account" | "party" = "key") {
   assertContext(context);
+  return reconcileValidatedBalances(context, left, right, dimension);
+}
+/** Dedicated real context for the Clients framing calculation only. */
+export function reconcileClientFrameBalances(context: CycleContext, left: BalanceLine[], right: BalanceLine[], dimension: "account" | "party") {
+  if (context.scope.mode === "demo") assertContext(context);
+  else {
+    scopeSchema.parse(context.scope);
+    if (context.purpose !== "real" || context.procedure !== "clients.frame" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error("CLIENT_FRAME_CONTEXT_INVALID");
+  }
+  return reconcileValidatedBalances(context, left, right, dimension);
+}
+function reconcileValidatedBalances(context: CycleContext, left: BalanceLine[], right: BalanceLine[], dimension: "key" | "account" | "party") {
   for (const rows of [left, right]) {
     assertUnique(rows.map((r) => r.id));
     rows.forEach((r) => { supportedAmountSchema.parse(r.value); if (!r.key.trim() || !r[dimension]?.trim() || r.value.date !== context.period.closingDate) throw new Error("BALANCE_SCOPE_OR_DATE"); evidence(context, r.value.evidence); });

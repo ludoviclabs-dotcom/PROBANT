@@ -11,6 +11,7 @@ export const IMPORT_PARSER_VERSION = "workpaper-tabular-1.0.0";
 export interface ImportMapping {
   version: string; sheet?: string; headerRow: number;
   columns: { key: string; amount: string; date: string };
+  clients?: { accountColumn: string; partyColumn?: string; basis: "closing_balance" };
   delimiter: ";" | "," | "\t"; decimal: "," | "."; dateFormat: "ISO" | "DD/MM/YYYY";
   sign: 1 | -1; currency: "EUR"; expectedTotal?: Money;
 }
@@ -106,18 +107,18 @@ function parseDate(raw: string, mapping: ImportMapping): string {
   const date = mapping.dateFormat === "ISO" ? s : /^\d{2}\/\d{2}\/\d{4}$/.test(s) ? `${s.slice(6)}-${s.slice(3, 5)}-${s.slice(0, 2)}` : "";
   if (!isCivilDate(date)) throw new Error("DATE_FORMAT_INVALID"); return date;
 }
-export async function previewImport(file: File, scope: WorkpaperScope, mapping: ImportMapping, principal: Principal, documentType = "structured_table"): Promise<ImportBatch> {
+export async function previewImport(file: File, scope: WorkpaperScope, mapping: ImportMapping, principal: Principal, documentType = "structured_table", realAdapter?: "clients.frame"): Promise<ImportBatch> {
   authorize(principal, scope, "prepare"); scopeSchema.parse(scope);
-  if (scope.mode !== "demo") throw new Error("REAL_IMPORT_STORAGE_DISABLED");
+  if (scope.mode !== "demo" && (realAdapter !== "clients.frame" || !["clients_general", "clients_auxiliary", "clients_aged"].includes(documentType))) throw new Error("REAL_IMPORT_STORAGE_DISABLED");
   if (file.size > MAX_BYTES || file.size === 0) throw new Error("UPLOAD_SIZE_INVALID");
   const format = file.name.toLowerCase().endsWith(".csv") ? "csv" : file.name.toLowerCase().endsWith(".xlsx") ? "xlsx" : null;
   if (!format) throw new Error("FILE_FORMAT_UNSUPPORTED");
   if (file.type && !(format === "csv" ? ["text/csv", "text/plain", "application/octet-stream"] : ["application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "application/octet-stream"]).includes(file.type)) throw new Error("MIME_MISMATCH");
   if (!mapping.version || !Number.isSafeInteger(mapping.headerRow) || mapping.headerRow < 1 || ![";", ",", "\t"].includes(mapping.delimiter) || ![",", "."].includes(mapping.decimal) || !["ISO", "DD/MM/YYYY"].includes(mapping.dateFormat) || ![1, -1].includes(mapping.sign) || mapping.currency !== "EUR") throw new Error("MAPPING_INVALID");
   const bytes = Buffer.from(await file.arrayBuffer()), byteHash = sha256(bytes), mappingHash = stableSha256(mapping);
-  const documentId = `source-${stableSha256({ scope, byteHash, parser: IMPORT_PARSER_VERSION })}`;
+  const documentId = `source-${stableSha256({ scope, byteHash, ...(scope.mode === "real" ? { documentType } : {}), parser: IMPORT_PARSER_VERSION })}`;
   const document: SourceDocumentVersion = { id: documentId, logicalId: file.name, scope, fileName: file.name, format, documentType, byteHash, storageRef: documentId, sizeBytes: bytes.length, parserVersion: IMPORT_PARSER_VERSION };
-  const id = `import-${stableSha256({ scope, byteHash, mappingHash, parser: IMPORT_PARSER_VERSION })}`;
+  const id = `import-${stableSha256({ scope, byteHash, ...(scope.mode === "real" ? { documentType } : {}), mappingHash, parser: IMPORT_PARSER_VERSION })}`;
   const { rows: raw, sheets } = await readRows(file, bytes, mapping);
   const header = raw.find((r) => r.number === mapping.headerRow)?.values;
   if (!header || new Set(header).size !== header.length || Object.values(mapping.columns).some((c) => !c || !header.includes(c)) || new Set(Object.values(mapping.columns)).size !== 3) throw new Error("MAPPING_COLUMNS_INVALID");

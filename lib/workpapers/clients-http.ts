@@ -1,0 +1,121 @@
+import { z } from "zod";
+import { ApiError } from "@/lib/api/errors";
+import { ClientsConflict } from "./clients-persistence";
+import { CLIENT_TYPES, clientsMappingSchema } from "./clients-adapter";
+import { clientsApprovalSchema, clientsCommandSchema, clientsPeriodSchema } from "./clients-commands";
+import { periodId } from "./model";
+import type { ClientsRuntime } from "./clients-runtime";
+const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100),
+    operation: z.enum(["list", "history", "download"]).optional(), id: z.string().min(1).max(200).optional() }).strict();
+const headers = { "Cache-Control": "private, no-store" };
+export function requireDisposableClients(env: Record<string, string | undefined> = process.env) {
+    if (env.VERCEL_ENV === "production" || env.PROBANT_CLIENTS_DURABLE !== "disposable")
+        throw new ApiError("CLIENTS_DURABLE_DISABLED", "Le cadrage durable est réservé à la recette jetable.", 503);
+}
+function failure(error: unknown) {
+    if (error instanceof ClientsConflict)
+        return Response.json({ error: error.message, expectedVersion: error.expectedVersion, current: error.current }, { status: 409, headers });
+    if (error instanceof z.ZodError)
+        return Response.json({ error: "CLIENT_REQUEST_INVALID" }, { status: 400, headers });
+    if (error instanceof ApiError)
+        return Response.json({ error: error.code }, { status: error.status, headers });
+    const code = error instanceof Error ? error.message : "";
+    const status = /SESSION_INVALID/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404 :
+        /STALE|CONFLICT|REPLACED|ALREADY_EXISTS|IDEMPOTENCY_KEY_REUSED/.test(code) ? 409 :
+            /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|NOT_READY|IMMUTABLE|UNRESOLVED|CHANGED|UNAPPROVED|FROZEN|OUT_OF_SCOPE/.test(code) ? 422 : 503;
+    return Response.json({ error: status === 503 ? "CLIENTS_DURABLE_UNAVAILABLE" : code }, { status, headers });
+}
+function scope(request: Request) {
+    const params = new URL(request.url).searchParams;
+    if (new Set(params.keys()).size !== [...params.keys()].length)
+        throw new Error("CLIENT_QUERY_INVALID");
+    return query.parse(Object.fromEntries(params));
+}
+async function bounded(request: Request, max: number) {
+    const reader = request.body?.getReader();
+    if (!reader)
+        throw new Error("CLIENT_BODY_REQUIRED");
+    const parts: Uint8Array[] = [];
+    let size = 0;
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done)
+            break;
+        size += value.length;
+        if (size > max) {
+            await reader.cancel();
+            throw new ApiError("CLIENT_BODY_LIMIT", "Corps de requête trop volumineux pour ce cadrage.", 413);
+        }
+        parts.push(value);
+    }
+    const bytes = new Uint8Array(size);
+    let offset = 0;
+    for (const p of parts) {
+        bytes.set(p, offset);
+        offset += p.length;
+    }
+    return new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
+}
+export function clientsHandlers(create: () => ClientsRuntime, enabled: () => void = requireDisposableClients, observeError?: (error: unknown) => void) {
+    const fail = (error: unknown) => { observeError?.(error); return failure(error); };
+    return {
+        GET: async (request: Request) => {
+            try {
+                enabled();
+                const q = scope(request), runtime = create();
+                if (q.operation === "download") {
+                    if (!q.id)
+                        throw new Error("DOCUMENT_ID_REQUIRED");
+                    const bytes = await runtime.download(request, q.dossierId, q.periodId, q.id);
+                    if (!bytes)
+                        return Response.json({ error: "SOURCE_NOT_FOUND" }, { status: 404, headers });
+                    return new Response(Uint8Array.from(bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": 'attachment; filename="source-clients"', "X-Content-Type-Options": "nosniff" } });
+                }
+                return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history"), { headers });
+            }
+            catch (error) {
+                return fail(error);
+            }
+        },
+        POST: async (request: Request) => {
+            try {
+                enabled();
+                const q = scope(request), runtime = create();
+                await runtime.check(request, q.dossierId, "read");
+                const input = await (await bounded(request, 200000)).json(), command = clientsCommandSchema.parse(input);
+                const result = await runtime.command(request, q.dossierId, q.periodId, command, request.headers.get("Idempotency-Key") ?? "");
+                return Response.json(result, { headers });
+            }
+            catch (error) {
+                return fail(error);
+            }
+        },
+        importsPOST: async (request: Request) => {
+            try {
+                enabled();
+                const q = scope(request), runtime = create();
+                await runtime.check(request, q.dossierId, "prepare");
+                const body = await bounded(request, 3.25 * 1024 * 1024), key = request.headers.get("Idempotency-Key") ?? "";
+                if (request.headers.get("content-type")?.startsWith("multipart/form-data")) {
+                    const form = await body.formData();
+                    if ([...form.keys()].some((k) => !["file", "mapping", "period", "documentType"].includes(k)) || [...form.keys()].length !== 4)
+                        throw new Error("CLIENT_IMPORT_FIELDS_INVALID");
+                    const file = form.get("file");
+                    if (!(file instanceof File))
+                        throw new Error("CLIENT_FILE_REQUIRED");
+                    const period = clientsPeriodSchema.parse(JSON.parse(String(form.get("period"))));
+                    if (periodId(period) !== q.periodId)
+                        throw new Error("WORKPAPER_PERIOD_INVALID");
+                    const mapping = clientsMappingSchema.parse(JSON.parse(String(form.get("mapping"))));
+                    const type = z.enum(CLIENT_TYPES).parse(form.get("documentType"));
+                    return Response.json(await runtime.preview(request, q.dossierId, period, file, mapping, type, key), { headers });
+                }
+                const command = clientsApprovalSchema.parse(await body.json());
+                return Response.json(await runtime.approveImport(request, q.dossierId, q.periodId, command, key), { headers });
+            }
+            catch (error) {
+                return fail(error);
+            }
+        }
+    };
+}
