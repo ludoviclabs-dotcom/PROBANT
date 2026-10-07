@@ -41,7 +41,7 @@ describe("Synthèse de mission — navigation, preuve et lecture seule", () => {
     vi.stubGlobal("fetch", mock);
     render(<ClientFramingWorkspace initialDossierId={f.scope.dossierId} requested={{ periodId: f.scope.periodId, id: f.run.id, version: 10, filter: "review" }}/>);
     await screen.findByText(/Examen de la version 10 · version courante 12/);
-    expect(mock.mock.calls[1][0]).toContain("operation=version&id=real-pilot&version=10");
+    expect(Object.fromEntries(new URL(mock.mock.calls[1][0], "https://test.local").searchParams)).toMatchObject({ operation: "version", id: "real-pilot", version: "10" });
     expect(screen.queryByText("Approuver le cadrage")).toBeNull();
     expect(screen.getByRole("button", { name: "Revue", pressed: true })).toBeTruthy();
   });
