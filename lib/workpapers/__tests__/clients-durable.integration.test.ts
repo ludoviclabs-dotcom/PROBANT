@@ -12,6 +12,7 @@ import { csrfTokenFor, newSessionSecret, sessionTokenDigest, SESSION_COOKIE, CSR
 import type { ProbantRole } from "@/lib/auth/roles";
 import { ClientsRuntime } from "../clients-runtime";
 import { clientsHandlers } from "../clients-http";
+import { sha256 } from "@/lib/evidence/hash";
 import { periodId, type WorkpaperRun } from "../model";
 import type { ClientsCommand } from "../clients-commands";
 import { csv, mapping, period } from "./clients-framing-fixtures";
@@ -212,6 +213,17 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const html = await response.text();
         expect(html).toContain("Paquet du cadrage approuvé et verrouillé"); expect(html).toContain("Exceptions maintenues");
         expect(html).toContain(snapshot.hash); expect(html).toContain("reviewer-real");
+        // Separate requests at different times still form one coherent, verifiable package.
+        now += 7;
+        const manifestPayload = await exportRequest(snapshot, "approved", reviewer).json();
+        const manifestResponse = await handlers.exportPOST(request(reviewer, "POST", JSON.stringify({ ...manifestPayload, format: "manifest" })));
+        expect(manifestResponse.status).toBe(200); const manifest = await manifestResponse.json();
+        expect(manifest.createdAt).toBe(snapshot.stateAsOf);
+        expect(manifest.artifacts.find((a: { format: string }) => a.format === "accessible_html").sha256).toBe(sha256(html));
+        const csvResponse = await handlers.exportPOST(request(reviewer, "POST", JSON.stringify({ ...manifestPayload, format: "exceptions_csv" })));
+        expect(csvResponse.status).toBe(200);
+        expect(manifest.artifacts.find((a: { format: string }) => a.format === "findings_csv").sha256).toBe(sha256(Buffer.from(await csvResponse.arrayBuffer())));
+        now -= 7;
         expect((await handlers.exportPOST(exportRequest(snapshot, "approved", reviewer, dossierA, "a".repeat(64)))).status).toBe(409);
         const historical = snapshot.procedure.beforeReview.version;
         const exact = await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=version&id=" + encodeURIComponent(run.id) + "&version=" + historical));

@@ -64,6 +64,8 @@ describe("Export Clients — état écran, distinction et pagination", () => {
     const f = await clientMissionFixture(), m = buildClientMission(f.scope, [f.run, f.approved, f.locked], f.imports, f.heads);
     const pack = await buildClientMissionPackage(m, f.locked, f.imports, "approved", "2025-02-03T00:00:00Z"), report = JSON.parse(pack.canonicalJson);
     expect(verifyEvidenceExportPackage(pack)).toEqual([]); expect(report.mission).toEqual(m);
+    const reordered = await buildClientMissionPackage(m, f.locked, [...f.imports].reverse(), "approved", "2025-02-03T00:00:00Z");
+    expect(reordered.manifestJson).toBe(pack.manifestJson); expect(reordered.canonicalJson).toBe(pack.canonicalJson);
     expect(report.run.version).toBe(12); expect(report.binaryFilesIncluded).toBe(false);
     expect(pack.html).toContain("Paquet du cadrage approuvé et verrouillé"); expect(pack.html).toContain("Exceptions maintenues");
     expect(pack.html).toContain("binaire absent du paquet"); expect(pack.html).toContain(m.hash);

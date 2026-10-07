@@ -18,9 +18,11 @@ Les liens de la file de travail contiennent dossier, période, identité de feui
 
 ## Export serveur
 
-`POST /api/workpapers/clients/export` accepte seulement des sélecteurs, le type `diagnostic|approved`, le format `html|pdf|json|manifest` et l’empreinte de l’état affiché. Le corps est strict, limité à 4 Kio. Aucun rôle, acteur, snapshot ou approbation JSON du navigateur n’est accepté comme autorité. Les permissions `dossier:export`, l’organisation, le dossier, la session et le CSRF utilisent l’autorisation existante.
+`POST /api/workpapers/clients/export` accepte seulement des sélecteurs, le type `diagnostic|approved`, le format `html|pdf|json|manifest` ou l’un des quatre CSV (exceptions, décisions, procédures, sources) et l’empreinte de l’état affiché. Le corps est strict, limité à 4 Kio. Aucun rôle, acteur, snapshot ou approbation JSON du navigateur n’est accepté comme autorité. Les permissions `dossier:export`, l’organisation, le dossier, la session et le CSRF utilisent l’autorisation existante.
 
 Le serveur compare l’empreinte avant génération, puis relit les permissions, l’expiration et l’état après génération. Une divergence rend un 409, sans fichier. Le paquet approuvé exige une version courante et verrouillée, avec approbation liée au même contenu. Un diagnostic peut exposer une version historique ou périmée ; son titre, nom de fichier et manifeste le distinguent explicitement du paquet approuvé.
+
+La date du paquet est celle de l’état serveur (dernier événement/source approuvée ou création du dossier), pas l’instant de chaque téléchargement. Les artefacts téléchargés séparément restent déterministes et vérifiables avec leur manifeste.
 
 L’export réutilise les CSV neutralisés, les artefacts du manifeste d’intégrité et la conversion HTML → PDF existants. Il comprend résumé humain, programme, population et sélection, calculs par clé, exceptions, traitements, décisions, avant / après revue, anciennes versions, limites, sources et index des pièces avec localisateurs. Le HTML imprimable conserve Unicode, échappe les données, répète les en-têtes des tables à l’impression et coupe les mots longs. La pagination PDF est contrôlée pour chaque ligne, y compris un paragraphe dépassant une page.
 

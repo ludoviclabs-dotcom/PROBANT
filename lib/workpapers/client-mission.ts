@@ -33,7 +33,7 @@ export function missionSheetHref(scope: WorkpaperScope, run: Pick<WorkpaperRun, 
   if (noteId) params.set("noteId", noteId);
   return "/clients-framing?" + params;
 }
-export function buildClientMission(scope: WorkpaperScope, versions: WorkpaperRun[], imports: ImportBatch[], heads: SourceHead[], selection: MissionSelection = {}) {
+export function buildClientMission(scope: WorkpaperScope, versions: WorkpaperRun[], imports: ImportBatch[], heads: SourceHead[], selection: MissionSelection = {}, baselineAt?: string) {
   if (scope.mode !== "real") throw new Error("MISSION_REAL_SCOPE_REQUIRED");
   versions.forEach(r => { validateRun(r); assertScope(scope, r.scope); if (r.template.id !== "clients.frame") throw new Error("MISSION_PROCEDURE_OUT_OF_SCOPE"); });
   imports.forEach(b => assertScope(scope, b.scope));
@@ -114,7 +114,8 @@ export function buildClientMission(scope: WorkpaperScope, versions: WorkpaperRun
     c.label + " — " + row.key + " : " + amountLabel(row.difference), undefined, row.proofs.map(p => p.id))));
   if (run?.state === "awaiting_review" || run?.state === "changes_requested") enqueue("review:pending", "review", 4, run.state === "awaiting_review" ? "Revue attendue" : "Correction demandée", "Décision attendue sur cette identité et cette version.");
   queue.sort((a, b) => a.priority - b.priority || canonicalCompare(a.id, b.id));
-  const body = { schemaVersion: "clients-mission-1.0.0", sourceFamily: "mission_procedures", scope, program: CLIENT_MISSION_PROGRAM,
+  const stateDates = [...versions.flatMap(v => v.events.map(e => e.at)), ...imports.filter(b => heads.some(h => h.import_id === b.id)).flatMap(b => b.approval ? [b.approval.at] : []), ...(baselineAt ? [baselineAt] : [])].filter(at => Number.isFinite(Date.parse(at))).sort();
+  const body = { stateAsOf: stateDates.at(-1) ?? null, schemaVersion: "clients-mission-1.0.0", sourceFamily: "mission_procedures", scope, program: CLIENT_MISSION_PROGRAM,
     assignment: { rootId: rootId ?? null, choices: roots, currentRunId: current?.id ?? null, currentVersion: current?.version ?? null },
     procedure, sources, queue,
     counters: { planned: CLIENT_MISSION_PROGRAM.procedures.length, executed: run?.result?.execution === "completed" ? 1 : 0,

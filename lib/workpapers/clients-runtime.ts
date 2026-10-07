@@ -100,7 +100,9 @@ export class ClientsRuntime {
         if (Number(sourceSize.bytes) > 24 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Sources trop volumineuses pour cette recette.", 413);
         const versions = (await rows<{ run: WorkpaperRun }>(tx, sql`SELECT run FROM clients_workpaper_versions WHERE ${scopeWhere(scope)} ORDER BY id,version`)).map(r => r.run);
         const imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
-        const mission = buildClientMission(scope, versions, imports.batches, heads, selection);
+        const [dossier] = await rows<{ created_at: Date | string }>(tx, sql`SELECT created_at FROM dossiers WHERE id=${scope.dossierId} AND organization_id=${scope.organizationId}`);
+        if (!dossier) throw new Error("WORKPAPER_NOT_FOUND");
+        const mission = buildClientMission(scope, versions, imports.batches, heads, selection, new Date(dossier.created_at).toISOString());
         const run = versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null;
         if (Buffer.byteLength(JSON.stringify(mission)) > 8 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Synthèse trop volumineuse pour cette recette.", 413);
         return { mission, run, imports: imports.batches };
@@ -117,7 +119,7 @@ export class ClientsRuntime {
             if (data.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
             return data;
         });
-        const pack = await buildClientMissionPackage(data.mission, data.run, data.imports, kind, new Date(this.now()*1000).toISOString());
+        const pack = await buildClientMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!);
         if (Buffer.byteLength(pack.canonicalJson) > 16 * 1024 * 1024 || pack.pdf.byteLength > 16 * 1024 * 1024 || Buffer.byteLength(pack.html) > 16 * 1024 * 1024) throw new ApiError("CLIENT_EXPORT_LIMIT", "Export trop volumineux pour cette recette.", 413);
         // Recheck session, permissions and version after rendering, before returning any bytes.
         await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

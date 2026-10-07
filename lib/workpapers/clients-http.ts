@@ -7,7 +7,7 @@ import { periodId } from "./model";
 import type { ClientsRuntime } from "./clients-runtime";
 const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100),
     operation: z.enum(["list", "history", "download", "mission", "version"]).optional(), id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
-const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(), kind: z.enum(["diagnostic","approved"]), format: z.enum(["json","html","pdf","manifest"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
+const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(), kind: z.enum(["diagnostic","approved"]), format: z.enum(["json","html","pdf","manifest","exceptions_csv","decisions_csv","procedures_csv","sources_csv"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
 const headers = { "Cache-Control": "private, no-store" };
 export function requireDisposableClients(env: Record<string, string | undefined> = process.env) {
     if (env.VERCEL_ENV === "production" || env.PROBANT_CLIENTS_DURABLE !== "disposable")
@@ -101,9 +101,9 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                 enabled();
                 const input = exportBody.parse(await (await bounded(request, 4096)).json()), runtime = create();
                 const pack = await runtime.missionExport(request, input.dossierId, input.periodId, { rootId: input.rootId, id: input.id, version: input.version }, input.kind, input.expectedSnapshotHash);
-                const format = input.format === "json" ? "canonical_json" : input.format === "html" ? "accessible_html" : input.format;
+                const format = ({ json: "canonical_json", html: "accessible_html", pdf: "pdf", manifest: "manifest", exceptions_csv: "findings_csv", decisions_csv: "review_events_csv", procedures_csv: "controls_csv", sources_csv: "sources_csv" } as const)[input.format];
                 const entry = pack.manifest.artifacts.find(a => a.format === format);
-                const content = input.format === "json" ? pack.canonicalJson : input.format === "manifest" ? pack.manifestJson : input.format === "html" ? pack.html : Uint8Array.from(pack.pdf).buffer;
+                const content = input.format === "json" ? pack.canonicalJson : input.format === "manifest" ? pack.manifestJson : input.format === "html" ? pack.html : input.format === "exceptions_csv" ? pack.csv.findings : input.format === "decisions_csv" ? pack.csv.reviewEvents : input.format === "procedures_csv" ? pack.csv.controls : input.format === "sources_csv" ? pack.csv.sources : Uint8Array.from(pack.pdf).buffer;
                 return new Response(content, { headers: { ...headers, "Content-Type": entry?.mediaType ?? "application/json", "Content-Disposition": 'attachment; filename="' + (entry?.fileName ?? "probant-clients-" + input.kind + "-manifest.json") + '"', "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'", "X-Probant-Snapshot": pack.manifest.snapshotSha256 } });
             } catch (error) { return fail(error); }
         },
