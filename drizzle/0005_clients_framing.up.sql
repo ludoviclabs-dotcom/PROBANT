@@ -44,4 +44,3 @@ CREATE TRIGGER clients_approvals_immutable BEFORE UPDATE OR DELETE ON clients_im
 CREATE TRIGGER clients_versions_immutable BEFORE UPDATE OR DELETE ON clients_workpaper_versions FOR EACH ROW EXECUTE FUNCTION probant_clients_immutable();
 CREATE TRIGGER clients_receipts_immutable BEFORE UPDATE OR DELETE ON clients_command_receipts FOR EACH ROW EXECUTE FUNCTION probant_clients_immutable();
 COMMIT;
-

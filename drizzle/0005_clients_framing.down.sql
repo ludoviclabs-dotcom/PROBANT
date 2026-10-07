@@ -3,4 +3,3 @@ DROP TABLE IF EXISTS clients_command_receipts, clients_workpaper_versions, clien
 DROP FUNCTION IF EXISTS probant_clients_immutable();
 DROP INDEX IF EXISTS clients_dossier_org_uq;
 COMMIT;
-

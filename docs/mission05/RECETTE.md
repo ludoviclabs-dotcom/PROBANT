@@ -38,4 +38,3 @@ Les tests de composant vérifient attente d'accusé, échec réseau et rejeu ave
 En CI, la reprise redémarre PostgreSQL via l'identifiant du service jetable fourni par GitHub Actions, puis recrée le runtime applicatif et ses connexions. Hors CI, si cet identifiant manque, seule la recréation du runtime / des connexions est exécutée. Aucun fournisseur OIDC extérieur n'est provisionné : les sessions de test sont créées par le magasin serveur avec des identités synthétiques, puis résolues par le vrai authorizer. Le flux de connexion OIDC reste couvert par les tests existants du socle, pas par une nouvelle recette avec un IdP externe.
 
 La recette Vercel authentifiée avec une base dédiée et un IdP dédié n'est pas exécutée sans ces dépendances. Pas de production. Les résultats effectivement exécutés et les réserves sont consignés dans VALIDATION.md.
-
