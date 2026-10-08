@@ -300,7 +300,7 @@ jobs:
         env:
           # Horodatage reproductible : le SBOM ne doit dépendre que du lockfile.
           SOURCE_DATE_EPOCH: 0
-        run: npm run sbom > sbom.cdx.json
+        run: npm run --silent sbom > sbom.cdx.json
 
       - name: Publier le SBOM
         uses: actions/upload-artifact@v4

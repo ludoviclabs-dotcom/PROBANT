@@ -4,9 +4,12 @@ import path from "node:path";
 // Résout l'alias "@/" vers la racine du projet (cf. tsconfig paths) pour Vitest.
 export default defineConfig({
   // JSX runtime automatique pour les tests de composants (.tsx).
-  esbuild: { jsx: "automatic" },
+  oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
+    // Bound worker pressure for PDF and jsdom tests on local and CI hosts.
+    pool: "threads",
+    maxWorkers: 2,
     include: [
       "lib/**/*.test.ts",
       "lib/**/__tests__/**/*.test.ts",
