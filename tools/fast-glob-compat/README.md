@@ -21,3 +21,6 @@ Résolution : devDependency racine fast-glob:file:tools/fast-glob-compat et
 override global fast-glob:$fast-glob. Next ESLint est le seul consommateur
 transitif actuel. Le test du lock refuse un autre consommateur futur, pour
 éviter d’appliquer cette API limitée à un usage inconnu.
+
+La normalisation des barres terminales effectue un parcours linéaire. Les tests
+couvrent aussi les longues séries de séparateurs et la conservation des racines.

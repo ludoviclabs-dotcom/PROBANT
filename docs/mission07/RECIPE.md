@@ -6,7 +6,7 @@ Date : 8 octobre 2026. Lot limité aux encaissements, avoirs, estimation et conf
 
 Deux branches empilées : codex/mission07-security corrige les dépendances avant toute modification fonctionnelle ; codex/mission07-clients complète la chaîne Clients. Les décisions du cadrage et des travaux Clients ont leurs propres versions. Aucun déploiement ni activation de production.
 
-Le nouvel audit recensait les 14 vulnérabilités préexistantes et une alerte Next supplémentaire. Toutes ont été corrigées, sans exclusion d’avis. PR sécurité 57 : CI95 terminée avec succès (installation propre, audit, SBOM, types, lint, suite avec PostgreSQL17 jetable et redémarrage réel, construction, navigateur, migrations aller-retour, CodeQL et recherche de secrets).
+Le nouvel audit recensait les 14 vulnérabilités préexistantes et une alerte Next supplémentaire. Toutes ont été corrigées, sans exclusion d’avis. PR sécurité 57 : CI95 terminée avec succès (installation propre, audit, SBOM, types, lint, suite avec PostgreSQL17 jetable et redémarrage réel, construction, navigateur, migrations aller-retour et recherche de secrets). Le job CodeQL avait exécuté l’analyse, mais le contrôle Code scanning signalait deux alertes élevées ; voir SECURITY_RECIPE.md pour leur correction et la distinction entre exécution et résultat.
 
 ## Parcours serveur
 
@@ -37,7 +37,7 @@ JSON, HTML imprimable, CSV et PDF réutilisent l’export existant. Le paquet ap
 ## Exécutions et limites
 
 - Calcul : 27 tests ciblés réussis, dont 16 nouveaux. Projection/export/UI après correction de sélection : 22 tests ciblés réussis. Composants Clients/conflits/imports : 14 tests réussis, dont dix nouveaux.
-- CI97 sur le code 2eb6917b5f0b3f0b13b956156d582abf47bdc238 : 1128/1128 tests réussis dans 104 fichiers, dont 14/14 recettes PostgreSQL natives et le redémarrage réel du conteneur. Build Next réussi. Migrations aller-retour, audit/SBOM, fixtures adverses, CodeQL et recherche de secrets réussis.
+- CI97 sur le code 2eb6917b5f0b3f0b13b956156d582abf47bdc238 : 1128/1128 tests réussis dans 104 fichiers, dont 14/14 recettes PostgreSQL natives et le redémarrage réel du conteneur. Build Next réussi. Migrations aller-retour, audit/SBOM, fixtures adverses et recherche de secrets réussis. Le succès du job d’analyse CodeQL ne prouvait pas l’absence d’alertes dans le contrôle Code scanning.
 - Types et lint : validés ; sept avertissements préexistants, aucune erreur.
 - Build local final 2eb6917 : réussi. Navigateur ciblé : 5/5 réussis (trois Clients nouveaux, cadrage et Synthèse hérités) ; axe WCAG2.1 AA sans violation sérieuse ou critique ; viewport390 sans débordement global. Captures desktop/mobile inspectées.
 - La recette locale complète précédant les corrections avait 1110 réussites et une assertion d’ancien libellé en échec ; elle a été corrigée et relancée. Quatorze cas natifs sont ignorés uniquement localement, faute de PostgreSQL installé ; ils ont été réellement exécutés avec succès en CI17. Aucun stockage de substitution.

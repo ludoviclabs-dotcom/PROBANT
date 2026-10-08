@@ -34,7 +34,10 @@ function validatePattern(pattern) {
 
 function normalizeDirectory(directory) {
   const normalized = path.posix.normalize(directory.replace(/\\/g, '/'));
-  return normalized === path.posix.parse(normalized).root || /^[A-Za-z]:\/$/.test(normalized) ? normalized : normalized.replace(/\/+$/, '');
+  if (normalized === path.posix.parse(normalized).root || /^[A-Za-z]:\/$/.test(normalized)) return normalized;
+  let end = normalized.length;
+  while (end > 0 && normalized[end - 1] === '/') end -= 1;
+  return normalized.slice(0, end);
 }
 
 /**

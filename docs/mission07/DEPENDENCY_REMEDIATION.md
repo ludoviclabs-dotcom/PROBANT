@@ -42,3 +42,13 @@ L'audit npm a renvoyé zéro alerte après les mises à jour. La validation déf
 Le générateur CycloneDX nomme le paquet local @probant/next-root-glob1.0.0, plutôt que son alias d’installation fast-glob. Il vérifie la concordance nom/version du manifest avec le lock et ajoute les SHA-256 de README.md, index.cjs et package.json, ainsi qu’une empreinte de leur index trié. Une modification locale du code change cette empreinte même si la version et le lock restent identiques. Les chemins doivent rester dans le paquet et le dépôt ; un écart est un échec explicite.
 
 La suite dependency-sbom.test.ts vérifie la génération identique à SOURCE_DATE_EPOCH fixé, UUID11.1.1 et l’identité réelle de l’adaptateur, la variation du hash après changement de code, ainsi que le rejet d’un nom/version incohérent ou d’un fichier hors paquet. La commande CI doit utiliser npm run --silent sbom pour produire du JSON seul.
+
+## Correction des deux alertes CodeQL de la PR 57
+
+L’audit des dépendances à zéro ne couvrait pas les alertes du code local. L’analyse de la première version signalait js/file-system-race dans le générateur SBOM et js/polynomial-redos dans la normalisation des répertoires. Ces alertes ne sont ni ignorées ni supprimées.
+
+Le générateur ouvre chaque source une seule fois, contrôle son type et lit ses octets avec le même FileHandle, puis ferme ce handle dans finally. Il refuse une modification en place détectée pendant la lecture (identité, taille, horodatages et longueur lue). Les options NOFOLLOW/NONBLOCK s’appliquent lorsqu’elles existent sur la plateforme. L’identité et le hash du manifest local reposent sur les mêmes octets ; le lock est également lu une seule fois pour le calcul et son empreinte. Les chemins et liens sortant du paquet restent refusés. Les sources du dépôt doivent rester stables pendant la génération : ce script ne fournit pas de snapshot transactionnel de l’ensemble du système de fichiers.
+
+La suppression des barres terminales utilise un parcours linéaire, sans expression régulière à répétition non ancrée. Les racines de volume restent conservées. Les tests ajoutés exercent les longues séries de séparateurs, le remplacement du chemin après ouverture (code et manifest), la mutation en place, la fermeture sur échec, les répertoires et les liens hors paquet.
+
+Références techniques : [FileHandle Node](https://nodejs.org/api/fs.html#class-filehandle), [requête CodeQL sur les courses de fichiers](https://codeql.github.com/codeql-query-help/javascript/js-file-system-race/).

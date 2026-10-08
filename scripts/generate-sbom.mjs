@@ -7,12 +7,14 @@
  * Usage : node scripts/generate-sbom.mjs [> sbom.cdx.json]
  */
 
-import { readFile, realpath, stat } from "node:fs/promises";
+import { open, readFile, realpath } from "node:fs/promises";
+import { constants } from "node:fs";
 import { createHash } from "node:crypto";
 import path from "node:path";
 import process from "node:process";
 
-const lock = JSON.parse(await readFile("package-lock.json", "utf8"));
+const lockBytes = await readFile("package-lock.json");
+const lock = JSON.parse(lockBytes.toString("utf8"));
 const manifest = JSON.parse(await readFile("package.json", "utf8"));
 const epoch = Number(process.env.SOURCE_DATE_EPOCH);
 const timestamp = new Date(Number.isFinite(epoch) && epoch > 0 ? epoch * 1_000 : 0).toISOString();
@@ -41,23 +43,46 @@ async function localSourceHashes(location, entry) {
   if (!packageRoot.startsWith(repositoryRoot + path.sep)) {
     throw new Error("Local SBOM package escapes the repository: " + location);
   }
-  const localManifest = JSON.parse(await readFile(path.join(packageRoot, "package.json"), "utf8"));
+  // Check and read the same opened object, never reopen its pathname after stat.
+  async function readLocalFile(file) {
+    if (typeof file !== "string" || /[*?\[\]{}]/.test(file)) {
+      throw new Error("Local SBOM package requires explicit file paths: " + location);
+    }
+    const resolved = await realpath(path.resolve(packageRoot, file));
+    if (!resolved.startsWith(packageRoot + path.sep)) {
+      throw new Error("Local SBOM package file escapes its package: " + file);
+    }
+    const handle = await open(resolved, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+    try {
+      const before = await handle.stat({ bigint: true });
+      if (!before.isFile()) {
+        throw new Error("Local SBOM package source is not a file: " + file);
+      }
+      const bytes = await handle.readFile();
+      const after = await handle.stat({ bigint: true });
+      if (before.dev !== after.dev || before.ino !== after.ino || before.size !== after.size
+        || before.mtimeNs !== after.mtimeNs || before.ctimeNs !== after.ctimeNs
+        || BigInt(bytes.length) !== after.size) {
+        throw new Error("Local SBOM package source changed during read: " + file);
+      }
+      return bytes;
+    } finally {
+      await handle.close();
+    }
+  }
+  const manifestBytes = await readLocalFile("package.json");
+  const localManifest = JSON.parse(manifestBytes.toString("utf8"));
   if (localManifest.name !== entry.name || localManifest.version !== entry.version) {
     throw new Error("Local SBOM package identity differs from lock: " + location);
   }
   const files = [...new Set(["package.json", localManifest.main, ...(localManifest.files ?? [])].filter(Boolean))].sort();
   const fileHashes = [];
   for (const file of files) {
-    if (typeof file !== "string" || /[*?\[\]{}]/.test(file)) {
-      throw new Error("Local SBOM package requires explicit file paths: " + location);
-    }
-    const resolved = await realpath(path.resolve(packageRoot, file));
-    if (!resolved.startsWith(packageRoot + path.sep) || !(await stat(resolved)).isFile()) {
-      throw new Error("Local SBOM package file escapes its package or is not a file: " + file);
-    }
+    // The manifest hash must describe exactly the bytes whose identity was checked.
+    const bytes = file === "package.json" ? manifestBytes : await readLocalFile(file);
     fileHashes.push({
       path: file.replace(/\\/g, "/"),
-      sha256: createHash("sha256").update(await readFile(resolved)).digest("hex"),
+      sha256: createHash("sha256").update(bytes).digest("hex"),
     });
   }
   return {
@@ -122,7 +147,7 @@ const bom = {
     tools: [{ vendor: "PROBANT", name: "generate-sbom.mjs", version: "2" }],
     properties: [
       { name: "probant:lockfileVersion", value: String(lock.lockfileVersion) },
-      { name: "probant:lockfileSha256", value: createHash("sha256").update(await readFile("package-lock.json")).digest("hex") },
+      { name: "probant:lockfileSha256", value: createHash("sha256").update(lockBytes).digest("hex") },
     ],
   },
   components: sorted,
