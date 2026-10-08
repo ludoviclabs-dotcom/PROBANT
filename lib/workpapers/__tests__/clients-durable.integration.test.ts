@@ -1,3 +1,10 @@
+import { PayablesRuntime } from "../payables-runtime";
+import { payablesHandlers } from "../payables-http";
+import { csv as payableCsv, mapping as payableMapping, draftFor } from "./payables-fixture";
+import { PAYABLE_TYPES, type PayableProcedure } from "../payables-program";
+import type { PayablesCommand } from "../payables-commands";
+import type { PayablesResult } from "../payables-investigation";
+import type { PayablesMission } from "../payables-mission";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -24,6 +31,8 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
     let client: ReturnType<typeof postgres>;
     let handlers: ReturnType<typeof clientsHandlers>;
     let runtime: ClientsRuntime;
+    let payableRuntime:PayablesRuntime, payableHandlers:ReturnType<typeof payablesHandlers>;
+    let payableRun:WorkpaperRun, payableBatches:ImportBatch[];
     let now = 1800000000;
     const orgA = randomUUID(), orgB = randomUUID(), dossierA = randomUUID(), dossierA2 = randomUUID(), dossierB = randomUUID(), dossierB2 = randomUUID();
     const config = { secret: "disposable-clients-test-secret-000000000000000000", idleTtlSeconds: 3600, absoluteTtlSeconds: 7200, appOrigin: "https://probant.example.test" };
@@ -48,6 +57,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const sessions = new DrizzleSessionStore(db);
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
         runtime = new ClientsRuntime(db, authorizer, () => now);
+        payableRuntime=new PayablesRuntime(db,authorizer,()=>now);payableHandlers=payablesHandlers(()=>payableRuntime,()=>{},error=>{if(error instanceof Error)console.error("PAYABLE_RECIPE_ERROR",error.message.split("\n")[0],error.cause instanceof Error?error.cause.message:"");});
         handlers = clientsHandlers(() => runtime, () => { }, error => {
             if (error instanceof Error) console.error("CLIENTS_RECIPE_ERROR", error.name, error.message.split("\n")[0], error.cause instanceof Error ? error.cause.message : "");
         });
@@ -383,4 +393,140 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const oldSales=structuredClone(salesRun);salesRun=await success({command:"revise",...salesTarget()});expect(salesRun.clientsWork).toBeUndefined();expect(salesRun.result).toBeUndefined();expect(salesRun.approval).toBeUndefined();
         const salesRead=await(await handlers.GET(request(preparer))).json();expect(salesRead.runs.find((r:WorkpaperRun)=>r.id===oldSales.id)).toEqual(oldSales);expect(salesRead.salesFraming[salesRun.id]).toBeNull();
     });
+
+    const payableTarget = () => ({ id: payableRun.id, expectedVersion: payableRun.version });
+    async function payableCommand(body: PayablesCommand, s = preparer, key = randomUUID()) { return payableHandlers.POST(request(s, "POST", JSON.stringify(body), dossierA, "", key)); }
+    async function payableSuccess(body: PayablesCommand, s = preparer) { const response = await payableCommand(body, s); expect(response.status, await response.clone().text()).toBe(200); return (await response.json()).run as WorkpaperRun; }
+    async function payableImport(type: typeof PAYABLE_TYPES[number], changed = false) { const form = new FormData(); form.set("file", new File([payableCsv(type, changed)], type + ".csv", { type: "text/csv" })); form.set("mapping", JSON.stringify(payableMapping)); form.set("period", JSON.stringify(period)); form.set("documentType", type); const preview = await payableHandlers.importsPOST(request(preparer, "POST", form)); expect(preview.status, await preview.clone().text()).toBe(200); const { batch } = await preview.json(); const view = await (await payableHandlers.GET(request(preparer))).json(); const approved = await payableHandlers.importsPOST(request(preparer, "POST", JSON.stringify({ command: "approve_import", importId: batch.id, previewHash: batch.previewHash, expectedSourceId: view.sourceHeads.find((h: {
+            document_type: string;
+        }) => h.document_type === type)?.import_id ?? null }))); expect(approved.status, await approved.clone().text()).toBe(200); return (await approved.json()).batch as ImportBatch; }
+    async function payableMission() { const response = await payableHandlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=mission&id=" + encodeURIComponent(payableRun.id))); expect(response.status, await response.clone().text()).toBe(200); return (await response.json()).mission as PayablesMission; }
+    const payableExportRequest = (m: PayablesMission, kind = "diagnostic", s = preparer) => request(s, "POST", JSON.stringify({ dossierId: dossierA, periodId: periodId(period), id: payableRun.id, version: payableRun.version, kind, format: "html", expectedSnapshotHash: m.hash }));
+    async function preparePayable(procedure: PayableProcedure, batches = payableBatches) { let r = await payableSuccess({ command: "create_payables", procedure, period, instanceKey: randomUUID() }); const draft = draftFor(batches); if (procedure !== "payables.purchases")
+        draft.purchases = []; if (procedure !== "payables.rpne")
+        draft.allocations = []; r = await payableSuccess({ command: "freeze_payables", id: r.id, expectedVersion: r.version, importIds: batches.map(b => b.id), draft, selection: { method: "all", criteria: "Recette documentée des cinq cas, sans extrapolation", exclusions: [] } }); return payableSuccess({ command: "execute", id: r.id, expectedVersion: r.version }); }
+    it("Mission 08 : achats et RPNE figés partagent un événement sans double compte", async () => {
+        payableBatches = [];
+        for (const type of PAYABLE_TYPES.filter(t => !["payables_general", "payables_auxiliary", "payables_aged"].includes(t)))
+            payableBatches.push(await payableImport(type));
+        const frameBatches = [];
+        for (const type of ["payables_general", "payables_auxiliary", "payables_aged"] as const)
+            frameBatches.push(await payableImport(type));
+        const frame = await preparePayable("payables.frame", frameBatches);
+        expect(frame.result?.outcome).toBe("no_exception_detected");
+        await preparePayable("payables.purchases");
+        payableRun = await preparePayable("payables.rpne");
+        const result = payableRun.result!.result as PayablesResult;
+        expect(result.rows.find(r => r.invoiceId === "I-U")).toMatchObject({ status: "omission_candidate", paidTTC: { amount: "1200.00" }, differenceHT: { kind: "known", value: { amount: "1000.00" } } });
+        expect(result.rows.find(r => r.invoiceId === "I-F")?.status).toBe("existing_accrual");
+        expect(result.rows.find(r => r.invoiceId === "I-G")).toMatchObject({ status: "inconclusive", unallocatedTTC: { amount: "600.00" } });
+        expect(result.rows.find(r => r.invoiceId === "I-N")?.status).toBe("inconclusive");
+        expect(payableRun.payablesWork?.authorId).toBe("preparer-real");
+        const m = await payableMission(), event = m.events.find(e => e.invoiceId === "I-D")!;
+        expect(event.observations).toHaveLength(2);
+        expect(m.exposures.find(e => e.economicEventId === event.eventId)?.amount).toMatchObject({ kind: "known", value: { amount: "600.00" } });
+        expect(m.counters.plannedControls).toBe(6);
+        const read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.every((r: WorkpaperRun) => r.template.id.startsWith("payables."))).toBe(true);
+        expect(read.facts[payableRun.id].invoices).toHaveLength(8);
+        const clientRead = await (await handlers.GET(request(preparer))).json();
+        expect(clientRead.runs.some((r: WorkpaperRun) => r.id === payableRun.id)).toBe(false);
+        expect((await command({ command: "conclude", id: payableRun.id, expectedVersion: payableRun.version, text: "Interdit via un autre cycle" })).status).toBe(404);
+    });
+    it("Mission 08 : permissions, auteur serveur, rejeu, conflit et invalidation", async () => {
+        const { authorId: _a, authoredAt: _d, schemaVersion: _s, ...draft } = structuredClone(payableRun.payablesWork!);
+        void _a;
+        void _d;
+        void _s;
+        const body: PayablesCommand = { command: "configure_payables", ...payableTarget(), draft }, key = randomUUID();
+        const ack = await payableCommand(body, preparer, key), replay = await payableCommand(body, preparer, key);
+        expect(ack.status, await ack.clone().text()).toBe(200);
+        expect(await replay.json()).toEqual(await ack.clone().json());
+        payableRun = (await ack.json()).run;
+        expect(payableRun.result).toBeUndefined();
+        expect(payableRun.notes).toEqual([]);
+        expect((await payableCommand({ ...body, draft: { ...draft, method: { ...draft.method, note: "autre" } } }, preparer, key)).status).toBe(409);
+        expect((await payableHandlers.POST(request(preparer, "POST", JSON.stringify({ ...body, role: "reviewer", approved: true })))).status).toBe(400);
+        expect((await payableHandlers.POST(request(preparer, "POST", JSON.stringify({ command: "configure_payables", ...payableTarget(), draft: { ...draft, authorId: "reviewer-real" } })))).status).toBe(400);
+        expect((await payableHandlers.GET(request(other))).status).toBe(403);
+        expect((await payableHandlers.GET(request(preparer, "GET", undefined, dossierB))).status).toBe(403);
+        expect((await payableCommand({ ...body, ...payableTarget() }, other)).status).toBe(403);
+        const responses = await Promise.all(["A", "B"].map(note => payableCommand({ command: "configure_payables", ...payableTarget(), draft: { ...draft, window: { ...draft.window, note } } })));
+        expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
+        expect((await responses.find(r => r.status === 409)!.json()).current.payablesWork.authorId).toBe("preparer-real");
+        payableRun = (await responses.find(r => r.status === 200)!.json()).run;
+        payableRun = await payableSuccess({ command: "execute", ...payableTarget() });
+    });
+    it("Mission 08 : revue distincte, exception maintenue et export protégé", async () => {
+        for (const n of payableRun.notes.filter(n => !n.resolution))
+            payableRun = await payableSuccess({ command: "resolve", ...payableTarget(), noteId: n.id, text: "Point expliqué ; candidat ou inconnus conservés, sans opinion." });
+        payableRun = await payableSuccess({ command: "conclude", ...payableTarget(), text: "Paiement 1200 TTC, candidat 1000 HT ; FNP existante sans double calcul ; groupe résiduel 600 TTC non concluant ; événement D résiduel 600 HT unique." });
+        payableRun = await payableSuccess({ command: "submit", ...payableTarget() });
+        expect((await payableCommand({ command: "review", ...payableTarget(), decision: "approved", submittedHash: payableRun.submittedHash!, text: "auto" }, selfReviewer)).status).toBe(403);
+        payableRun = await payableSuccess({ command: "review", ...payableTarget(), decision: "approved", submittedHash: payableRun.submittedHash!, text: "Travail revu par une autre identité, exceptions maintenues." }, reviewer);
+        payableRun = await payableSuccess({ command: "lock", ...payableTarget() }, reviewer);
+        const m = await payableMission(), response = await payableHandlers.exportPOST(payableExportRequest(m, "approved", reviewer));
+        expect(response.status, await response.clone().text()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain(m.hash);
+        expect(html).toContain("Candidat omission");
+        expect(html).toContain("reviewer-real");
+        expect(html).toContain("1200.00");
+        expect(html).toContain("1000.00");
+        expect(html).toContain("Pièces binaires absentes");
+        expect((await payableHandlers.exportPOST(payableExportRequest(m, "approved", other))).status).toBe(403);
+        const documentId = payableBatches.find(b => b.document.documentType === "payables_payments")!.document.id;
+        for (const s of [preparer, reviewer])
+            expect((await payableHandlers.GET(request(s, "GET", undefined, dossierA, "&operation=download&id=" + documentId))).status).toBe(200);
+        expect((await payableHandlers.GET(request(other, "GET", undefined, dossierA, "&operation=download&id=" + documentId))).status).toBe(403);
+        expect((await payableHandlers.GET(request(preparer, "GET", undefined, dossierB, "&operation=download&id=" + documentId))).status).toBe(403);
+        const noCsrf = payableExportRequest(m);
+        noCsrf.headers.delete(CSRF_HEADER);
+        expect((await payableHandlers.exportPOST(noCsrf)).status).toBe(403);
+        now += 7201;
+        expect((await payableHandlers.GET(request(preparer))).status).toBe(401);
+        expect((await payableCommand({ command: "revise", ...payableTarget() })).status).toBe(401);
+        expect((await payableHandlers.exportPOST(payableExportRequest(m))).status).toBe(401);
+        now -= 7201;
+    });
+    it("Mission 08 : reprise PostgreSQL et source remplacée conservent l’ancienne revue", async () => {
+        const locked = structuredClone(payableRun), before = await payableMission();
+        await client.end();
+        const container = process.env.PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER;
+        if (container) {
+            if (!/^[a-f0-9]{12,64}$/.test(container))
+                throw new Error("DISPOSABLE_CONTAINER_ID_INVALID");
+            await promisify(execFile)("docker", ["restart", container], { timeout: 20000 });
+        }
+        await connect();
+        for (let attempt = 0;; attempt++) {
+            try {
+                await client.unsafe("SELECT 1");
+                break;
+            }
+            catch (e) {
+                if (attempt >= 4)
+                    throw e;
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+        }
+        let read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+        expect((await payableHandlers.exportPOST(payableExportRequest(before, "approved", reviewer))).status).toBe(200);
+        await payableImport("payables_payments", true);
+        expect((await payableHandlers.exportPOST(payableExportRequest(before, "approved", reviewer))).status).toBe(409);
+        const stale = await payableMission();
+        expect(stale.procedures.find(p => p.id === "payables.rpne")?.stale).toBe(true);
+        expect((await payableHandlers.exportPOST(payableExportRequest(stale, "approved", reviewer))).status).toBe(422);
+        const diagnostic = await payableHandlers.exportPOST(payableExportRequest(stale));
+        expect(diagnostic.status, await diagnostic.clone().text()).toBe(200);
+        expect(await diagnostic.text()).toContain("périmée");
+        payableRun = await payableSuccess({ command: "revise", ...payableTarget() });
+        expect(payableRun.approval).toBeUndefined();
+        expect(payableRun.result).toBeUndefined();
+        expect(payableRun.payablesWork).toBeUndefined();
+        read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+    }, 30000);
+
 });

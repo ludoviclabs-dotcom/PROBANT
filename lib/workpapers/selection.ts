@@ -7,10 +7,12 @@ import { authorize, type Principal } from "./policy";
 /** Invoice grouping is limited to the validated Clients open-at-closing mapping. */
 export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], unit: Population["unit"], principal: Principal): Population {
   authorize(principal, scope, "prepare");
-  if (unit !== "row" && (unit !== "invoice" || imports.filter(b => b.document.documentType === "clients_invoices").length !== 1 || imports.some(b => b.mapping.version !== "clients-sales-1" || !b.mapping.sales) || imports.find(b => b.document.documentType === "clients_invoices")?.mapping.sales?.basis !== "open_at_closing")) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  const payablesUnit = ["purchase_entry", "subsequent_payment"].includes(unit);
+  if (payablesUnit && (imports.some(b => b.mapping.version !== "payables-investigation-1" || !b.mapping.payables) || imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")).length !== 1)) throw new Error("PAYABLE_POPULATION_MAPPING_INVALID");
+  if (!payablesUnit && unit !== "row" && (unit !== "invoice" || imports.filter(b => b.document.documentType === "clients_invoices").length !== 1 || imports.some(b => b.mapping.version !== "clients-sales-1" || !b.mapping.sales) || imports.find(b => b.document.documentType === "clients_invoices")?.mapping.sales?.basis !== "open_at_closing")) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
-  const populationImports = unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : imports;
+  const populationImports = payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : imports;
   const items = populationImports.flatMap((b) => b.rows.map((r) => {
     assertScope(scope, r.scope);
     if (!r.normalized || r.errors.length) throw new Error("POPULATION_ROW_INVALID");

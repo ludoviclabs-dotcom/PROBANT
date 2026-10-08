@@ -6,7 +6,7 @@ import { authorize, type Principal } from "./policy";
 
 export const SOURCE_REQUIRED = "SOURCE REQUISE";
 export const CYCLE_FRAMEWORK_VERSION = "1.0.0";
-export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "clients.frame" | "clients.sales" }
+export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" }
 export interface SourcedAmount { amount: Money; date: string; source: SourceRow }
 export interface PostClosingWindow { startDate: string; endDate: string; documentVersionIds: string[]; coverage: "documented" | "incomplete" }
 export function assertContext(context: CycleContext) {
@@ -43,4 +43,11 @@ export function assertClientsSalesContext(context: CycleContext) {
   if (context.scope.mode === "demo") { assertContext(context); return; }
   scopeSchema.parse(context.scope);
   if (context.purpose !== "real" || context.procedure !== "clients.sales" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error(`${SOURCE_REQUIRED}: REAL_CYCLE_DISABLED: CLIENT_SALES_CONTEXT_INVALID`);
+}
+
+/** Closed Mission 08 investigation contract, not a normative accounting opinion. */
+export function assertPayablesContext(context: CycleContext) {
+  if (context.scope.mode === "demo") { assertContext(context); return; }
+  scopeSchema.parse(context.scope);
+  if (context.purpose !== "real" || !["payables.frame", "payables.purchases", "payables.rpne"].includes(context.procedure ?? "") || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error("PAYABLE_CONTEXT_INVALID");
 }
