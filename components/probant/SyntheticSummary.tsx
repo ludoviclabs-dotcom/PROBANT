@@ -26,7 +26,8 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
     <h1 className="text-2xl font-semibold">Synthèse du dossier synthétique</h1>
     <p className="my-3">{snapshot.dossier.societe.raisonSociale} · {snapshot.dossier.id} · {snapshot.dossier.period?.startDate} au {snapshot.dossier.period?.closingDate}</p>
     <p>Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats ci-dessous proviennent des feuilles exécutées dans l’atelier.</p>
-    <ModuleAvailability snapshot={snapshot} />
+    <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
+      <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap gap-5"><Link className="underline" href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className="underline" onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status">{message}</p>
     {bundle && bundle.manifest.sourceSnapshotHash === snapshot.snapshotHash && <div className="my-4 flex gap-4"><button className="underline" onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button className="underline" onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button className="underline" onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}

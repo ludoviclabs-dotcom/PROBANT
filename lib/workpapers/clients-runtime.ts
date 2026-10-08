@@ -1,3 +1,5 @@
+import { buildClientMission, type MissionSelection } from "./client-mission";
+import { buildClientMissionPackage, type ClientExportKind } from "@/lib/evidence/client-mission-package";
 import { sql } from "drizzle-orm";
 import { ApiError } from "@/lib/api/errors";
 import type { RequestAuthorizer } from "@/lib/auth/authorize";
@@ -73,17 +75,58 @@ export class ClientsRuntime {
         if (run.importIds.some((id) => !heads.some((h) => h.import_id === id)))
             throw new Error("CLIENT_SOURCE_REPLACED_REVISION_REQUIRED");
     }
-    async read(request: Request, dossierId: string, pid: string, id?: string, history = false) {
+    async read(request: Request, dossierId: string, pid: string, id?: string, history = false, version?: number) {
         return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => {
             const repository = new ClientsWorkpaperRepository(tx), imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
             const ids = id ? [{ id }] : await rows<{
                 id: string;
             }>(tx, sql `SELECT id FROM clients_workpaper_heads WHERE ${scopeWhere(scope)} ORDER BY id`);
-            const runs = (await Promise.all(ids.map((r) => repository.get(scope, r.id)))).filter((r): r is WorkpaperRun => !!r);
-            return { actorId: actor.id, permissions: actor.grants[0].permissions, runs, imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
+            const currentRuns = (await Promise.all(ids.map((r) => repository.get(scope, r.id)))).filter((r): r is WorkpaperRun => !!r);
+            const runs = version !== undefined && id ? (await repository.history(scope, id)).filter(r => r.version === version) : currentRuns;
+            if (version !== undefined && !runs.length) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
+            const lineageHeads = await rows<{ id: string; version: number; root_id: string; revision: number }>(tx, sql`SELECT h.id,h.version,v.run->>'rootId' AS root_id,(v.run->>'revision')::int AS revision FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId}`);
+            const lineageCurrent: Record<string, { id: string; version: number; revision: number }> = {};
+            for (const h of lineageHeads) if (!lineageCurrent[h.root_id] || h.revision > lineageCurrent[h.root_id].revision) lineageCurrent[h.root_id] = { id: h.id, version: h.version, revision: h.revision };
+            return { actorId: actor.id, permissions: actor.grants[0].permissions, runs, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
                 sourcesCurrent: Object.fromEntries(runs.map((r) => [r.id, r.importIds.every((i) => heads.some((h) => h.import_id === i))])),
                 ...(history && id ? { history: await repository.history(scope, id) } : {}) };
         });
+    }
+    private async missionData(tx: ClientsSql, scope: WorkpaperScope, selection: MissionSelection) {
+        // Bounds apply before materializing the immutable history; no alternative store is used.
+        const [size] = await rows<{ count: string; bytes: string }>(tx, sql`SELECT count(*)::text AS count, coalesce(sum(octet_length(run::text)),0)::text AS bytes FROM clients_workpaper_versions WHERE ${scopeWhere(scope)}`);
+        if (Number(size.count) > 500 || Number(size.bytes) > 24 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Historique trop volumineux pour cette recette.", 413);
+        const [sourceSize] = await rows<{ bytes: string }>(tx, sql`SELECT coalesce(sum(octet_length(preview::text) + octet_length(original_base64)),0)::text AS bytes FROM clients_imports WHERE ${scopeWhere(scope)}`);
+        if (Number(sourceSize.bytes) > 24 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Sources trop volumineuses pour cette recette.", 413);
+        const versions = (await rows<{ run: WorkpaperRun }>(tx, sql`SELECT run FROM clients_workpaper_versions WHERE ${scopeWhere(scope)} ORDER BY id,version`)).map(r => r.run);
+        const imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
+        const [dossier] = await rows<{ created_at: Date | string }>(tx, sql`SELECT created_at FROM dossiers WHERE id=${scope.dossierId} AND organization_id=${scope.organizationId}`);
+        if (!dossier) throw new Error("WORKPAPER_NOT_FOUND");
+        const mission = buildClientMission(scope, versions, imports.batches, heads, selection, new Date(dossier.created_at).toISOString());
+        const run = versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null;
+        if (Buffer.byteLength(JSON.stringify(mission)) > 8 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Synthèse trop volumineuse pour cette recette.", 413);
+        return { mission, run, imports: imports.batches };
+    }
+    async mission(request: Request, dossierId: string, pid: string, selection: MissionSelection = {}) {
+        return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => {
+            const { mission } = await this.missionData(tx, scope, selection);
+            return { actorId: actor.id, permissions: actor.grants[0].permissions, mission };
+        });
+    }
+    async missionExport(request: Request, dossierId: string, pid: string, selection: MissionSelection, kind: ClientExportKind, expectedSnapshotHash: string) {
+        const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {
+            const data = await this.missionData(tx, scope, selection);
+            if (data.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+            return data;
+        });
+        const pack = await buildClientMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!);
+        if (Buffer.byteLength(pack.canonicalJson) > 16 * 1024 * 1024 || pack.pdf.byteLength > 16 * 1024 * 1024 || Buffer.byteLength(pack.html) > 16 * 1024 * 1024) throw new ApiError("CLIENT_EXPORT_LIMIT", "Export trop volumineux pour cette recette.", 413);
+        // Recheck session, permissions and version after rendering, before returning any bytes.
+        await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {
+            const latest = await this.missionData(tx, scope, selection);
+            if (latest.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+        });
+        return pack;
     }
     async download(request: Request, dossierId: string, pid: string, documentId: string) {
         return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor) => (await ClientsImports.load(tx, scope)).download(scope, documentId, actor));

@@ -12,6 +12,7 @@ import { csrfTokenFor, newSessionSecret, sessionTokenDigest, SESSION_COOKIE, CSR
 import type { ProbantRole } from "@/lib/auth/roles";
 import { ClientsRuntime } from "../clients-runtime";
 import { clientsHandlers } from "../clients-http";
+import { sha256 } from "@/lib/evidence/hash";
 import { periodId, type WorkpaperRun } from "../model";
 import type { ClientsCommand } from "../clients-commands";
 import { csv, mapping, period } from "./clients-framing-fixtures";
@@ -60,6 +61,12 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect(response.status, await response.clone().text()).toBe(200);
         return (await response.json()).run as WorkpaperRun;
     }
+    async function mission() {
+        const response = await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=mission"));
+        expect(response.status, await response.clone().text()).toBe(200);
+        return (await response.json()).mission;
+    }
+    const exportRequest = (snapshot: { hash: string; procedure: { runId: string; version: number } }, kind = "diagnostic", s = preparer, dossierId = dossierA, hash = snapshot.hash) => request(s, "POST", JSON.stringify({ dossierId, periodId: periodId(period), id: snapshot.procedure.runId, version: snapshot.procedure.version, expectedSnapshotHash: hash, kind, format: "html" }));
     const target = () => ({ id: run.id, expectedVersion: run.version });
     async function importSource(type: string, changed = false) {
         const data = new FormData();
@@ -119,6 +126,20 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect(run.result?.outcome).toBe("exceptions_detected");
         expect(run.notes[0].blocking).toBe(true);
         expect(run.preparedBy).toBe("preparer-real");
+    });
+    it("restitue le programme et un diagnostic serveur avant revue, refuse le paquet approuvé", async () => {
+        const snapshot = await mission();
+        expect(snapshot.counters).toMatchObject({ planned: 1, executed: 1, plannedParts: 2, exceptions: 2, reviewed: 0 });
+        const diagnostic = await handlers.exportPOST(exportRequest(snapshot));
+        expect(diagnostic.status, await diagnostic.clone().text()).toBe(200);
+        expect(diagnostic.headers.get("X-Probant-Snapshot")).toBe(snapshot.hash);
+        expect(await diagnostic.text()).toContain("Export diagnostic");
+        expect((await handlers.exportPOST(exportRequest(snapshot, "approved"))).status).toBe(422);
+        expect((await handlers.exportPOST(exportRequest(snapshot, "diagnostic", other))).status).toBe(403);
+        expect((await handlers.exportPOST(exportRequest(snapshot, "diagnostic", preparer, dossierB))).status).toBe(403);
+        const forged = exportRequest(snapshot); const payload = await forged.json();
+        expect((await handlers.exportPOST(request(preparer, "POST", JSON.stringify({ ...payload, role: "reviewer", approval: true })))).status).toBe(400);
+        expect((await handlers.exportPOST(request(preparer, "POST", JSON.stringify({ ...payload, mission: snapshot })))).status).toBe(413);
     });
     it("refuse accès inter-organisation, rôle inadéquat, autorité client, CSRF et périmètre dossier", async () => {
         expect((await handlers.GET(request(other))).status).toBe(403);
@@ -182,6 +203,39 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         await expect(client `UPDATE clients_workpaper_versions SET run=run WHERE id=${run.id}`).rejects.toThrow("CLIENTS_APPEND_ONLY");
         await expect(client `DELETE FROM clients_imports WHERE dossier_id=${dossierA}`).rejects.toThrow("CLIENTS_APPEND_ONLY");
     });
+    it("concorde écran/export après revue, maintient l’exception et ouvre une version historique exacte", async () => {
+        const snapshot = await mission();
+        expect(snapshot.procedure.runId).toBe(run.id); expect(snapshot.procedure.version).toBe(run.version);
+        expect(snapshot.procedure.resultLabel).toBe("Exceptions maintenues");
+        expect(snapshot.counters).toMatchObject({ exceptions: 2, reviewed: 1, locked: 1 });
+        const response = await handlers.exportPOST(exportRequest(snapshot, "approved", reviewer));
+        expect(response.status, await response.clone().text()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain("Paquet du cadrage approuvé et verrouillé"); expect(html).toContain("Exceptions maintenues");
+        expect(html).toContain(snapshot.hash); expect(html).toContain("reviewer-real");
+        // Separate requests at different times still form one coherent, verifiable package.
+        now += 7;
+        const manifestPayload = await exportRequest(snapshot, "approved", reviewer).json();
+        const manifestResponse = await handlers.exportPOST(request(reviewer, "POST", JSON.stringify({ ...manifestPayload, format: "manifest" })));
+        expect(manifestResponse.status).toBe(200); const manifest = await manifestResponse.json();
+        expect(manifest.createdAt).toBe(snapshot.stateAsOf);
+        expect(manifest.artifacts.find((a: { format: string }) => a.format === "accessible_html").sha256).toBe(sha256(html));
+        const csvResponse = await handlers.exportPOST(request(reviewer, "POST", JSON.stringify({ ...manifestPayload, format: "exceptions_csv" })));
+        expect(csvResponse.status).toBe(200);
+        expect(manifest.artifacts.find((a: { format: string }) => a.format === "findings_csv").sha256).toBe(sha256(Buffer.from(await csvResponse.arrayBuffer())));
+        now -= 7;
+        expect((await handlers.exportPOST(exportRequest(snapshot, "approved", reviewer, dossierA, "a".repeat(64)))).status).toBe(409);
+        const historical = snapshot.procedure.beforeReview.version;
+        const exact = await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=version&id=" + encodeURIComponent(run.id) + "&version=" + historical));
+        expect(exact.status).toBe(200); const data = await exact.json();
+        expect(data.runs[0].version).toBe(historical); expect(data.currentVersions[run.id]).toBe(run.version);
+        expect((await handlers.GET(request(other, "GET", undefined, dossierA, "&operation=mission"))).status).toBe(403);
+        const noCsrf = exportRequest(snapshot); noCsrf.headers.delete(CSRF_HEADER);
+        expect((await handlers.exportPOST(noCsrf)).status).toBe(403);
+        now += 7201;
+        expect((await handlers.exportPOST(exportRequest(snapshot))).status).toBe(401);
+        now -= 7201;
+    });
     it("reprend après recréation du runtime et redémarrage PostgreSQL en CI", async () => {
         const locked = structuredClone(run);
         await client.end();
@@ -221,7 +275,14 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
     });
     it("invalide une source remplacée et crée une révision sans réécrire l’ancienne décision", async () => {
         const locked = structuredClone(run);
+        const before = await mission();
         await importSource("clients_aged", true);
+        expect((await handlers.exportPOST(exportRequest(before, "approved"))).status).toBe(409);
+        const stale = await mission();
+        expect(stale.procedure.stale).toBe(true); expect(stale.counters.reviewed).toBe(0);
+        expect((await handlers.exportPOST(exportRequest(stale, "approved"))).status).toBe(422);
+        const diagnostic = await handlers.exportPOST(exportRequest(stale));
+        expect(diagnostic.status).toBe(200); expect(await diagnostic.text()).toContain("Source remplacée / périmée");
         const read = await (await handlers.GET(request(preparer))).json();
         expect(read.sourcesCurrent[locked.id]).toBe(false);
         expect((await command({ command: "lock", ...target() }, reviewer)).status).toBe(409);
@@ -231,6 +292,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         expect(run.importIds).toEqual([]);
         const after = await (await handlers.GET(request(preparer))).json();
         expect(after.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+        expect(after.lineageCurrent[run.rootId]).toEqual({ id: run.id, revision: run.revision, version: run.version });
         expect((await command({ command: "freeze", ...target(), importIds })).status).toBe(422);
     });
 });

@@ -116,12 +116,13 @@ export async function buildPdfFromAccessibleHtml(
     const leading = line.level === 1 ? 23 : line.level === 2 ? 18 : 13;
     const before = line.level === 1 ? 8 : line.level === 2 ? 12 : 2;
     const wrapped = wrapLine(line.text, font, size, maxWidth);
-    if (y - before - wrapped.length * leading < bottom) {
+    if (y - before - leading < bottom) {
       page = addPage(document);
       y = 841.89 - margin;
     }
     y -= before;
     for (const part of wrapped) {
+      if (y - leading < bottom) { page = addPage(document); y = 841.89 - margin; }
       page.drawText(part, {
         x: margin,
         y,
