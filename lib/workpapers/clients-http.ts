@@ -22,8 +22,10 @@ function failure(error: unknown) {
         return Response.json({ error: "CLIENT_REQUEST_INVALID" }, { status: 400, headers });
     if (error instanceof ApiError)
         return Response.json({ error: error.code }, { status: error.status, headers });
-    if(error instanceof DrizzleQueryError||error instanceof Error&&error.name==="PostgresError")return Response.json({error:"CLIENTS_DURABLE_UNAVAILABLE"},{status:503,headers});
-    const code = error instanceof Error&&/^[A-Z][A-Z0-9_]*(?::[A-Za-z0-9_]+)?$/.test(error.message) ? error.message : "";
+    if (error instanceof DrizzleQueryError || (error instanceof Error && error.name === "PostgresError")) {
+        return Response.json({ error: "CLIENTS_DURABLE_UNAVAILABLE" }, { status: 503, headers });
+    }
+    const code = (error instanceof Error && /^[A-Z][A-Z0-9_]*(?::[A-Za-z0-9_]+)?$/.test(error.message)) ? error.message : "";
     const status = /SESSION_INVALID/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404 :
         /STALE|CONFLICT|REPLACED|ALREADY_EXISTS|IDEMPOTENCY_KEY_REUSED/.test(code) ? 409 :
             /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|NOT_READY|IMMUTABLE|UNRESOLVED|CHANGED|UNAPPROVED|FROZEN|OUT_OF_SCOPE|MISMATCH|OVERALLOCATED|DISABLED|UNSUPPORTED|ABSENT/.test(code) ? 422 : 503;
