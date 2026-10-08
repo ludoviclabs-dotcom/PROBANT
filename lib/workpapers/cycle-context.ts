@@ -6,7 +6,7 @@ import { authorize, type Principal } from "./policy";
 
 export const SOURCE_REQUIRED = "SOURCE REQUISE";
 export const CYCLE_FRAMEWORK_VERSION = "1.0.0";
-export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "clients.frame" | "clients.sales" }
+export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "clients.frame" | "clients.sales" | "cash.reconciliation" }
 export interface SourcedAmount { amount: Money; date: string; source: SourceRow }
 export interface PostClosingWindow { startDate: string; endDate: string; documentVersionIds: string[]; coverage: "documented" | "incomplete" }
 export function assertContext(context: CycleContext) {
@@ -43,4 +43,10 @@ export function assertClientsSalesContext(context: CycleContext) {
   if (context.scope.mode === "demo") { assertContext(context); return; }
   scopeSchema.parse(context.scope);
   if (context.purpose !== "real" || context.procedure !== "clients.sales" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error(`${SOURCE_REQUIRED}: REAL_CYCLE_DISABLED: CLIENT_SALES_CONTEXT_INVALID`);
+}
+/** Bank bridge on qualified sources (Mission 09); other cash engines (caisse, VMP, confirmations) stay synthetic-only. */
+export function assertCashContext(context: CycleContext) {
+  if (context.scope.mode === "demo") { assertContext(context); return; }
+  scopeSchema.parse(context.scope);
+  if (context.purpose !== "real" || context.procedure !== "cash.reconciliation" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error(`${SOURCE_REQUIRED}: REAL_CYCLE_DISABLED: CASH_CONTEXT_INVALID`);
 }

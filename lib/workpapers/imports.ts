@@ -13,6 +13,7 @@ export interface ImportMapping {
   columns: { key: string; amount: string; date: string };
   sales?: { basis: "open_at_closing" | "subsequent_payment" | "subsequent_credit" | "support"; customerColumn: string; currencyColumn: string; dueOnColumn?: string; cancelledOnColumn?: string; kindColumn?: string; invoiceColumn?: string; bookedImpairmentColumn?: string };
   clients?: { accountColumn: string; partyColumn?: string; basis: "closing_balance" };
+  cash?: { basis: "ledger_closing" | "statement_closing" | "reconciliation_statement" | "subsequent_statement" | "correction_support"; bankColumn: string; accountColumn: string; currencyColumn: string; natureColumn?: string; kindColumn?: string; labelColumn?: string; explanationColumn?: string; pieceColumn?: string };
   delimiter: ";" | "," | "\t"; decimal: "," | "."; dateFormat: "ISO" | "DD/MM/YYYY";
   sign: 1 | -1; currency: "EUR"; expectedTotal?: Money;
 }
@@ -108,9 +109,9 @@ function parseDate(raw: string, mapping: ImportMapping): string {
   const date = mapping.dateFormat === "ISO" ? s : /^\d{2}\/\d{2}\/\d{4}$/.test(s) ? `${s.slice(6)}-${s.slice(3, 5)}-${s.slice(0, 2)}` : "";
   if (!isCivilDate(date)) throw new Error("DATE_FORMAT_INVALID"); return date;
 }
-export async function previewImport(file: File, scope: WorkpaperScope, mapping: ImportMapping, principal: Principal, documentType = "structured_table", realAdapter?: "clients.frame" | "clients.sales"): Promise<ImportBatch> {
+export async function previewImport(file: File, scope: WorkpaperScope, mapping: ImportMapping, principal: Principal, documentType = "structured_table", realAdapter?: "clients.frame" | "clients.sales" | "cash.reconciliation"): Promise<ImportBatch> {
   authorize(principal, scope, "prepare"); scopeSchema.parse(scope);
-  if (scope.mode !== "demo" && !((realAdapter === "clients.frame" && ["clients_general", "clients_auxiliary", "clients_aged"].includes(documentType)) || (realAdapter === "clients.sales" && ["clients_invoices", "clients_payments", "clients_credits", "clients_support"].includes(documentType)))) throw new Error("REAL_IMPORT_STORAGE_DISABLED");
+  if (scope.mode !== "demo" && !((realAdapter === "clients.frame" && ["clients_general", "clients_auxiliary", "clients_aged"].includes(documentType)) || (realAdapter === "clients.sales" && ["clients_invoices", "clients_payments", "clients_credits", "clients_support"].includes(documentType)) || (realAdapter === "cash.reconciliation" && ["cash_ledger", "cash_statement", "cash_erb", "cash_settlements", "cash_support"].includes(documentType)))) throw new Error("REAL_IMPORT_STORAGE_DISABLED");
   if (file.size > MAX_BYTES || file.size === 0) throw new Error("UPLOAD_SIZE_INVALID");
   const format = file.name.toLowerCase().endsWith(".csv") ? "csv" : file.name.toLowerCase().endsWith(".xlsx") ? "xlsx" : null;
   if (!format) throw new Error("FILE_FORMAT_UNSUPPORTED");
