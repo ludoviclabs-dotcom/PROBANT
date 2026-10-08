@@ -6,3 +6,13 @@ export const PAYABLE_LABELS: Record<string, string> = { payables_general: "GL de
 export const STATUS_LABELS: Record<RpneStatus, string> = { booked_in_period: "Déjà enregistré", existing_accrual: "FNP existante", outside_period_justified: "Hors période justifié", omission_candidate: "Candidat omission", inconclusive: "Non concluant", not_tested: "Non testé / exclu" };
 export const PAYABLE_REQUIRED: Record<PayableProcedure, string[]> = { "payables.frame": ["payables_general", "payables_auxiliary", "payables_aged"], "payables.purchases": ["purchases_ledger", "payables_invoices", "payables_performance", "payables_recognition", "payables_adjustments", "payables_support"], "payables.rpne": ["payables_payments", "payables_invoices", "payables_performance", "payables_recognition", "payables_adjustments", "payables_support"] };
 export const PAYABLE_OBJECTIVES: Record<PayableProcedure, string> = { "payables.frame": "Cadrage fournisseurs GL / auxiliaire / balance âgée", "payables.purchases": "Achats enregistrés : écriture → facture → prestation", "payables.rpne": "RPNE : paiement → allocation → facture → fait générateur" };
+
+export const PAYABLE_SHORT_LABELS: Record<string, string> = { "payables.frame": "Cadrage fournisseurs", "payables.purchases": "Achats enregistrés", "payables.rpne": "RPNE" };
+export function payablesStateLabel(state: string | undefined) {
+    const labels: Record<string, string> = { draft: "À préparer", ready: "Prête à exécuter", executed: "Exécutée", awaiting_review: "Revue attendue", changes_requested: "Correction demandée", approved: "Travaux approuvés", locked: "Décision verrouillée", superseded: "Version remplacée", blocked: "Bloquée", failed: "Échec d’exécution" };
+    return state ? labels[state] ?? state : "À préparer";
+}
+export function payablesUnitLabel(unit: string) {
+    const labels: Record<string, string> = { purchase_entry: "écritures HT", subsequent_payment: "paiements TTC", row: "lignes", invoice: "factures", third_party: "tiers" };
+    return labels[unit] ?? unit;
+}

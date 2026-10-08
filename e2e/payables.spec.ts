@@ -99,8 +99,8 @@ test("Cut-off : événement double unique, filtres ventes / achats et versions e
     await page.goto("/cutoff?" + new URLSearchParams({ dossierId: a.scope.dossierId, periodId: a.scope.periodId }));
     const table = page.getByRole("region", { name: "Événements cut-off — défilement clavier" }), d = table.getByRole("row", { name: /I-D/ });
     await expect(d).toContainText("600.00 EUR");
-    await expect(d).toContainText("payables.purchases v1");
-    await expect(d).toContainText("payables.rpne v1");
+    await expect(d).toContainText("Achats enregistrés v1");
+    await expect(d).toContainText("RPNE v1");
     await expect(d.getByRole("link").first()).toHaveAttribute("href", /version=1/);
     await page.getByRole("combobox",{name:"Flux",exact:true}).selectOption("sale");
     await expect(table).toContainText("SALE");
