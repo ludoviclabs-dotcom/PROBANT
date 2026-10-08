@@ -175,16 +175,17 @@ export class ClientsRuntime {
     async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: typeof CLIENT_TYPES[number] | typeof SALES_TYPES[number], key: string) {
         return this.previewSource(request,dossierId,period,file,mapping,type,key);
     }
-    protected importAdapter(type:string): "clients.frame" | "clients.sales" | "payables.rpne" { return SALES_TYPES.includes(type as typeof SALES_TYPES[number]) ? "clients.sales" : "clients.frame"; }
+    protected importAdapter(type:string): "equity.review" | "clients.frame" | "clients.sales" | "payables.rpne" { return SALES_TYPES.includes(type as typeof SALES_TYPES[number]) ? "clients.sales" : "clients.frame"; }
     protected validateSource(batch: import("./imports").ImportBatch, period:AccountingPeriod) {
         if (!this.sourceTypes.includes(batch.document.documentType)) throw new Error("CLIENT_DOCUMENT_TYPE_INVALID");
         if (SALES_TYPES.includes(batch.document.documentType as typeof SALES_TYPES[number])) assertClientsSalesBatch(batch,period); else assertClientsBatch(batch,period.closingDate);
     }
+    protected makePreview(file:File,scope:WorkpaperScope,mapping:ImportMapping,actor:Principal,type:string,_period:AccountingPeriod) { void _period; return previewImport(file,scope,mapping,actor,type,this.importAdapter(type)); }
     protected async previewSource(request:Request,dossierId:string,period:AccountingPeriod,file:File,mapping:ImportMapping,type:string,key:string) {
         return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => {
             if (file.size > 3 * 1024 * 1024) throw new ApiError("CLIENT_FILE_LIMIT", "Fichier limité à 3 Mio pour cette recette.", 413);
             const safeFile = new File([await file.arrayBuffer()], neutralizeFileName(file.name), { type: file.type });
-            let batch = await previewImport(safeFile, scope, mapping, actor, type, this.importAdapter(type));
+            let batch = await this.makePreview(safeFile, scope, mapping, actor, type, period);
             this.validateSource(batch,period);
             if (Buffer.byteLength(JSON.stringify(batch)) > 3 * 1024 * 1024) throw new ApiError("CLIENT_PREVIEW_LIMIT", "Aperçu trop volumineux pour cette recette.", 413);
             const { previewHash: _hash, ...base } = batch;
