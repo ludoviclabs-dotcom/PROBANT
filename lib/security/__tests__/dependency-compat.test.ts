@@ -43,6 +43,14 @@ describe("Next root-directory dependency replacement", () => {
     expect(globSync(sub("absent"), { onlyDirectories: true })).toEqual([]);
   });
 
+  it("normalizes long separator runs and trailing separators while preserving volume roots", () => {
+    const root = posix(path.parse(fixture).root);
+    expect(globSync(root + "/".repeat(100), { onlyDirectories: true })).toEqual([root]);
+    expect(globSync(sub("apps/alpha") + "/".repeat(1000), { onlyDirectories: true })).toEqual([sub("apps/alpha")]);
+    expect(globSync(sub("apps/*") + "/".repeat(1000), { onlyDirectories: true }).sort()).toEqual([sub("apps/alpha"), sub("apps/beta")]);
+  });
+
+
   it("preserves absolute, relative, brace and recursive directory glob results", () => {
     const roots = [sub("apps/alpha"), sub("apps/beta")];
     expect(globSync(sub("apps/*"), { onlyDirectories: true }).sort()).toEqual(roots);
