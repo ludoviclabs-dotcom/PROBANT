@@ -3,7 +3,7 @@ import { cents, money, type Money, type KnownAmount } from "@/lib/canonical-mode
 import { isCivilDate, periodIssues } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertScope, frozen, moneySchema, scopeSchema, periodId, type EvidenceLink } from "./model";
-import { assertContext, assertClientsSalesContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
+import { assertContext, assertClientsSalesContext, assertDate, assertFixedAssetsContext, assertUnique, type CycleContext } from "./cycle-context";
 
 export const CYCLE_REVIEW_VERSION = "1.0.0";
 export const dateSchema = z.string().refine(isCivilDate, "Date civile ISO requise");
@@ -42,6 +42,11 @@ export function reconcileClientFrameBalances(context: CycleContext, left: Balanc
     scopeSchema.parse(context.scope);
     if (context.purpose !== "real" || context.procedure !== "clients.frame" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw new Error("CLIENT_FRAME_CONTEXT_INVALID");
   }
+  return reconcileValidatedBalances(context, left, right, dimension);
+}
+/** Dedicated real context for the fixed-asset framing (register → GL) only. */
+export function reconcileFixedAssetFrameBalances(context: CycleContext, left: BalanceLine[], right: BalanceLine[], dimension: "account" | "party") {
+  assertFixedAssetsContext(context);
   return reconcileValidatedBalances(context, left, right, dimension);
 }
 function reconcileValidatedBalances(context: CycleContext, left: BalanceLine[], right: BalanceLine[], dimension: "key" | "account" | "party") {
