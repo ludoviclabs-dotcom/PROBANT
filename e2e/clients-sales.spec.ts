@@ -30,7 +30,7 @@ test("Clients et ventes : 1 000 / 300 / 700, preuve et proposition distincte ava
   let server: { run: WorkpaperRun } | null = null;
   const f = await presentation(page, async input => { request = input; await ack; const draft = input.draft as ClientsSalesDraft, previous = server!.run; server!.run = { ...previous, version: 7, state: "ready", result: undefined, clientsWork: { ...previous.clientsWork!, ...draft, window: { ...draft.window, documentVersionIds: previous.clientsWork!.window.documentVersionIds }, allocations: draft.allocations.map(a => ({ ...a, authorId: "actual-preparer", authoredAt: "2025-03-01T12:05:00Z" })), estimates: [], confirmations: [] } }; return { body: { run: server!.run } }; });
   server = f.state;
-  const invoice = f.table.getByRole("row", { name: /Client A INV-1000/ });
+  const invoice = f.table.getByRole("row", { name: /Client A.*INV-1000/ });
   await expect(invoice).toContainText("1000.00 EUR"); await expect(invoice).toContainText("300.00 EUR"); await expect(invoice).toContainText("700.00 EUR");
   await expect(invoice).toContainText("jours depuis facture"); await expect(invoice).toContainText("Échéance inconnue");
   await expect(page.getByRole("complementary", { name: "Preuves de la facture" })).toContainText("factures.csv");
@@ -39,7 +39,8 @@ test("Clients et ventes : 1 000 / 300 / 700, preuve et proposition distincte ava
   await f.table.screenshot({ path: "e2e/.artifacts/clients-sales-invoices.png" });
   await page.setViewportSize({ width: 390, height: 844 });
   await f.table.screenshot({ path: "e2e/.artifacts/clients-sales-mobile.png" });
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  const layout = await page.evaluate(() => { const outside = Array.from(document.querySelectorAll("main *")).filter(el => { const rect = el.getBoundingClientRect(); if (!rect.width || rect.right <= window.innerWidth) return false; let parent = el.parentElement; while (parent) { if (["auto", "scroll", "hidden"].includes(getComputedStyle(parent).overflowX)) return false; parent = parent.parentElement; } return true; }).map(el => ({ tag: el.tagName, text: el.textContent?.slice(0, 90), right: Math.round(el.getBoundingClientRect().right) })); return { width: document.documentElement.scrollWidth, outside }; });
+  expect(layout.width, JSON.stringify(layout.outside)).toBeLessThanOrEqual(390);
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "Revenir à une proposition" }).click();
   await expect(page.getByText("Proposition d’appariement", { exact: true })).toBeVisible();
@@ -65,20 +66,20 @@ test("Clients : annulation et avoir à la revue conservent la clôture dans la t
   const result = { ...f.result, credits: [{ ...credit, status: "applied" }], rows: f.result.rows.map(row => ({ ...row, subsequentPayments: { amount: "0.00", currency: "EUR" }, subsequentCredits: { amount: "50.00", currency: "EUR" }, dueAtReview: { amount: "950.00", currency: "EUR" }, timeline: [...row.timeline, { id: "cancellation", date: "2025-01-20", kind: "cancellation", label: "Annulation après clôture PAY-300", amount: { kind: "known", value: { amount: "300.00", currency: "EUR" } }, proofIds: [], effect: "review" }, { id: "credit", date: "2025-02-01", kind: "credit", label: "Avoir postérieur CREDIT-50", amount: { kind: "known", value: { amount: "50.00", currency: "EUR" } }, proofIds: [creditProof.id], effect: "review" }] })), payments: f.result.payments.map(payment => ({ ...payment, cancelledOn: "2025-01-20" })) };
   f.state.run = { ...f.run, version: 7, result: { ...f.run.result!, result } };
   await page.getByRole("button", { name: "Charger le cadrage", exact: true }).click();
-  await expect(page.getByText("Annulation après clôture PAY-300")).toBeVisible();
-  const row = f.table.getByRole("row", { name: /Client A INV-1000/ }), cells = row.getByRole("cell");
+  await expect(page.getByText("Annulation après clôture PAY-300", { exact: true })).toBeVisible();
+  const row = f.table.getByRole("row", { name: /Client A.*INV-1000/ }), cells = row.getByRole("cell");
   await expect(cells.nth(1)).toHaveText("1000.00 EUR"); await expect(cells.nth(3)).toHaveText("50.00 EUR"); await expect(cells.nth(4)).toHaveText("950.00 EUR");
-  await expect(page.getByText("Avoir postérieur CREDIT-50")).toBeVisible();
+  await expect(page.getByText("Avoir postérieur CREDIT-50", { exact: true })).toBeVisible();
   await expect(page.getByText("Solde ouvert à la clôture : 1000.00 EUR")).toBeVisible();
 });
 test("Clients : allocation refusée et session expirée conservent les montants serveur", async ({ page }) => {
-  const f = await presentation(page, async input => { expect(input.command).toBe("configure_sales"); return { status: 422, body: { error: "CLIENT_ALLOCATION_PARTY_MISMATCH" } }; });
+  const f = await presentation(page, async input => { expect(input.command).toBe("configure_sales"); return { status: 422, body: { error: "ALLOCATION_PARTY_MISMATCH" } }; });
   await page.getByRole("button", { name: "Sauvegarder allocations et jugement" }).click();
-  await expect(page.getByRole("alert")).toBeVisible();
+  await expect(page.locator("main").getByRole("alert")).toBeVisible();
   await expect(f.table).toContainText("700.00 EUR");
   await expect(page.getByRole("status").filter({ hasText: "Échec de sauvegarde" })).toBeVisible();
   f.state.expired = true;
   await page.getByRole("button", { name: "Sauvegarder allocations et jugement" }).click();
-  await expect(page.getByRole("alert")).toContainText("Session requise ou expirée");
+  await expect(page.locator("main").getByRole("alert")).toContainText("Session requise ou expirée");
   await expect(f.table).toContainText("1000.00 EUR"); await expect(f.table).toContainText("700.00 EUR");
 });

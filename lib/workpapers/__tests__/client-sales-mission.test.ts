@@ -31,6 +31,37 @@ describe("Programme Clients fermé — ventes, preuves et décisions", () => {
     }
   });
 
+  it("sélectionne le dernier snapshot de l’identité demandée sans version et conserve une version explicite exacte", async () => {
+    const f = await clientSalesMissionFixture();
+    for (const versions of [f.versions, [...f.versions].reverse()]) {
+      const latest = buildClientMission(f.scope, versions, f.imports, f.heads, { id: f.locked.id });
+      expect(latest.procedure.version).toBe(12); expect(latest.procedure.state).toBe("locked"); expect(latest.procedure.sales?.rows[0].dueAtReview.amount).toBe("700.00");
+      expect(latest.procedure.stale).toBe(false);
+      const exact = buildClientMission(f.scope, versions, f.imports, f.heads, { id: f.run.id, version: 10 });
+      expect(exact.procedure.version).toBe(10); expect(exact.procedure.state).toBe("awaiting_review"); expect(exact.procedure.stale).toBe(true);
+      expect(exact.procedure.review).toBeNull();
+    }
+  });
+
+  it("garde le contexte de cadrage après révision Clients sans reprendre l’ancienne décision ni une référence future", async () => {
+    const f = await clientSalesMissionFixture();
+    const revision: WorkpaperRun = { ...f.run, id: f.run.rootId + ":r2", revision: 2, version: 1, state: "draft", clientsWork: undefined, result: undefined, importIds: [], population: undefined, selection: undefined, evidence: [], findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, events: [{ id: "sales-revision", action: "revise", actorId: "actual-preparer", at: "2025-02-05T00:00:00Z", version: 1 }] };
+    const versions = [...f.versions, revision];
+    const defaultSelection = buildClientMission(f.scope, versions, f.imports, f.heads);
+    expect(defaultSelection.procedure.runId).toBe(f.frame.locked.id);
+    const latestSales = defaultSelection.procedures.find(p => p.id === "clients.sales")!;
+    expect(latestSales.runId).toBe(revision.id); expect(latestSales.state).toBe("draft"); expect(latestSales.review).toBeNull();
+    expect(defaultSelection.counters).toMatchObject({ executed: 1, reviewed: 1, locked: 1 });
+    const explicit = buildClientMission(f.scope, versions, f.imports, f.heads, { id: revision.id });
+    expect(explicit.procedures[0].runId).toBe(f.frame.locked.id); expect(explicit.procedures[0].version).toBe(12);
+    expect(explicit.procedure.resultId).toBeNull(); expect(explicit.procedure.beforeReview).toBeNull(); expect(explicit.procedure.afterReview).toBeNull();
+    expect(explicit.procedure.staleReasons).not.toContain("La référence au cadrage figé est absente ou incohérente.");
+    const noEarlierReference: WorkpaperRun = { ...revision, id: f.run.id, revision: 1, version: 1 };
+    const historical = buildClientMission(f.scope, [f.frame.locked, noEarlierReference, f.run], f.imports, f.heads, { id: f.run.id, version: 1 });
+    expect(historical.procedures[0].runId).toBeNull();
+    expect(historical.procedure.staleReasons).toContain("La référence au cadrage figé est absente ou incohérente.");
+  });
+
   it("rend visible la source remplacée et la nouvelle version du cadrage sans réécrire l’ancienne décision", async () => {
     const f = await clientSalesMissionFixture(), replacement = f.heads.map(h => h.document_type === "clients_payments" ? { ...h, import_id: "replacement" } : h);
     const stale = buildClientMission(f.scope, f.versions, f.imports, replacement, { rootId: f.locked.rootId });

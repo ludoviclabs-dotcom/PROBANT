@@ -293,7 +293,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         </article>)}
       </section>
       <section hidden={!["all","blocked","stale"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">2. Population figée et calcul versionné</h2>
-        {view.runs.length > 0 && <label>Feuille<select className={controlClass} disabled={saving} value={activeId} onChange={e => { const selected = view.runs.find(r => r.id === e.target.value)!; setActiveId(selected.id); setPeriod(selected.period); setConclusion(selected.conclusion ?? ""); setDraftOverride(null); salesDraftRef.current=null; dirty(); }}>
+        {view.runs.length > 0 && <label className="block min-w-0">Feuille<select className={controlClass + " block w-full min-w-0 sm:inline-block sm:w-auto sm:max-w-full"} disabled={saving} value={activeId} onChange={e => { const selected = view.runs.find(r => r.id === e.target.value)!; setActiveId(selected.id); setPeriod(selected.period); setConclusion(selected.conclusion ?? ""); setDraftOverride(null); salesDraftRef.current=null; dirty(); }}>
           {view.runs.map(r => <option value={r.id} key={r.id}>{r.template.id === "clients.sales" ? "Clients et ventes" : "Cadrage"} · Révision {r.revision} · {r.state} · v{r.version}</option>)}</select></label>}
         {!run && canPrepare && <button className={controlClass} disabled={saving} onClick={() => void mutate({ command: "create", period, instanceKey: "clients-framing-pilot" })}>Créer la feuille pilote</button>}
         {run && !current && <p role="alert">Une source a été remplacée. Cette décision reste attachée à ses anciennes sources ; créez une révision pour reprendre.</p>}

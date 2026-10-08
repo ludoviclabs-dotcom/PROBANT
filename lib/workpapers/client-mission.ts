@@ -138,12 +138,18 @@ function latestPerRoot(versions: WorkpaperRun[]) {
   const roots = [...new Set(versions.map(v => v.rootId))];
   return roots.map(root => versions.filter(v => v.rootId === root).sort((a, b) => b.revision - a.revision || b.version - a.version)[0]);
 }
-function framingOf(run?: WorkpaperRun): FramingReference | undefined {
+function framingOf(run?: WorkpaperRun, versions: WorkpaperRun[] = []): FramingReference | undefined {
   if (!run) return undefined;
   const work = (run as WorkpaperRun & { clientsWork?: { framing?: FramingReference } }).clientsWork;
   if (work?.framing) return work.framing;
   const parsed = clientsSalesResultSchema.safeParse(run.result?.result);
-  return parsed.success ? parsed.data.framing : undefined;
+  if (parsed.success) return parsed.data.framing;
+  // A revision keeps its earlier framing context, without borrowing a future decision.
+  const ancestors = versions.filter(v => v.template.id === "clients.sales" && v.rootId === run.rootId &&
+    (v.revision < run.revision || v.revision === run.revision && v.id === run.id && v.version < run.version))
+    .sort((a, b) => b.revision - a.revision || b.version - a.version);
+  for (const ancestor of ancestors) { const reference = framingOf(ancestor); if (reference) return reference; }
+  return undefined;
 }
 function salesSources(imports: ImportBatch[], heads: SourceHead[], run?: WorkpaperRun): FrameProjection["sources"] {
   const required = CLIENT_MISSION_PROGRAM.procedures[1].requiredSources;
@@ -173,7 +179,7 @@ function buildSalesProjection(scope: WorkpaperScope, versions: WorkpaperRun[], i
   const definition = CLIENT_MISSION_PROGRAM.procedures[1];
   const parsed = clientsSalesResultSchema.safeParse(run?.result?.result);
   const sales = parsed.success && parsed.data.mode === "real" && run && parsed.data.runId === run.id && stableSha256(parsed.data.scope) === stableSha256(run.scope) && parsed.data.closingDate === run.period.closingDate && parsed.data.reviewDate === run.period.asOfDate && (!run.clientsWork || stableSha256(parsed.data.framing) === stableSha256(run.clientsWork.framing)) ? parsed.data : null;
-  const reference = framingOf(run);
+  const reference = framingOf(run, versions);
   const linked = reference ? frames.find(v => v.id === reference.runId && v.version === reference.version && v.rootId === reference.rootId) : undefined;
   const currentFrame = reference ? latestPerRoot(frames).find(v => v.rootId === reference.rootId) : undefined;
   const staleReasons: string[] = [];
@@ -243,16 +249,17 @@ export function buildClientMission(scope: WorkpaperScope, versions: WorkpaperRun
   if (selection.id && !versions.some(v => v.id === selection.id)) throw new Error("WORKPAPER_NOT_FOUND");
   let selectedRoot = selection.rootId ?? (selection.id ? versions.find(v => v.id === selection.id)?.rootId : undefined);
   if (!selectedRoot && currentFrames.length === 1) {
-    const related = currentSales.filter(v => framingOf(v)?.rootId === currentFrames[0].rootId);
+    const related = currentSales.filter(v => framingOf(v, salesVersions)?.rootId === currentFrames[0].rootId);
     if (related.length <= 1 && currentSales.length === related.length) selectedRoot = currentFrames[0].rootId;
   } else if (!selectedRoot && choices.length === 1) selectedRoot = choices[0];
-  const selectedCurrent = versions.filter(v => v.rootId === selectedRoot).sort((a, b) => b.revision - a.revision || b.version - a.version)[0];
-  const selected = selection.id ? versions.find(v => v.rootId === selectedRoot && v.id === selection.id && (selection.version === undefined || v.version === selection.version)) : selectedCurrent;
+  const selectedFamily = versions.filter(v => v.rootId === selectedRoot).sort((a, b) => b.revision - a.revision || b.version - a.version);
+  const selectedCurrent = selectedFamily[0];
+  const selected = selection.id ? selectedFamily.find(v => v.rootId === selectedRoot && v.id === selection.id && (selection.version === undefined || v.version === selection.version)) : selectedCurrent;
   if (selection.id && !selected) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
   const isSales = selected?.template.id === "clients.sales";
-  const reference = isSales ? framingOf(selected) : undefined;
+  const reference = isSales ? framingOf(selected, salesVersions) : undefined;
   const linkedFrame = reference ? frames.find(v => v.id === reference.runId && v.version === reference.version) : selected?.template.id === "clients.frame" ? selected : undefined;
-  const relatedSales = linkedFrame ? currentSales.filter(v => framingOf(v)?.rootId === linkedFrame.rootId) : [];
+  const relatedSales = linkedFrame ? currentSales.filter(v => framingOf(v, salesVersions)?.rootId === linkedFrame.rootId) : [];
   const salesRun = isSales ? selected : relatedSales.length === 1 ? relatedSales[0] : undefined;
   const frame = buildFrameProjection(scope, linkedFrame ? frames : [], imports, heads, linkedFrame ? { id: linkedFrame.id, version: linkedFrame.version } : {}, baselineAt);
   const sales = buildSalesProjection(scope, salesRun ? salesVersions.filter(v => v.rootId === salesRun.rootId) : [], imports, heads,
