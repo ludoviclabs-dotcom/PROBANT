@@ -1,3 +1,4 @@
+import { clientsSalesDraftSchema } from "./clients-sales";
 import { z } from "zod";
 import { isCivilDate, periodIssues } from "@/lib/canonical-model/period";
 import { knownAmountSchema } from "./model";
@@ -6,6 +7,9 @@ export const clientsPeriodSchema = z.object({ startDate: z.string().refine(isCiv
     asOfDate: z.string().refine(isCivilDate), currency: z.literal("EUR"), validation: z.literal("provisional").default("provisional") }).strict().refine((p) => !periodIssues(p).length);
 const target = { id: z.string().min(1).max(200), expectedVersion: z.number().int().positive() };
 export const clientsCommandSchema = z.discriminatedUnion("command", [
+    z.object({ command: z.literal("create_sales"), period: clientsPeriodSchema, framingId: text, framingVersion: z.number().int().positive() }).strict(),
+    z.object({ command: z.literal("freeze_sales"), ...target, importIds: z.array(z.string().min(1)).min(2).max(4), framingId: text, framingVersion: z.number().int().positive(), window: clientsSalesDraftSchema.shape.window, creditsAbsence: clientsSalesDraftSchema.shape.creditsAbsence }).strict(),
+    z.object({ command: z.literal("configure_sales"), ...target, draft: clientsSalesDraftSchema }).strict(),
     z.object({ command: z.literal("create"), period: clientsPeriodSchema, instanceKey: text }).strict(),
     z.object({ command: z.literal("freeze"), ...target, importIds: z.array(z.string().min(1)).length(3) }).strict(),
     z.object({ command: z.literal("execute"), ...target }).strict(),

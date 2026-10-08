@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { ClientMissionSynthesis } from "../ClientMissionSynthesis";
 import { ClientFramingWorkspace } from "../ClientFramingWorkspace";
 import { buildClientMission } from "@/lib/workpapers/client-mission";
+import { clientSalesMissionFixture } from "@/lib/workpapers/__tests__/client-sales-mission-fixture";
 import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 describe("Synthèse de mission — navigation, preuve et lecture seule", () => {
@@ -11,7 +12,7 @@ describe("Synthèse de mission — navigation, preuve et lecture seule", () => {
     const f = await clientMissionFixture(), mission = buildClientMission(f.scope, [f.run, f.approved, f.locked], f.imports, f.heads);
     vi.stubGlobal("fetch", vi.fn(async () => Response.json({ actorId: "actual-reviewer", permissions: ["read", "review", "download"], mission })));
     render(<ClientMissionSynthesis initialDossierId={f.scope.dossierId} initialPeriodId={f.scope.periodId}/>);
-    await screen.findByText("1/1 procédure exécutée"); expect(screen.getByText("2/2 rapprochements complets")).toBeTruthy();
+    await screen.findByText("1/2 procédure exécutée"); expect(screen.getByText("2/5 contrôles complets")).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Exceptions à expliquer" }));
     expect(screen.getAllByText("Exception maintenue")).toHaveLength(2);
     fireEvent.click(screen.getByRole("button", { name: "Examiner les preuves de A" }));
@@ -44,5 +45,27 @@ describe("Synthèse de mission — navigation, preuve et lecture seule", () => {
     expect(Object.fromEntries(new URL(mock.mock.calls[1][0], "https://test.local").searchParams)).toMatchObject({ operation: "version", id: "real-pilot", version: "10" });
     expect(screen.queryByText("Approuver le cadrage")).toBeNull();
     expect(screen.getByRole("button", { name: "Revue", pressed: true })).toBeTruthy();
+  });
+});
+
+describe("Synthèse Clients et ventes — identités et preuves", () => {
+  it("charge la version exacte, présente les soldes distincts et maintient les exceptions après revue", async () => {
+    const f = await clientSalesMissionFixture(), mission = buildClientMission(f.scope, f.versions, f.imports, f.heads, { id: f.locked.id, version: 12 });
+    const fetchMock = vi.fn(async (_url: string) => { void _url; return Response.json({ actorId: "actual-reviewer", permissions: ["read", "download"], mission }); });
+    vi.stubGlobal("fetch", fetchMock);
+    render(<ClientMissionSynthesis initialDossierId={f.scope.dossierId} initialPeriodId={f.scope.periodId} initialRunId={f.locked.id} initialVersion={12}/>);
+    await screen.findByText("2/2 procédure exécutée"); expect(screen.getByText("3/5 contrôles complets")).toBeTruthy();
+    expect(Object.fromEntries(new URL(fetchMock.mock.calls[0][0]!, "https://test.local").searchParams)).toMatchObject({ id: f.locked.id, version: "12" });
+    expect(screen.getByText("1000.00 EUR")).toBeTruthy(); expect(screen.getByText("700.00 EUR")).toBeTruthy();
+    expect(screen.getByText(/Retard non déterminé/)).toBeTruthy();
+    expect(screen.getByText("Méthode absente — estimation non conclue")).toBeTruthy();
+    expect(screen.getByText(/Origine établie : inconnue/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Preuves de la confirmation C1-confirm" }));
+    expect(screen.getByText("Télécharger l’original séparément")).toBeTruthy();
+    expect(screen.getByText("Confirmation C1-confirm v1")).toBeTruthy();
+    expect(screen.getAllByText("Exception maintenue")).toHaveLength(f.data.exceptions.length);
+    expect(screen.getByText("Ouvrir la feuille pilote").getAttribute("href")).toContain("id=" + f.locked.id + "&version=12");
+    expect(screen.getByText("Paquet approuvé · procédure sélectionnée")).toBeTruthy();
+    expect(screen.queryByText(/^Conforme$/)).toBeNull();
   });
 });
