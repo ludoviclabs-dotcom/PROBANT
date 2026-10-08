@@ -20,4 +20,3 @@ La CI95 de PR57 est terminée avec succès : tests PostgreSQL natifs avec redém
 Les résultats ci-dessus décrivent l’installation et les commandes locales initiales. Le job GitHub CodeQL avait terminé son analyse avec succès, mais le contrôle séparé Code scanning avait trouvé deux alertes élevées (16 et 17 sur refs/pull/57/merge). Une analyse exécutée n’est pas une absence d’alertes.
 
 Après correction : 14 contrôles ciblés réussis localement (7 compatibilité, 7 provenance SBOM), incluant les courses de fichiers et séparateurs longs. Types/lint et audit sont vérifiés à nouveau. Le résultat serveur définitif doit être lu sur le contrôle Code scanning et les instances d’alertes de la révision corrigée, pour les PR 57 et 58 ; les huit jobs CI seuls ne suffisent pas. Aucun changement de production.
-
