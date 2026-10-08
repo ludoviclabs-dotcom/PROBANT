@@ -7,9 +7,12 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export default defineConfig({
   // React 19 automatic JSX runtime for component tests.
-  esbuild: { jsx: "automatic" },
+  oxc: { jsx: { runtime: "automatic" } },
   test: {
     environment: "node",
+    // Bound worker pressure for PDF and jsdom tests on local and CI hosts.
+    pool: "threads",
+    maxWorkers: 2,
     include: [
       "lib/**/*.test.ts",
       "lib/**/__tests__/**/*.test.ts",

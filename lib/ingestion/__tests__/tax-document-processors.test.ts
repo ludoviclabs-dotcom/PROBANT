@@ -220,7 +220,7 @@ describe("tax document processing", () => {
     expect(result.warnings).toContain("PDF_TEXT_LAYER_MISSING");
     expect(result.fieldTraces).toEqual([]);
     expect(result.calculationExecuted).toBe(false);
-  });
+  }, 15000); // Cold PDF.js initialization under the migrated worker pool.
 
   it("normalizes a native negative amount explicitly and blocks automation pending review", async () => {
     const { result } = await processJson(taxJson({
