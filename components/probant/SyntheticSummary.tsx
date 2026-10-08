@@ -27,6 +27,7 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
     <p className="my-3">{snapshot.dossier.societe.raisonSociale} · {snapshot.dossier.id} · {snapshot.dossier.period?.startDate} au {snapshot.dossier.period?.closingDate}</p>
     <p>Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats ci-dessous proviennent des feuilles exécutées dans l’atelier.</p>
     <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
+    <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
       <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap gap-5"><Link className="underline" href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className="underline" onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status">{message}</p>
