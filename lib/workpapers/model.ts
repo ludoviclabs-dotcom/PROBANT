@@ -1,6 +1,7 @@
 import type { ClientsSalesWork } from "./clients-sales";
 import type { CashWork } from "./cash-reconciliation";
 import type { FixedAssetWork } from "./fixed-asset-review";
+import type { EquityWork } from "./equity-review";
 import { z } from "zod";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import type { Finding } from "@/lib/canonical-model/finding";
@@ -56,7 +57,7 @@ export interface EvidenceLink {
   status: "verified" | "suggestion"; purpose: string;
 }
 export interface Population {
-  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "account" | "asset";
+  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "account" | "asset" | "decision_movement";
   items: { id: string; rowIds: string[]; amount: Money }[]; hash: string;
 }
 export interface SelectionSet {
@@ -70,25 +71,29 @@ export type WorkpaperState = "draft" | "ready" | "executed" | "awaiting_review" 
 export interface WorkpaperNote {
   id: string; kind: "observation" | "validated_anomaly" | "missing_evidence" | "limitation" | "judgment";
   text: string; amount: KnownAmount; authorId: string; blocking: boolean;
-  resolution?: { text: string; authorId: string; at: string };
+  /** Piece and version cited by a human decision; resolved by the server from the frozen sources, never typed by the browser. */
+  citation?: NoteCitation;
+  resolution?: { text: string; authorId: string; at: string; citation?: NoteCitation };
 }
+export interface NoteCitation { documentVersionId: string; importId: string; fileName: string; sha256: string; pieceRef?: string; page?: number }
 export interface Approval { actorId: string; snapshotHash: string; note: string; at: string; version: number }
 export interface WorkpaperRun {
   id: string; rootId: string; revision: number; version: number; schemaVersion: typeof WORKPAPER_SCHEMA_VERSION;
   scope: WorkpaperScope; period: AccountingPeriod; template: ProcedureTemplate; state: WorkpaperState;
   preparedBy: string; importIds: string[]; population?: Population; selection?: SelectionSet;
-  clientsWork?: ClientsSalesWork; cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
+  clientsWork?: ClientsSalesWork; cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; equityWork?: EquityWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
   conclusion?: string; submittedHash?: string; approval?: Approval; supersedes?: string; previousLockedId?: string;
   events: { id: string; action: string; actorId: string; at: string; version: number }[];
 }
 export function contentHash(run: WorkpaperRun): string {
-  return stableSha256({ ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
+  return stableSha256({ ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), ...(run.equityWork ? { equityWork: run.equityWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
 }
 export function validateRun(run: WorkpaperRun): WorkpaperRun {
   scopeSchema.parse(run.scope);
   if (run.clientsWork && (run.template.id !== "clients.sales" || run.clientsWork.schemaVersion !== "clients-sales-1" || !run.clientsWork.framing.runId || !run.clientsWork.framing.rootId || !Number.isSafeInteger(run.clientsWork.framing.version) || run.clientsWork.framing.version < 1 || !/^[a-f0-9]{64}$/.test(run.clientsWork.framing.contentHash))) throw new Error("CLIENT_SALES_WORK_INVALID");
   if (run.cashWork && (run.template.id !== "cash.reconciliation" || run.clientsWork || run.cashWork.schemaVersion !== "cash-reconciliation-1" || !run.cashWork.convention?.validatedBy)) throw new Error("CASH_WORK_INVALID");
   if (run.fixedAssetWork && (run.template.id !== "fixed_assets.review" || run.clientsWork || run.cashWork || run.fixedAssetWork.schemaVersion !== "fixed-assets-1" || !run.fixedAssetWork.convention?.validatedBy)) throw new Error("FIXED_ASSET_WORK_INVALID");
+  if (run.equityWork && (run.template.id !== "equity.review" || run.clientsWork || run.cashWork || run.fixedAssetWork || run.equityWork.schemaVersion !== "equity-1" || !run.equityWork.convention?.validatedBy)) throw new Error("EQUITY_WORK_INVALID");
   if (periodIssues(run.period).length || run.scope.periodId !== periodId(run.period)) throw new Error("WORKPAPER_PERIOD_INVALID");
   if (!run.id || !run.preparedBy || !run.template.id || !run.template.version || !run.template.objective.trim() || !["manual", "calculated"].includes(run.template.kind)) throw new Error("WORKPAPER_TEMPLATE_INVALID");
   if (!Number.isSafeInteger(run.version) || run.version < 1 || !Number.isSafeInteger(run.revision) || run.revision < 1) throw new Error("WORKPAPER_VERSION_INVALID");
@@ -106,6 +111,7 @@ export function validateRun(run: WorkpaperRun): WorkpaperRun {
     knownAmountSchema.parse(note.amount);
     if (!note.id || !note.text.trim() || !note.authorId || typeof note.blocking !== "boolean" || !["observation", "validated_anomaly", "missing_evidence", "limitation", "judgment"].includes(note.kind)) throw new Error("NOTE_INVALID");
     if (note.resolution && (!note.resolution.text.trim() || !note.resolution.authorId || !Number.isFinite(Date.parse(note.resolution.at)))) throw new Error("NOTE_RESOLUTION_INVALID");
+    for (const c of [note.citation, note.resolution?.citation]) if (c && (!c.documentVersionId || !c.importId || !c.fileName || !/^[a-f0-9]{64}$/.test(c.sha256) || (c.page !== undefined && (!Number.isSafeInteger(c.page) || c.page < 1)))) throw new Error("NOTE_CITATION_INVALID");
   }
   if (new Set(run.notes.map((n) => n.id)).size !== run.notes.length) throw new Error("DUPLICATE_NOTE");
   if (run.result && (run.result.scope.organizationId !== run.scope.organizationId || run.result.scope.dossierId !== run.scope.dossierId || run.result.scope.mode !== run.scope.mode || stableSha256(run.result.period) !== stableSha256(run.period))) throw new Error("RESULT_SCOPE_MISMATCH");

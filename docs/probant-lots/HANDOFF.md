@@ -1,3 +1,32 @@
+# Handoff — Mission 11 : Capitaux propres, décisions et mouvements (2026-10-08)
+
+**Base.** Branche locale `claude/capitaux-propres-mission11`, partie de `origin/main` `b773f90` (PR #61 Immobilisations fusionnée le 2026-10-08 ; Missions 07, 09 et 10 incluses). **Mission 08 (achats/fournisseurs, Codex) n’est toujours pas dans `main`** : elle reste sur `codex/mission07-security` (`eded0c7`). Production observée en lecture seule : déploiement GitHub « Production » `success` sur `b773f90` (2026-10-08 16:09 UTC) ; le rattachement de l’alias `probant.vercel.app` à ce déploiement n’a pas été vérifié par l’API Vercel (**NOT_VERIFIED**, aucun jeton). Ce lot n’est pas en production. Aucun push, aucune PR distante, aucun déploiement, aucune variable distante modifiée.
+
+**Conflits à prévoir avec la Mission 08.** Mêmes fichiers partagés que les Missions 09 et 10 : `lib/workpapers/{model,service,selection,imports,cycle-context}.ts`, `.env.example`, `drizzle/migration-manifest.json`, liens de `app/dashboard/synthese/page.tsx` et `SyntheticSummary.tsx`. Numérotation : `main` a `0007_cash_reconciliation` et `0008_fixed_assets`, ce lot ajoute `0009_equity` ; la Mission 08 porte `0007_payables_investigation` (à renuméroter ou ordonner explicitement). Les hunks Capitaux propres sont additifs (unions `realAdapter`, `Population.unit = "decision_movement"`, `CycleContext.procedure`, champ `equityWork`, `NoteCitation` facultative sur une note et sa résolution).
+
+| Point | État | Preuve |
+| --- | --- | --- |
+| `reviewEquity` complété et raccordé à un vrai dossier de décisions | Livré | `equity.ts` (contexte réel, composante incomplète inconnue, rapports inconnus si capital / réserves non établis) ; `equity-review.ts` ; 16 tests métier + 3 historiques |
+| Toutes les composantes pertinentes, au-delà du compte 10 | Livré | Carte des 13 rubriques de l’art. 821-1 PCG (règlement ANC 2024-07, consulté le 2026-10-08) ; repère documentaire ; autres fonds propres exclus avec motif |
+| Sources ouverture/clôture, GL, tableau de variation, PV, actes, règlements | Livré | 5 sources tabulaires + PV / actes en PDF versionnés par pièce (pages comptées par le serveur) |
+| Unité décision et mouvement ; dates d’effet explicites ; décision / comptabilisation / paiement séparés | Livré | Population `decision_movement` ; date d’effet obligatoire ; trois mesures distinctes à l’écran et à l’export |
+| Décisions sans écriture, écritures sans décision, montants divergents, effets hors période | Livré | Listes dédiées ; aucune décision déduite d’un montant |
+| Transferts internes équilibrés, sans effet sur le total | Livré | Refus à l’import d’un transfert déséquilibré ; invariant du résultat ; « effet sur le total 0,00 » affiché |
+| Aucun ratio ne vaut conclusion juridique ; aucune règle juridique nouvelle | Livré | `legalConclusion` toujours inconnue ; texte affiché à l’écran, dans la Synthèse et l’export |
+| Décision humaine citant la pièce et la version | Livré | Lecture de PV résolue par le serveur (pièce, version, page) ; `resolve` exige une pièce figée citée ; jugement sans citation refusé |
+| Recette 30 / 25, transfert neutre, PV absent, effet hors période, capital et réserves incomplets | Livré | `docs/mission11/RECETTE.md` (matrice) |
+| Chaîne durable (import → figé → lectures → exécution → revue distincte → verrouillage) | Code et tests runtime livrés ; **PostgreSQL non exécuté localement** | `equity-runtime.test.ts` (stockage de test) ; `equity-durable.integration.test.ts` écrit, ignoré sans base |
+| Synthèse et export, sans feu vert juridique | Livré | `/capitaux-propres/synthese`, paquet diagnostic / approuvé |
+| Interface | Livré | `/capitaux-propres` ; captures 1440 / 1024 / 390 + reduced-motion inspectées ; axe sans violation sérieuse / critique ; page du PV rendue dans Chromium |
+
+Contrat métier : `docs/mission11/CONTRAT.md` ; validation et matrice : `docs/mission11/RECETTE.md`. Activation de recette : `PROBANT_EQUITY_DURABLE=disposable` (refus si `VERCEL_ENV=production`), migration `0009_equity` à appliquer sur la base jetable.
+
+**Maturité.** Démonstrable et testé localement sur données synthétiques ; chaîne durable prête pour la recette PostgreSQL de la CI ; **activation réelle bloquée** (pas d’infrastructure de recette exécutée, pas de QA métier indépendante, méthode interne non validée par un professionnel, aucune règle juridique propre à la forme sociale). Le produit n’est pas déclaré prêt globalement.
+
+**Lot suivant.** Exécuter la CI (PostgreSQL 17 jetable) dès qu’un push est autorisé ; intégrer la Mission 08 dans `main` (renumérotation de migration, unions partagées). Mission 12 (participations) peut réutiliser la carte « décision de distribution » de ce lot (registre des décisions, lecture de PV citée) et le patron « sources qualifiées + résultat à invariants + runtime à port de stockage + harnais ».
+
+---
+
 # Handoff — Mission 10 : Immobilisations, mouvements et recalcul documenté (2026-10-08)
 
 **Base.** Branche locale `claude/immobilisations-mission10`, partie de `origin/main` `b8c7d7f` (PR #60 Trésorerie fusionnée le 2026-10-08 12:39 UTC ; Mission 07 incluse). **Mission 08 (achats/fournisseurs, Codex) n’est pas dans `main`** : elle reste sur `codex/mission07-security` (`eded0c7`). Production observée en lecture seule : déploiement GitHub « Production » `success` sur `b8c7d7f` (2026-10-08 12:41 UTC) ; le rattachement de l’alias `probant.vercel.app` à ce déploiement n’a pas été vérifié par l’API Vercel (**NOT_VERIFIED**, aucun jeton). Ce lot n’est pas en production. Aucun push, aucune PR distante, aucun déploiement, aucune variable distante modifiée.

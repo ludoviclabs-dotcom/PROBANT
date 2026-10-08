@@ -483,6 +483,7 @@ export default function SynthesePage() {
       <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
       <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
       <p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
+      <p className="my-4 text-sm"><a className="underline" href="/capitaux-propres/synthese">Ouvrir la Synthèse des procédures de mission — Capitaux propres (décisions et mouvements)</a> · <a className="underline" href="/capitaux-propres">feuille Capitaux propres</a> · Aucune conclusion juridique.</p>
       <ModuleAvailability snapshot={snapshot} />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}

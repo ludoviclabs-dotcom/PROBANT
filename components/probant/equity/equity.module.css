@@ -1,0 +1,104 @@
+/* Capitaux propres — compléments de la feuille de travail ; la base (page, cartes, tables, panneau) vient de cash.module.css.
+   Deux animations seulement : l’expansion d’une composante et la mise en évidence du mouvement sélectionné. */
+.panel{animation:none!important}
+/* Dense tables keep their horizontal scroll but never hide rows behind a fixed height. */
+.free{max-height:none!important;container-type:inline-size}
+.coverage{font-variant-numeric:tabular-nums;min-width:150px}
+.lead{margin:0 0 8px}
+.linkish{border:0!important;background:none!important;padding:0!important;color:#9cbcff;text-decoration:underline;text-underline-offset:3px;font-weight:600}
+.viewPick{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.viewPick button{font-size:12px;padding:5px 11px;border-radius:999px;background:transparent}
+.viewPick button[aria-checked=true]{background:var(--accent-bg,#1a2346);border-color:var(--accent,#6c8cff);color:#dce5ff}
+.variation{min-width:880px}
+.variation :is(th,td){padding:8px 9px}
+.variation td,.variation thead th:not(:first-child){font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.variation th:first-child{position:sticky;left:0;z-index:1;background:var(--pb-surface,#111722);min-width:200px;max-width:260px;text-align:left}
+.variation thead th:first-child{z-index:2;background:var(--pb-surface-2,#161d2b)}
+.variation tbody tr[data-row=component] th:first-child button{border:0;background:none;padding:0;display:inline-flex;gap:8px;align-items:baseline;text-align:left;font-weight:600;color:var(--pb-text,#e6edf6)}
+.chevron{display:inline-block;width:10px;color:#98a6bd;transition:transform var(--motion,160ms) ease-out}
+.variation button[aria-expanded=true] .chevron{transform:rotate(90deg)}
+.variation tr[data-status=excluded]{color:var(--muted,#8a99af)}
+.variation tr[data-status=incomplete] td[data-col=difference]{color:var(--open,#e8c547)}
+.variation td[data-tone=danger]{color:var(--danger,#ff7b72);font-weight:650}
+.variation td[data-tone=ok]{color:var(--ok,#3ccf7a)}
+.variation tr[data-row=total] :is(th,td){border-top:2px solid var(--pb-border-strong,#324563);font-weight:650}
+.variation tr[data-row=expansion] > td{background:var(--pb-surface-inset,#0e141f);text-align:left;white-space:normal;padding:0}
+/* The expansion stays within the visible width of the scrolled table, so a movement amount is never off-screen. */
+.expansion{position:sticky;left:0;width:100cqw;max-width:100%;display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr);gap:16px;padding:12px 14px;animation:expand var(--motion,160ms) ease-out;transform-origin:top}
+@keyframes expand{from{opacity:0;transform:scaleY(.96)}to{opacity:1;transform:none}}
+.expansion h4{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:#98a6bd;margin:0 0 6px}
+.expansion dl{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:4px 12px;margin:0;font-size:12px}
+.expansion dl dd{margin:0;font-variant-numeric:tabular-nums;text-align:right}
+.movements{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.movements button{width:100%;display:grid;grid-template-columns:62px 84px minmax(0,1fr) 108px;gap:10px;align-items:baseline;text-align:left;font-size:12px;padding:6px 8px;background:transparent;border-color:transparent}
+.movements button:hover{background:var(--pb-surface-2,#161d2b)}
+.movements button[aria-current=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346);animation:highlight 220ms ease-out}
+@keyframes highlight{from{background:#3a4f86}to{background:var(--accent-bg,#1a2346)}}
+.movements .amount{font-variant-numeric:tabular-nums;text-align:right}
+/* In the narrow side panel a movement reads on two lines: identity and amount, then date and nature. */
+.panel .movements button{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id amount" "date date" "what what"}
+.panel .movements button > :nth-child(1){grid-area:id}.panel .movements button > :nth-child(2){grid-area:date}.panel .movements button > :nth-child(3){grid-area:what}.panel .movements button > .amount{grid-area:amount}
+.flag{display:inline-block;font-size:10.5px;border:1px solid currentColor;border-radius:999px;padding:0 6px;margin-left:6px;white-space:nowrap}
+.flag[data-tone=danger]{color:var(--danger,#ff7b72)}.flag[data-tone=warn]{color:var(--warn,#f0a63a)}.flag[data-tone=muted]{color:var(--muted,#8a99af);border-style:dashed}.flag[data-tone=ok]{color:var(--ok,#3ccf7a)}
+.status{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:1px 9px;font-size:12px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+.status[data-status=matched]{color:var(--ok,#3ccf7a);background:var(--ok-bg,#0f2417)}
+.status[data-status=amount_divergent],.status[data-status=effect_outside_period]{color:var(--warn,#f0a63a);background:var(--warn-bg,#2a1d0c)}
+.status[data-status=without_entry]{color:var(--danger,#ff7b72);background:var(--danger-bg,#2a1416)}
+.status[data-status=reading_required]{color:var(--open,#e8c547);background:var(--open-bg,#272109);border-style:dashed}
+.status:is([data-status=not_expected],[data-status=prior_period],[data-status=excluded]){color:var(--muted,#8a99af);border-style:dashed}
+/* Frise des décisions : exercice puis période postérieure jusqu’à la date de revue. */
+.timeline{position:relative;margin:8px 0 6px;padding:0}
+.axis{position:relative;height:30px;border-radius:4px;background:var(--pb-track,#1a2233)}
+.band{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding:0 8px;font-size:11px;color:#c9d4e4;white-space:nowrap;overflow:hidden;border-radius:4px}
+.band[data-band=period]{background:#1c2a47;border:1px solid #2f4677}
+.band[data-band=after]{background:repeating-linear-gradient(135deg,#1d1f2b 0 6px,#232636 6px 12px);border:1px dashed #4a4f6a}
+.markers{position:relative;list-style:none;margin:0;padding:0;height:236px}
+.markers > li{position:absolute;top:0;transform:translateX(-1px);min-width:0}
+.markers > li[data-lane="1"]{top:122px}
+.markers > li::before{content:"";position:absolute;left:0;top:-30px;width:2px;height:30px;background:#5774b8}
+.markers > li[data-lane="1"]::before{top:-152px;height:152px;opacity:.6}
+.markers button{display:grid;gap:1px;text-align:left;font-size:12px;padding:6px 9px;max-width:210px;background:var(--pb-surface-2,#161d2b)}
+.markers button[aria-pressed=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346);box-shadow:inset 3px 0 0 var(--accent,#6c8cff)}
+.markers button small{color:var(--muted,#8a99af);font-size:11px}
+.markers > li[data-edge=end]{transform:translateX(calc(-100% + 1px))}
+.markers > li[data-edge=end]::before{left:auto;right:0}
+.effect{display:block;font-size:11px;color:var(--warn,#f0a63a)}
+.lists{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.lists section{background:var(--pb-surface-2,#161d2b);border:1px solid var(--pb-border,#243044);border-radius:6px;padding:12px;min-width:0}
+.lists h3{margin:0 0 8px;display:flex;justify-content:space-between;gap:8px}
+.lists ul{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.lists li button{width:100%;text-align:left;display:grid;gap:2px;font-size:12px;padding:7px 9px;background:transparent}
+.lists li button[aria-current=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346)}
+.decisions{min-width:1040px}
+.decisions td{font-variant-numeric:tabular-nums}
+.decisions th:first-child{position:sticky;left:0;z-index:1;background:var(--pb-surface,#111722);min-width:170px}
+.decisions thead th:first-child{z-index:2;background:var(--pb-surface-2,#161d2b)}
+.decisions th:first-child button{border:0;background:none;padding:0;text-align:left;font-weight:600;color:#9cbcff;text-decoration:underline;text-underline-offset:3px}
+.decisions tr[aria-current=true] :is(th,td){background:#18233a}
+.measures{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:8px 0}
+.measures div{border:1px solid var(--pb-border,#243044);border-radius:6px;padding:8px;background:var(--pb-surface-2,#161d2b);min-width:0}
+.measures small{display:block;color:var(--muted,#8a99af);font-size:11px}
+.measures strong{font-variant-numeric:tabular-nums;font-size:14px}
+.pv{border:1px solid var(--pb-border-strong,#324563);border-radius:6px;padding:10px;margin:10px 0;background:var(--pb-surface-inset,#0e141f)}
+.pvPage{display:block;width:100%;height:auto;background:white;border-radius:4px}
+.pvFrame{margin:8px 0;max-height:70vh;overflow:auto;border-radius:4px}
+.pvFrame[data-zoom=true] .pvPage{width:760px;max-width:none}
+.extract{border-left:3px solid var(--info,#7aa7ff);padding:6px 10px;margin:8px 0;font-size:13px;background:var(--info-bg,#121f3a)}
+.cartography{min-width:640px}
+.ratios{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.ratios div{border:1px dashed var(--pb-border-strong,#324563);border-radius:6px;padding:10px;min-width:0}
+.ratios strong{font-variant-numeric:tabular-nums}
+@media (max-width:1180px){.lists{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:720px){
+  .expansion{grid-template-columns:minmax(0,1fr)}
+  .movements button{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"id amount" "what what"}
+  .movements button > :nth-child(1){grid-area:id}.movements button > .amount{grid-area:amount}.movements button > :nth-child(2),.movements button > :nth-child(3){grid-column:1/-1}
+  .axis{display:none}
+  .markers{height:auto;display:grid;gap:6px}
+  .markers > li,.markers > li[data-lane="1"],.markers > li[data-edge=end]{position:static;transform:none}
+  .markers > li::before{display:none}
+  .markers button{max-width:none;width:100%}
+  .measures,.ratios{grid-template-columns:minmax(0,1fr)}
+}
+.synthesis :is(code,span,li,strong){overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.expansion,.movements button,.chevron{animation:none!important;transition:none!important}}

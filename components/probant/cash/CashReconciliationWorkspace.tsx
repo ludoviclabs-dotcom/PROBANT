@@ -161,7 +161,7 @@ export function CashReconciliationWorkspace({ initialDossierId = "", initialPeri
   </fieldset>;
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing">Procédures de mission · Clients</a><span aria-current="page">Procédures de mission · Trésorerie</span><a href="/immobilisations">Procédures de mission · Immobilisations</a></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing">Procédures de mission · Clients</a><span aria-current="page">Procédures de mission · Trésorerie</span><a href="/immobilisations">Procédures de mission · Immobilisations</a><a href="/capitaux-propres">Procédures de mission · Capitaux propres</a></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Trésorerie — pont bancaire et apurement</h1>
       <p className={styles.muted}>Relevé + suspens de l’ERB → GL, compte par compte ; apurement des suspens sur les relevés postérieurs. Aucune opinion automatique.</p></div>
       <a href={"/tresorerie/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse Trésorerie</a></header>

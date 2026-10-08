@@ -42,7 +42,7 @@ export function FixedAssetMissionSynthesis({ initialDossierId = "", initialPerio
   }
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing/synthesis">Procédures de mission · Clients</a><a href="/tresorerie/synthese">Procédures de mission · Trésorerie</a><span aria-current="page">Procédures de mission · Immobilisations</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing/synthesis">Procédures de mission · Clients</a><a href="/tresorerie/synthese">Procédures de mission · Trésorerie</a><span aria-current="page">Procédures de mission · Immobilisations</span><a href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres</a></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse Immobilisations</h1><p className={styles.muted}>Programme fermé : ponts des mouvements, cadrage registre → GL, pièces et recalcul documenté. Les compteurs viennent du programme, jamais du nombre d’anomalies.</p></div>
       <a href={m ? fixedAssetSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all") : "/immobilisations"}>Ouvrir la feuille Immobilisations</a></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>

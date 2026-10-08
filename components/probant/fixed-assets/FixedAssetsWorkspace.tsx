@@ -159,7 +159,7 @@ export function FixedAssetsWorkspace({ initialDossierId = "", initialPeriodValue
   const methodsDraft = draft ?? { methods: [] };
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing">Procédures de mission · Clients</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><span aria-current="page">Procédures de mission · Immobilisations</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing">Procédures de mission · Clients</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><span aria-current="page">Procédures de mission · Immobilisations</span><a href="/capitaux-propres">Procédures de mission · Capitaux propres</a></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Immobilisations — mouvements et recalcul documenté</h1>
       <p className={styles.muted}>Ponts Brut, Amortissements et Dépréciations séparés, par famille et par actif ; cadrage registre → GL ; recalcul sur méthode et paramètres documentés. Aucune conclusion de valeur ni d’existence physique.</p></div>
       <a href={"/immobilisations/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse Immobilisations</a></header>
