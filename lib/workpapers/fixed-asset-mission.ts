@@ -3,7 +3,7 @@ import type { KnownAmount, Money } from "@/lib/canonical-model/money";
 import { assertScope, contentHash, frozen, validateRun, type EvidenceLink, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
 import { FA_UNCERTAINTY_CODES, FIXED_ASSET_LIMITATIONS, fixedAssetResultSchema, type FixedAssetResult } from "./fixed-asset-review";
-import { FA_SOURCE_LABELS, FA_TYPES, type FaTable } from "./fixed-asset-sources";
+import { FA_SOURCE_LABELS, FA_TYPES, fixedAssetSourcesCurrent, type FaTable } from "./fixed-asset-sources";
 import type { FixedAssetSourceHead } from "./fixed-asset-store";
 
 /** Closed programme: its denominators exist before any result or exception. */
@@ -64,7 +64,7 @@ export function buildFixedAssetMission(scope: WorkpaperScope, versions: Workpape
   const assets = fixedAssetResultOf(run);
   const staleReasons: string[] = [];
   if (run && current && (run.id !== current.id || run.version !== current.version)) staleReasons.push("Une version Immobilisations plus récente est disponible.");
-  if (run?.importIds.some(id => !heads.some(h => h.import_id === id))) staleReasons.push("Une source Immobilisations approuvée a été remplacée.");
+  if (run && !fixedAssetSourcesCurrent(run.importIds, heads)) staleReasons.push("Une source Immobilisations approuvée a été remplacée ou ajoutée depuis le gel.");
   if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Immobilisations diffère du programme.");
   const stale = staleReasons.length > 0;
   const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;

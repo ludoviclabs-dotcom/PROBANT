@@ -111,6 +111,21 @@ describe("FA-1004 chaîne serveur : import → population figée → exécution 
     expect((await h.read()).body.runs[0]).toMatchObject({ id: run.id, version: 2 });
   });
 });
+describe("FA-1007 source facultative ajoutée après le gel", () => {
+  it("un run figé sans pièces devient périmé quand des pièces sont approuvées ensuite : commande refusée, export approuvé impossible, révision requise", async () => {
+    const h = createFixedAssetHarness();
+    const ids = await h.importAll({}, ["fa_register", "fa_ledger", "fa_parameters"]);
+    let run = await h.ok({ command: "create", period: faPeriod });
+    run = await h.ok({ command: "freeze", id: run.id, expectedVersion: run.version, importIds: Object.values(ids), draft: faDraft() });
+    run = await h.ok({ command: "execute", id: run.id, expectedVersion: run.version });
+    await h.importSource("fa_support");
+    expect(await h.command({ command: "conclude", id: run.id, expectedVersion: run.version, text: "x" })).toMatchObject({ status: 409, body: { error: "FA_SOURCE_REPLACED_REVISION_REQUIRED" } });
+    expect((await h.read()).body.sourcesCurrent[run.id]).toBe(false);
+    const mission = await h.mission();
+    expect(mission.procedure.stale).toBe(true); expect(mission.procedure.staleReasons.join(" ")).toMatch(/ajoutée depuis le gel/);
+    expect((await h.ok({ command: "revise", id: run.id, expectedVersion: run.version })).revision).toBe(2);
+  });
+});
 describe("FA-1005 activation et codes d’erreur", () => {
   it("reste fermé hors recette jetable et en production", () => {
     expect(() => requireDisposableFixedAssets({})).toThrow(); expect(() => requireDisposableFixedAssets({ PROBANT_FIXED_ASSETS_DURABLE: "disposable", VERCEL_ENV: "production" })).toThrow();

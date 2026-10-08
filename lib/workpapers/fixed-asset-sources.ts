@@ -150,6 +150,16 @@ export interface FixedAssetFacts {
 export function fixedAssetProof(batch: ImportBatch, row: SourceRow, runId: string, purpose: string): EvidenceLink {
   return { id: "proof-" + stableSha256({ runId, rowId: row.id }), scope: batch.scope, procedureId: runId, documentVersionId: batch.document.id, rowId: row.id, locator: row.locator, precision: "row", status: "verified", purpose };
 }
+/**
+ * A frozen run is current only if its sources are exactly the current approved fixed-asset heads:
+ * a replaced, removed or newly approved optional source (parameters, pieces) requires a revision.
+ */
+export function fixedAssetSourcesCurrent(importIds: string[], heads: { document_type: string; import_id: string }[]) {
+  if (!importIds.length) return true;
+  const current = heads.filter(h => (FA_TYPES as readonly string[]).includes(h.document_type)).map(h => h.import_id).sort();
+  const frozenIds = [...importIds].sort();
+  return current.length === frozenIds.length && current.every((id, i) => id === frozenIds[i]);
+}
 /** Grouping used by the population: one item per asset / component of the single register. */
 export function registerUnits(batch: ImportBatch) {
   const f = fixedAssetMappingSchema.parse(batch.mapping).fixedAssets, groups = new Map<string, { rowIds: string[]; grossClosing: Money | null }>();

@@ -10,7 +10,7 @@ import { FIXED_ASSETS_TEMPLATE, FixedAssetsRegistry } from "./fixed-asset-adapte
 import type { FixedAssetCommand } from "./fixed-asset-commands";
 import { buildFixedAssetMission, fixedAssetResultOf, type FixedAssetMissionSelection } from "./fixed-asset-mission";
 import { compareFixedAssetRecalculations, FA_UNCERTAINTY_CODES, fixedAssetWorkSchema, recalculationBasisHash, stampFixedAssetWork, type FixedAssetResult, type RecalculationComparisonRow } from "./fixed-asset-review";
-import { assertFixedAssetBatch, buildFixedAssetFacts, FA_TYPES, fixedAssetFactsView, FixedAssetSourceError, type FixedAssetFactsView, type FixedAssetSourceType } from "./fixed-asset-sources";
+import { assertFixedAssetBatch, buildFixedAssetFacts, FA_TYPES, fixedAssetSourcesCurrent, fixedAssetFactsView, FixedAssetSourceError, type FixedAssetFactsView, type FixedAssetSourceType } from "./fixed-asset-sources";
 import { FixedAssetImports, FixedAssetWorkpaperRepository, type FixedAssetDatabase, type FixedAssetTx } from "./fixed-asset-store";
 import { previewImport, type ImportMapping } from "./imports";
 import { periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
@@ -61,7 +61,7 @@ export class FixedAssetRuntime {
   }
   private async assertCurrent(tx: FixedAssetTx, scope: WorkpaperScope, run: WorkpaperRun) {
     const heads = await tx.heads(scope);
-    if (run.importIds.some(id => !heads.some(h => h.import_id === id))) throw new Error("FA_SOURCE_REPLACED_REVISION_REQUIRED");
+    if (!fixedAssetSourcesCurrent(run.importIds, heads)) throw new Error("FA_SOURCE_REPLACED_REVISION_REQUIRED");
   }
   /** Latest earlier executed version of the same lineage whose recalculation basis differs: the change is shown, never applied silently. */
   private comparisons(versions: WorkpaperRun[], run: WorkpaperRun) {
@@ -90,7 +90,7 @@ export class FixedAssetRuntime {
       const facts: Record<string, FixedAssetFactsView | null> = {}, factsIssues: Record<string, { code: string; locator?: FixedAssetSourceError["locator"] }> = {}, sourcesCurrent: Record<string, boolean> = {};
       const comparisons: Record<string, FixedAssetComparison | null> = {}, pendingChanges: Record<string, FixedAssetPendingChange | null> = {};
       for (const r of runs) {
-        sourcesCurrent[r.id] = r.importIds.every(i => heads.some(h => h.import_id === i));
+        sourcesCurrent[r.id] = fixedAssetSourcesCurrent(r.importIds, heads);
         const batchIds = r.importIds.length ? r.importIds : heads.map(h => h.import_id);
         const batches = imports.batches.filter(b => batchIds.includes(b.id) && b.approval);
         try { facts[r.id] = batches.some(b => b.document.documentType === "fa_register") && batches.some(b => b.document.documentType === "fa_ledger") ? fixedAssetFactsView(buildFixedAssetFacts(scope, r.period, batches, r.id)) : null; }
