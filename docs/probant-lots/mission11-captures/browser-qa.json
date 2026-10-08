@@ -1,0 +1,76 @@
+[
+  {
+    "case": "viewport",
+    "width": 1440,
+    "documentWidth": 1430,
+    "reduced": false,
+    "animation": "Equity_highlight__DH5p9",
+    "pdf": "Page 1 de 3 · version téléchargée"
+  },
+  {
+    "case": "viewport",
+    "width": 1024,
+    "documentWidth": 1014,
+    "reduced": false,
+    "animation": "Equity_highlight__DH5p9",
+    "pdf": "Page 1 de 3 · version téléchargée"
+  },
+  {
+    "case": "viewport",
+    "width": 390,
+    "documentWidth": 390,
+    "reduced": true,
+    "animation": "none",
+    "pdf": "Page 1 de 3 · version téléchargée"
+  },
+  {
+    "case": "escape-focus-position",
+    "before": 936,
+    "focus": "DIST",
+    "scroll": 936
+  },
+  {
+    "case": "no-match",
+    "passed": true
+  },
+  {
+    "case": "incomplete",
+    "passed": true
+  },
+  {
+    "case": "long",
+    "passed": true
+  },
+  {
+    "case": "server-unavailable",
+    "message": "Session requise ou expirée : reconnectez-vous.Recharger"
+  },
+  {
+    "case": "synthesis",
+    "procedureControls": true
+  },
+  {
+    "case": "movement-identity-link",
+    "passed": true
+  },
+  {
+    "case": "component-identity-link",
+    "passed": true
+  },
+  {
+    "case": "decision-version-link",
+    "passed": true
+  },
+  {
+    "case": "print-html",
+    "pages": 12
+  },
+  {
+    "case": "javascript-console",
+    "errors": []
+  },
+  {
+    "case": "primary-navigation",
+    "equityLink": true
+  }
+]

@@ -13,10 +13,16 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   const accountUnit = unit === "account" && imports.filter(b => b.document.documentType === "cash_ledger").length === 1 && imports.every(b => b.mapping.version === "cash-reconciliation-1" && !!b.mapping.cash) && imports.find(b => b.document.documentType === "cash_ledger")?.mapping.cash?.basis === "ledger_closing";
   // One asset / component = the lines of the single register of the validated fixed-asset mapping.
   const assetUnit = unit === "asset" && imports.filter(b => b.document.documentType === "fa_register").length === 1 && imports.every(b => b.mapping.version === "fixed-assets-1" && !!b.mapping.fixedAssets) && imports.find(b => b.document.documentType === "fa_register")?.mapping.fixedAssets?.basis === "asset_register";
-  if (unit !== "row" && !invoiceUnit && !accountUnit && !assetUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  const investmentUnit=unit==='security_distribution';
+  if(investmentUnit && (imports.some(b=>b.mapping.version!=='investment-review-1') || imports.filter(b=>b.document.documentType==='investment_register').length!==1)) throw Error('INVESTMENT_POPULATION_MAPPING_INVALID');
+  const equityUnit = unit === "equity_decision_movement";
+  if(equityUnit && (imports.some(b=>b.mapping.version !== "equity-dossier-1") || !imports.some(b=>b.document.documentType === "equity_ledger"))) throw new Error("EQUITY_POPULATION_MAPPING_INVALID");
+  const payablesUnit = ["purchase_entry", "subsequent_payment"].includes(unit);
+  if (payablesUnit && (imports.some(b => b.mapping.version !== "payables-investigation-1" || !b.mapping.payables) || imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")).length !== 1)) throw new Error("PAYABLE_POPULATION_MAPPING_INVALID");
+  if (!investmentUnit && !payablesUnit && !equityUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
-  const populationImports = unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
+  const populationImports = investmentUnit ? imports.filter(b=>["investment_register","investment_distributions"].includes(b.document.documentType)) : equityUnit ? imports.filter(b=>["equity_ledger","equity_decisions"].includes(b.document.documentType)) : payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
   const items = unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
     // The population measure is the gross closing value; an asset without one is refused rather than counted as zero.
     if (!u.grossClosing) throw new Error("FA_GROSS_CLOSING_REQUIRED");

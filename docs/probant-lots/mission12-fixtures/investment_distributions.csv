@@ -1,0 +1,6 @@
+Key;Amount;Date;Details
+"DIST-ORD";"40.00";"2024-12-31";"{""securityId"":""ORD"",""entitlementDate"":""2024-12-31"",""basis"":""DIST:ORD""}"
+"DIST-PREF";"40.00";"2024-12-31";"{""securityId"":""PREF"",""entitlementDate"":""2024-12-31"",""basis"":""DIST:PREF""}"
+"DIST-EV";"40.00";"2024-12-31";"{""securityId"":""EV"",""entitlementDate"":""2024-12-31"",""basis"":""DIST:EV""}"
+"DIST-DATE";"40.00";"2024-12-31";"{""securityId"":""DATE"",""entitlementDate"":""2024-12-31"",""basis"":""DIST:DATE""}"
+"DIST-ABSENT";"40.00";"2024-12-31";"{""securityId"":""ABSENT"",""entitlementDate"":""2024-12-31"",""basis"":""DIST:ABSENT""}"

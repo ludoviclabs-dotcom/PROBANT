@@ -1,3 +1,129 @@
+# Publication et fusion autorisées (2026-10-09)
+
+Le propriétaire demande explicitement une PR et sa fusion pour Mission 12. La base 464bdc7 est la tête de PR #62 et comprend les dépendances Missions 08 et 11, encore absentes de main. La PR Mission 12 vers main inclut cette base, avec validation CI complète et PostgreSQL avant fusion, puis vérification du déploiement Vercel automatique. Aucun gate durable de production ni configuration distante ne sera activé. Les comptes rendus locaux ci-dessous décrivent les états historiques datés.
+
+---
+
+# Handoff — Mission 12 : droits, distributions et valeur (2026-10-08)
+
+**Base / HEAD local :** `464bdc7b886a18d4f0da5c2255b8400a02a204df`, intégration Mission 11/main conservant les lots précédents, Trésorerie et Immobilisations. **Branche :** `codex/mission12-investments`, worktree isolé `mission12`. Changements locaux non commités ; intention d’ajout utilisée uniquement pour rendre le diff complet. Aucun travail d’un autre chantier écrasé, aucun fichier sous sources/ modifié.
+
+**Main / Vercel observés en lecture seule au début :** `b773f903e5f313b679c2b414d66f5eada1d2789f` ; déploiement `dpl_F6eA89uMSCdvrKMHvgS165tJ2TAX`, READY. Ce constat ne qualifie pas la production après livraison. Aucun push, PR distante, fusion, déploiement, changement de configuration distante ou activation réelle.
+
+## Résultat métier
+
+Le moteur existant `reviewInvestment` est complété, sans nouveau DCF. Droits applicables au titre, à la distribution et à la date ; prorata limité aux droits homogènes ; allocation préférentielle fournie, motivée et sourcée. Produit et encaissement séparés, toutes les dates GL/règlements originales conservées.
+
+Distribution 40 × droits homogènes 25 % = 10 ; produit enregistré 9 → écart arithmétique −1. Allocation préférentielle documentée 12 → droit 12. Coût 100 / dépréciation 10 → base nette déclarée 90, valeur fournie 85 → −5. Le coût explicite aurait une autre comparaison, jamais substituée au net. Coût ou dépréciation requis absent : inconnu, pas zéro.
+
+Valeur d’entreprise, fonds propres et détention distingués, nature d’origine conservée. Un modèle d’entreprise présenté comme détention, une autre date/base/devise/périmètre ou un modèle absent restent non comparables/source requise et non concluants. Hypothèses et scénarios externes fournis, différences de versions lisibles ; aucune conversion ni sélection favorable automatique. Classification et proposition comptable exigent une décision motivée, versionnée et citée ; aucun seuil universel de détention et aucune écriture automatique.
+
+## Routes et interactions
+
+- `/participations` et `/participations?demo=1` : Population / Tests / Exceptions / Pièces / Revue ; tri/filtres/recherche, détail droits/produit/valeur, versions, preuves document/pack/date/ligne/feuille/hash, scénarios, décision humaine. Navigation clavier, Escape et retour du focus. Défilement horizontal conservé ; libellé long complet accessible au clavier/tactile.
+- Liaison depuis `/dashboard/synthese` et le résumé synthétique existant. Variantes `case=long` et `case=empty` ; fixtures synthétiques distinctes d’une mission réelle.
+- `/api/workpapers/participations`, `/imports`, `/export`, `/demo` : autorisations organisation/dossier, sessions serveur/CSRF, auteur serveur, prévisualisation puis approbation d’import, freeze/configuration/exécution, résolution citée/conclusion/soumission/revue distincte/verrouillage/révision.
+- Associations des sources explicites, modèle examiné et version comparée choisis humainement. Modifications pertinentes invalident résultat/notes/conclusion/approbation ; ajout/remplacement de source pertinente rend le run périmé. Historique préservé, idempotence/concurrence réutilisées.
+- Succès affiché après accusé serveur ; conflits avec comparaison brouillon/serveur et réessai de même clé. Diagnostic HTML imprimable/JSON protégé ; index des sources uniquement, originaux absents, hash sans signature. Aucun paquet approuvé/certifié revendiqué.
+
+## Maturité et vérifications
+
+| Niveau | Preuve / limite |
+| --- | --- |
+| Contrat / calcul / guards | Suite complète : 1 267 tests réussis, 32 ignorés ; 117 suites réussies, 3 ignorées. Relance sans build concurrent après un timeout Tax Cockpit existant. |
+| Recette ciblée finale | 33 tests réussis : 25 Mission 12, 5 gates, 3 interface. Ce nombre recoupe la suite complète ; les 3 tests UI ont été ajoutés après cette suite. |
+| Types / lint / build | Typecheck et build finaux réussis ; lint zéro erreur, sept avertissements préexistants ; fichiers ajoutés/modifiés de l’ajustement final sans avertissement. 163 pages générées, route Participations 13.6 kB / 140 kB. |
+| Imports | Sept CSV synthétiques réellement lus par previewImport, hachés et mappés ; exemples dans mission12-fixtures/. XLSX réutilise le parseur commun, sans recette Mission 12 XLSX spécifique. |
+| Restitution | Chrome 1440/1024/390 px, reduced-motion réel, long/vide/erreur/aucun résultat/clavier/focus. Captures et rapport ui-qa.md ; défaut du libellé long corrigé et repris sur build final. |
+| Migrations | 14 migrations montantes, 17 tables, invariants valides. Additive 0011_investment_review ; down refuse les données Investment existantes. Aucun SQL appliqué/rollback exécuté. |
+| Durable / revue réelle | Adaptateur fermé préparé, quatre scénarios PostgreSQL ajoutés au harnais partagé mais ignorés sans base jetable. Aucun échange OIDC réel ni workflow authentifié intégré vérifié dans le navigateur. |
+| Usage réel autorisé | Non activé ; gate PROBANT_INVESTMENT_DURABLE désactivé et refusé en production. Aucune conclusion sur la préparation globale du produit. |
+
+Le serveur local de recette est laissé ouvert sur http://127.0.0.1:3212/participations?demo=1, avec gate de démonstration local exact et gate durable désactivé. Il ne constitue pas un déploiement.
+
+## Livraison à examiner
+
+Contrat complet : `MISSION12_CONTRACT.md`. Titre/description de PR prêts : `MISSION12_PR.md`. Diff textuel du lot au-dessus de la base : `../../../MISSION12-review.diff` depuis ce fichier, plus directement à la racine de l’espace de travail (`../MISSION12-review.diff` depuis le worktree). Les captures JPEG restent séparées du patch, dans `mission12-captures/` ; elles sont disponibles dans le worktree. Exemples : sept CSV dans `mission12-fixtures/`, générateur `scripts/mission12-fixtures.ts`.
+
+Le lot s’appuie sur ClientsRuntime / WorkpaperService / modèle canonique et registre de calculs. Les gardes des autres moteurs restent fermés ; seuls sept types Investment et le contexte `investments.review` sont ajoutés. CSS Equity partagé conservé ; petit module Investment pour les largeurs et libellés. Tests et diff vérifiés, aucune modification de document synchronisé.
+
+## Limites et dépendances suivantes
+
+PostgreSQL jetable absent ; PROBANT_CLIENTS_TEST_DATABASE_URL non configuré, Docker/psql indisponibles. Les 32 tests ignorés comprennent les quatre cas Investment : imports→freeze→exécution ; scope/permissions/citations/idempotence/concurrence ; revue distincte/verrouillage/export/CSRF ; reconnexion/remplacement/révision/historique. Une session serveur synthétique du harnais n’est pas un échange OIDC réel.
+
+Avant intégration/activation : réconcilier le main courant et les lots dépendants ; fournir une base locale dédiée finissant par `_test` ou `_ci`, appliquer les migrations sur cette base explicitement autorisée puis exécuter `clients-durable.integration.test.ts` **complet**, sans filtrer uniquement Investment (setup et séquence partagés). Vérifier connexion OIDC, sauvegardes/conflits/revues et droits dans le navigateur. Activation et opérations distantes requièrent toujours une autorisation distincte.
+
+Pièces PDF et lecture humaine professionnelle hors de ce lot de packs CSV/XLSX préparés manuellement. EUR uniquement, aucune conversion devises ni pont EV→fonds propres→détention. Pas de nouvelle règle comptable/fiscale/professionnelle : méthode interne sur données fournies, à qualifier indépendamment avant usage réel. Absence d’originaux dans le diagnostic, archivage certifié et paquet approuvé non couverts.
+
+---
+
+# Intégration pour PR Mission 11 (2026-10-08)
+
+À la demande explicite du propriétaire, la branche `codex/mission11-equity-main` intègre `origin/main` (`b773f903e5f313b679c2b414d66f5eada1d2789f`) et conserve Trésorerie/Immobilisations. La dépendance Mission 08, fusionnée par PR #59 dans `codex/mission07-security` mais absente de main, est incluse. Les contrats des adaptateurs restent fermés. Migrations nouvelles réordonnées après celles de main : `0009_payables_investigation` et `0010_equity_dossier` ; manifeste régénéré, 13 migrations. Les vérifications PostgreSQL/CI et Preview de cette intégration seront les preuves de fusion ; les limites locales historiques ci-dessous restent datées. Aucun gate durable de production n’est activé.
+
+# Handoff — Mission 11 : décisions et mouvements de capitaux propres (2026-10-08)
+
+**Base :** `0c0b43186d7f9d3d2deadf24657e3508899b7ae6`, branche locale `codex/mission08-payables`. **Livraison de code et preuves :** `ddf685c537dc5a90995375aca73b78eee46f47c7`, branche `codex/mission11-equity`, worktree `mission11`. Ce handoff est ajouté ensuite dans un commit documentaire. Diff limité à Mission 11 au-dessus de cette base ; aucun push, PR distante, merge, déploiement, activation ou modification de configuration distante.
+
+Main observé au début : `fdf1c12e8c1240e891c86913908f3aefbe5f9720`. Vercel observé en lecture seule au début : déploiement `dpl_HnY7R2uYjy8px3RqYhSjwZrWpWXv`, READY, même SHA. Ce constat ne décrit pas une vérification de production après livraison. La chaîne locale des missions 05–08 est une dépendance de ce lot et n'a pas été remplacée par main. Réconcilier cette chaîne et le main courant avant une intégration distante.
+
+## Résultat utilisable
+
+Le moteur existant `reviewEquity` est réutilisé par un adaptateur fermé `equity.review`. La feuille traite une unité décision/mouvement : cartographie des composantes et comptes, soldes ouverture/clôture, GL, tableau de variation, registre de décisions, PV/actes et règlements. Capital, primes, réserves, report, résultat, écarts, subventions, provisions réglementées et autres composantes sont déclarés applicables ou exclus avec pièce/justification. Un regroupement unique du capital fournit la base mathématique du ratio existant ; aucun ratio ne vaut conclusion juridique.
+
+La distribution synthétique votée 30, comptabilisée 25 expose un écart de −5 et un règlement ultérieur distinct. Le transfert interne de 20 conserve ses deux jambes et un effet total nul. PV absent, effet hors période, décision sans écriture dans la période, écriture sans décision et cartographie incomplète restent visibles. Une comptabilisation ultérieure documentée apparaît dans la frise/export sans changer le solde de clôture ni la comparaison de période. Une source partielle ou inconnue ne devient pas zéro.
+
+| Niveau | Maturité et preuve |
+| --- | --- |
+| Contrat / calcul | 25 tests ciblés réussis : métier, preuves, dates, mapping, exclusions, invalidation, gardes d'accès, erreurs et export |
+| Imports | CSV/PDF de recette réellement lus et hachés ; XLSX réutilise le parseur commun, sans recette Equity XLSX spécifique ; PDF indexé, décision lue/citée humainement |
+| Restitution / Synthèse | Recette Chrome du build final à 1440/1024/390 px, reduced-motion ; 1 procédure / 4 contrôles, dénominateurs et exclusions |
+| Diagnostic / impression | Écran et export concordants sur les données synthétiques ; HTML imprimé sur 12 pages ; sources/version/localisateurs et originaux absents indiqués |
+| Commandes / persistance | Adaptateurs PostgreSQL, transactions, version, idempotence, auteur serveur et permissions réutilisés ; quatre scénarios natifs préparés, non exécutés |
+| Revue réelle / usage autorisé | Non validés sur infrastructure jetable ; gate fermé ; aucune activation réelle ou production |
+
+## Parcours visibles et fichiers à reprendre
+
+- `/equity` : Population, Tests, Exceptions, Pièces et Revue ; tableau de variation horizontal, tri/filtres de décisions, frise vote/effet/écriture/paiement et panneau du PV à la page pertinente. Seuls expansion et mouvement sélectionné sont animés (180 ms ; désactivés en reduced-motion).
+- `/equity/synthesis` : file de travail, quatre contrôles prévus, exclusions, sources et versions périmées ; liens d'identité typés `decision:`, `movement:`, `component:`, `row:`. L'accès est relié depuis `/dashboard/synthese`.
+- `/equity?demo=1` et variantes `case=long` / `case=incomplete` : démonstration locale explicitement synthétique, en lecture seule. Elle ne sauvegarde ni ne revoit une mission réelle et reste séparée de DEMO SA et de l'atelier existant.
+- `/api/workpapers/equity`, `/imports`, `/export` : accès/mutations et téléchargements autorisés côté serveur, auteur provenant des sessions serveur, pas d'autorité depuis un rôle du navigateur. Diagnostic distinct du paquet approuvé.
+
+Réutiliser `EquityRuntime`, `WorkpaperService`, les ports `ClientsWorkpaperRepository`/`ClientsImports`, `RequestAuthorizer` et la frontière monétaire canonique. Ne pas ouvrir les autres moteurs synthétiques. Convention, sources, mapping, population, sélection, calcul et décisions sont versionnés. Accusé serveur requis avant « Sauvegardée » ; conflit avec comparaison du brouillon et de la version serveur, réessai avec la même clé d'idempotence. Auto-approbation refusée, préparation par son auteur, revue par une autre identité autorisée. Source remplacée : nouvelle révision sans réécrire la décision ancienne.
+
+Migration additive `drizzle/0008_equity_dossier.up.sql` : seuls sept types de source ajoutés à la liste fermée existante. Down refuse un rollback avec des données Equity. Aucun nouveau stockage de secours ni deuxième état métier React.
+
+## Vérifications exécutées
+
+Suite complète finale : **1 161 tests réussis, 22 ignorés ; 107 suites réussies, 1 ignorée**. Typecheck et build réussis. Lint : zéro erreur, sept avertissements préexistants. Manifeste contrôlé : 11 migrations montantes, 17 tables, invariants valides. Aucun SQL de migration exécuté sur une base dans cette livraison. Un test Clients existant a dépassé 5 secondes lors de l'exécution parallèle avec le build ; ses deux tests ont réussi seuls, puis la suite complète a été relancée sans build concurrent.
+
+Captures réelles et rapport dans `docs/probant-lots/mission11-captures/` ; évaluation visuelle `design-qa.md`, contrat `MISSION11_CONTRACT.md`, titre/description prêts dans `MISSION11_PR.md`. Pas de maquette générée présentée comme capture. PV réel synthétique page 1/3 rendu, console sans erreur JavaScript sur les routes parcourues. Escape : focus DIST, position 936 px conservée. Liens décision/mouvement/composante contrôlés, libellé long, vide/erreur/aucun résultat et cartographie partielle. Comparaison avec l'atelier existant inspectée ; extension du parcours, aucune revendication de copie 1:1.
+
+## Exactement ce qui reste non exécuté
+
+PostgreSQL jetable absent, `PROBANT_CLIENTS_TEST_DATABASE_URL` non fourni ; Docker/psql indisponibles dans cette session. Les 22 tests natifs restent ignorés, dont ces quatre scénarios Mission 11 :
+
+1. Imports CSV/PDF approuvés → cartographie → population/sélection figées → exécution → exceptions.
+2. Identité serveur, citation exacte, deux organisations/quatre dossiers/deux rôles, accès transversal refusé, replay idempotent et concurrence transactionnelle.
+3. Traitements cités → soumission → auto-approbation refusée → revue distincte/verrouillage ; exception conservée, paquet approuvé/PV/téléchargement protégés, expiration de session.
+4. Déconnexion/reconnexion PostgreSQL (redémarrage Docker physique seulement si un identifiant de conteneur jetable est fourni), remplacement de source, export ancien invalidé et nouvelle révision préservant la revue précédente.
+
+Ces tests utilisent des sessions serveur de recette initialisées avec un issuer/subject synthétique ; ils n'exécutent pas un échange OIDC avec un fournisseur externe. La connexion OIDC réelle, les sauvegardes/conflits/revues intégrés dans le navigateur, le redémarrage physique et l'application/rollback des migrations n'ont donc pas été validés ici. Aucun fallback mémoire n'est présenté comme durable.
+
+Pour la suite : fournir une base locale jetable dédiée portant un nom finissant par `_test` ou `_ci`, appliquer les migrations existantes via `DATABASE_URL` pointant explicitement vers cette base, puis fournir la même URL dans `PROBANT_CLIENTS_TEST_DATABASE_URL` et exécuter le fichier `clients-durable.integration.test.ts` complet. Ne pas filtrer seulement les quatre tests Equity : ils dépendent du setup et de la séquence partagée. `PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER` facultatif doit être l'identifiant hexadécimal du conteneur jetable autorisé. Aucun de ces prérequis n'a été activé ici.
+
+L'interface réelle exige la configuration OIDC/session et les droits organisation/dossier existants. `PROBANT_EQUITY_DURABLE=disposable` est le gate explicite de recette, désactivé par défaut et refusé en production Vercel. Le serveur local laissé ouvert utilise uniquement `PROBANT_DEMONSTRATION_ENABLED=true` et l'origine `http://127.0.0.1:3198` ; le gate durable reste absent.
+
+## Limites et dépendances du lot suivant
+
+Méthode interne de rapprochement, EUR uniquement, période/formes/comptes déclarés à corroborer, aucune nouvelle règle juridique/comptable. Les pièces PDF sont indexées, sans extraction automatique du vote ; leur date/montant techniques d'index ne sont pas des faits de décision. Le PDF applicatif standard réutilisé conserve sa limite Latin-1 ; HTML/JSON gardent Unicode. Les originaux ne sont pas inclus dans le paquet et aucun archivage certifié n'est revendiqué. Une revue ne ferme pas les exceptions comme conformes.
+
+Maturité : **pilote local cohérent, raccord durable préparé mais non validé sur PostgreSQL**. Les priorités suivantes sont la recette native ci-dessus, la réconciliation de la chaîne locale avec main et la qualification indépendante des sources/conventions. Toute future règle juridique devra être sourcée pour la forme sociale et la période avant implémentation. Le produit global n'est pas déclaré prêt.
+
+---
+
+Les handoffs ci-dessous sont conservés comme historique daté des lots 01/02. Leurs états « prompts suivants non exécutés » décrivent leur date de rédaction, pas la livraison locale actuelle.
+
 # Handoff — Mission 10 : Immobilisations, mouvements et recalcul documenté (2026-10-08)
 
 **Base.** Branche locale `claude/immobilisations-mission10`, partie de `origin/main` `b8c7d7f` (PR #60 Trésorerie fusionnée le 2026-10-08 12:39 UTC ; Mission 07 incluse). **Mission 08 (achats/fournisseurs, Codex) n’est pas dans `main`** : elle reste sur `codex/mission07-security` (`eded0c7`). Production observée en lecture seule : déploiement GitHub « Production » `success` sur `b8c7d7f` (2026-10-08 12:41 UTC) ; le rattachement de l’alias `probant.vercel.app` à ce déploiement n’a pas été vérifié par l’API Vercel (**NOT_VERIFIED**, aucun jeton). Ce lot n’est pas en production. Aucun push, aucune PR distante, aucun déploiement, aucune variable distante modifiée.
@@ -248,3 +374,4 @@ Revue humaine du diff : depuis `C:\Users\Ludo\PROBANT\reprise-probant-lots-ae`, 
 Le commit `52b9d57a976b1f3624df8497b7ccd6e742ab46e9` authentifie les accès `GET /api/ingestions/[id]` et `POST /api/ingestions/[id]/process` avant toute lecture du job. Après authentification, un job absent, d'une autre organisation ou d'un dossier non autorisé répond uniformément 404. Tests ciblés `legacy-routes` et `isolation` : 2 suites, 20 tests passés. Typecheck passé, lint ciblé sans avertissement, `git diff --check` sans erreur. Ces contrôles complètent la validation intégrale ci-dessus, exécutée avant ce correctif localisé ; la suite intégrale n'a pas été relancée.
 
 **Verdict : GO pour une PR de revue uniquement ; NO-GO pour activation réelle ou déploiement.** Avant toute mise en production : exécuter l'E2E persistant dans un environnement synthétique dédié, arbitrer les autres réserves ouvertes et réaliser la QA indépendante. Aucune donnée réelle ni QA métier indépendante n'a été utilisée.
+

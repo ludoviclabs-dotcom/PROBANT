@@ -1,7 +1,7 @@
 import { cents, money, type KnownAmount, type Money } from "@/lib/canonical-model/money";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertScope, frozen, type EvidenceLink, type Population, type SelectionSet } from "./model";
-import { absolute, assertAmount, assertContext, assertUnique, assertWindow, sum, SOURCE_REQUIRED, type CycleContext, type PostClosingWindow, type SourcedAmount } from "./cycle-context";
+import { absolute, assertAmount, assertPayablesContext, assertUnique, assertWindow, sum, SOURCE_REQUIRED, type CycleContext, type PostClosingWindow, type SourcedAmount } from "./cycle-context";
 import { analyzeCutoff, uniqueEconomicExposures, type CutoffInput, type CutoffResult } from "./cutoff";
 import { validateSelectionSources } from "./selection";
 import type { ImportBatch } from "./imports";
@@ -13,7 +13,7 @@ export interface PayableFrameInput {
   adjustments: { kind: "FNP" | "CCA"; booked: PayableBalanceLine[]; detail: PayableBalanceLine[] }[];
 }
 export function framePayables(input: PayableFrameInput) {
-  assertContext(input.context); assertUnique(input.accounts);
+  assertPayablesContext(input.context); assertUnique(input.accounts);
   if (!input.accounts.length || input.convention.name !== "credits_negative" || !input.convention.version || !input.convention.validatedBy.trim()) throw new Error("PAYABLE_SCOPE_AND_SIGN_REQUIRED");
   const compare = (leftName: string, left: PayableBalanceLine[], rightName: string, right: PayableBalanceLine[], key: "compte" | "tiers") => {
     for (const lines of [left, right]) {
@@ -69,7 +69,7 @@ export interface RpneInput {
   payments: SubsequentPayment[]; allocations: PaymentAllocation[]; events: CutoffInput[];
 }
 export function searchUnrecordedLiabilities(input: RpneInput) {
-  assertContext(input.context); assertWindow(input.context, input.window);
+  assertPayablesContext(input.context); assertWindow(input.context, input.window);
   assertScope(input.context.scope, input.population.scope); validateSelectionSources(input.population, input.selection, input.imports);
   assertUnique(input.payments.map((p) => p.id)); assertUnique(input.payments.map((p) => p.value.source.id)); assertUnique(input.events.map((e) => e.economicEventKey));
   if (input.population.items.length !== input.payments.length || input.payments.some((p) => !input.population.items.some((i) => i.id === p.value.source.id && cents(i.amount) === cents(p.value.amount)))) throw new Error("RPNE_PAYMENT_POPULATION_MISMATCH");

@@ -1,17 +1,18 @@
 import { cents, money } from "@/lib/canonical-model/money";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { assertContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
+import { assertEquityContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
 import { frozen, type EvidenceLink } from "./model";
 import { compareSupported, evidence, known, ratio, supportedAmountSchema, unknown, type SupportedAmount } from "./cycle-review";
 export interface EquityInput {
   context: CycleContext;
   components: { id: string; accounts: string[]; opening: SupportedAmount; movements: { id: string; internalTransferId?: string; value: SupportedAmount }[]; closing: SupportedAmount }[];
-  allocations: { id: string; decision: SupportedAmount | null; booked: SupportedAmount | null; payment: SupportedAmount | null; decisionReference: string; readingValidated: boolean }[];
+  allocations: { id: string; decision: SupportedAmount | null; booked: SupportedAmount | null; payment: SupportedAmount | null; decisionReference: string; readingValidated: boolean; effectiveDate?: string }[];
   events: { id: string; effectiveDate: string; description: string; evidence: EvidenceLink[]; review: "pending" | "reviewed"; reviewer?: string; accountingMovementId: string | null }[];
+  coverageComplete?: boolean;
   capitalComponentId: string; reserveComponentIds: string[];
 }
 export function reviewEquity(input: EquityInput) {
-  assertContext(input.context); assertUnique(input.components.map((c) => c.id)); assertUnique(input.components.flatMap((c) => c.accounts)); assertUnique(input.allocations.map((a) => a.id)); assertUnique(input.events.map((e) => e.id)); assertUnique(input.components.flatMap((c) => c.movements.map((m) => m.id)));
+  assertEquityContext(input.context); assertUnique(input.components.map((c) => c.id)); assertUnique(input.components.flatMap((c) => c.accounts)); assertUnique(input.allocations.map((a) => a.id)); assertUnique(input.events.map((e) => e.id)); assertUnique(input.components.flatMap((c) => c.movements.map((m) => m.id)));
   const rows = input.components.map((c) => {
     if (!c.accounts.length) throw new Error("EQUITY_MAPPING_REQUIRED");
     const all = [c.opening, c.closing, ...c.movements.map((m) => m.value)];
@@ -28,11 +29,19 @@ export function reviewEquity(input: EquityInput) {
   input.events.forEach((e) => { assertDate(e.effectiveDate); evidence(input.context, e.evidence); if (!e.description.trim() || !["pending", "reviewed"].includes(e.review) || (e.review === "reviewed" && (!e.reviewer || !evidence(input.context, e.evidence)))) throw new Error("EQUITY_EVENT_REVIEW_REQUIRED"); });
   const allocations = input.allocations.map((a) => {
     if (a.payment) { supportedAmountSchema.parse(a.payment); evidence(input.context, a.payment.evidence); }
-    return { ...a, difference: a.readingValidated && a.decisionReference.trim() ? compareSupported(input.context, a.booked, a.decision) : unknown("SOURCE REQUISE : PV et lecture validée"), paymentIsSeparate: true };
+    return { ...a, difference: a.readingValidated && a.decisionReference.trim() ? compareEquityAmounts(input.context, a.booked, a.decision, a.effectiveDate) : unknown("SOURCE REQUISE : PV et lecture validée"), paymentIsSeparate: true };
   });
   const capital = rows.find((c) => c.id === input.capitalComponentId);
-  if (!capital || input.reserveComponentIds.some((id) => !rows.some((r) => r.id === id))) throw new Error("EQUITY_RATIO_MAPPING_REQUIRED");
+  if (input.coverageComplete !== false && (!capital || input.reserveComponentIds.some((id) => !rows.some((r) => r.id === id)))) throw new Error("EQUITY_RATIO_MAPPING_REQUIRED");
   const closing = money(rows.reduce((s, c) => s + cents(c.closing.amount), 0n));
   const reserves = money(rows.filter((c) => input.reserveComponentIds.includes(c.id)).reduce((s, c) => s + cents(c.closing.amount), 0n));
-  return frozen({ rows, allocations, events: input.events, totalVariation: money(rows.reduce((s, r) => s + cents(r.movement), 0n)), internalTransfers: [...transfers.keys()], ratios: { equityToCapital: ratio(closing, capital.closing.amount), reservesToCapital: ratio(reserves, capital.closing.amount) }, legalConclusion: unknown("SOURCE REQUISE : règle juridique applicable"), inputHash: stableSha256(input), mode: "demo" });
+  return frozen({ rows, allocations, events: input.events, totalVariation: input.coverageComplete === false ? unknown("Sous-ensemble technique incomplet, total non concluant") : money(rows.reduce((s, r) => s + cents(r.movement), 0n)), internalTransfers: [...transfers.keys()], ratios: { equityToCapital: input.coverageComplete === false || !capital || rows.some(r => r.difference.kind !== "known") ? unknown("Cartographie ou sources incomplètes") : ratio(closing, capital.closing.amount), reservesToCapital: input.coverageComplete === false || !capital || rows.some(r => r.difference.kind !== "known") ? unknown("Cartographie ou sources incomplètes") : ratio(reserves, capital.closing.amount) }, legalConclusion: unknown("SOURCE REQUISE : règle juridique applicable"), inputHash: stableSha256(input), mode: input.context.scope.mode });
+}
+
+function compareEquityAmounts(context:CycleContext,left:SupportedAmount|null,right:SupportedAmount|null,effectDate?:string) {
+ if(context.scope.mode === "demo" && !effectDate) return compareSupported(context,left,right);
+ if(!left || !right || !effectDate) return unknown("Décision et comptabilisation documentées requises");
+ assertDate(effectDate);supportedAmountSchema.parse(left);supportedAmountSchema.parse(right);
+ if(effectDate<context.period.startDate || effectDate>context.period.closingDate || left.basis!==right.basis || !evidence(context,left.evidence) || !evidence(context,right.evidence))return unknown("Période, bases ou preuves non comparables");
+ return known(money(cents(left.amount)-cents(right.amount)));
 }

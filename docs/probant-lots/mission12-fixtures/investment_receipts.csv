@@ -1,0 +1,6 @@
+Key;Amount;Date;Details
+"PAY-ORD";"9.00";"2025-01-12";"{""securityId"":""ORD"",""distributionId"":""DIST-ORD"",""basis"":""DIST:ORD""}"
+"PAY-PREF";"12.00";"2025-01-12";"{""securityId"":""PREF"",""distributionId"":""DIST-PREF"",""basis"":""DIST:PREF""}"
+"PAY-EV";"10.00";"2025-01-12";"{""securityId"":""EV"",""distributionId"":""DIST-EV"",""basis"":""DIST:EV""}"
+"PAY-DATE";"10.00";"2025-01-12";"{""securityId"":""DATE"",""distributionId"":""DIST-DATE"",""basis"":""DIST:DATE""}"
+"PAY-ABSENT";"10.00";"2025-01-12";"{""securityId"":""ABSENT"",""distributionId"":""DIST-ABSENT"",""basis"":""DIST:ABSENT""}"

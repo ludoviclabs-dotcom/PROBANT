@@ -1,0 +1,6 @@
+Key;Amount;Date;Details
+"GL-ORD";"9.00";"2024-12-31";"{""securityId"":""ORD"",""distributionId"":""DIST-ORD"",""basis"":""DIST:ORD""}"
+"GL-PREF";"12.00";"2024-12-31";"{""securityId"":""PREF"",""distributionId"":""DIST-PREF"",""basis"":""DIST:PREF""}"
+"GL-EV";"10.00";"2024-12-31";"{""securityId"":""EV"",""distributionId"":""DIST-EV"",""basis"":""DIST:EV""}"
+"GL-DATE";"10.00";"2024-12-31";"{""securityId"":""DATE"",""distributionId"":""DIST-DATE"",""basis"":""DIST:DATE""}"
+"GL-ABSENT";"10.00";"2024-12-31";"{""securityId"":""ABSENT"",""distributionId"":""DIST-ABSENT"",""basis"":""DIST:ABSENT""}"

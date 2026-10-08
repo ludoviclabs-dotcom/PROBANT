@@ -8,11 +8,11 @@ import { WorkpaperResult } from "./WorkpaperResult";
 
 const stateLabels: Record<WorkpaperRun["state"], string> = { draft: "Brouillon", ready: "Prêt", executed: "Exécuté", awaiting_review: "En revue", changes_requested: "Correction demandée", approved: "Travail approuvé", locked: "Verrouillé", superseded: "Remplacé", blocked: "Bloqué", failed: "Échec" };
 /** Read-only shell: never invent a reviewer or enable real mutations without server auth. */
-export function WorkpaperPanel({ runs = [], loading = false, error, durable = false, filter = "all", noteId }: { runs?: WorkpaperRun[]; loading?: boolean; error?: string; durable?: boolean; filter?: MissionFilter; noteId?: string }) {
+export function WorkpaperPanel({ runs = [], loading = false, error, durable = false, durableLabel = "Cadrage Clients", filter = "all", noteId }: { runs?: WorkpaperRun[]; loading?: boolean; error?: string; durable?: boolean; durableLabel?: string; filter?: MissionFilter; noteId?: string }) {
   const id = useId();
   return <section aria-labelledby={`${id}-title`} className="my-5 space-y-3 rounded-xl border border-[var(--pb-border)] p-4">
     <h2 id={`${id}-title`} className="font-semibold">Feuilles de travail</h2>
-    <p id={`${id}-disabled`} className="text-sm">{durable ? "Cadrage Clients sur infrastructure jetable · versions sauvegardées par le serveur." : "Usage réel désactivé. Les actions de préparation et de revue simulées sont dans l’atelier du dossier synthétique."}</p>
+    <p id={`${id}-disabled`} className="text-sm">{durable ? durableLabel + " sur infrastructure jetable · versions sauvegardées par le serveur." : "Usage réel désactivé. Les actions de préparation et de revue simulées sont dans l’atelier du dossier synthétique."}</p>
     {loading ? <p role="status">Chargement des feuilles…</p> : error ? <p role="alert">Feuilles indisponibles : {error}</p> : !runs.length ? <p>Aucune feuille de travail activée. Les missions historiques ne sont pas converties automatiquement.</p> : runs.map((run) => <article key={run.id} id={`wp-${encodeURIComponent(run.id)}`} className="min-w-0 space-y-2 border-t pt-3">
       <h3 className="font-semibold">{run.template.objective} — {stateLabels[run.state]}</h3>
       <p>Mission {run.scope.dossierId} · {run.period.startDate} au {run.period.closingDate} · Revue au {run.period.asOfDate} · Révision {run.revision}, version {run.version}</p>

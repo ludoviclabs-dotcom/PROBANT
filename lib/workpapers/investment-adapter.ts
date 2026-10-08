@@ -1,0 +1,8 @@
+import { z } from 'zod';
+import { CalculationRegistry } from './calculations';
+import { moneySchema, type ProcedureTemplate } from './model';
+import { investmentWorkSchema,evaluateInvestments,type InvestmentResult } from './investment-dossier';
+export const INVESTMENT_TEMPLATE:ProcedureTemplate={id:'investments.review',version:'1.0.0',objective:'Participations : droits, distributions et valeurs comparables',kind:'calculated',assertions:[{label:'Droits applicables à la distribution et produit enregistré rapprochés',validation:'proposed'},{label:'Valeur externe comparée à une base comptable explicite',validation:'proposed'}],requiredDocumentTypes:['investment_register'],rule:{id:'investments.review',version:'1.0.0',authority:'internal',source:'docs/probant-lots/MISSION12_CONTRACT.md',effectiveFrom:'1900-01-01',validation:'validated'}};
+export class InvestmentRegistry extends CalculationRegistry {
+ override execute(request:Parameters<CalculationRegistry['execute']>[0]){const registry=new CalculationRegistry();registry.register(INVESTMENT_TEMPLATE.rule!,z.array(z.object({id:z.string(),amount:moneySchema}).strict()),z.object({runId:z.string().min(1),work:investmentWorkSchema}).strict(),z.custom<InvestmentResult>(v=>!!v&&typeof v==='object'&&(v as InvestmentResult).schemaVersion==='investment-result-1'),(_i,p)=>evaluateInvestments(request.scope,request.period,request.imports,p.runId,request.population,request.selection,p.work),r=>r.outcome,()=>{if(request.rule.id!=='investments.review'||request.population.unit!=='security_distribution')throw Error('INVESTMENT_ADAPTER_INVALID');});return registry.execute(request);}
+}

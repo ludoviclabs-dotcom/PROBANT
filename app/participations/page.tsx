@@ -1,0 +1,2 @@
+import { InvestmentWorkspace } from '@/components/probant/InvestmentWorkspace';
+export default async function InvestmentPage({searchParams}:{searchParams:Promise<Record<string,string|string[]|undefined>>}){const q=await searchParams,value=(key:string)=>typeof q[key]==='string'?q[key] as string:'';return <InvestmentWorkspace initial={{demo:value('demo')==='1',case:value('case'),dossierId:value('dossierId'),periodId:value('periodId'),id:value('id'),tab:value('tab')}} />;}

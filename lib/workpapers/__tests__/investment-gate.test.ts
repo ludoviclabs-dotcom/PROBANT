@@ -1,0 +1,13 @@
+import { it,expect } from 'vitest';
+import { DrizzleQueryError } from 'drizzle-orm/errors';
+import { investmentHandlers,requireDisposableInvestment } from '../investment-http';
+import { InvestmentRuntime } from '../investment-runtime';
+import { assertContext,assertInvestmentContext } from '../cycle-context';
+import { INVESTMENT_PERIOD } from '../investment-fixture';
+import { periodId } from '../model';
+const dossier='11111111-1111-4111-8111-111111111111',pid=periodId(INVESTMENT_PERIOD),request=()=>new Request('https://local.test/api/workpapers/participations?dossierId='+dossier+'&periodId='+pid);
+it('gate production fermé, opt-in jetable uniquement',()=>{for(const env of [{},{PROBANT_INVESTMENT_DURABLE:'true'},{PROBANT_INVESTMENT_DURABLE:'disposable',VERCEL_ENV:'production'}])expect(()=>requireDisposableInvestment(env)).toThrow();expect(()=>requireDisposableInvestment({PROBANT_INVESTMENT_DURABLE:'disposable'})).not.toThrow();});
+it('le contexte fermé ne débloque pas les autres moteurs',()=>{const context={scope:{organizationId:'org',dossierId:dossier,periodId:pid,mode:'real' as const},period:INVESTMENT_PERIOD,purpose:'real' as const,procedure:'investments.review' as const};expect(()=>assertInvestmentContext(context)).not.toThrow();expect(()=>assertContext(context)).toThrow();});
+it('erreur SQL publique sans contenu privé',async()=>{const r=await investmentHandlers(()=>{throw new DrizzleQueryError('PRIVATE SQL',['SECRET'],Error('driver'));},()=>{}).GET(request());expect(r.status).toBe(503);expect(await r.text()).toBe('{"error":"INVESTMENT_DURABLE_UNAVAILABLE"}');});
+it('session expirée refuse lecture et téléchargement avant toute transaction',async()=>{let calls=0;const runtime=new InvestmentRuntime({execute:async()=>[],transaction:async()=>{calls++;throw Error('UNEXPECTED');}},{authorize:async()=>({subject:'expired',organizationId:'org',dossierIds:[dossier],roles:['preparer'],authenticationMethod:'oidc-session',amr:[],acr:null,mfaSatisfied:true,expiresAtEpochSeconds:99})},()=>100),h=investmentHandlers(()=>runtime,()=>{});expect((await h.GET(request())).status).toBe(401);expect((await h.GET(new Request(request().url+'&operation=download&id=doc'))).status).toBe(401);expect(calls).toBe(0);});
+it('un rôle et une approbation forgés dans JSON sont refusés',async()=>{let called=false;const h=investmentHandlers(()=>({check:async()=>{},investmentCommand:async()=>{called=true;}} as unknown as InvestmentRuntime),()=>{}),r=await h.POST(new Request(request().url,{method:'POST',body:JSON.stringify({command:'execute',id:'run',expectedVersion:1,role:'reviewer',approved:true}),headers:{'Content-Type':'application/json'}}));expect(r.status).toBe(400);expect(called).toBe(false);});

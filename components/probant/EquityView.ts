@@ -1,0 +1,4 @@
+import type { Money, KnownAmount } from '@/lib/canonical-model/money';
+export type EquityFact={id:string;rowId:string;type:string;documentVersionId:string;version:string;fileName:string;page?:number;component:string;account:string;description:string;format:string;amount:Money;date:string};
+export function equityAmount(a:KnownAmount){if(a.kind!=='known')return a.kind==='not_applicable'?'Non applicable':'Non concluant';const raw=a.value.amount,negative=raw.startsWith('-'),value=negative?raw.slice(1):raw,[whole,decimal]=value.split('.');return (negative?'−':'')+whole.replace(/\B(?=(\d{3})+(?!\d))/g,' ')+','+(decimal??'00')+' €';}
+export const STATES:Record<string,string>={draft:'À préparer',ready:'Prête à exécuter',executed:'Exécutée — à expliquer',awaiting_review:'Soumise à revue',approved:'Approuvée — verrouillage attendu',changes_requested:'Reprise demandée',locked:'Verrouillée'};

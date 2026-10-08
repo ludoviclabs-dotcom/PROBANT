@@ -1,3 +1,21 @@
+import { InvestmentRuntime } from '../investment-runtime';
+import { investmentHandlers } from '../investment-http';
+import { investmentSyntheticFiles,INVESTMENT_PERIOD } from '../investment-fixture';
+import { INVESTMENT_MAPPING,investmentFacts,initialInvestmentDraft,type InvestmentResult } from '../investment-dossier';
+import type { InvestmentCommand } from '../investment-commands';
+import { EquityRuntime } from '../equity-runtime';
+import { equityHandlers } from '../equity-http';
+import { equityFixtureCsv, EQUITY_DEMO_MAPPING, EQUITY_DEMO_PERIOD, equitySyntheticPdf, equityDraftFor } from '../equity-fixture';
+import type { EquityCommand } from '../equity-commands';
+import type { EquityMission } from '../equity-mission';
+import type { EquityResult } from '../equity-dossier';
+import { PayablesRuntime } from "../payables-runtime";
+import { payablesHandlers } from "../payables-http";
+import { csv as payableCsv, mapping as payableMapping, draftFor } from "./payables-fixture";
+import { PAYABLE_TYPES, type PayableProcedure } from "../payables-program";
+import type { PayablesCommand } from "../payables-commands";
+import type { PayablesResult } from "../payables-investigation";
+import type { PayablesMission } from "../payables-mission";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -24,6 +42,10 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
     let client: ReturnType<typeof postgres>;
     let handlers: ReturnType<typeof clientsHandlers>;
     let runtime: ClientsRuntime;
+    let equityRuntime:EquityRuntime,equityHttp:ReturnType<typeof equityHandlers>,equityRun:WorkpaperRun,equityBatches:ImportBatch[];
+    let payableRuntime:PayablesRuntime, payableHandlers:ReturnType<typeof payablesHandlers>;
+    let payableRun:WorkpaperRun, payableBatches:ImportBatch[];
+    let investmentRuntime:InvestmentRuntime,investmentHttp:ReturnType<typeof investmentHandlers>,investmentRun:WorkpaperRun,investmentBatches:ImportBatch[];
     let now = 1800000000;
     const orgA = randomUUID(), orgB = randomUUID(), dossierA = randomUUID(), dossierA2 = randomUUID(), dossierB = randomUUID(), dossierB2 = randomUUID();
     const config = { secret: "disposable-clients-test-secret-000000000000000000", idleTtlSeconds: 3600, absoluteTtlSeconds: 7200, appOrigin: "https://probant.example.test" };
@@ -47,7 +69,10 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const db = drizzle(client, { schema });
         const sessions = new DrizzleSessionStore(db);
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
+        investmentRuntime=new InvestmentRuntime(db,authorizer,()=>now);investmentHttp=investmentHandlers(()=>investmentRuntime,()=>{},error=>{if(error instanceof Error)console.error("INVESTMENT_RECIPE_ERROR",error.message.split("\n")[0],error.cause instanceof Error?error.cause.message:"");});
         runtime = new ClientsRuntime(db, authorizer, () => now);
+        equityRuntime=new EquityRuntime(db,authorizer,()=>now);equityHttp=equityHandlers(()=>equityRuntime,()=>{});
+        payableRuntime=new PayablesRuntime(db,authorizer,()=>now);payableHandlers=payablesHandlers(()=>payableRuntime,()=>{},error=>{if(error instanceof Error)console.error("PAYABLE_RECIPE_ERROR",error.message.split("\n")[0],error.cause instanceof Error?error.cause.message:"");});
         handlers = clientsHandlers(() => runtime, () => { }, error => {
             if (error instanceof Error) console.error("CLIENTS_RECIPE_ERROR", error.name, error.message.split("\n")[0], error.cause instanceof Error ? error.cause.message : "");
         });
@@ -383,4 +408,176 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const oldSales=structuredClone(salesRun);salesRun=await success({command:"revise",...salesTarget()});expect(salesRun.clientsWork).toBeUndefined();expect(salesRun.result).toBeUndefined();expect(salesRun.approval).toBeUndefined();
         const salesRead=await(await handlers.GET(request(preparer))).json();expect(salesRead.runs.find((r:WorkpaperRun)=>r.id===oldSales.id)).toEqual(oldSales);expect(salesRead.salesFraming[salesRun.id]).toBeNull();
     });
+
+    const payableTarget = () => ({ id: payableRun.id, expectedVersion: payableRun.version });
+    async function payableCommand(body: PayablesCommand, s = preparer, key = randomUUID()) { return payableHandlers.POST(request(s, "POST", JSON.stringify(body), dossierA, "", key)); }
+    async function payableSuccess(body: PayablesCommand, s = preparer) { const response = await payableCommand(body, s); expect(response.status, await response.clone().text()).toBe(200); return (await response.json()).run as WorkpaperRun; }
+    async function payableImport(type: typeof PAYABLE_TYPES[number], changed = false) { const form = new FormData(); form.set("file", new File([payableCsv(type, changed)], type + ".csv", { type: "text/csv" })); form.set("mapping", JSON.stringify(payableMapping)); form.set("period", JSON.stringify(period)); form.set("documentType", type); const preview = await payableHandlers.importsPOST(request(preparer, "POST", form)); expect(preview.status, await preview.clone().text()).toBe(200); const { batch } = await preview.json(); const view = await (await payableHandlers.GET(request(preparer))).json(); const approved = await payableHandlers.importsPOST(request(preparer, "POST", JSON.stringify({ command: "approve_import", importId: batch.id, previewHash: batch.previewHash, expectedSourceId: view.sourceHeads.find((h: {
+            document_type: string;
+        }) => h.document_type === type)?.import_id ?? null }))); expect(approved.status, await approved.clone().text()).toBe(200); return (await approved.json()).batch as ImportBatch; }
+    async function payableMission() { const response = await payableHandlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=mission&id=" + encodeURIComponent(payableRun.id))); expect(response.status, await response.clone().text()).toBe(200); return (await response.json()).mission as PayablesMission; }
+    const payableExportRequest = (m: PayablesMission, kind = "diagnostic", s = preparer) => request(s, "POST", JSON.stringify({ dossierId: dossierA, periodId: periodId(period), id: payableRun.id, version: payableRun.version, kind, format: "html", expectedSnapshotHash: m.hash }));
+    async function preparePayable(procedure: PayableProcedure, batches = payableBatches) { let r = await payableSuccess({ command: "create_payables", procedure, period, instanceKey: randomUUID() }); const draft = draftFor(batches); if (procedure !== "payables.purchases")
+        draft.purchases = []; if (procedure !== "payables.rpne")
+        draft.allocations = []; r = await payableSuccess({ command: "freeze_payables", id: r.id, expectedVersion: r.version, importIds: batches.map(b => b.id), draft, selection: { method: "all", criteria: "Recette documentée des cinq cas, sans extrapolation", exclusions: [] } }); return payableSuccess({ command: "execute", id: r.id, expectedVersion: r.version }); }
+    it("Mission 08 : achats et RPNE figés partagent un événement sans double compte", async () => {
+        payableBatches = [];
+        for (const type of PAYABLE_TYPES.filter(t => !["payables_general", "payables_auxiliary", "payables_aged"].includes(t)))
+            payableBatches.push(await payableImport(type));
+        const frameBatches = [];
+        for (const type of ["payables_general", "payables_auxiliary", "payables_aged"] as const)
+            frameBatches.push(await payableImport(type));
+        const frame = await preparePayable("payables.frame", frameBatches);
+        expect(frame.result?.outcome).toBe("no_exception_detected");
+        await preparePayable("payables.purchases");
+        payableRun = await preparePayable("payables.rpne");
+        const result = payableRun.result!.result as PayablesResult;
+        expect(result.rows.find(r => r.invoiceId === "I-U")).toMatchObject({ status: "omission_candidate", paidTTC: { amount: "1200.00" }, differenceHT: { kind: "known", value: { amount: "1000.00" } } });
+        expect(result.rows.find(r => r.invoiceId === "I-F")?.status).toBe("existing_accrual");
+        expect(result.rows.find(r => r.invoiceId === "I-G")).toMatchObject({ status: "inconclusive", unallocatedTTC: { amount: "600.00" } });
+        expect(result.rows.find(r => r.invoiceId === "I-N")?.status).toBe("inconclusive");
+        expect(payableRun.payablesWork?.authorId).toBe("preparer-real");
+        const m = await payableMission(), event = m.events.find(e => e.invoiceId === "I-D")!;
+        expect(event.observations).toHaveLength(2);
+        expect(m.exposures.find(e => e.economicEventId === event.eventId)?.amount).toMatchObject({ kind: "known", value: { amount: "600.00" } });
+        expect(m.counters.plannedControls).toBe(6);
+        const read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.every((r: WorkpaperRun) => r.template.id.startsWith("payables."))).toBe(true);
+        expect(read.facts[payableRun.id].invoices).toHaveLength(8);
+        const clientRead = await (await handlers.GET(request(preparer))).json();
+        expect(clientRead.runs.some((r: WorkpaperRun) => r.id === payableRun.id)).toBe(false);
+        expect((await command({ command: "conclude", id: payableRun.id, expectedVersion: payableRun.version, text: "Interdit via un autre cycle" })).status).toBe(404);
+    });
+    it("Mission 08 : permissions, auteur serveur, rejeu, conflit et invalidation", async () => {
+        const { authorId: _a, authoredAt: _d, schemaVersion: _s, ...draft } = structuredClone(payableRun.payablesWork!);
+        void _a;
+        void _d;
+        void _s;
+        const body: PayablesCommand = { command: "configure_payables", ...payableTarget(), draft }, key = randomUUID();
+        const ack = await payableCommand(body, preparer, key), replay = await payableCommand(body, preparer, key);
+        expect(ack.status, await ack.clone().text()).toBe(200);
+        expect(await replay.json()).toEqual(await ack.clone().json());
+        payableRun = (await ack.json()).run;
+        expect(payableRun.result).toBeUndefined();
+        expect(payableRun.notes).toEqual([]);
+        expect((await payableCommand({ ...body, draft: { ...draft, method: { ...draft.method, note: "autre" } } }, preparer, key)).status).toBe(409);
+        expect((await payableHandlers.POST(request(preparer, "POST", JSON.stringify({ ...body, role: "reviewer", approved: true })))).status).toBe(400);
+        expect((await payableHandlers.POST(request(preparer, "POST", JSON.stringify({ command: "configure_payables", ...payableTarget(), draft: { ...draft, authorId: "reviewer-real" } })))).status).toBe(400);
+        expect((await payableHandlers.GET(request(other))).status).toBe(403);
+        expect((await payableHandlers.GET(request(preparer, "GET", undefined, dossierB))).status).toBe(403);
+        expect((await payableCommand({ ...body, ...payableTarget() }, other)).status).toBe(403);
+        const responses = await Promise.all(["A", "B"].map(note => payableCommand({ command: "configure_payables", ...payableTarget(), draft: { ...draft, window: { ...draft.window, note } } })));
+        expect(responses.map(r => r.status).sort()).toEqual([200, 409]);
+        expect((await responses.find(r => r.status === 409)!.json()).current.payablesWork.authorId).toBe("preparer-real");
+        payableRun = (await responses.find(r => r.status === 200)!.json()).run;
+        payableRun = await payableSuccess({ command: "execute", ...payableTarget() });
+    });
+    it("Mission 08 : revue distincte, exception maintenue et export protégé", async () => {
+        for (const n of payableRun.notes.filter(n => !n.resolution))
+            payableRun = await payableSuccess({ command: "resolve", ...payableTarget(), noteId: n.id, text: "Point expliqué ; candidat ou inconnus conservés, sans opinion." });
+        payableRun = await payableSuccess({ command: "conclude", ...payableTarget(), text: "Paiement 1200 TTC, candidat 1000 HT ; FNP existante sans double calcul ; groupe résiduel 600 TTC non concluant ; événement D résiduel 600 HT unique." });
+        payableRun = await payableSuccess({ command: "submit", ...payableTarget() });
+        expect((await payableCommand({ command: "review", ...payableTarget(), decision: "approved", submittedHash: payableRun.submittedHash!, text: "auto" }, selfReviewer)).status).toBe(403);
+        payableRun = await payableSuccess({ command: "review", ...payableTarget(), decision: "approved", submittedHash: payableRun.submittedHash!, text: "Travail revu par une autre identité, exceptions maintenues." }, reviewer);
+        payableRun = await payableSuccess({ command: "lock", ...payableTarget() }, reviewer);
+        const m = await payableMission(), response = await payableHandlers.exportPOST(payableExportRequest(m, "approved", reviewer));
+        expect(response.status, await response.clone().text()).toBe(200);
+        const html = await response.text();
+        expect(html).toContain(m.hash);
+        expect(html).toContain("Candidat omission");
+        expect(html).toContain("reviewer-real");
+        expect(html).toContain("1200.00");
+        expect(html).toContain("1000.00");
+        expect(html).toContain("Pièces binaires absentes");
+        expect((await payableHandlers.exportPOST(payableExportRequest(m, "approved", other))).status).toBe(403);
+        const documentId = payableBatches.find(b => b.document.documentType === "payables_payments")!.document.id;
+        for (const s of [preparer, reviewer])
+            expect((await payableHandlers.GET(request(s, "GET", undefined, dossierA, "&operation=download&id=" + documentId))).status).toBe(200);
+        expect((await payableHandlers.GET(request(other, "GET", undefined, dossierA, "&operation=download&id=" + documentId))).status).toBe(403);
+        expect((await payableHandlers.GET(request(preparer, "GET", undefined, dossierB, "&operation=download&id=" + documentId))).status).toBe(403);
+        const noCsrf = payableExportRequest(m);
+        noCsrf.headers.delete(CSRF_HEADER);
+        expect((await payableHandlers.exportPOST(noCsrf)).status).toBe(403);
+        now += 7201;
+        expect((await payableHandlers.GET(request(preparer))).status).toBe(401);
+        expect((await payableCommand({ command: "revise", ...payableTarget() })).status).toBe(401);
+        expect((await payableHandlers.exportPOST(payableExportRequest(m))).status).toBe(401);
+        now -= 7201;
+    });
+    it("Mission 08 : reprise PostgreSQL et source remplacée conservent l’ancienne revue", async () => {
+        const locked = structuredClone(payableRun), before = await payableMission();
+        await client.end();
+        const container = process.env.PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER;
+        if (container) {
+            if (!/^[a-f0-9]{12,64}$/.test(container))
+                throw new Error("DISPOSABLE_CONTAINER_ID_INVALID");
+            await promisify(execFile)("docker", ["restart", container], { timeout: 20000 });
+        }
+        await connect();
+        for (let attempt = 0;; attempt++) {
+            try {
+                await client.unsafe("SELECT 1");
+                break;
+            }
+            catch (e) {
+                if (attempt >= 4)
+                    throw e;
+                await new Promise(resolve => setTimeout(resolve, 250));
+            }
+        }
+        let read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+        expect((await payableHandlers.exportPOST(payableExportRequest(before, "approved", reviewer))).status).toBe(200);
+        await payableImport("payables_payments", true);
+        expect((await payableHandlers.exportPOST(payableExportRequest(before, "approved", reviewer))).status).toBe(409);
+        const stale = await payableMission();
+        expect(stale.procedures.find(p => p.id === "payables.rpne")?.stale).toBe(true);
+        expect((await payableHandlers.exportPOST(payableExportRequest(stale, "approved", reviewer))).status).toBe(422);
+        const diagnostic = await payableHandlers.exportPOST(payableExportRequest(stale));
+        expect(diagnostic.status, await diagnostic.clone().text()).toBe(200);
+        expect(await diagnostic.text()).toContain("périmée");
+        payableRun = await payableSuccess({ command: "revise", ...payableTarget() });
+        expect(payableRun.approval).toBeUndefined();
+        expect(payableRun.result).toBeUndefined();
+        expect(payableRun.payablesWork).toBeUndefined();
+        read = await (await payableHandlers.GET(request(preparer))).json();
+        expect(read.runs.find((r: WorkpaperRun) => r.id === locked.id)).toEqual(locked);
+    }, 30000);
+
+    const equityTarget=()=>({id:equityRun.id,expectedVersion:equityRun.version});
+    async function equityCommand(body:EquityCommand,s=preparer,key=randomUUID()){return equityHttp.POST(request(s,'POST',JSON.stringify(body),dossierA,'',key));}
+    async function equitySuccess(body:EquityCommand,s=preparer){const response=await equityCommand(body,s);expect(response.status,await response.clone().text()).toBe(200);return(await response.json()).run as WorkpaperRun;}
+    async function equityImport(type:string,changed=false){const form=new FormData(),file=type==='equity_minutes'?new File([Uint8Array.from(await equitySyntheticPdf()).buffer],'recette-PV.pdf',{type:'application/pdf'}):new File([equityFixtureCsv[type]+(changed?'\nPAY-2;1.00;2025-01-13;;;DIST;payment;;;EUR;Règlement remplacé':'')],type+'.csv',{type:'text/csv'});form.set('file',file);form.set('mapping',JSON.stringify(EQUITY_DEMO_MAPPING));form.set('period',JSON.stringify(EQUITY_DEMO_PERIOD));form.set('documentType',type);const response=await equityHttp.importsPOST(request(preparer,'POST',form));expect(response.status,await response.clone().text()).toBe(200);const {batch}=await response.json(),view=await(await equityHttp.GET(request(preparer))).json(),approved=await equityHttp.importsPOST(request(preparer,'POST',JSON.stringify({command:'approve_import',importId:batch.id,previewHash:batch.previewHash,expectedSourceId:view.sourceHeads.find((h:{document_type:string})=>h.document_type===type)?.import_id??null})));expect(approved.status,await approved.clone().text()).toBe(200);return(await approved.json()).batch as ImportBatch;}
+    async function equityMission(){const r=await equityHttp.GET(request(preparer,'GET',undefined,dossierA,'&operation=mission&id='+encodeURIComponent(equityRun.id)));expect(r.status,await r.clone().text()).toBe(200);return(await r.json()).mission as EquityMission;}
+    const equityCitation=()=>({documentVersionId:equityBatches.at(-1)!.document.id,rowId:equityBatches.at(-1)!.rows[0].id,page:1});
+    const equityExport=(m:EquityMission,kind='diagnostic',s=preparer)=>equityHttp.exportPOST(request(s,'POST',JSON.stringify({dossierId:dossierA,periodId:periodId(EQUITY_DEMO_PERIOD),id:m.run!.id,version:m.run!.version,expectedSnapshotHash:m.hash,kind,format:'html'})));
+    it('Mission 11 : imports/PDF approuvés, population figée, recette décision/mouvement',async()=>{equityRun=await equitySuccess({command:'create_equity',period:EQUITY_DEMO_PERIOD,instanceKey:'equity-recipe'});equityBatches=[];for(const type of [...Object.keys(equityFixtureCsv),'equity_minutes'])equityBatches.push(await equityImport(type));equityRun=await equitySuccess({command:'freeze_equity',...equityTarget(),draft:equityDraftFor(equityBatches),criteria:'Décisions et mouvements de la recette',excluded:[],importIds:equityBatches.map(b=>b.id)});equityRun=await equitySuccess({command:'execute',...equityTarget()});expect(equityRun.state).toBe('executed');const r=equityRun.result!.result as EquityResult;expect(r.decisions.find(d=>d.id==='DIST')?.difference).toEqual({kind:'known',value:{amount:'-5.00',currency:'EUR'}});expect(r.transfers[0].amount.amount).toBe('0.00');expect(r.decisions.find(d=>d.id==='NO-PV')?.statuses).toContain('missing_minutes');expect(r.decisions.find(d=>d.id==='NEXT')?.statuses).toEqual(['outside']);expect(r.work.authorId).toBe('preparer-real');const m=await equityMission();expect(m.program).toEqual({procedures:1,controls:4});expect((await equityExport(m,'approved')).status).toBe(422);});
+    it('Mission 11 : autorité serveur, citations, accès transversal, idempotence et concurrence',async()=>{const body:EquityCommand={command:'conclude',...equityTarget(),text:'Écart 5 conservé, sans avis juridique',citation:equityCitation()},key=randomUUID(),first=await equityCommand(body,preparer,key),replayed=await equityCommand(body,preparer,key);expect(first.status).toBe(200);expect(await replayed.json()).toEqual(await first.clone().json());equityRun=(await first.json()).run;expect((await equityCommand({...body,text:'Autre contenu'},preparer,key)).status).toBe(409);expect((await equityCommand({...body,...equityTarget(),citation:{...equityCitation(),page:2}})).status).toBe(422);expect((await equityHttp.GET(request(other))).status).toBe(403);expect((await equityHttp.GET(request(preparer,'GET',undefined,dossierB))).status).toBe(403);expect((await equityCommand({...body,...equityTarget()},reviewer)).status).toBe(403);const responses=await Promise.all(['A','B'].map(text=>equityCommand({...body,...equityTarget(),text})));expect(responses.map(r=>r.status).sort()).toEqual([200,409]);equityRun=(await responses.find(r=>r.status===200)!.json()).run;expect((await responses.find(r=>r.status===409)!.json()).current.version).toBe(equityRun.version);});
+    it('Mission 11 : revue distincte, exception maintenue, export et PV protégés',async()=>{for(const n of equityRun.notes)equityRun=await equitySuccess({command:'resolve',...equityTarget(),noteId:n.id,text:'Exception conservée ; lecture et limite documentées',citation:equityCitation()});equityRun=await equitySuccess({command:'conclude',...equityTarget(),text:'Écart de 5 maintenu ; PV manquant et effet hors période à instruire, sans avis juridique',citation:equityCitation()});equityRun=await equitySuccess({command:'submit',...equityTarget()});expect((await equityCommand({command:'review',...equityTarget(),decision:'approved',submittedHash:equityRun.submittedHash!,text:'Auto',citation:equityCitation()},selfReviewer)).status).toBe(403);equityRun=await equitySuccess({command:'review',...equityTarget(),decision:'approved',submittedHash:equityRun.submittedHash!,text:'Travaux revus, exception maintenue',citation:equityCitation()},reviewer);equityRun=await equitySuccess({command:'lock',...equityTarget()},reviewer);const m=await equityMission(),response=await equityExport(m,'approved',reviewer);expect(response.status,await response.clone().text()).toBe(200);const html=await response.text();expect(html).toContain('Montant divergent');expect(html).toContain('reviewer-real');expect(html).toContain('-5.00 EUR');expect((await equityExport(m,'approved',other)).status).toBe(403);for(const op of ['proof','download']){const extra='&operation='+op+'&id='+equityCitation().documentVersionId;expect((await equityHttp.GET(request(preparer,'GET',undefined,dossierA,extra))).status).toBe(200);expect((await equityHttp.GET(request(other,'GET',undefined,dossierA,extra))).status).toBe(403);expect((await equityHttp.GET(request(preparer,'GET',undefined,dossierB,extra))).status).toBe(403);}now+=7201;expect((await equityHttp.GET(request(preparer))).status).toBe(401);expect((await equityExport(m)).status).toBe(401);now-=7201;});
+    it('Mission 11 : reprise, source remplacée, nouvelle révision sans réécrire la revue',async()=>{const locked=structuredClone(equityRun),before=await equityMission();await client.end();const container=process.env.PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER;if(container){if(!/^[a-f0-9]{12,64}$/.test(container))throw Error('DISPOSABLE_CONTAINER_ID_INVALID');await promisify(execFile)('docker',['restart',container],{timeout:20000});}await connect();for(let attempt=0;;attempt++){try{await client.unsafe('SELECT 1');break;}catch(e){if(attempt>=4)throw e;await new Promise(r=>setTimeout(r,250));}}expect((await equityMission()).run).toEqual(locked);await equityImport('equity_payments',true);expect((await equityExport(before,'approved',reviewer)).status).toBe(409);const stale=await equityMission();expect(stale.stale).toBe(true);expect((await equityExport(stale,'approved',reviewer)).status).toBe(422);const diagnostic=await equityExport(stale);expect(diagnostic.status,await diagnostic.clone().text()).toBe(200);expect(await diagnostic.text()).toContain('périmés');equityRun=await equitySuccess({command:'revise',...equityTarget()});expect(equityRun.equityWork).toBeUndefined();expect(equityRun.result).toBeUndefined();expect(equityRun.approval).toBeUndefined();const history=await equityHttp.GET(request(preparer,'GET',undefined,dossierA,'&operation=version&id='+encodeURIComponent(locked.id)+'&version='+locked.version));expect((await history.json()).runs[0]).toEqual(locked);},30000);
+    const investmentTarget=()=>({id:investmentRun.id,expectedVersion:investmentRun.version});
+    const investmentRequest=(s=preparer,method='GET',body?:BodyInit,dossier=dossierA,extra='',key=randomUUID())=>{const original=request(s,method,body,dossier,extra,key),u=new URL(original.url);u.pathname='/api/workpapers/participations';u.searchParams.set('periodId',periodId(INVESTMENT_PERIOD));const headers=new Headers(original.headers);if(body instanceof FormData)headers.delete('content-type');return new Request(u,{method,headers,body});};
+    async function investmentCommand(body:InvestmentCommand,s=preparer,key=randomUUID()){return investmentHttp.POST(investmentRequest(s,'POST',JSON.stringify(body),dossierA,'',key));}
+    async function investmentSuccess(body:InvestmentCommand,s=preparer){const r=await investmentCommand(body,s);expect(r.status,await r.clone().text()).toBe(200);return (await r.json()).run as WorkpaperRun;}
+    async function investmentImport(type:string,changed=false){const files=investmentSyntheticFiles(),file=files[type],form=new FormData();form.set('file',changed?new File([(await file.text()).replace('85.00','84.00')],file.name,{type:'text/csv'}):file);form.set('documentType',type);form.set('mapping',JSON.stringify(INVESTMENT_MAPPING));form.set('period',JSON.stringify(INVESTMENT_PERIOD));const r=await investmentHttp.importsPOST(investmentRequest(preparer,'POST',form));expect(r.status,await r.clone().text()).toBe(200);const {batch}=await r.json(),view=await(await investmentHttp.GET(investmentRequest())).json(),approved=await investmentHttp.importsPOST(investmentRequest(preparer,'POST',JSON.stringify({command:'approve_import',importId:batch.id,previewHash:batch.previewHash,expectedSourceId:view.sourceHeads.find((h:{document_type:string})=>h.document_type===type)?.import_id??null})));expect(approved.status,await approved.clone().text()).toBe(200);return (await approved.json()).batch as ImportBatch;}
+    const investmentCitation=()=>({documentVersionId:investmentBatches[0].document.id,rowId:investmentBatches[0].rows[0].id});
+    const investmentExport=(run=investmentRun,s=preparer)=>investmentHttp.exportPOST(investmentRequest(s,'POST',JSON.stringify({dossierId:dossierA,periodId:periodId(INVESTMENT_PERIOD),id:run.id,version:run.version,expectedHash:contentHash(run),format:'html'})));
+    it('Mission 12 : imports natifs, sources qualifiées, population et valeurs non concluantes',async()=>{
+      investmentRun=await investmentSuccess({command:'create_investment',period:INVESTMENT_PERIOD,instanceKey:'investment-recipe'});investmentBatches=[];for(const type of Object.keys(investmentSyntheticFiles()))investmentBatches.push(await investmentImport(type));
+      const facts=investmentFacts(investmentRun.scope,INVESTMENT_PERIOD,investmentBatches,investmentRun.id),draft=initialInvestmentDraft(facts);
+      draft.entries=draft.entries.map(e=>{const security=facts.find(f=>f.rowId===e.registerRowId)!.details.securityId;return {...e,modelRowId:facts.find(f=>f.type==='investment_models'&&f.details.securityId===security&&f.details.version==='2')?.rowId??null,previousModelRowId:facts.find(f=>f.type==='investment_models'&&f.details.securityId===security&&f.details.version==='1')?.rowId??null};});
+      investmentRun=await investmentSuccess({command:'freeze_investment',...investmentTarget(),draft,criteria:'Lignes de titres et distributions de recette',excluded:[],importIds:investmentBatches.map(b=>b.id)});investmentRun=await investmentSuccess({command:'execute',...investmentTarget()});const result=investmentRun.result!.result as InvestmentResult;expect(result.rows.find(r=>r.input.securityId==='ORD')!.review.bookedDifference).toEqual({kind:'known',value:{amount:'-1.00',currency:'EUR'}});expect(result.rows.find(r=>r.input.securityId==='EV')!.review.valuation.status).toBe('non_comparable');expect(result.outcome).toBe('inconclusive');expect(result.work.authorId).toBe('preparer-real');
+    });
+    it('Mission 12 : autorité serveur, idempotence, concurrence, accès transversal et citations',async()=>{
+      const body:InvestmentCommand={command:'conclude',...investmentTarget(),text:'Valeur non concluante et écarts conservés',citation:investmentCitation()},key=randomUUID(),first=await investmentCommand(body,preparer,key),again=await investmentCommand(body,preparer,key);expect(first.status).toBe(200);expect(await again.json()).toEqual(await first.clone().json());investmentRun=(await first.json()).run;expect((await investmentCommand({...body,text:'Changed'},preparer,key)).status).toBe(409);
+      expect((await investmentHttp.GET(investmentRequest(other))).status).toBe(403);expect((await investmentHttp.GET(investmentRequest(preparer,'GET',undefined,dossierB))).status).toBe(403);expect((await investmentCommand({...body,...investmentTarget(),citation:{...investmentCitation(),rowId:'old-row'}})).status).toBe(422);
+      const responses=await Promise.all(['A','B'].map(text=>investmentCommand({...body,...investmentTarget(),text})));expect(responses.map(r=>r.status).sort()).toEqual([200,409]);investmentRun=(await responses.find(r=>r.status===200)!.json()).run;
+    });
+    it('Mission 12 : revue distincte, verrouillage et diagnostic protégé conservant non concluant',async()=>{
+      for(const n of investmentRun.notes)investmentRun=await investmentSuccess({command:'resolve',...investmentTarget(),noteId:n.id,text:'Point documenté ; réserve maintenue',citation:investmentCitation()});investmentRun=await investmentSuccess({command:'conclude',...investmentTarget(),text:'Non concluant sur les valeurs non comparables ; écarts arithmétiques conservés',citation:investmentCitation()});investmentRun=await investmentSuccess({command:'submit',...investmentTarget()});const decision:InvestmentCommand={command:'review',...investmentTarget(),decision:'approved',text:'Revue avec réserves maintenues',submittedHash:investmentRun.submittedHash!,citation:investmentCitation()};expect((await investmentCommand(decision,selfReviewer)).status).toBe(403);investmentRun=await investmentSuccess(decision,reviewer);investmentRun=await investmentSuccess({command:'lock',...investmentTarget()},reviewer);
+      const exported=await investmentExport();expect(exported.status,await exported.clone().text()).toBe(200);expect(await exported.text()).toContain('Non concluant');expect((await investmentExport(investmentRun,other)).status).toBe(403);expect((await investmentHttp.GET(investmentRequest(other,'GET',undefined,dossierA,'&operation=download&id='+investmentCitation().documentVersionId))).status).toBe(403);const noCsrf=investmentRequest(preparer,'POST',JSON.stringify({dossierId:dossierA,periodId:periodId(INVESTMENT_PERIOD),id:investmentRun.id,version:investmentRun.version,expectedHash:contentHash(investmentRun),format:'html'}));noCsrf.headers.delete(CSRF_HEADER);expect((await investmentHttp.exportPOST(noCsrf)).status).toBe(403);
+    });
+    it('Mission 12 : reconnexion PostgreSQL, remplacement du modèle et révision préservant la revue',async()=>{
+      const locked=structuredClone(investmentRun);await client.end();await connect();const read=await(await investmentHttp.GET(investmentRequest())).json();expect(read.runs.find((r:WorkpaperRun)=>r.id===locked.id)).toEqual(locked);await investmentImport('investment_models',true);expect((await investmentExport(locked)).status).toBe(409);investmentRun=await investmentSuccess({command:'revise',...investmentTarget()});expect(investmentRun.investmentWork).toBeUndefined();expect(investmentRun.result).toBeUndefined();expect(investmentRun.approval).toBeUndefined();const version=await investmentHttp.GET(investmentRequest(preparer,'GET',undefined,dossierA,'&operation=version&id='+encodeURIComponent(locked.id)+'&version='+locked.version));expect((await version.json()).runs[0]).toEqual(locked);
+    },30000);
 });

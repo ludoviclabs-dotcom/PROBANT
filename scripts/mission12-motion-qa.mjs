@@ -1,0 +1,26 @@
+import { writeFile } from 'node:fs/promises';
+const origin='http://127.0.0.1:9227';
+const protocol=await (await fetch(origin+'/json/protocol')).json();
+if(!protocol.domains.find(d=>d.domain==='Emulation')?.commands.find(c=>c.name==='setEmulatedMedia'))throw Error('MOTION_EMULATION_UNAVAILABLE');
+const pages=await (await fetch(origin+'/json/list')).json();
+const target=pages.find(p=>p.type==='page'&&(p.url==='about:blank'||p.url==='http://127.0.0.1:3212/participations?demo=1'));
+if(!target)throw Error('ISOLATED_QA_PAGE_REQUIRED');
+const ws=new WebSocket(target.webSocketDebuggerUrl);await new Promise((resolve,reject)=>{ws.onopen=resolve;ws.onerror=reject;});
+let id=0;const waiting=new Map();ws.onmessage=e=>{const m=JSON.parse(e.data);const p=waiting.get(m.id);if(p){waiting.delete(m.id);if(m.error)p.reject(Error(JSON.stringify(m.error)));else p.resolve(m.result);}};
+const call=(method,params={})=>new Promise((resolve,reject)=>{const requestId=++id;waiting.set(requestId,{resolve,reject});ws.send(JSON.stringify({id:requestId,method,params}));});
+const evaluate=async expression=>(await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result.value;
+await call('Page.enable');await call('Runtime.enable');
+await call('Emulation.setDeviceMetricsOverride',{width:1440,height:1000,deviceScaleFactor:1,mobile:false});
+await call('Emulation.setEmulatedMedia',{features:[{name:'prefers-reduced-motion',value:'reduce'}]});
+await call('Page.navigate',{url:'http://127.0.0.1:3212/participations?demo=1'});
+for(let n=0;n<50;n++){if(await evaluate('document.querySelectorAll("tbody tr").length===5'))break;await new Promise(r=>setTimeout(r,200));}
+if(!await evaluate('document.querySelectorAll("tbody tr").length===5'))throw Error('QA_PAGE_NOT_READY');
+await evaluate(`document.querySelector('button[aria-label="Détail de Orion · titres ordinaires"]').click()`);
+await new Promise(r=>setTimeout(r,300));
+const result=await evaluate(`(()=>{const row=[...document.querySelectorAll('tbody tr')].find(t=>t.textContent.includes('Orion'));const panel=document.querySelector('aside');return {url:location.href,viewport:[innerWidth,innerHeight],documentWidth:document.documentElement.scrollWidth,reducedMotion:matchMedia('(prefers-reduced-motion: reduce)').matches,selectedAnimation:getComputedStyle(row).animationName,selectedDuration:getComputedStyle(row).animationDuration,rows:document.querySelector('table').querySelectorAll('tbody tr').length,scenarios:panel.textContent.includes('Prudent')&&panel.textContent.includes('Haut fourni'),versionComparison:panel.textContent.includes('Différences de versions'),expectedAndRecorded:panel.textContent.includes('10,00')&&panel.textContent.includes('9.00')};})()`);
+if(!result.reducedMotion||result.selectedAnimation!=='none'||result.rows!==5||!result.scenarios||!result.versionComparison)throw Error('MOTION_QA_FAILED: '+JSON.stringify(result));
+await evaluate(`window.scrollTo(0,300);document.querySelector('aside').scrollTop=380`);
+const screenshot=await call('Page.captureScreenshot',{format:'jpeg',quality:85,captureBeyondViewport:false});
+await writeFile('docs/probant-lots/mission12-captures/1440-reduced-motion.jpg',Buffer.from(screenshot.data,'base64'));
+await writeFile('docs/probant-lots/mission12-captures/reduced-motion.json',JSON.stringify(result,null,2)+'\n');
+console.log(JSON.stringify(result));ws.close();

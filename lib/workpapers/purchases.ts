@@ -1,6 +1,6 @@
 import { cents, money, type Money } from "@/lib/canonical-model/money";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { assertAmount, assertContext, assertUnique, type CycleContext, type SourcedAmount } from "./cycle-context";
+import { assertAmount, assertPayablesContext, assertUnique, type CycleContext, type SourcedAmount } from "./cycle-context";
 import { assertScope, frozen, type EvidenceLink, type Population, type SelectionSet } from "./model";
 import { evidence, known, ratio, reconcileBalances, supportedAmountSchema, unknown, type BalanceLine, type SupportedAmount } from "./cycle-review";
 import { analyzeCutoff, uniqueEconomicExposures, type CutoffInput, type CutoffResult } from "./cutoff";
@@ -12,7 +12,7 @@ export interface PurchaseInput {
   tests: { id: string; line: SourcedAmount; invoiceId: string; allocated: Money; basis: string; evidence: EvidenceLink[]; cutoff: CutoffInput }[];
 }
 export function testPurchases(input: PurchaseInput) {
-  assertContext(input.context); assertScope(input.context.scope, input.population.scope); validateSelectionSources(input.population, input.selection, input.imports);
+  assertPayablesContext(input.context); assertScope(input.context.scope, input.population.scope); validateSelectionSources(input.population, input.selection, input.imports);
   assertUnique(input.invoices.map((r) => r.id)); assertUnique(input.tests.map((r) => r.id)); assertUnique(input.tests.map((r) => r.line.source.id));
   input.invoices.forEach((i) => { supportedAmountSchema.parse(i.amount); evidence(input.context, i.amount.evidence); });
   const recognizedByEvent = new Map<string, bigint>();
@@ -38,11 +38,13 @@ export function testPurchases(input: PurchaseInput) {
     if (n < 0n || used > cents(invoice.amount.amount)) throw new Error("PURCHASE_INVOICE_OVERALLOCATED");
     allocated.set(invoice.id, used);
     const comparable = t.basis === invoice.amount.basis && evidence(input.context, t.evidence) && evidence(input.context, invoice.amount.evidence);
-    const recognized = recognizedByEvent.get(t.cutoff.economicEventKey) ?? 0n;
+    const recognized = input.context.scope.mode === "real"
+      ? (t.cutoff.recognition.alreadyRecognizedAmount.kind === "known" ? cents(t.cutoff.recognition.alreadyRecognizedAmount.value) : 0n)
+      : recognizedByEvent.get(t.cutoff.economicEventKey) ?? 0n;
     const checkedCutoff = analyzeCutoff({ ...t.cutoff, recognition: {
       ...t.cutoff.recognition,
-      alreadyRecognizedAmount: known(money(recognized)),
-      bookingDate: recognized !== 0n ? input.context.period.closingDate : t.cutoff.recognition.bookingDate,
+      alreadyRecognizedAmount: input.context.scope.mode === "real" ? t.cutoff.recognition.alreadyRecognizedAmount : known(money(recognized)),
+      bookingDate: input.context.scope.mode === "real" ? t.cutoff.recognition.bookingDate : recognized !== 0n ? input.context.period.closingDate : t.cutoff.recognition.bookingDate,
     } });
     const basisComparable = t.cutoff.basis.net.kind === "known"
       && cents(t.cutoff.basis.net.value) === cents(invoice.amount.amount)
