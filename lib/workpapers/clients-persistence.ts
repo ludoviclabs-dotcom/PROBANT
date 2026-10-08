@@ -34,7 +34,7 @@ export class ClientsWorkpaperRepository implements WorkpaperRepository {
     }
     async create(run: WorkpaperRun) {
         validateRun(run);
-        if (run.scope.mode !== "real" || !["equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne"].includes(run.template.id))
+        if (run.scope.mode !== "real" || !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne"].includes(run.template.id))
             throw new Error("CLIENT_TEMPLATE_REQUIRED");
         const inserted = await rows(this.tx, sql `INSERT INTO clients_workpaper_heads (organization_id,dossier_id,period_id,id,version)
       VALUES (${run.scope.organizationId},${run.scope.dossierId},${run.scope.periodId},${run.id},${run.version})
@@ -131,3 +131,4 @@ export class ClientsImports {
             report: { ...r.preview.report, calculationAllowed: true } } : r.preview), new Map(data.map((r) => [r.preview.id, r.original_base64])));
     }
 }
+

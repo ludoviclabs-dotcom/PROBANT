@@ -69,7 +69,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const db = drizzle(client, { schema });
         const sessions = new DrizzleSessionStore(db);
         const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
-        investmentRuntime=new InvestmentRuntime(db,authorizer,()=>now);investmentHttp=investmentHandlers(()=>investmentRuntime,()=>{});
+        investmentRuntime=new InvestmentRuntime(db,authorizer,()=>now);investmentHttp=investmentHandlers(()=>investmentRuntime,()=>{},error=>{if(error instanceof Error)console.error("INVESTMENT_RECIPE_ERROR",error.message.split("\n")[0],error.cause instanceof Error?error.cause.message:"");});
         runtime = new ClientsRuntime(db, authorizer, () => now);
         equityRuntime=new EquityRuntime(db,authorizer,()=>now);equityHttp=equityHandlers(()=>equityRuntime,()=>{});
         payableRuntime=new PayablesRuntime(db,authorizer,()=>now);payableHandlers=payablesHandlers(()=>payableRuntime,()=>{},error=>{if(error instanceof Error)console.error("PAYABLE_RECIPE_ERROR",error.message.split("\n")[0],error.cause instanceof Error?error.cause.message:"");});
@@ -581,3 +581,4 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
       const locked=structuredClone(investmentRun);await client.end();await connect();const read=await(await investmentHttp.GET(investmentRequest())).json();expect(read.runs.find((r:WorkpaperRun)=>r.id===locked.id)).toEqual(locked);await investmentImport('investment_models',true);expect((await investmentExport(locked)).status).toBe(409);investmentRun=await investmentSuccess({command:'revise',...investmentTarget()});expect(investmentRun.investmentWork).toBeUndefined();expect(investmentRun.result).toBeUndefined();expect(investmentRun.approval).toBeUndefined();const version=await investmentHttp.GET(investmentRequest(preparer,'GET',undefined,dossierA,'&operation=version&id='+encodeURIComponent(locked.id)+'&version='+locked.version));expect((await version.json()).runs[0]).toEqual(locked);
     },30000);
 });
+
