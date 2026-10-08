@@ -89,7 +89,7 @@ describe("feuille pilote durable — accusés et conflits", () => {
         expect(screen.getByText("Version serveur 2")).toBeTruthy();
         expect(screen.getByText("Conclusion concurrente")).toBeTruthy();
         expect((screen.getByLabelText("Conclusion") as HTMLTextAreaElement).value).toBe("Ma conclusion");
-        fireEvent.click(screen.getByText("Conserver mon texte sur la version courante"));
+        fireEvent.click(screen.getByText("Conserver mon brouillon sur la version courante"));
         await waitFor(() => expect(screen.getByText(/Version courante 2/)).toBeTruthy());
         expect(calls).toBe(1);
         expect((screen.getByLabelText("Conclusion") as HTMLTextAreaElement).value).toBe("Ma conclusion");
