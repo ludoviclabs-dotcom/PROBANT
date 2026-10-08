@@ -13,4 +13,4 @@ Le nouvel audit npm comptait 15 paquets affectés (les 14 préexistants et Next 
 
 Le nombre de workers est borné à deux, avec isolation des fichiers conservée. Le chargement PDF à froid dispose d'un délai explicite de quinze secondes ; ses assertions de revue manuelle et d'absence d'OCR restent vérifiées. La configuration JSX utilise Oxc avec le moteur automatique React.
 
-Les tests PostgreSQL, navigateur et les contrôles GitHub seront exécutés dans la CI jetable avant la livraison finale. Le fournisseur OIDC externe n'a pas été exercé localement. Aucun environnement de production n'a été activé.
+La CI95 de PR57 est terminée avec succès : tests PostgreSQL natifs avec redémarrage réel, navigateur, migrations aller-retour, audit/SBOM, CodeQL et recherche de secrets. La recette Clients complémentaire a ensuite exécuté 14 cas natifs et 1128 tests au total dans CI97, sans échec. Le fournisseur OIDC externe n'a pas été exercé localement. Aucun environnement de production n'a été activé.

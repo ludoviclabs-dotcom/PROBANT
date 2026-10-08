@@ -23,7 +23,7 @@ async function presentation(page: Page, onPost?: (input: Record<string, unknown>
   await expect(table).toContainText("INV-1000");
   return { ...f, state, table };
 }
-test("Clients et ventes : 1 000 / 300 / 700, preuve et proposition distincte avant l’accusé serveur", async ({ page }) => {
+test("Clients et ventes : 1 000 / 300 / 700, preuve et proposition distincte avant l’accusé serveur", async ({ page }, testInfo) => {
   let release: () => void = () => {};
   const ack = new Promise<void>(resolve => { release = resolve; });
   let request: Record<string, unknown> | null = null;
@@ -36,9 +36,9 @@ test("Clients et ventes : 1 000 / 300 / 700, preuve et proposition distincte ava
   await expect(page.getByRole("complementary", { name: "Preuves de la facture" })).toContainText("factures.csv");
   await expect(page.getByText("Allocation validée par actual-preparer", { exact: false })).toBeVisible();
   await checkAccessibility(page);
-  await f.table.screenshot({ path: "e2e/.artifacts/clients-sales-invoices.png" });
+  await f.table.screenshot({ path: testInfo.outputPath("clients-sales-invoices.png") });
   await page.setViewportSize({ width: 390, height: 844 });
-  await f.table.screenshot({ path: "e2e/.artifacts/clients-sales-mobile.png" });
+  await f.table.screenshot({ path: testInfo.outputPath("clients-sales-mobile.png") });
   const layout = await page.evaluate(() => { const outside = Array.from(document.querySelectorAll("main *")).filter(el => { const rect = el.getBoundingClientRect(); if (!rect.width || rect.right <= window.innerWidth) return false; let parent = el.parentElement; while (parent) { if (["auto", "scroll", "hidden"].includes(getComputedStyle(parent).overflowX)) return false; parent = parent.parentElement; } return true; }).map(el => ({ tag: el.tagName, text: el.textContent?.slice(0, 90), right: Math.round(el.getBoundingClientRect().right) })); return { width: document.documentElement.scrollWidth, outside }; });
   expect(layout.width, JSON.stringify(layout.outside)).toBeLessThanOrEqual(390);
   await page.setViewportSize({ width: 1280, height: 720 });

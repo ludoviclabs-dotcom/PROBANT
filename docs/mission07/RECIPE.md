@@ -36,11 +36,15 @@ JSON, HTML imprimable, CSV et PDF réutilisent l’export existant. Le paquet ap
 
 ## Exécutions et limites
 
-- Contrôles locaux de calcul, projection/export et composants : exécutés ; voir les résultats finaux de CI.
-- Suite locale : 1110 réussis, une assertion d’ancien libellé corrigée puis relancée ; treize cas PostgreSQL étaient alors ignorés faute de service local. La recette comporte désormais quatorze cas natifs.
+- Calcul : 27 tests ciblés réussis, dont 16 nouveaux. Projection/export/UI après correction de sélection : 22 tests ciblés réussis. Composants Clients/conflits/imports : 14 tests réussis, dont dix nouveaux.
+- CI97 sur le code 2eb6917b5f0b3f0b13b956156d582abf47bdc238 : 1128/1128 tests réussis dans 104 fichiers, dont 14/14 recettes PostgreSQL natives et le redémarrage réel du conteneur. Build Next réussi. Migrations aller-retour, audit/SBOM, fixtures adverses, CodeQL et recherche de secrets réussis.
 - Types et lint : validés ; sept avertissements préexistants, aucune erreur.
-- Construction et navigateur : reconstruction finale et recette en cours au moment de ce rapport ; résultats à mettre à jour après exécution.
-- PostgreSQL : aucun serveur local installé. L’exécution native finale est confiée au service jetable CI17, sans alternative en mémoire.
+- Build local final 2eb6917 : réussi. Navigateur ciblé : 5/5 réussis (trois Clients nouveaux, cadrage et Synthèse hérités) ; axe WCAG2.1 AA sans violation sérieuse ou critique ; viewport390 sans débordement global. Captures desktop/mobile inspectées.
+- La recette locale complète précédant les corrections avait 1110 réussites et une assertion d’ancien libellé en échec ; elle a été corrigée et relancée. Quatorze cas natifs sont ignorés uniquement localement, faute de PostgreSQL installé ; ils ont été réellement exécutés avec succès en CI17. Aucun stockage de substitution.
+- Vercel a construit une Preview READY du code 2eb6917, cible non production. Cette construction ne vaut pas recette d’un dossier connecté sur Preview : aucun environnement OIDC externe jetable n’a été provisionné ou activé ici.
+- Le résultat des contrôles complets navigateur/Lighthouse de la branche est consultable dans les checks de PR58. Ces contrôles ne modifient pas l’infrastructure de production.
 - Non exécutés : connexion à un fournisseur OIDC externe et parcours navigateur connecté de bout en bout à ce fournisseur ; authentification des originaux de confirmations externes ; activation et migration de production.
 
 Les essais navigateur interceptent les réponses serveur pour vérifier l’affichage, le rejet, l’accusé et les conflits. Ils ne constituent pas une preuve de persistance. La recette PostgreSQL utilise séparément les handlers, sessions et stockage réels.
+
+Références : [sécurité PR57](https://github.com/ludoviclabs-dotcom/PROBANT/pull/57), [Clients PR58](https://github.com/ludoviclabs-dotcom/PROBANT/pull/58), [CI97 — code validé](https://github.com/ludoviclabs-dotcom/PROBANT/actions/runs/37722026085).
