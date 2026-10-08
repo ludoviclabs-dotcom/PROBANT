@@ -11,8 +11,10 @@
     "0004_tax_review_evidence.sql",
     "0005_clients_framing.up.sql",
     "0006_clients_sales.up.sql",
-    "0007_payables_investigation.up.sql",
-    "0008_equity_dossier.up.sql"
+    "0007_cash_reconciliation.up.sql",
+    "0008_fixed_assets.up.sql",
+    "0009_payables_investigation.up.sql",
+    "0010_equity_dossier.up.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -24,8 +26,10 @@
     "0004_tax_review_evidence.down.sql",
     "0005_clients_framing.down.sql",
     "0006_clients_sales.down.sql",
-    "0007_payables_investigation.down.sql",
-    "0008_equity_dossier.down.sql"
+    "0007_cash_reconciliation.down.sql",
+    "0008_fixed_assets.down.sql",
+    "0009_payables_investigation.down.sql",
+    "0010_equity_dossier.down.sql"
   ],
   "tables": [
     "control_executions",
