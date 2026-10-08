@@ -1,3 +1,66 @@
+# Handoff — Mission 11 : décisions et mouvements de capitaux propres (2026-10-08)
+
+**Base :** `0c0b43186d7f9d3d2deadf24657e3508899b7ae6`, branche locale `codex/mission08-payables`. **Livraison de code et preuves :** `ddf685c537dc5a90995375aca73b78eee46f47c7`, branche `codex/mission11-equity`, worktree `mission11`. Ce handoff est ajouté ensuite dans un commit documentaire. Diff limité à Mission 11 au-dessus de cette base ; aucun push, PR distante, merge, déploiement, activation ou modification de configuration distante.
+
+Main observé au début : `fdf1c12e8c1240e891c86913908f3aefbe5f9720`. Vercel observé en lecture seule au début : déploiement `dpl_HnY7R2uYjy8px3RqYhSjwZrWpWXv`, READY, même SHA. Ce constat ne décrit pas une vérification de production après livraison. La chaîne locale des missions 05–08 est une dépendance de ce lot et n'a pas été remplacée par main. Réconcilier cette chaîne et le main courant avant une intégration distante.
+
+## Résultat utilisable
+
+Le moteur existant `reviewEquity` est réutilisé par un adaptateur fermé `equity.review`. La feuille traite une unité décision/mouvement : cartographie des composantes et comptes, soldes ouverture/clôture, GL, tableau de variation, registre de décisions, PV/actes et règlements. Capital, primes, réserves, report, résultat, écarts, subventions, provisions réglementées et autres composantes sont déclarés applicables ou exclus avec pièce/justification. Un regroupement unique du capital fournit la base mathématique du ratio existant ; aucun ratio ne vaut conclusion juridique.
+
+La distribution synthétique votée 30, comptabilisée 25 expose un écart de −5 et un règlement ultérieur distinct. Le transfert interne de 20 conserve ses deux jambes et un effet total nul. PV absent, effet hors période, décision sans écriture dans la période, écriture sans décision et cartographie incomplète restent visibles. Une comptabilisation ultérieure documentée apparaît dans la frise/export sans changer le solde de clôture ni la comparaison de période. Une source partielle ou inconnue ne devient pas zéro.
+
+| Niveau | Maturité et preuve |
+| --- | --- |
+| Contrat / calcul | 25 tests ciblés réussis : métier, preuves, dates, mapping, exclusions, invalidation, gardes d'accès, erreurs et export |
+| Imports | CSV/PDF de recette réellement lus et hachés ; XLSX réutilise le parseur commun, sans recette Equity XLSX spécifique ; PDF indexé, décision lue/citée humainement |
+| Restitution / Synthèse | Recette Chrome du build final à 1440/1024/390 px, reduced-motion ; 1 procédure / 4 contrôles, dénominateurs et exclusions |
+| Diagnostic / impression | Écran et export concordants sur les données synthétiques ; HTML imprimé sur 12 pages ; sources/version/localisateurs et originaux absents indiqués |
+| Commandes / persistance | Adaptateurs PostgreSQL, transactions, version, idempotence, auteur serveur et permissions réutilisés ; quatre scénarios natifs préparés, non exécutés |
+| Revue réelle / usage autorisé | Non validés sur infrastructure jetable ; gate fermé ; aucune activation réelle ou production |
+
+## Parcours visibles et fichiers à reprendre
+
+- `/equity` : Population, Tests, Exceptions, Pièces et Revue ; tableau de variation horizontal, tri/filtres de décisions, frise vote/effet/écriture/paiement et panneau du PV à la page pertinente. Seuls expansion et mouvement sélectionné sont animés (180 ms ; désactivés en reduced-motion).
+- `/equity/synthesis` : file de travail, quatre contrôles prévus, exclusions, sources et versions périmées ; liens d'identité typés `decision:`, `movement:`, `component:`, `row:`. L'accès est relié depuis `/dashboard/synthese`.
+- `/equity?demo=1` et variantes `case=long` / `case=incomplete` : démonstration locale explicitement synthétique, en lecture seule. Elle ne sauvegarde ni ne revoit une mission réelle et reste séparée de DEMO SA et de l'atelier existant.
+- `/api/workpapers/equity`, `/imports`, `/export` : accès/mutations et téléchargements autorisés côté serveur, auteur provenant des sessions serveur, pas d'autorité depuis un rôle du navigateur. Diagnostic distinct du paquet approuvé.
+
+Réutiliser `EquityRuntime`, `WorkpaperService`, les ports `ClientsWorkpaperRepository`/`ClientsImports`, `RequestAuthorizer` et la frontière monétaire canonique. Ne pas ouvrir les autres moteurs synthétiques. Convention, sources, mapping, population, sélection, calcul et décisions sont versionnés. Accusé serveur requis avant « Sauvegardée » ; conflit avec comparaison du brouillon et de la version serveur, réessai avec la même clé d'idempotence. Auto-approbation refusée, préparation par son auteur, revue par une autre identité autorisée. Source remplacée : nouvelle révision sans réécrire la décision ancienne.
+
+Migration additive `drizzle/0008_equity_dossier.up.sql` : seuls sept types de source ajoutés à la liste fermée existante. Down refuse un rollback avec des données Equity. Aucun nouveau stockage de secours ni deuxième état métier React.
+
+## Vérifications exécutées
+
+Suite complète finale : **1 161 tests réussis, 22 ignorés ; 107 suites réussies, 1 ignorée**. Typecheck et build réussis. Lint : zéro erreur, sept avertissements préexistants. Manifeste contrôlé : 11 migrations montantes, 17 tables, invariants valides. Aucun SQL de migration exécuté sur une base dans cette livraison. Un test Clients existant a dépassé 5 secondes lors de l'exécution parallèle avec le build ; ses deux tests ont réussi seuls, puis la suite complète a été relancée sans build concurrent.
+
+Captures réelles et rapport dans `docs/probant-lots/mission11-captures/` ; évaluation visuelle `design-qa.md`, contrat `MISSION11_CONTRACT.md`, titre/description prêts dans `MISSION11_PR.md`. Pas de maquette générée présentée comme capture. PV réel synthétique page 1/3 rendu, console sans erreur JavaScript sur les routes parcourues. Escape : focus DIST, position 936 px conservée. Liens décision/mouvement/composante contrôlés, libellé long, vide/erreur/aucun résultat et cartographie partielle. Comparaison avec l'atelier existant inspectée ; extension du parcours, aucune revendication de copie 1:1.
+
+## Exactement ce qui reste non exécuté
+
+PostgreSQL jetable absent, `PROBANT_CLIENTS_TEST_DATABASE_URL` non fourni ; Docker/psql indisponibles dans cette session. Les 22 tests natifs restent ignorés, dont ces quatre scénarios Mission 11 :
+
+1. Imports CSV/PDF approuvés → cartographie → population/sélection figées → exécution → exceptions.
+2. Identité serveur, citation exacte, deux organisations/quatre dossiers/deux rôles, accès transversal refusé, replay idempotent et concurrence transactionnelle.
+3. Traitements cités → soumission → auto-approbation refusée → revue distincte/verrouillage ; exception conservée, paquet approuvé/PV/téléchargement protégés, expiration de session.
+4. Déconnexion/reconnexion PostgreSQL (redémarrage Docker physique seulement si un identifiant de conteneur jetable est fourni), remplacement de source, export ancien invalidé et nouvelle révision préservant la revue précédente.
+
+Ces tests utilisent des sessions serveur de recette initialisées avec un issuer/subject synthétique ; ils n'exécutent pas un échange OIDC avec un fournisseur externe. La connexion OIDC réelle, les sauvegardes/conflits/revues intégrés dans le navigateur, le redémarrage physique et l'application/rollback des migrations n'ont donc pas été validés ici. Aucun fallback mémoire n'est présenté comme durable.
+
+Pour la suite : fournir une base locale jetable dédiée portant un nom finissant par `_test` ou `_ci`, appliquer les migrations existantes via `DATABASE_URL` pointant explicitement vers cette base, puis fournir la même URL dans `PROBANT_CLIENTS_TEST_DATABASE_URL` et exécuter le fichier `clients-durable.integration.test.ts` complet. Ne pas filtrer seulement les quatre tests Equity : ils dépendent du setup et de la séquence partagée. `PROBANT_CLIENTS_TEST_POSTGRES_CONTAINER` facultatif doit être l'identifiant hexadécimal du conteneur jetable autorisé. Aucun de ces prérequis n'a été activé ici.
+
+L'interface réelle exige la configuration OIDC/session et les droits organisation/dossier existants. `PROBANT_EQUITY_DURABLE=disposable` est le gate explicite de recette, désactivé par défaut et refusé en production Vercel. Le serveur local laissé ouvert utilise uniquement `PROBANT_DEMONSTRATION_ENABLED=true` et l'origine `http://127.0.0.1:3198` ; le gate durable reste absent.
+
+## Limites et dépendances du lot suivant
+
+Méthode interne de rapprochement, EUR uniquement, période/formes/comptes déclarés à corroborer, aucune nouvelle règle juridique/comptable. Les pièces PDF sont indexées, sans extraction automatique du vote ; leur date/montant techniques d'index ne sont pas des faits de décision. Le PDF applicatif standard réutilisé conserve sa limite Latin-1 ; HTML/JSON gardent Unicode. Les originaux ne sont pas inclus dans le paquet et aucun archivage certifié n'est revendiqué. Une revue ne ferme pas les exceptions comme conformes.
+
+Maturité : **pilote local cohérent, raccord durable préparé mais non validé sur PostgreSQL**. Les priorités suivantes sont la recette native ci-dessus, la réconciliation de la chaîne locale avec main et la qualification indépendante des sources/conventions. Toute future règle juridique devra être sourcée pour la forme sociale et la période avant implémentation. Le produit global n'est pas déclaré prêt.
+
+---
+
+Les handoffs ci-dessous sont conservés comme historique daté des lots 01/02. Leurs états « prompts suivants non exécutés » décrivent leur date de rédaction, pas la livraison locale actuelle.
+
 # Handoff — lot 02 : fiabilité du dépôt historique (2026-10-03)
 
 Base finale : `origin/main` **`83ba8638d260597af423d7426463aec0772f3bf0`**, PR #52, récupérée et intégrée localement sans conflit. Branche : `fix/historical-upload-reliability`. Lot 01 conservé et rebasé : `412e5677f01916d3c97a6141fd6185bdf05ce604` (ancien commit `ef7d4f0`). Code du lot 02 : `aeec05c67387d8f251b4f07d4c2aa38aef2340bb` ; ce handoff est livré ensuite dans un commit documentaire. Aucun push, PR, merge distant ou déploiement effectué.
