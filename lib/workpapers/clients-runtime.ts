@@ -20,19 +20,21 @@ import type { ClientsCommand } from "./clients-commands";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 export class ClientsRuntime {
-    constructor(private readonly db: ClientsDatabase, private readonly authorizer: Pick<RequestAuthorizer, "authorize">, private readonly now: () => number = () => Math.floor(Date.now() / 1000)) { }
+    protected readonly procedureIds: readonly string[] = ["clients.frame", "clients.sales"];
+    protected readonly sourceTypes: readonly string[] = [...CLIENT_TYPES, ...SALES_TYPES];
+    constructor(protected readonly db: ClientsDatabase, protected readonly authorizer: Pick<RequestAuthorizer, "authorize">, protected readonly now: () => number = () => Math.floor(Date.now() / 1000)) { }
     async check(request: Request, dossierId: string, permission: Permission) { await this.identity(request, dossierId, permission); }
-    private async identity(request: Request, dossierId: string, permission: Permission) {
+    protected async identity(request: Request, dossierId: string, permission: Permission) {
         const identity = await this.authorizer.authorize(request, { dossierId, permission: permissions[permission] });
         assertDossierPermission(identity, dossierId, permissions[permission]);
         if (isExpired(identity, this.now()))
             throw new Error("SESSION_INVALID");
         return identity;
     }
-    private actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
+    protected actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
         return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter((p) => hasPermission(identity.roles, permissions[p])) }] };
     }
-    private async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: ClientsSql, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
+    protected async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: ClientsSql, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
         const identity = await this.identity(request, dossierId, permission);
         const scope: WorkpaperScope = { organizationId: identity.organizationId, dossierId, periodId: pid, mode: "real" };
         return this.db.transaction(async (tx) => {
@@ -48,7 +50,7 @@ export class ClientsRuntime {
             return result;
         });
     }
-    private async receipt<T>(tx: ClientsSql, scope: WorkpaperScope, actor: Principal, key: string, payload: unknown, body: () => Promise<T>): Promise<T> {
+    protected async receipt<T>(tx: ClientsSql, scope: WorkpaperScope, actor: Principal, key: string, payload: unknown, body: () => Promise<T>): Promise<T> {
         if (!/^[A-Za-z0-9:_-]{8,128}$/.test(key))
             throw new Error("IDEMPOTENCY_KEY_REQUIRED");
         const hash = stableSha256(payload);
@@ -66,13 +68,13 @@ export class ClientsRuntime {
       VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${actor.id},${key},${hash},${JSON.stringify(response)}::jsonb)`);
         return response;
     }
-    private heads(tx: ClientsSql, scope: WorkpaperScope) {
+    protected heads(tx: ClientsSql, scope: WorkpaperScope) {
         return rows<{
             document_type: string;
             import_id: string;
         }>(tx, sql `SELECT document_type,import_id FROM clients_source_heads WHERE ${scopeWhere(scope)}`);
     }
-    private async assertCurrent(tx: ClientsSql, scope: WorkpaperScope, run: WorkpaperRun) {
+    protected async assertCurrent(tx: ClientsSql, scope: WorkpaperScope, run: WorkpaperRun) {
         const heads = await this.heads(tx, scope);
         if (run.importIds.some((id) => !heads.some((h) => h.import_id === id)))
             throw new Error("CLIENT_SOURCE_REPLACED_REVISION_REQUIRED");
@@ -97,7 +99,8 @@ export class ClientsRuntime {
             const ids = id ? [{ id }] : await rows<{
                 id: string;
             }>(tx, sql `SELECT id FROM clients_workpaper_heads WHERE ${scopeWhere(scope)} ORDER BY id`);
-            const currentRuns = (await Promise.all(ids.map((r) => repository.get(scope, r.id)))).filter((r): r is WorkpaperRun => !!r);
+            const currentRuns = (await Promise.all(ids.map((r) => repository.get(scope, r.id)))).filter((r): r is WorkpaperRun => !!r && this.procedureIds.includes(r.template.id));
+            if (id && !currentRuns.length) throw new Error("WORKPAPER_NOT_FOUND");
             const runs = version !== undefined && id ? (await repository.history(scope, id)).filter(r => r.version === version) : currentRuns;
             if (version !== undefined && !runs.length) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
             const lineageHeads = await rows<{ id: string; version: number; root_id: string; revision: number }>(tx, sql`SELECT h.id,h.version,v.run->>'rootId' AS root_id,(v.run->>'revision')::int AS revision FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId}`);
@@ -123,7 +126,7 @@ export class ClientsRuntime {
                 try { facts = batches.some(b => b.document.documentType === "clients_invoices") && batches.some(b => b.document.documentType === "clients_payments") ? buildClientsSalesFacts(scope, r.period, batches, r.id) : null; } catch (error) { salesFactsIssues[r.id] = error instanceof Error ? error.message : "CLIENT_SALES_SOURCES_INVALID"; }
                 return [r.id, facts];
             }));
-            const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, salesFacts, salesFactsIssues, salesFraming, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
+            const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, salesFacts, salesFactsIssues, salesFraming, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.filter(b=>this.sourceTypes.includes(b.document.documentType)).map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads.filter(h=>this.sourceTypes.includes(h.document_type)),
                 sourcesCurrent,
                 ...(history && id ? { history: await repository.history(scope, id) } : {}) };
             if (Buffer.byteLength(JSON.stringify(response))>8*1024*1024) throw new ApiError("CLIENT_STATE_LIMIT","État trop volumineux pour cette recette.",413);
@@ -140,7 +143,7 @@ export class ClientsRuntime {
         const imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
         const [dossier] = await rows<{ created_at: Date | string }>(tx, sql`SELECT created_at FROM dossiers WHERE id=${scope.dossierId} AND organization_id=${scope.organizationId}`);
         if (!dossier) throw new Error("WORKPAPER_NOT_FOUND");
-        const mission = buildClientMission(scope, versions, imports.batches, heads, selection, new Date(dossier.created_at).toISOString());
+        const mission = buildClientMission(scope, versions.filter(r=>["clients.frame","clients.sales"].includes(r.template.id)), imports.batches, heads.filter(h=>[...CLIENT_TYPES,...SALES_TYPES].includes(h.document_type as typeof SALES_TYPES[number])), selection, new Date(dossier.created_at).toISOString());
         const run = versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null;
         if (Buffer.byteLength(JSON.stringify(mission)) > 8 * 1024 * 1024) throw new ApiError("CLIENT_MISSION_LIMIT", "Synthèse trop volumineuse pour cette recette.", 413);
         return { mission, run, imports: imports.batches };
@@ -170,12 +173,19 @@ export class ClientsRuntime {
         return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor) => (await ClientsImports.load(tx, scope)).download(scope, documentId, actor));
     }
     async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: typeof CLIENT_TYPES[number] | typeof SALES_TYPES[number], key: string) {
+        return this.previewSource(request,dossierId,period,file,mapping,type,key);
+    }
+    protected importAdapter(type:string): "clients.frame" | "clients.sales" | "payables.rpne" { return SALES_TYPES.includes(type as typeof SALES_TYPES[number]) ? "clients.sales" : "clients.frame"; }
+    protected validateSource(batch: import("./imports").ImportBatch, period:AccountingPeriod) {
+        if (!this.sourceTypes.includes(batch.document.documentType)) throw new Error("CLIENT_DOCUMENT_TYPE_INVALID");
+        if (SALES_TYPES.includes(batch.document.documentType as typeof SALES_TYPES[number])) assertClientsSalesBatch(batch,period); else assertClientsBatch(batch,period.closingDate);
+    }
+    protected async previewSource(request:Request,dossierId:string,period:AccountingPeriod,file:File,mapping:ImportMapping,type:string,key:string) {
         return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => {
             if (file.size > 3 * 1024 * 1024) throw new ApiError("CLIENT_FILE_LIMIT", "Fichier limité à 3 Mio pour cette recette.", 413);
             const safeFile = new File([await file.arrayBuffer()], neutralizeFileName(file.name), { type: file.type });
-            const sales = SALES_TYPES.includes(type as typeof SALES_TYPES[number]);
-            let batch = await previewImport(safeFile, scope, mapping, actor, type, sales ? "clients.sales" : "clients.frame");
-            if (sales) assertClientsSalesBatch(batch, period); else assertClientsBatch(batch, period.closingDate);
+            let batch = await previewImport(safeFile, scope, mapping, actor, type, this.importAdapter(type));
+            this.validateSource(batch,period);
             if (Buffer.byteLength(JSON.stringify(batch)) > 3 * 1024 * 1024) throw new ApiError("CLIENT_PREVIEW_LIMIT", "Aperçu trop volumineux pour cette recette.", 413);
             const { previewHash: _hash, ...base } = batch;
             void _hash;
@@ -195,6 +205,7 @@ export class ClientsRuntime {
     }, key: string) {
         return this.transaction(request, dossierId, pid, "prepare", async (tx, scope, actor) => this.receipt(tx, scope, actor, key, { operation: "approve_import", ...command }, async () => {
             const imports = await ClientsImports.load(tx, scope), batch = imports.get(scope, command.importId, actor);
+            if (!this.sourceTypes.includes(batch.document.documentType)) throw new Error("DOCUMENT_TYPE_OUT_OF_SCOPE");
             if (batch.previewHash !== command.previewHash || batch.report.blocking.length || !batch.rows.length)
                 throw new Error("IMPORT_REJECTED_OR_STALE");
             const head = (await this.heads(tx, scope)).find((h) => h.document_type === batch.document.documentType)?.import_id ?? null;
@@ -224,7 +235,7 @@ export class ClientsRuntime {
                 return { run: await makeService(true).create(scope, command.period, CLIENT_SALES_TEMPLATE, "clients-sales:" + framing.rootId, work) };
             }
             const current = await repository.get(scope, command.id);
-            if (!current) throw new Error("WORKPAPER_NOT_FOUND");
+            if (!current || !this.procedureIds.includes(current.template.id)) throw new Error("WORKPAPER_NOT_FOUND");
             const sales = current.template.id === "clients.sales", service = makeService(sales);
             if (current.clientsWork) clientsSalesWorkSchema.parse(current.clientsWork);
             if (command.command !== "revise" && command.command !== "freeze_sales") await this.assertCurrent(tx, scope, current);

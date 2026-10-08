@@ -2,7 +2,7 @@ import { cents, money, type KnownAmount, type Money } from "@/lib/canonical-mode
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertScope, frozen, knownAmountSchema, type EvidenceLink, type WorkpaperScope } from "./model";
 import { authorize, type Principal } from "./policy";
-import { assertContext, assertDate, SOURCE_REQUIRED, type CycleContext } from "./cycle-context";
+import { assertContext, assertPayablesContext, assertDate, SOURCE_REQUIRED, type CycleContext } from "./cycle-context";
 
 export type CutoffCandidate = "FAE" | "PCA" | "FNP" | "CCA";
 export interface CutoffInput {
@@ -27,7 +27,7 @@ export function economicEventId(context: CycleContext, key: string) {
   if (!key.trim()) throw new Error("ECONOMIC_EVENT_KEY_REQUIRED");
   return `event-${stableSha256({ scope: context.scope, key })}`;
 }
-/** One shared, synthetic decision table. Real normative activation deliberately unavailable. */
+/** Shared investigation table; real entry is limited to the documented Mission 08 contract. */
 export function analyzeCutoff(input: CutoffInput): CutoffResult {
   const eventId = economicEventId(input.context, input.economicEventKey);
   const inputHash = stableSha256(input);
@@ -40,10 +40,11 @@ export function analyzeCutoff(input: CutoffInput): CutoffResult {
     { label: "Clôture", date: input.context.period.closingDate, verified: input.context.period.validation === "confirmed" },
   ];
   const common = { scope: input.context.scope, id: `cutoff-${inputHash}`, economicEventId: eventId, inputHash, version: "1.0.0" as const, humanStatus: "pending" as const, evidence, timeline,
-    limitations: [`${SOURCE_REQUIRED}: guide ch. 11–13 et méthode applicable ; grille technique synthétique, règle réelle désactivée.`, "Aucune écriture, TVA ou allocation linéaire automatique. Le candidat doit être revu avec motif."] };
+    limitations: [input.context.scope.mode === "real" ? "Investigation technique interne Mission 08 ; méthode et pièces documentées, sans opinion normative ni écriture automatique." : `${SOURCE_REQUIRED}: guide ch. 11–13 et méthode applicable ; grille technique synthétique, règle réelle désactivée.`, "Aucune écriture, TVA ou allocation linéaire automatique. Le candidat doit être revu avec motif."] };
   const result = (status: CutoffResult["status"], reasons: string[], candidate: CutoffCandidate | null = null, amount: KnownAmount = { kind: "unknown", reason: reasons.join(" ; ") || "Montant non déterminé" }): CutoffResult => frozen({ ...common, status, candidate, amount, reasons });
-  if (input.context.scope.mode !== "demo" || input.context.purpose !== "synthetic_technical") return result("inconclusive", [SOURCE_REQUIRED, "REAL_CUTOFF_RULE_DISABLED"]);
-  assertContext(input.context);
+  if (input.context.scope.mode === "real") {
+    try { assertPayablesContext(input.context); } catch { return result("inconclusive", [SOURCE_REQUIRED, "REAL_CUTOFF_RULE_DISABLED"]); }
+  } else assertContext(input.context);
   for (const point of timeline) if (point.date) assertDate(point.date);
   for (const amount of [input.basis.net, input.basis.tax, input.basis.gross, input.recognition.alreadyRecognizedAmount, ...input.recognition.existingAdjustments.map((a) => a.amount)]) knownAmountSchema.parse(amount);
   if (!["purchase", "sale"].includes(input.flow) || !["invoice", "credit_note"].includes(input.documentKind)) throw new Error("CUTOFF_FLOW_INVALID");

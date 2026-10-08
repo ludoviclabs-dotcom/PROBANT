@@ -319,7 +319,8 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         {run.state === "approved" && canReview && <button className={controlClass} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
         {run.approval && <p>Décision de {run.approval.actorId} · {run.approval.at} · Version {run.approval.version}</p>}
       </section>}
-      <WorkpaperPanel runs={run ? [run] : []} durable filter={sheetFilter} noteId={requested?.noteId}/>
+      <p><a href={"/cutoff?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Cut-off transversal · ventes et achats documentés</a> · <a href={"/payables?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Investigation Achats et fournisseurs</a></p>
+          <WorkpaperPanel runs={run ? [run] : []} durable filter={sheetFilter} noteId={requested?.noteId}/>
     </>}
   </main>;
 }

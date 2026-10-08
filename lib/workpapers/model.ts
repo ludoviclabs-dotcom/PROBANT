@@ -1,3 +1,4 @@
+import type { PayablesWork } from "./payables-investigation";
 import type { ClientsSalesWork } from "./clients-sales";
 import { z } from "zod";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
@@ -54,7 +55,7 @@ export interface EvidenceLink {
   status: "verified" | "suggestion"; purpose: string;
 }
 export interface Population {
-  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party";
+  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment";
   items: { id: string; rowIds: string[]; amount: Money }[]; hash: string;
 }
 export interface SelectionSet {
@@ -75,15 +76,16 @@ export interface WorkpaperRun {
   id: string; rootId: string; revision: number; version: number; schemaVersion: typeof WORKPAPER_SCHEMA_VERSION;
   scope: WorkpaperScope; period: AccountingPeriod; template: ProcedureTemplate; state: WorkpaperState;
   preparedBy: string; importIds: string[]; population?: Population; selection?: SelectionSet;
-  clientsWork?: ClientsSalesWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
+  payablesWork?: PayablesWork; clientsWork?: ClientsSalesWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
   conclusion?: string; submittedHash?: string; approval?: Approval; supersedes?: string; previousLockedId?: string;
   events: { id: string; action: string; actorId: string; at: string; version: number }[];
 }
 export function contentHash(run: WorkpaperRun): string {
-  return stableSha256({ ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
+  return stableSha256({ ...(run.payablesWork ? { payablesWork: run.payablesWork } : {}), ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
 }
 export function validateRun(run: WorkpaperRun): WorkpaperRun {
   scopeSchema.parse(run.scope);
+  if (run.payablesWork && (!run.template.id.startsWith("payables.") || run.payablesWork.schemaVersion !== "payables-investigation-1" || !run.payablesWork.authorId || !Number.isFinite(Date.parse(run.payablesWork.authoredAt)))) throw new Error("PAYABLE_WORK_INVALID");
   if (run.clientsWork && (run.template.id !== "clients.sales" || run.clientsWork.schemaVersion !== "clients-sales-1" || !run.clientsWork.framing.runId || !run.clientsWork.framing.rootId || !Number.isSafeInteger(run.clientsWork.framing.version) || run.clientsWork.framing.version < 1 || !/^[a-f0-9]{64}$/.test(run.clientsWork.framing.contentHash))) throw new Error("CLIENT_SALES_WORK_INVALID");
   if (periodIssues(run.period).length || run.scope.periodId !== periodId(run.period)) throw new Error("WORKPAPER_PERIOD_INVALID");
   if (!run.id || !run.preparedBy || !run.template.id || !run.template.version || !run.template.objective.trim() || !["manual", "calculated"].includes(run.template.kind)) throw new Error("WORKPAPER_TEMPLATE_INVALID");
