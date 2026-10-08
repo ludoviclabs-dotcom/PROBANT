@@ -64,6 +64,8 @@ describe("CASH-901 population des comptes et sources qualifiées", () => {
     expect((refusal(() => assertCashBatch(late, cashPeriod)) as CashSourceError).code).toBe("CASH_CLOSING_BALANCE_DATE_REQUIRED");
     const suspense = await previewCash("cash_erb", replace(CASH_CSV.cash_erb, "R1;15.00;2024-12-30", "R1;15.00;2025-01-02"));
     expect((refusal(() => assertCashBatch(suspense, cashPeriod)) as CashSourceError).code).toBe("CASH_SUSPENSE_AFTER_CLOSING");
+    const preClosing = await previewCash("cash_support", replace(CASH_CSV.cash_support, "-5.00;2025-01-20", "-5.00;2024-12-31"));
+    expect((refusal(() => assertCashBatch(preClosing, cashPeriod)) as CashSourceError).code).toBe("CASH_SUPPORT_OUTSIDE_POST_CLOSING");
     const early = await previewCash("cash_settlements", replace(CASH_CSV.cash_settlements, "S1;15.00;2025-01-03", "S1;15.00;2024-12-31"));
     expect((refusal(() => assertCashBatch(early, cashPeriod)) as CashSourceError).code).toBe("CASH_SETTLEMENT_OUTSIDE_POST_CLOSING");
   });
@@ -144,6 +146,8 @@ describe("CASH-903 apurement postérieur des suspens", () => {
     expect(item(r, "P1")).toMatchObject({ status: "corrected", statusLabel: "Corrigé", correction: { reason: "Chèque annulé et contrepassé en janvier" }, settledAmount: { amount: "0.00" } });
     expect(r.exceptions).toEqual([]); expect(cashOutcome(r)).toBe("no_exception_detected");
     expect(bank(r).bridge).toMatchObject({ outstandingPayments: { amount: "-5.00" }, ledger: { amount: { amount: "100.00" } } });
+    // A bank movement is never accepted as correction evidence: it must be allocated.
+    expect(() => work(imports, nominalDraft(imports, { allocations: [], corrections: [{ id: "C-R1", itemId: "R1", proof: rowOf(imports, "cash_settlements", "S1"), reason: "Mouvement présenté comme correction" }] }))).toThrow("CASH_CORRECTION_REFERENCE_UNKNOWN");
   });
   it("non testé avec motif et non expliqué restent visibles", async () => {
     const imports = await cashSources();

@@ -53,7 +53,7 @@ export const CashDetailPanel = forwardRef<DetailHandle, Props>(function CashDeta
   const item = account.items.find(i => i.itemId === target.itemId);
   if (!item) return <aside className={styles.detail} aria-label="Détail et source"><h2 ref={heading} tabIndex={-1}>Suspens introuvable</h2><p>Ce suspens n’existe pas dans la version affichée.</p><button type="button" onClick={onReturn}>Retour</button></aside>;
   const sameSign = account.fact?.settlements.filter(s => (cents(s.amount) > 0n) === (cents(item.amount) > 0n)) ?? [];
-  const support = [...(account.fact?.support ?? []), ...(account.fact?.settlements ?? [])];
+  const support = account.fact?.support ?? [];
   const draftAllocations = draft?.allocations.filter(a => a.itemId === item.itemId) ?? [], draftCorrection = draft?.corrections.find(c => c.itemId === item.itemId), draftExclusion = draft?.exclusions.find(e => e.itemId === item.itemId);
   const canEdit = editable && !!draft && account.inScope;
   const normalizedAmount = amount.trim().replace(",", ".");
@@ -96,7 +96,7 @@ export const CashDetailPanel = forwardRef<DetailHandle, Props>(function CashDeta
       {!draftAllocations.length && !draftCorrection && !draftExclusion && <>
         <form onSubmit={e => { e.preventDefault(); const [importId, rowId] = supportKey.split("|"); if (!importId || !reason.trim()) return; update({ corrections: [...draft!.corrections, { id: "corr-" + crypto.randomUUID(), itemId: item.itemId, proof: { importId, rowId }, reason: reason.trim() }] }); setSupportKey(""); setReason(""); }}>
           <div className={styles.fields}>
-            <label>Pièce de correction (même compte)<select value={supportKey} onChange={e => setSupportKey(e.target.value)}><option value="">Choisir…</option>{support.map(s => <option key={s.importId + "|" + s.rowId} value={s.importId + "|" + s.rowId}>{("supportId" in s ? s.supportId : s.settlementId)} · {dateFr(s.date)} · {eur(s.amount, { signed: true })}</option>)}</select></label>
+            <label>Pièce de correction (même compte)<select value={supportKey} onChange={e => setSupportKey(e.target.value)}><option value="">Choisir…</option>{support.map(s => <option key={s.importId + "|" + s.rowId} value={s.importId + "|" + s.rowId}>{s.supportId} · {dateFr(s.date)} · {eur(s.amount, { signed: true })}</option>)}</select></label>
             <label>Motif de la correction<input value={reason} onChange={e => setReason(e.target.value)}/></label>
           </div>
           <button type="submit" disabled={!supportKey || !reason.trim()}>Documenter une correction</button>

@@ -36,6 +36,8 @@ const MESSAGES: Record<string, string> = {
   CASH_STATEMENT_DUPLICATE: "Deux soldes de relevé à la clôture pour le même compte.", CASH_ERB_BALANCE_DUPLICATE: "L’ERB contient deux soldes de même nature pour ce compte.",
   CASH_CLOSING_BALANCE_DATE_REQUIRED: "Les soldes du GL, du relevé et de l’ERB doivent être datés de la clôture.",
   CASH_SUSPENSE_AFTER_CLOSING: "Un suspens de l’ERB doit être daté au plus tard de la clôture.",
+  CASH_SUPPORT_OUTSIDE_POST_CLOSING: "Une pièce de correction doit être datée après la clôture et au plus tard à la date de revue.",
+  CASH_CORRECTION_REFERENCE_UNKNOWN: "Une correction doit s’appuyer sur une pièce de correction importée, pas sur un mouvement bancaire.",
   CASH_SETTLEMENT_OUTSIDE_POST_CLOSING: "Les relevés postérieurs doivent être datés après la clôture et au plus tard à la date de revue.",
   CASH_NATURE_INVALID: "Nature du compte attendue : banque, caisse ou vmp.", CASH_ERB_KIND_INVALID: "Nature de ligne ERB attendue : solde_comptable, solde_banque, remise_non_creditee, paiement_non_debite ou autre_suspens.",
   CASH_KEY_INVALID_OR_DUPLICATE: "Identifiant de ligne absent ou dupliqué.", CASH_BANK_REQUIRED: "Banque absente sur une ligne.", CASH_ACCOUNT_REQUIRED: "Référence de compte absente sur une ligne.",

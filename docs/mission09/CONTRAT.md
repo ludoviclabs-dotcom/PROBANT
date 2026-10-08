@@ -22,7 +22,7 @@ Mapping fermé `cash-reconciliation-1` (CSV/XLSX, 3 Mio, mapping explicite, sign
 | `cash_statement` | `statement_closing` | Solde du relevé à la clôture par compte | devise ≠ EUR (`CASH_CURRENCY_UNSUPPORTED`), date ≠ clôture, doublon par compte |
 | `cash_erb` | `reconciliation_statement` | Lignes `solde_comptable`, `solde_banque` (datées clôture) et suspens `remise_non_creditee` (> 0), `paiement_non_debite` (< 0), `autre_suspens` (≠ 0) datés ≤ clôture ; explication, pièce | signe incohérent (`CASH_ITEM_SIGN_INCONSISTENT`), suspens après clôture, solde dupliqué |
 | `cash_settlements` | `subsequent_statement` | Mouvements des relevés postérieurs : crédit positif, débit négatif, clôture < date ≤ revue | hors fenêtre clôture → revue, montant nul |
-| `cash_support` | `correction_support` | Pièces de correction postérieures rattachées à un compte | date > revue |
+| `cash_support` | `correction_support` | Pièces de correction postérieures rattachées à un compte ; seule source admise comme preuve de correction | date ≤ clôture ou > revue |
 
 Toute ligne de relevé, d’ERB, de mouvement ou de pièce dont la banque/référence n’appartient pas à la population est **refusée** au gel (`CASH_ACCOUNT_UNKNOWN`, « mauvaise banque »), jamais ignorée. Chaque source garde ses propres en-têtes : l’identité est lue par document (`columnsByDocument`), jamais par libellé ni alias.
 
@@ -44,7 +44,7 @@ Par compte testé, à partir des seules valeurs sources (jamais réécrites) :
 
 Ces quatre grandeurs ne sont **jamais additionnées** entre elles ni entre comptes ; aucun total d’exposition.
 
-Apurement (`clearCash`) : allocations règlement → suspens (même compte, même sens, montant > 0, cumul ≤ |règlement| et ≤ |suspens|, règlement daté dans la fenêtre documentée), corrections (pièce du même compte, datée ≤ revue, motif), exclusions motivées. Les apurements postérieurs ne modifient jamais les soldes ni l’ERB à la clôture (invariant vérifié par le schéma de résultat).
+Apurement (`clearCash`) : allocations règlement → suspens (même compte, même sens, montant > 0, cumul ≤ |règlement| et ≤ |suspens|, règlement daté dans la fenêtre documentée), corrections (ligne de la source « pièces de correction » du même compte, datée après la clôture et ≤ revue, motif ; un mouvement bancaire ne peut pas servir de correction), exclusions motivées. Les apurements postérieurs ne modifient jamais les soldes ni l’ERB à la clôture (invariant vérifié par le schéma de résultat).
 
 ## États et sens textuel
 

@@ -20,7 +20,7 @@ const SIGN_MEANING: Record<CashSourceType, string> = {
   cash_statement: "Positif = solde du relevé en faveur de l’entreprise. Une ligne par compte, datée de la clôture, en EUR.",
   cash_erb: "Positif augmente le solde comptable : remise non créditée > 0, paiement non débité < 0. Natures : solde_comptable, solde_banque, remise_non_creditee, paiement_non_debite, autre_suspens.",
   cash_settlements: "Crédit (encaissement) positif, débit (paiement) négatif ; mouvements datés après la clôture et au plus tard à la revue.",
-  cash_support: "Pièces de correction postérieures (écritures, justificatifs) rattachées à un compte ; datées au plus tard à la revue.",
+  cash_support: "Pièces de correction postérieures (écritures, justificatifs) rattachées à un compte ; datées après la clôture et au plus tard à la revue ; seules ces pièces peuvent documenter une correction.",
 };
 const COLUMN_LABELS: Record<keyof Columns, string> = { key: "Colonne identifiant", amount: "Colonne montant", date: "Colonne date", bank: "Colonne banque", account: "Colonne référence de compte", currency: "Colonne devise", nature: "Colonne nature du compte", kind: "Colonne nature de ligne ERB", label: "Colonne libellé (facultative)", explanation: "Colonne explication (facultative)", piece: "Colonne pièce (facultative)", sheet: "Feuille XLSX (si XLSX)" };
 const VISIBLE: Record<CashSourceType, (keyof Columns)[]> = {

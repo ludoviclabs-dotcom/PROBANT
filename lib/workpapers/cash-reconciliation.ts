@@ -159,7 +159,8 @@ export function evaluateCashReconciliation(scope: WorkpaperScope, period: Accoun
     if (pairs.has(a.itemId + "\u0000" + a.settlementId)) throw new Error("CASH_ALLOCATION_DUPLICATE");
     pairs.add(a.itemId + "\u0000" + a.settlementId);
   }
-  const supportRows = facts.accounts.flatMap(a => [...a.support, ...a.settlements].map(s => ({ account: a, source: s })));
+  // Only rows of the correction-support source can prove a correction; a bank movement is cleared by allocation, never by correction.
+  const supportRows = facts.accounts.flatMap(a => a.support.map(s => ({ account: a, source: s })));
   for (const c of work.corrections) {
     const item = itemOf(c.itemId), proof = supportRows.find(s => s.source.importId === c.proof.importId && s.source.rowId === c.proof.rowId);
     if (!item || !proof) throw new Error("CASH_CORRECTION_REFERENCE_UNKNOWN");

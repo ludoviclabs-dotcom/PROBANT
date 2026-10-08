@@ -67,7 +67,7 @@ export function assertCashBatch(batch: ImportBatch, period: AccountingPeriod) {
     }
     if (type === "cash_settlements" && (date <= period.closingDate || date > period.asOfDate)) throw at("CASH_SETTLEMENT_OUTSIDE_POST_CLOSING", m.columns.date);
     if (type === "cash_settlements" && amount === 0n) throw at("CASH_SETTLEMENT_ZERO", m.columns.amount);
-    if (type === "cash_support" && date > period.asOfDate) throw at("CASH_SUPPORT_AFTER_REVIEW", m.columns.date);
+    if (type === "cash_support" && (date <= period.closingDate || date > period.asOfDate)) throw at("CASH_SUPPORT_OUTSIDE_POST_CLOSING", m.columns.date);
   }
 }
 
