@@ -101,4 +101,7 @@
   .measures,.ratios{grid-template-columns:minmax(0,1fr)}
 }
 .synthesis :is(code,span,li,strong){overflow-wrap:anywhere}
+/* Form fields shrink with their label: no intrinsic input width may overflow a 390 px screen, whatever the font metrics. */
+.synthesis :is(input,select){width:100%;min-width:0}
+@media (max-width:720px){.synthesis label{min-width:0}}
 @media (prefers-reduced-motion:reduce){.expansion,.movements button,.chevron{animation:none!important;transition:none!important}}
