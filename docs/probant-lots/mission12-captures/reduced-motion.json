@@ -1,0 +1,15 @@
+{
+  "url": "http://127.0.0.1:3212/participations?demo=1",
+  "viewport": [
+    1440,
+    1000
+  ],
+  "documentWidth": 1430,
+  "reducedMotion": true,
+  "selectedAnimation": "none",
+  "selectedDuration": "1e-06s",
+  "rows": 5,
+  "scenarios": true,
+  "versionComparison": true,
+  "expectedAndRecorded": true
+}

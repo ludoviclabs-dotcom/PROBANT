@@ -1,0 +1,11 @@
+Key;Amount;Date;Details
+"COST-ORD";"100.00";"2024-12-31";"{""securityId"":""ORD"",""kind"":""cost"",""basis"":""HOLDING:ORD""}"
+"IMP-ORD";"10.00";"2024-12-31";"{""securityId"":""ORD"",""kind"":""impairment"",""basis"":""HOLDING:ORD""}"
+"COST-PREF";"100.00";"2024-12-31";"{""securityId"":""PREF"",""kind"":""cost"",""basis"":""HOLDING:PREF""}"
+"IMP-PREF";"10.00";"2024-12-31";"{""securityId"":""PREF"",""kind"":""impairment"",""basis"":""HOLDING:PREF""}"
+"COST-EV";"100.00";"2024-12-31";"{""securityId"":""EV"",""kind"":""cost"",""basis"":""HOLDING:EV""}"
+"IMP-EV";"10.00";"2024-12-31";"{""securityId"":""EV"",""kind"":""impairment"",""basis"":""HOLDING:EV""}"
+"COST-DATE";"100.00";"2024-12-31";"{""securityId"":""DATE"",""kind"":""cost"",""basis"":""HOLDING:DATE""}"
+"IMP-DATE";"10.00";"2024-12-31";"{""securityId"":""DATE"",""kind"":""impairment"",""basis"":""HOLDING:DATE""}"
+"COST-ABSENT";"100.00";"2024-12-31";"{""securityId"":""ABSENT"",""kind"":""cost"",""basis"":""HOLDING:ABSENT""}"
+"IMP-ABSENT";"10.00";"2024-12-31";"{""securityId"":""ABSENT"",""kind"":""impairment"",""basis"":""HOLDING:ABSENT""}"

@@ -175,7 +175,7 @@ export class ClientsRuntime {
     async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: typeof CLIENT_TYPES[number] | typeof SALES_TYPES[number], key: string) {
         return this.previewSource(request,dossierId,period,file,mapping,type,key);
     }
-    protected importAdapter(type:string): "equity.review" | "clients.frame" | "clients.sales" | "payables.rpne" { return SALES_TYPES.includes(type as typeof SALES_TYPES[number]) ? "clients.sales" : "clients.frame"; }
+    protected importAdapter(type:string): "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.rpne" { return SALES_TYPES.includes(type as typeof SALES_TYPES[number]) ? "clients.sales" : "clients.frame"; }
     protected validateSource(batch: import("./imports").ImportBatch, period:AccountingPeriod) {
         if (!this.sourceTypes.includes(batch.document.documentType)) throw new Error("CLIENT_DOCUMENT_TYPE_INVALID");
         if (SALES_TYPES.includes(batch.document.documentType as typeof SALES_TYPES[number])) assertClientsSalesBatch(batch,period); else assertClientsBatch(batch,period.closingDate);

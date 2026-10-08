@@ -1,3 +1,4 @@
+import type { InvestmentWork } from "./investment-dossier";
 import type { EquityWork } from "./equity-dossier";
 import type { PayablesWork } from "./payables-investigation";
 import type { ClientsSalesWork } from "./clients-sales";
@@ -58,7 +59,7 @@ export interface EvidenceLink {
   status: "verified" | "suggestion"; purpose: string;
 }
 export interface Population {
-  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "account" | "asset";
+  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "security_distribution" | "account" | "asset";
   items: { id: string; rowIds: string[]; amount: Money }[]; hash: string;
 }
 export interface SelectionSet {
@@ -79,15 +80,16 @@ export interface WorkpaperRun {
   id: string; rootId: string; revision: number; version: number; schemaVersion: typeof WORKPAPER_SCHEMA_VERSION;
   scope: WorkpaperScope; period: AccountingPeriod; template: ProcedureTemplate; state: WorkpaperState;
   preparedBy: string; importIds: string[]; population?: Population; selection?: SelectionSet;
-  cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; equityWork?: EquityWork; payablesWork?: PayablesWork; clientsWork?: ClientsSalesWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
+  investmentWork?: InvestmentWork; cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; equityWork?: EquityWork; payablesWork?: PayablesWork; clientsWork?: ClientsSalesWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
   conclusion?: string; submittedHash?: string; approval?: Approval; supersedes?: string; previousLockedId?: string;
   events: { id: string; action: string; actorId: string; at: string; version: number }[];
 }
 export function contentHash(run: WorkpaperRun): string {
-  return stableSha256({ ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), ...(run.equityWork ? { equityWork: run.equityWork } : {}), ...(run.payablesWork ? { payablesWork: run.payablesWork } : {}), ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
+  return stableSha256({ ...(run.investmentWork ? {investmentWork:run.investmentWork} : {}), ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), ...(run.equityWork ? { equityWork: run.equityWork } : {}), ...(run.payablesWork ? { payablesWork: run.payablesWork } : {}), ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
 }
 export function validateRun(run: WorkpaperRun): WorkpaperRun {
   scopeSchema.parse(run.scope);
+  if(run.investmentWork && (run.template.id !== 'investments.review' || run.investmentWork.schemaVersion !== 'investment-review-1' || !run.investmentWork.authorId || !Number.isFinite(Date.parse(run.investmentWork.authoredAt)))) throw Error('INVESTMENT_WORK_INVALID');
   if(run.equityWork && (run.template.id !== "equity.review" || run.equityWork.schemaVersion !== "equity-dossier-1" || !run.equityWork.authorId || !Number.isFinite(Date.parse(run.equityWork.authoredAt)))) throw new Error("EQUITY_WORK_INVALID");
   if (run.payablesWork && (!run.template.id.startsWith("payables.") || run.payablesWork.schemaVersion !== "payables-investigation-1" || !run.payablesWork.authorId || !Number.isFinite(Date.parse(run.payablesWork.authoredAt)))) throw new Error("PAYABLE_WORK_INVALID");
   if (run.clientsWork && (run.template.id !== "clients.sales" || run.clientsWork.schemaVersion !== "clients-sales-1" || !run.clientsWork.framing.runId || !run.clientsWork.framing.rootId || !Number.isSafeInteger(run.clientsWork.framing.version) || run.clientsWork.framing.version < 1 || !/^[a-f0-9]{64}$/.test(run.clientsWork.framing.contentHash))) throw new Error("CLIENT_SALES_WORK_INVALID");

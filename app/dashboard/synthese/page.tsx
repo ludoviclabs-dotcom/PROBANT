@@ -481,7 +481,7 @@ export default function SynthesePage() {
       </header>
 
       <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/equity/synthesis">Capitaux propres · décisions et mouvements</a></p>
+      <p className="my-4 text-sm"><a className="underline" href="/participations">Participations · droits, distributions et valeur</a> · <a className="underline" href="/equity/synthesis">Capitaux propres · décisions et mouvements</a></p>
 <p className="my-4 text-sm"><a className="underline" href="/payables/synthesis">Synthèse Achats et fournisseurs</a> · <a className="underline" href="/cutoff">Cut-off transversal ventes / achats</a></p>
       <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
       <p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
