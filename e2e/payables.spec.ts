@@ -102,9 +102,13 @@ test("Cut-off : événement double unique, filtres ventes / achats et versions e
     await expect(d).toContainText("payables.purchases v1");
     await expect(d).toContainText("payables.rpne v1");
     await expect(d.getByRole("link").first()).toHaveAttribute("href", /version=1/);
-    await page.getByLabel("Flux", { exact: true }).selectOption("sale");
+    await page.getByRole("combobox",{name:"Flux",exact:true}).selectOption("sale");
     await expect(table).toContainText("SALE");
     await expect(table).not.toContainText("I-D");
     await axe(page);
     await page.locator("main").screenshot({ path: info.outputPath("payables-cutoff.png") });
+});
+
+test("Exception expliquée : résolution après accusé, focus et position conservés",async({page})=>{
+ let release:()=>void=()=>{};const ack=new Promise<void>(r=>release=r),holder:{run?:WorkpaperRun}={};const f=await setup(page,async input=>{await ack;holder.run!.version=2;holder.run!.notes=holder.run!.notes.map(n=>({...n,resolution:{text:String(input.text),authorId:"real-preparer",at:"2025-02-01T12:00:00.000Z"}}));return{body:{run:holder.run}}});holder.run=f.state.run;holder.run.notes=[{id:"point-U",kind:"observation",text:"Candidat omission à expliquer",blocking:true,amount:{kind:"unknown",reason:"Jugement requis"},authorId:"real-preparer"}];await page.getByRole("button",{name:"Actualiser la version affichée"}).click();await page.getByLabel("Explication du point point-U").fill("Exception expliquée, candidat maintenu.");const button=page.getByRole("button",{name:"Documenter le traitement"});await button.scrollIntoViewIfNeeded();await button.click();const y=await page.evaluate(()=>scrollY);await expect(page.getByText("Traitement : Exception expliquée",{exact:false})).toHaveCount(0);release();await expect(page.getByText(/Traitement : Exception expliquée/)).toBeVisible();await expect(page.locator("#payable-note-point-U")).toBeFocused();expect(Math.abs(await page.evaluate(()=>scrollY)-y)).toBeLessThanOrEqual(5);
 });

@@ -31,7 +31,8 @@ export class PayablesRuntime extends ClientsRuntime {
                 return [run.id, { issue: error instanceof Error ? error.message : "PAYABLE_SOURCE_INVALID" }];
             } }));
         });
-        const response = { ...view, facts };
+        const choices=await this.transaction(request,dossierId,pid,"read",async(tx,scope)=>{const repository=new ClientsWorkpaperRepository(tx),heads=await rows<{id:string}>(tx,sql`SELECT id FROM clients_workpaper_heads WHERE ${scopeWhere(scope)} ORDER BY id`);const runs=await Promise.all(heads.map(h=>repository.get(scope,h.id)));return runs.filter((r):r is WorkpaperRun=>!!r&&this.procedureIds.includes(r.template.id)).map(r=>({id:r.id,objective:r.template.objective,version:r.version,revision:r.revision}));});
+        const response = { ...view, facts,choices };
         if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024)
             throw new ApiError("PAYABLE_STATE_LIMIT", "État trop volumineux.", 413);
         return response;
