@@ -3,17 +3,29 @@ import { cents, money, type Money } from "@/lib/canonical-model/money";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { frozen, moneySchema, type ProcedureTemplate, type RuleReference } from "./model";
 import type { CalculationRegistry } from "./calculations";
-import { absolute, assertAmount, assertContext, assertUnique, assertWindow, sum, SOURCE_REQUIRED, type CycleContext, type SourcedAmount, type PostClosingWindow } from "./cycle-context";
+import { absolute, assertAmount, assertCashContext, assertUnique, assertWindow, sum, SOURCE_REQUIRED, type CycleContext, type SourcedAmount, type PostClosingWindow } from "./cycle-context";
+import type { SourceRow } from "./model";
 
 export interface BankAccount { id: string; bankId: string; bankLabel: string; accountReference: string; currency: "EUR"; aliases: string[] }
 export interface CashItem { id: string; accountId: string; type: "receipt_in_transit" | "outstanding_payment" | "other"; value: SourcedAmount; explanation: string; explained: boolean }
+/** `columnsByDocument` lets each qualified source keep its own header names; the default columns apply otherwise. */
+export interface CashConvention { version: string; label: "positive_increases_book_balance"; validatedBy: string; bankColumn: string; accountColumn: string; columnsByDocument?: Record<string, { bankColumn: string; accountColumn: string }> }
 export interface CashInput {
   context: CycleContext; account: BankAccount;
-  convention: { version: string; label: "positive_increases_book_balance"; validatedBy: string; bankColumn: string; accountColumn: string };
+  convention: CashConvention;
   ledger: SourcedAmount; statement: SourcedAmount; erbBook: SourcedAmount; erbBank: SourcedAmount; items: CashItem[];
 }
+/** Identity read from the original cells of the source row, never from a label or an alias. */
+export function sourceBankIdentity(convention: CashConvention, source: SourceRow) {
+  const columns = convention.columnsByDocument?.[source.documentVersionId] ?? convention;
+  return { bankId: source.original[columns.bankColumn]?.trim() ?? "", accountReference: source.original[columns.accountColumn]?.trim() ?? "" };
+}
+function belongsTo(convention: CashConvention, account: BankAccount, source: SourceRow) {
+  const identity = sourceBankIdentity(convention, source);
+  return identity.bankId === account.bankId && identity.accountReference === account.accountReference;
+}
 export function bankPopulation(context: CycleContext, accounts: BankAccount[]) {
-  assertContext(context); assertUnique(accounts.map((a) => a.id));
+  assertCashContext(context); assertUnique(accounts.map((a) => a.id));
   assertUnique(accounts.map((a) => `${a.bankId}:${a.accountReference}:${a.currency}`));
   if (accounts.some((a) => !a.bankId.trim() || !a.accountReference.trim() || a.currency !== "EUR")) throw new Error("BANK_IDENTITY_OR_CURRENCY_INVALID");
   const sorted = [...accounts].sort((a, b) => a.id < b.id ? -1 : 1);
@@ -22,11 +34,11 @@ export function bankPopulation(context: CycleContext, accounts: BankAccount[]) {
 export function cashSourceValues(input: CashInput) { return [input.ledger, input.statement, input.erbBook, input.erbBank, ...input.items.map((i) => i.value)]; }
 /** Arithmetic bridge specified by the pack; not an audit conclusion or a client ERB generator. */
 export function reconcileCash(input: CashInput) {
-  assertContext(input.context); bankPopulation(input.context, [input.account]);
+  assertCashContext(input.context); bankPopulation(input.context, [input.account]);
   if (input.convention.label !== "positive_increases_book_balance" || !input.convention.version || !input.convention.validatedBy.trim()) throw new Error("CASH_SIGN_CONVENTION_REQUIRED");
   cashSourceValues(input).forEach((v) => assertAmount(input.context, v));
   for (const value of cashSourceValues(input)) {
-    if (value.source.original[input.convention.bankColumn] !== input.account.bankId || value.source.original[input.convention.accountColumn] !== input.account.accountReference) throw new Error("CASH_SOURCE_BANK_ACCOUNT_MISMATCH");
+    if (!belongsTo(input.convention, input.account, value.source)) throw new Error("CASH_SOURCE_BANK_ACCOUNT_MISMATCH");
   }
   for (const value of [input.ledger, input.statement, input.erbBook, input.erbBank]) if (value.date !== input.context.period.closingDate) throw new Error("CLOSING_BALANCE_DATE_MISMATCH");
   assertUnique(input.items.map((i) => i.id)); assertUnique(input.items.map((i) => i.value.source.id));
@@ -51,7 +63,7 @@ export function reconcileCash(input: CashInput) {
     bookSourceDifference, bankSourceDifference, erbArithmeticDifference,
     grossUnexplained, unexplainedCount: unexplained.length, items,
     hasArithmeticException: [difference, bookSourceDifference, bankSourceDifference, erbArithmeticDifference, grossUnexplained].some((v) => cents(v) !== 0n),
-    limitations: [`${SOURCE_REQUIRED}: guide original/PBC et méthode métier à valider ; cadre synthétique uniquement.`, "Accord arithmétique ≠ authenticité, propriété du compte ou conclusion du cycle.", "Les écarts source et l’écart du pont ne sont pas additionnés comme expositions distinctes."] };
+    limitations: [input.context.purpose === "real" ? "Méthode interne cash.reconciliation 1.0.0 : pont arithmétique sur sources qualifiées et approuvées, sans conclusion d’audit." : `${SOURCE_REQUIRED}: guide original/PBC et méthode métier à valider ; cadre synthétique uniquement.`, "Accord arithmétique ≠ authenticité, propriété du compte ou conclusion du cycle.", "Les écarts source et l’écart du pont ne sont pas additionnés comme expositions distinctes."] };
   return frozen({ ...result, inputHash: stableSha256({ ...input, items }) });
 }
 export interface Settlement { id: string; accountId: string; value: SourcedAmount }
@@ -63,7 +75,7 @@ export function clearCash(input: CashInput, window: PostClosingWindow, selectedI
   if (selectedIds.some((id) => !input.items.some((i) => i.id === id))) throw new Error("CASH_SELECTION_INVALID");
   const usedPayments = new Map<string, bigint>(), usedItems = new Map<string, bigint>(), cleared = new Map<string, bigint>(), inconsistent = new Set<string>();
   const assertAccountSource = (value: SourcedAmount) => {
-    if (value.source.original[input.convention.bankColumn] !== input.account.bankId || value.source.original[input.convention.accountColumn] !== input.account.accountReference) throw new Error("SETTLEMENT_SOURCE_ACCOUNT_MISMATCH");
+    if (!belongsTo(input.convention, input.account, value.source)) throw new Error("SETTLEMENT_SOURCE_ACCOUNT_MISMATCH");
   };
   settlements.forEach((p) => { assertAmount(input.context, p.value); assertAccountSource(p.value); if (p.accountId !== input.account.id) throw new Error("SETTLEMENT_ACCOUNT_MISMATCH"); });
   corrections.forEach((c) => { assertAmount(input.context, c.proof); assertAccountSource(c.proof); if (!selectedIds.includes(c.itemId) || !c.reason.trim() || c.proof.date > input.context.period.asOfDate) throw new Error("CORRECTION_EVIDENCE_REQUIRED"); });

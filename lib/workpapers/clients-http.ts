@@ -1,3 +1,4 @@
+import { SALES_TYPES as CLIENT_SALES_TYPES, clientsSalesMappingSchema } from "./clients-sales";
 import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
 import { ClientsConflict } from "./clients-persistence";
@@ -11,7 +12,7 @@ const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string()
 const headers = { "Cache-Control": "private, no-store" };
 export function requireDisposableClients(env: Record<string, string | undefined> = process.env) {
     if (env.VERCEL_ENV === "production" || env.PROBANT_CLIENTS_DURABLE !== "disposable")
-        throw new ApiError("CLIENTS_DURABLE_DISABLED", "Le cadrage durable est réservé à la recette jetable.", 503);
+        throw new ApiError("CLIENTS_DURABLE_DISABLED", "Le parcours Clients durable est réservé à la recette jetable.", 503);
 }
 function failure(error: unknown) {
     if (error instanceof ClientsConflict)
@@ -23,7 +24,7 @@ function failure(error: unknown) {
     const code = error instanceof Error ? error.message : "";
     const status = /SESSION_INVALID/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404 :
         /STALE|CONFLICT|REPLACED|ALREADY_EXISTS|IDEMPOTENCY_KEY_REUSED/.test(code) ? 409 :
-            /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|NOT_READY|IMMUTABLE|UNRESOLVED|CHANGED|UNAPPROVED|FROZEN|OUT_OF_SCOPE/.test(code) ? 422 : 503;
+            /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|NOT_READY|IMMUTABLE|UNRESOLVED|CHANGED|UNAPPROVED|FROZEN|OUT_OF_SCOPE|MISMATCH|OVERALLOCATED|DISABLED|UNSUPPORTED|ABSENT/.test(code) ? 422 : 503;
     return Response.json({ error: status === 503 ? "CLIENTS_DURABLE_UNAVAILABLE" : code }, { status, headers });
 }
 function scope(request: Request) {
@@ -123,8 +124,9 @@ export function clientsHandlers(create: () => ClientsRuntime, enabled: () => voi
                     const period = clientsPeriodSchema.parse(JSON.parse(String(form.get("period"))));
                     if (periodId(period) !== q.periodId)
                         throw new Error("WORKPAPER_PERIOD_INVALID");
-                    const mapping = clientsMappingSchema.parse(JSON.parse(String(form.get("mapping"))));
-                    const type = z.enum(CLIENT_TYPES).parse(form.get("documentType"));
+                    const type = z.enum([...CLIENT_TYPES, ...CLIENT_SALES_TYPES]).parse(form.get("documentType"));
+                    const rawMapping = JSON.parse(String(form.get("mapping")));
+                    const mapping = CLIENT_SALES_TYPES.includes(type as typeof CLIENT_SALES_TYPES[number]) ? clientsSalesMappingSchema.parse(rawMapping) : clientsMappingSchema.parse(rawMapping);
                     return Response.json(await runtime.preview(request, q.dossierId, period, file, mapping, type, key), { headers });
                 }
                 const command = clientsApprovalSchema.parse(await body.json());

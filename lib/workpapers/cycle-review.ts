@@ -3,7 +3,7 @@ import { cents, money, type Money, type KnownAmount } from "@/lib/canonical-mode
 import { isCivilDate, periodIssues } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertScope, frozen, moneySchema, scopeSchema, periodId, type EvidenceLink } from "./model";
-import { assertContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
+import { assertContext, assertClientsSalesContext, assertDate, assertUnique, type CycleContext } from "./cycle-context";
 
 export const CYCLE_REVIEW_VERSION = "1.0.0";
 export const dateSchema = z.string().refine(isCivilDate, "Date civile ISO requise");
@@ -64,4 +64,20 @@ export function methodEligible(method: DocumentedMethod | null, date: string) {
   if (!method) return false;
   assertDate(method.from); assertDate(method.to);
   return method.synthetic === true && !!method.id && !!method.version && !!method.source.trim() && !!method.approvedBy.trim() && method.from <= date && date <= method.to;
+}
+
+export interface ClientsDocumentedMethod extends Omit<DocumentedMethod, "synthetic" | "approvedBy"> { synthetic: false; basis: string; authorId: string; evidence: EvidenceLink[] }
+export function clientsMethodEligible(context: CycleContext, method: DocumentedMethod | ClientsDocumentedMethod | null, date: string) {
+  assertClientsSalesContext(context); assertDate(date);
+  if (context.scope.mode === "demo") return method?.synthetic === true && methodEligible(method, date);
+  if (!method || method.synthetic !== false) return false;
+  assertDate(method.from); assertDate(method.to);
+  return !!method.id && !!method.version && !!method.source.trim() && !!method.basis.trim() && !!method.authorId.trim() && evidence(context, method.evidence) && method.from <= date && date <= method.to;
+}
+export function compareClientsSalesSupported(context: CycleContext, left: SupportedAmount | null, right: SupportedAmount | null): KnownAmount {
+  assertClientsSalesContext(context);
+  if (!left || !right) return unknown("SOURCE REQUISE : deux montants documentés");
+  supportedAmountSchema.parse(left); supportedAmountSchema.parse(right);
+  if (!evidence(context,left.evidence) || !evidence(context,right.evidence) || left.date !== right.date || left.basis !== right.basis) return unknown("Bases, dates ou preuves non comparables");
+  return known(money(cents(left.amount) - cents(right.amount)));
 }

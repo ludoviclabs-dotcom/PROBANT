@@ -4,13 +4,17 @@ import type { ImportBatch } from "./imports";
 import { assertScope, frozen, type Population, type SelectionSet, type WorkpaperScope } from "./model";
 import { authorize, type Principal } from "./policy";
 
-/** Grouping by invoice/third party requires a validated semantic mapping: disabled for now. */
+/** Invoice grouping is limited to the validated Clients open-at-closing mapping. */
 export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], unit: Population["unit"], principal: Principal): Population {
   authorize(principal, scope, "prepare");
-  if (unit !== "row") throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  const invoiceUnit = unit === "invoice" && imports.filter(b => b.document.documentType === "clients_invoices").length === 1 && imports.every(b => b.mapping.version === "clients-sales-1" && !!b.mapping.sales) && imports.find(b => b.document.documentType === "clients_invoices")?.mapping.sales?.basis === "open_at_closing";
+  // One bank account = one row of the single closing ledger of the validated cash mapping.
+  const accountUnit = unit === "account" && imports.filter(b => b.document.documentType === "cash_ledger").length === 1 && imports.every(b => b.mapping.version === "cash-reconciliation-1" && !!b.mapping.cash) && imports.find(b => b.document.documentType === "cash_ledger")?.mapping.cash?.basis === "ledger_closing";
+  if (unit !== "row" && !invoiceUnit && !accountUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
-  const items = imports.flatMap((b) => b.rows.map((r) => {
+  const populationImports = unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
+  const items = populationImports.flatMap((b) => b.rows.map((r) => {
     assertScope(scope, r.scope);
     if (!r.normalized || r.errors.length) throw new Error("POPULATION_ROW_INVALID");
     return { id: r.id, rowIds: [r.id], amount: r.normalized.amount };
@@ -50,7 +54,7 @@ export function selectPopulation(population: Population, request: SelectionReque
     exclusions, requestedSize: request.requestedSize, validatedBy: principal.id, seed: request.seed,
     algorithm: request.method === "random" ? "sha256-rank-v1" : "explicit-ids-v1", selectedIds,
     selectedAmount: money(selectedIds.reduce((n, id) => n + cents(population.items.find((i) => i.id === id)!.amount), 0n)),
-    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} lignes ; ${eligible.length} éligibles après exclusions.`] };
+    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
   return frozen({ ...selection, id: `selection-${stableSha256(selection)}` });
 }
 export function validateSelectionSources(population: Population, selection: SelectionSet, imports: ImportBatch[]): void {

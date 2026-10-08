@@ -9,7 +9,9 @@
     "0003_tax_document_processors.up.sql",
     "0003_user_identity_and_upload_quota.sql",
     "0004_tax_review_evidence.sql",
-    "0005_clients_framing.up.sql"
+    "0005_clients_framing.up.sql",
+    "0006_clients_sales.up.sql",
+    "0007_cash_reconciliation.up.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -19,7 +21,9 @@
     "0003_tax_document_processors.down.sql",
     "0003_user_identity_and_upload_quota.down.sql",
     "0004_tax_review_evidence.down.sql",
-    "0005_clients_framing.down.sql"
+    "0005_clients_framing.down.sql",
+    "0006_clients_sales.down.sql",
+    "0007_cash_reconciliation.down.sql"
   ],
   "tables": [
     "control_executions",

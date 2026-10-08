@@ -23,7 +23,7 @@ test("Synthèse Clients : programme, résidus après revue, preuve, version exac
     return r.fulfill({ body: pack.html, headers: { "Content-Type": "text/html;charset=utf-8", "X-Probant-Snapshot": mission.hash, "Content-Disposition": 'attachment; filename="clients-approved.html"' } });
   });
   await page.goto("/clients-framing/synthesis?" + new URLSearchParams({ dossierId: f.scope.dossierId, periodId: f.scope.periodId }));
-  await expect(page.getByText("1/1 procédure exécutée")).toBeVisible();
+  await expect(page.getByText("1/2 procédure exécutée")).toBeVisible();
   await page.getByRole("button", { name: "Exceptions à expliquer" }).click();
   await expect(page.getByText("Exception maintenue", { exact: true })).toHaveCount(2);
   await page.getByRole("button", { name: "Examiner les preuves de A" }).click();

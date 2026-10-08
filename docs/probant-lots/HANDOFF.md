@@ -1,3 +1,28 @@
+# Handoff — Mission 09 : Trésorerie, pont bancaire et apurement (2026-10-08)
+
+**Base.** Branche locale `claude/tresorerie-pont-bancaire-5aa635`. Point de départ : `origin/codex/mission07-security` `fce26de` (= main `fdf1c12` + PR #58 Clients et ventes), fusionné localement (`cef6e0e`). Attention : **PR #58 a été fusionnée dans `codex/mission07-security`, pas dans `main`** ; production = `fdf1c12` (déploiement GitHub « Production » `success` du 2026-10-08 04:12 UTC, lu en lecture seule) et ne contient ni la Mission 07 ni ce lot. Aucun push, aucune PR distante, aucun déploiement, aucune variable distante modifiée.
+
+**Mission 08 en parallèle (Codex).** Fichiers partagés susceptibles de conflit : `lib/workpapers/{model,service,selection,imports,cycle-context}.ts`, `.env.example`, `drizzle/migration-manifest.json` et le numéro de migration `0007` (renuméroter le second lot fusionné), liens de `app/dashboard/synthese/page.tsx` et `SyntheticSummary.tsx`. Les hunks Trésorerie sont additifs (unions `realAdapter`, `Population.unit = "account"`, `CycleContext.procedure`, champ `cashWork`) ; la chaîne durable Trésorerie utilise ses propres tables `cash_*` et ne touche ni `clients_*` ni le runtime Clients.
+
+| Point | État | Preuve |
+| --- | --- | --- |
+| `reconcileCash` / `clearCash` sur sources qualifiées | Livré | `cash-sources.ts`, `cash-reconciliation.ts` ; 19 tests métier, moteur historique inchangé (8 tests) |
+| Population des comptes, banque / compte / devise, nature, conventions de signe | Livré | Exclusions motivées caisse, VMP, devise ; identité lue par document ; refus « mauvaise banque » avec localisateur |
+| Écarts de source distincts de l’écart du pont ; clôture jamais réécrite | Livré | Invariants du schéma de résultat, tests avant / après apurement |
+| Fenêtre, règlements, allocations, corrections, exclusions | Livré | Statuts apuré / partiel / ouvert / corrigé / non testé / non expliqué, sens textuel |
+| Chaîne durable (import → figé → exécution → revue distincte → verrouillage) | Code et tests runtime livrés ; **PostgreSQL non exécuté localement** | `cash-runtime.test.ts` (runtime réel, stockage de test) ; `cash-durable.integration.test.ts` écrit, ignoré sans base |
+| Synthèse et export | Livré | `/tresorerie/synthese`, paquet diagnostic / approuvé, 5 tests + Chromium |
+| Interface | Livré | `/tresorerie` ; captures 1440 / 1024 / 390 + reduced-motion inspectées ; axe sans violation sérieuse / critique |
+| Caisse, VMP, devises, confirmations bancaires | Hors périmètre, affiché comme tel | Bandeau de périmètre, programme `outOfScope` |
+
+Validation et matrice détaillée : `docs/mission09/RECETTE.md` ; contrat métier : `docs/mission09/CONTRAT.md`. Activation de recette : `PROBANT_CASH_DURABLE=disposable` (refus si `VERCEL_ENV=production`), migration `0007_cash_reconciliation` à appliquer sur la base jetable.
+
+**Maturité.** Démonstrable et testé localement sur données synthétiques ; chaîne durable prête pour la recette PostgreSQL de la CI ; **activation réelle bloquée** (pas d’infrastructure de recette exécutée, pas de QA métier indépendante, méthode interne non validée par un professionnel).
+
+**Lot suivant.** Exécuter la CI (PostgreSQL 17 jetable) dès qu’un push est autorisé ; fusionner d’abord `codex/mission07-security` dans `main` puis rebaser ce lot et la Mission 08 (renumérotation de migration) ; Mission 10 (immobilisations) peut réutiliser le patron « port de stockage + runtime + harnais » de ce lot.
+
+---
+
 # Handoff — lot 02 : fiabilité du dépôt historique (2026-10-03)
 
 Base finale : `origin/main` **`83ba8638d260597af423d7426463aec0772f3bf0`**, PR #52, récupérée et intégrée localement sans conflit. Branche : `fix/historical-upload-reliability`. Lot 01 conservé et rebasé : `412e5677f01916d3c97a6141fd6185bdf05ce604` (ancien commit `ef7d4f0`). Code du lot 02 : `aeec05c67387d8f251b4f07d4c2aa38aef2340bb` ; ce handoff est livré ensuite dans un commit documentaire. Aucun push, PR, merge distant ou déploiement effectué.

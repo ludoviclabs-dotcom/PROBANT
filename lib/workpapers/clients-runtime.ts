@@ -1,3 +1,5 @@
+import { SALES_TYPES, assertClientsSalesBatch, buildClientsSalesFacts, clientsSalesDraftFromWork, clientsSalesWorkSchema, makeInitialClientsSalesWork, stampClientsSalesWork, type ClientsFramingReference } from "./clients-sales";
+import { CLIENT_SALES_TEMPLATE, ClientsSalesRegistry } from "./clients-sales-adapter";
 import { buildClientMission, type MissionSelection } from "./client-mission";
 import { buildClientMissionPackage, type ClientExportKind } from "@/lib/evidence/client-mission-package";
 import { sql } from "drizzle-orm";
@@ -10,7 +12,7 @@ import { neutralizeFileName } from "@/lib/security/filename";
 import { previewImport, type ImportMapping } from "./imports";
 import { CLIENT_FRAME_TEMPLATE, CLIENT_TYPES, ClientsFramingRegistry, assertClientsBatch } from "./clients-adapter";
 import { ClientsImports, ClientsWorkpaperRepository, rows, scopeWhere, type ClientsDatabase, type ClientsSql } from "./clients-persistence";
-import { periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
+import { contentHash, periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
 import { type Principal, type Permission } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
@@ -74,9 +76,23 @@ export class ClientsRuntime {
         const heads = await this.heads(tx, scope);
         if (run.importIds.some((id) => !heads.some((h) => h.import_id === id)))
             throw new Error("CLIENT_SOURCE_REPLACED_REVISION_REQUIRED");
+        if (run.clientsWork) { const work = clientsSalesWorkSchema.parse(run.clientsWork); const reference = await this.framingReference(tx, scope, work.framing.runId, work.framing.version); if (stableSha256(reference)!==stableSha256(work.framing)) throw new Error("CLIENT_FRAMING_REFERENCE_CHANGED"); }
+    }
+    private async framingReference(tx: ClientsSql, scope: WorkpaperScope, id: string, version: number): Promise<ClientsFramingReference> {
+        const repository = new ClientsWorkpaperRepository(tx), frame = await repository.get(scope, id);
+        if (!frame || frame.template.id !== "clients.frame") throw new Error("CLIENT_FRAMING_NOT_FOUND");
+        if (frame.version !== version) throw new Error("CLIENT_FRAMING_VERSION_REPLACED");
+        if (frame.state !== "locked") throw new Error("CLIENT_FRAMING_LOCKED_REQUIRED");
+        await this.assertCurrent(tx, scope, frame);
+        const [latest] = await rows<{ id: string }>(tx, sql`SELECT h.id FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId} AND v.run->>'rootId'=${frame.rootId} ORDER BY (v.run->>'revision')::int DESC LIMIT 1`);
+        if (latest?.id !== frame.id) throw new Error("CLIENT_FRAMING_VERSION_REPLACED");
+        return { runId: frame.id, rootId: frame.rootId, version: frame.version, contentHash: contentHash(frame) };
     }
     async read(request: Request, dossierId: string, pid: string, id?: string, history = false, version?: number) {
         return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => {
+            const [size] = await rows<{count:string;bytes:string}>(tx, sql`SELECT count(*)::text AS count,coalesce(sum(octet_length(run::text)),0)::text AS bytes FROM clients_workpaper_versions WHERE ${scopeWhere(scope)}`);
+            const [sourceSize] = await rows<{bytes:string}>(tx, sql`SELECT coalesce(sum(octet_length(preview::text)+octet_length(original_base64)),0)::text AS bytes FROM clients_imports WHERE ${scopeWhere(scope)}`);
+            if (Number(size.count)>500 || Number(size.bytes)>24*1024*1024 || Number(sourceSize.bytes)>24*1024*1024) throw new ApiError("CLIENT_STATE_LIMIT","État trop volumineux pour cette recette.",413);
             const repository = new ClientsWorkpaperRepository(tx), imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
             const ids = id ? [{ id }] : await rows<{
                 id: string;
@@ -87,9 +103,31 @@ export class ClientsRuntime {
             const lineageHeads = await rows<{ id: string; version: number; root_id: string; revision: number }>(tx, sql`SELECT h.id,h.version,v.run->>'rootId' AS root_id,(v.run->>'revision')::int AS revision FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId}`);
             const lineageCurrent: Record<string, { id: string; version: number; revision: number }> = {};
             for (const h of lineageHeads) if (!lineageCurrent[h.root_id] || h.revision > lineageCurrent[h.root_id].revision) lineageCurrent[h.root_id] = { id: h.id, version: h.version, revision: h.revision };
-            return { actorId: actor.id, permissions: actor.grants[0].permissions, runs, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
-                sourcesCurrent: Object.fromEntries(runs.map((r) => [r.id, r.importIds.every((i) => heads.some((h) => h.import_id === i))])),
+            const salesFactsIssues: Record<string, string> = {};
+            const salesFraming: Record<string, ClientsFramingReference | null> = {};
+            const sourcesCurrent: Record<string, boolean> = {};
+            for (const r of runs) {
+                sourcesCurrent[r.id] = r.importIds.every(i => heads.some(h => h.import_id === i));
+                if (r.template.id === "clients.sales") {
+                    const original = r.clientsWork?.framing ?? (await repository.history(scope, r.rootId)).find(v => v.clientsWork)?.clientsWork?.framing;
+                    const latest = original ? lineageCurrent[original.rootId] : undefined;
+                    try { salesFraming[r.id] = latest ? await this.framingReference(tx, scope, latest.id, latest.version) : null; } catch { salesFraming[r.id] = null; }
+                    if (r.clientsWork) { try { await this.framingReference(tx, scope, r.clientsWork.framing.runId, r.clientsWork.framing.version); } catch { sourcesCurrent[r.id] = false; } }
+                }
+            }
+            const salesFacts = Object.fromEntries(runs.filter(r => r.template.id === "clients.sales").map(r => {
+                if (r.clientsWork) clientsSalesWorkSchema.parse(r.clientsWork);
+                const ids = r.importIds.length ? r.importIds : heads.filter(h => SALES_TYPES.includes(h.document_type as typeof SALES_TYPES[number])).map(h => h.import_id);
+                const batches = imports.batches.filter(b => ids.includes(b.id));
+                let facts = null;
+                try { facts = batches.some(b => b.document.documentType === "clients_invoices") && batches.some(b => b.document.documentType === "clients_payments") ? buildClientsSalesFacts(scope, r.period, batches, r.id) : null; } catch (error) { salesFactsIssues[r.id] = error instanceof Error ? error.message : "CLIENT_SALES_SOURCES_INVALID"; }
+                return [r.id, facts];
+            }));
+            const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, salesFacts, salesFactsIssues, salesFraming, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads,
+                sourcesCurrent,
                 ...(history && id ? { history: await repository.history(scope, id) } : {}) };
+            if (Buffer.byteLength(JSON.stringify(response))>8*1024*1024) throw new ApiError("CLIENT_STATE_LIMIT","État trop volumineux pour cette recette.",413);
+            return response;
         });
     }
     private async missionData(tx: ClientsSql, scope: WorkpaperScope, selection: MissionSelection) {
@@ -131,12 +169,13 @@ export class ClientsRuntime {
     async download(request: Request, dossierId: string, pid: string, documentId: string) {
         return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor) => (await ClientsImports.load(tx, scope)).download(scope, documentId, actor));
     }
-    async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: typeof CLIENT_TYPES[number], key: string) {
+    async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: typeof CLIENT_TYPES[number] | typeof SALES_TYPES[number], key: string) {
         return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => {
             if (file.size > 3 * 1024 * 1024) throw new ApiError("CLIENT_FILE_LIMIT", "Fichier limité à 3 Mio pour cette recette.", 413);
             const safeFile = new File([await file.arrayBuffer()], neutralizeFileName(file.name), { type: file.type });
-            let batch = await previewImport(safeFile, scope, mapping, actor, type, "clients.frame");
-            assertClientsBatch(batch, period.closingDate);
+            const sales = SALES_TYPES.includes(type as typeof SALES_TYPES[number]);
+            let batch = await previewImport(safeFile, scope, mapping, actor, type, sales ? "clients.sales" : "clients.frame");
+            if (sales) assertClientsSalesBatch(batch, period); else assertClientsBatch(batch, period.closingDate);
             if (Buffer.byteLength(JSON.stringify(batch)) > 3 * 1024 * 1024) throw new ApiError("CLIENT_PREVIEW_LIMIT", "Aperçu trop volumineux pour cette recette.", 413);
             const { previewHash: _hash, ...base } = batch;
             void _hash;
@@ -175,64 +214,71 @@ export class ClientsRuntime {
     async command(request: Request, dossierId: string, pid: string, command: ClientsCommand, key: string) {
         const permission = ["review", "lock"].includes(command.command) ? "review" : "prepare";
         return this.transaction(request, dossierId, pid, permission, async (tx, scope, actor) => this.receipt(tx, scope, actor, key, command, async () => {
-            const imports = await ClientsImports.load(tx, scope), repository = new ClientsWorkpaperRepository(tx);
-            const service = new WorkpaperService(repository, imports, new ClientsFramingRegistry(), async () => actor, () => new Date(this.now() * 1000).toISOString(), "clients.frame");
-            if (command.command === "create") {
-                if (periodId(command.period) !== pid)
-                    throw new Error("WORKPAPER_PERIOD_INVALID");
-                return { run: await service.create(scope, command.period, CLIENT_FRAME_TEMPLATE, command.instanceKey) };
+            const imports = await ClientsImports.load(tx, scope), repository = new ClientsWorkpaperRepository(tx), at = new Date(this.now() * 1000).toISOString();
+            const makeService = (sales: boolean) => new WorkpaperService(repository, imports, sales ? new ClientsSalesRegistry() : new ClientsFramingRegistry(), async () => actor, () => at, sales ? "clients.sales" : "clients.frame");
+            if (command.command === "create" || command.command === "create_sales") {
+                if (periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
+                if (command.command === "create") return { run: await makeService(false).create(scope, command.period, CLIENT_FRAME_TEMPLATE, command.instanceKey) };
+                const framing = await this.framingReference(tx, scope, command.framingId, command.framingVersion);
+                const work = makeInitialClientsSalesWork(framing, command.period, actor.id, at);
+                return { run: await makeService(true).create(scope, command.period, CLIENT_SALES_TEMPLATE, "clients-sales:" + framing.rootId, work) };
             }
-            const current = await service.get(scope, command.id);
-            if (!current)
-                throw new Error("WORKPAPER_NOT_FOUND");
-            if (command.command !== "revise")
-                await this.assertCurrent(tx, scope, current);
+            const current = await repository.get(scope, command.id);
+            if (!current) throw new Error("WORKPAPER_NOT_FOUND");
+            const sales = current.template.id === "clients.sales", service = makeService(sales);
+            if (current.clientsWork) clientsSalesWorkSchema.parse(current.clientsWork);
+            if (command.command !== "revise" && command.command !== "freeze_sales") await this.assertCurrent(tx, scope, current);
             const id = command.id, v = command.expectedVersion;
             let run: WorkpaperRun;
             switch (command.command) {
                 case "freeze": {
-                    const batches = command.importIds.map((i) => imports.get(scope, i, actor));
-                    const heads = await this.heads(tx, scope);
-                    if (CLIENT_TYPES.some((t) => batches.filter((b) => b.document.documentType === t).length !== 1) || batches.some((b) => !heads.some((h) => h.import_id === b.id)))
-                        throw new Error("CLIENT_CURRENT_THREE_SOURCES_REQUIRED");
-                    batches.forEach((b) => assertClientsBatch(b, current.period.closingDate));
-                    const population = freezePopulation(scope, batches, "row", actor);
-                    const selection = selectPopulation(population, { method: "targeted", criteria: "Population complète du cadrage Clients", exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map((i) => i.id) }, actor);
+                    if (sales) throw new Error("CLIENT_TEMPLATE_REQUIRED");
+                    const batches = command.importIds.map(i => imports.get(scope, i, actor)), heads = await this.heads(tx, scope);
+                    if (CLIENT_TYPES.some(t => batches.filter(b => b.document.documentType === t).length !== 1) || batches.some(b => !heads.some(h => h.import_id === b.id))) throw new Error("CLIENT_CURRENT_THREE_SOURCES_REQUIRED");
+                    batches.forEach(b => assertClientsBatch(b, current.period.closingDate));
+                    const population = freezePopulation(scope, batches, "row", actor), selection = selectPopulation(population, { method: "targeted", criteria: "Population complète du cadrage Clients", exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map(i => i.id) }, actor);
                     run = await service.attachInputs(scope, id, v, population, selection);
-                    for (const batch of batches)
-                        run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source du cadrage Clients");
-                    run = await service.transition(scope, id, run.version, "ready");
+                    for (const batch of batches) run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source du cadrage Clients");
+                    run = await service.transition(scope, id, run.version, "ready"); break;
+                }
+                case "freeze_sales": {
+                    if (!sales || current.state !== "draft" || current.population) throw new Error("CLIENT_SALES_FREEZE_NOT_ALLOWED");
+                    const framing = await this.framingReference(tx, scope, command.framingId, command.framingVersion);
+                    const originalFraming = current.clientsWork?.framing ?? (await repository.history(scope, current.rootId)).find(r => r.clientsWork)?.clientsWork?.framing;
+                    if (!originalFraming || originalFraming.rootId !== framing.rootId) throw new Error("CLIENT_FRAMING_ROOT_MISMATCH");
+                    const heads = await this.heads(tx, scope), batches = command.importIds.map(i => imports.get(scope, i, actor));
+                    if (batches.some(b => !SALES_TYPES.includes(b.document.documentType as typeof SALES_TYPES[number]) || !heads.some(h => h.import_id === b.id))) throw new Error("CLIENT_SALES_CURRENT_SOURCES_REQUIRED");
+                    buildClientsSalesFacts(scope, current.period, batches, id);
+                    const initial = makeInitialClientsSalesWork(framing, current.period, actor.id, at), draft = { ...clientsSalesDraftFromWork(initial), window: command.window, creditsAbsence: command.creditsAbsence };
+                    const work = stampClientsSalesWork({ scope, period: current.period, runId: id, imports: batches, draft, framing, actor, at });
+                    run = await service.configureClientsSales(scope, id, v, work);
+                    const population = freezePopulation(scope, batches, "invoice", actor), selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les factures ouvertes à clôture ; encaissements et avoirs postérieurs dans la fenêtre documentée", exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map(i => i.id) }, actor);
+                    run = await service.attachInputs(scope, id, run.version, population, selection);
+                    for (const batch of batches) run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source Clients et ventes");
+                    run = await service.transition(scope, id, run.version, "ready"); break;
+                }
+                case "configure_sales": {
+                    if (!sales || !current.population || !current.clientsWork) throw new Error("CLIENT_SALES_FROZEN_INPUTS_REQUIRED");
+                    const batches = current.importIds.map(i => imports.get(scope, i, actor)), work = stampClientsSalesWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, framing: current.clientsWork.framing, actor, at, previous: current.clientsWork });
+                    run = await service.configureClientsSales(scope, id, v, work); break;
+                }
+                case "execute": {
+                    if (sales && !current.clientsWork) throw new Error("CLIENT_SALES_WORK_REQUIRED");
+                    run = await service.execute(scope, id, v, sales ? { work: current.clientsWork, runId: id } : {});
+                    if (run.state === "executed" && run.result?.outcome !== "no_exception_detected") {
+                        const exceptions = sales && run.result?.result && typeof run.result.result === "object" ? (run.result.result as { exceptions?: { id: string; message: string; amount: WorkpaperRun["notes"][number]["amount"] }[] }).exceptions ?? [] : [];
+                        if (sales) { for (const exception of exceptions) run = await service.addNote(scope, id, run.version, { id: "clients-sales-exception:" + exception.id, kind: "observation", text: exception.message, amount: exception.amount, blocking: true }); }
+                        else run = await service.addNote(scope, id, run.version, { id: "clients-frame-exception:" + run.result!.inputHash, kind: "observation", text: "Écarts ou périmètre incomplet dans le cadrage : examiner les lignes et documenter leur traitement.", amount: { kind: "unknown", reason: "Voir les résidus exacts des deux rapprochements ; aucune compensation." }, blocking: true });
+                    }
                     break;
                 }
-                case "execute":
-                    run = await service.execute(scope, id, v, {});
-                    if (run.state === "executed" && run.result?.outcome !== "no_exception_detected")
-                        run = await service.addNote(scope, id, run.version, {
-                            id: "clients-frame-exception:" + run.result!.inputHash, kind: "observation", text: "Écarts ou périmètre incomplet dans le cadrage : examiner les lignes et documenter leur traitement.",
-                            amount: { kind: "unknown", reason: "Voir les résidus exacts des deux rapprochements ; aucune compensation." }, blocking: true
-                        });
-                    break;
-                case "note":
-                    run = await service.addNote(scope, id, v, command.note);
-                    break;
-                case "resolve":
-                    run = await service.resolveNote(scope, id, v, command.noteId, command.text);
-                    break;
-                case "conclude":
-                    run = await service.conclude(scope, id, v, command.text);
-                    break;
-                case "submit":
-                    run = await service.transition(scope, id, v, "awaiting_review");
-                    break;
-                case "review":
-                    run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash);
-                    break;
-                case "lock":
-                    run = await service.lock(scope, id, v);
-                    break;
-                case "revise":
-                    run = await service.revise(scope, id, v);
-                    break;
+                case "note": run = await service.addNote(scope, id, v, command.note); break;
+                case "resolve": run = await service.resolveNote(scope, id, v, command.noteId, command.text); break;
+                case "conclude": run = await service.conclude(scope, id, v, command.text); break;
+                case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
+                case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
+                case "lock": run = await service.lock(scope, id, v); break;
+                case "revise": run = await service.revise(scope, id, v); break;
             }
             return { run };
         }));
