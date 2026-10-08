@@ -1,0 +1,26 @@
+"use client";
+import { useState } from "react";
+import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import styles from "./ClientReceivablesPanel.module.css";
+
+const kinds = { clients_invoices: "Factures ouvertes à la clôture", clients_payments: "Encaissements ultérieurs", clients_credits: "Avoirs ultérieurs", clients_support: "Registre des pièces et méthodes" } as const;
+/** A closed, explicit mapping for imported Clients facts; no browser identity or approval. */
+export function ClientsSalesImportForm({ period, busy, onPreview }: { period: AccountingPeriod; busy: boolean; onPreview: (data: FormData) => void }) {
+  const [kind, setKind] = useState<keyof typeof kinds>("clients_invoices"), [file, setFile] = useState<File | null>(null);
+  const [columns, setColumns] = useState({ key: "id", amount: "amount", date: "date", customerColumn: "customer", currencyColumn: "currency", dueOnColumn: "", cancelledOnColumn: "", kindColumn: "", invoiceColumn: "", bookedImpairmentColumn: "", sheet: "" });
+  const [format, setFormat] = useState({ delimiter: ";", decimal: ".", dateFormat: "ISO" });
+  const extra = kind === "clients_invoices" ? ["dueOnColumn", "cancelledOnColumn", "bookedImpairmentColumn"] : kind === "clients_payments" ? ["cancelledOnColumn", "kindColumn"] : kind === "clients_credits" ? ["invoiceColumn"] : [];
+  const visible = ["key", "amount", "date", "customerColumn", "currencyColumn", ...extra, "sheet"];
+  const labels: Record<string, string> = { key: "Colonne identifiant", amount: kind === "clients_invoices" ? "Colonne solde ouvert à clôture" : "Colonne montant", date: kind === "clients_invoices" ? "Colonne date de facture" : "Colonne date", customerColumn: "Colonne client", currencyColumn: "Colonne devise", dueOnColumn: "Colonne échéance (facultative)", cancelledOnColumn: "Colonne date d’annulation (facultative)", kindColumn: "Colonne nature du paiement (facultative)", invoiceColumn: "Colonne facture de l’avoir", bookedImpairmentColumn: "Colonne dépréciation comptabilisée (facultative)", sheet: "Feuille XLSX" };
+  return <section className={styles.imports} aria-labelledby="clients-sales-import-title"><h2 id="clients-sales-import-title">Sources Clients et ventes</h2>
+    <form onSubmit={e => { e.preventDefault(); if (!file || busy) return; const data = new FormData(); data.set("file", file); data.set("documentType", kind); data.set("period", JSON.stringify(period));
+      const sales = { basis: ({ clients_invoices: "open_at_closing", clients_payments: "subsequent_payment", clients_credits: "subsequent_credit", clients_support: "support" } as const)[kind], ...Object.fromEntries(["customerColumn", "currencyColumn", ...extra].filter(key => columns[key as keyof typeof columns].trim()).map(key => [key, columns[key as keyof typeof columns].trim()])) };
+      data.set("mapping", JSON.stringify({ version: "clients-sales-1", headerRow: 1, columns: { key: columns.key.trim(), amount: columns.amount.trim(), date: columns.date.trim() }, ...format, sign: 1, currency: "EUR", ...(columns.sheet.trim() ? { sheet: columns.sheet.trim() } : {}), sales })); onPreview(data); }}>
+      <div className={styles.fields}><label>Source Clients<select value={kind} disabled={busy} onChange={e => setKind(e.target.value as keyof typeof kinds)}>{Object.entries(kinds).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label>Fichier Clients CSV ou XLSX<input type="file" accept=".csv,.xlsx" required disabled={busy} onChange={e => setFile(e.target.files?.[0] ?? null)}/></label></div>
+      <p className={styles.muted}>{kind === "clients_invoices" ? "Le montant importé est le solde ouvert à la clôture. Une échéance absente donne un âge depuis facture." : kind === "clients_support" ? "Ce registre décrit les pièces et méthodes. Une ligne de registre ne remplace pas un original absent." : "Dates et montants dans la fenêtre ultérieure documentée. Les avoirs restent distincts des encaissements."} La colonne devise doit déclarer EUR ; aucune conversion automatique.</p>
+      <div className={styles.fields}>{visible.map(key => <label key={key}>{labels[key]}<input value={columns[key as keyof typeof columns]} required={["key", "amount", "date", "customerColumn", "currencyColumn"].includes(key) || kind === "clients_credits" && key === "invoiceColumn"} disabled={busy} onChange={e => setColumns(c => ({ ...c, [key]: e.target.value }))}/></label>)}</div>
+      <div className={styles.fields}><label>Séparateur Clients<select value={format.delimiter} disabled={busy} onChange={e => setFormat(f => ({ ...f, delimiter: e.target.value }))}><option value=";">Point-virgule</option><option value=",">Virgule</option><option value={"\t"}>Tabulation</option></select></label><label>Décimales Clients<select value={format.decimal} disabled={busy} onChange={e => setFormat(f => ({ ...f, decimal: e.target.value }))}><option value=".">Point</option><option value=",">Virgule</option></select></label><label>Dates Clients<select value={format.dateFormat} disabled={busy} onChange={e => setFormat(f => ({ ...f, dateFormat: e.target.value }))}><option value="ISO">AAAA-MM-JJ</option><option value="DD/MM/YYYY">JJ/MM/AAAA</option></select></label></div>
+      <button disabled={busy || !file}>Analyser la source Clients</button>
+    </form>
+  </section>;
+}

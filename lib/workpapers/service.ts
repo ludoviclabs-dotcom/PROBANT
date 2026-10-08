@@ -1,3 +1,4 @@
+import { clientsSalesResultSchema, clientsSalesWorkSchema, type ClientsSalesWork } from "./clients-sales";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
@@ -21,10 +22,10 @@ export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString(),
-    private readonly realAdapter?: "clients.frame") {}
+    private readonly realAdapter?: "clients.frame" | "clients.sales") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo" && this.realAdapter !== "clients.frame") throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && !["clients.frame", "clients.sales"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -34,18 +35,27 @@ export class WorkpaperService {
   async get(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.get(scope, id); }
   async history(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.history(scope, id); }
   async download(scope: WorkpaperScope, documentId: string) { const actor = await this.actor(scope, "download"); return this.imports.download(scope, documentId, actor); }
-  async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string) {
-    if (scope.mode === "real" && (template.id !== "clients.frame" || template.rule?.id !== "clients.frame" || template.rule.version !== "1.0.0")) throw new Error("CLIENT_TEMPLATE_REQUIRED");
+  async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string, clientsWork?: ClientsSalesWork) {
+    if (scope.mode === "real" && (template.id !== this.realAdapter || template.rule?.id !== this.realAdapter || template.rule.version !== "1.0.0")) throw new Error("CLIENT_TEMPLATE_REQUIRED");
     const actor = await this.actor(scope, "prepare"); if (!instanceKey.trim()) throw new Error("INSTANCE_KEY_REQUIRED");
     const id = `workpaper-${stableSha256({ scope, template: { id: template.id, version: template.version }, instanceKey })}`;
     return this.repository.create(this.stamp(validateRun({ id, rootId: id, revision: 1, version: 1, schemaVersion: "1.0.0", scope, period, template,
-      state: "draft", preparedBy: actor.id, importIds: [], evidence: [], findings: [], notes: [], events: [] }), actor, "create"));
+      state: "draft", preparedBy: actor.id, ...(clientsWork ? { clientsWork: clientsSalesWorkSchema.parse(clientsWork) } : {}), importIds: [], evidence: [], findings: [], notes: [], events: [] }), actor, "create"));
   }
   private async edit(scope: WorkpaperScope, id: string, version: number, action: string, update: (run: WorkpaperRun, actor: Principal) => WorkpaperRun) {
     const actor = await this.actor(scope, "prepare");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       if (!["draft", "executed"].includes(run.state) || run.preparedBy !== actor.id) throw new Error("PREPARATION_EDIT_FORBIDDEN");
       return this.stamp({ ...update(run, actor), version: version + 1 }, actor, action);
+    });
+  }
+  async configureClientsSales(scope: WorkpaperScope, id: string, version: number, work: ClientsSalesWork) {
+    const actor = await this.actor(scope, "prepare");
+    if (scope.mode !== "real" || this.realAdapter !== "clients.sales") throw new Error("CLIENT_SALES_ONLY");
+    const validated = clientsSalesWorkSchema.parse(work);
+    return this.repository.compareAndSwap(scope, id, version, run => {
+      if (run.template.id !== "clients.sales" || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
+      return this.stamp({ ...run, clientsWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_clients_sales");
     });
   }
   async attachInputs(scope: WorkpaperScope, id: string, version: number, population: Population, selection: SelectionSet) {
@@ -88,7 +98,14 @@ export class WorkpaperService {
       const result = this.calculations.execute({ scope, period: run.period, rule: run.template.rule, imports: run.importIds.map((i) => this.imports.get(scope, i, actor)), population: run.population, selection: run.selection, parameters });
       const state = result.execution === "completed" ? "executed" : result.execution;
       assertTransition({ ...run, result }, state, actor);
-      return this.stamp({ ...run, result, findings: result.findings, state, version: version + 1 }, actor, "execute");
+      let evidence = run.evidence;
+      if (this.realAdapter === "clients.sales" && result.execution === "completed") {
+        const sales = clientsSalesResultSchema.parse(result.result);
+        assertScope(scope,sales.scope); if(sales.runId!==run.id) throw new Error("CLIENT_SALES_RESULT_IDENTITY_MISMATCH");
+        const links=[...sales.window.evidence,...(sales.creditsAbsence?.evidence??[]),...sales.rows.flatMap(r=>r.evidence),...sales.payments.flatMap(p=>p.evidence),...sales.credits.flatMap(c=>c.evidence),...sales.allocations.flatMap(a=>a.evidence),...sales.estimates.flatMap(e=>e.evidence),...sales.confirmations.flatMap(c=>c.evidence)];
+        evidence=[...new Map([...evidence,...links].map(link=>[link.id,link])).values()];
+      }
+      return this.stamp({ ...run, result, evidence, findings: result.findings, state, version: version + 1 }, actor, "execute");
     });
   }
   async recordManual(scope: WorkpaperScope, id: string, version: number, observation: string, outcome: "no_exception_detected" | "exceptions_detected" | "inconclusive") {
@@ -126,12 +143,12 @@ export class WorkpaperService {
       return this.stamp({ ...old, id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
-        ...(scope.mode === "real" ? { importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
+        ...(scope.mode === "real" ? { clientsWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
         evidence: (scope.mode === "real" ? [] : old.evidence).map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
     });
   }
   async lock(scope: WorkpaperScope, id: string, version: number) {
-    if (scope.mode !== "real" || this.realAdapter !== "clients.frame") throw new Error("CLIENT_LOCK_ONLY");
+    if (scope.mode !== "real" || !["clients.frame", "clients.sales"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
     const actor = await this.actor(scope, "review");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       assertTransition(run, "locked", actor);

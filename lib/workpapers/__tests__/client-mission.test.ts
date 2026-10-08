@@ -10,15 +10,15 @@ import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 describe("Synthèse Clients — programme et chaînes versionnées", () => {
   it("compte les procédures prévues avant toute anomalie ou exécution", async () => {
     const f = await clientMissionFixture(), m = buildClientMission(f.scope, [], [], []);
-    expect(m.counters).toMatchObject({ planned: 1, executed: 0, plannedParts: 2, testedParts: 0, exceptions: 0 });
-    expect(m.sources.filter(s => !s.available)).toHaveLength(3);
+    expect(m.counters).toMatchObject({ planned: 2, executed: 0, plannedParts: 5, testedParts: 0, exceptions: 0 });
+    expect(m.sources.filter(s => !s.available)).toHaveLength(5);
     expect(m.queue.map(q => q.category)).toContain("blocked");
     expect(m.sourceFamily).toBe("mission_procedures");
     expect(() => buildClientMission({ ...f.scope, mode: "demo" }, [], [], [])).toThrow("MISSION_REAL_SCOPE_REQUIRED");
   });
   it("conserve les exceptions après revue et lie chaque preuve à sa source et chaque lien à la version exacte", async () => {
     const f = await clientMissionFixture(), m = buildClientMission(f.scope, [f.run, f.approved, f.locked], f.imports, f.heads);
-    expect(m.counters).toMatchObject({ planned: 1, executed: 1, testedParts: 2, exceptions: 2, reviewed: 1, locked: 1 });
+    expect(m.counters).toMatchObject({ planned: 2, executed: 1, testedParts: 2, exceptions: 2, reviewed: 1, locked: 1 });
     expect(m.procedure.resultLabel).toBe("Exceptions maintenues");
     expect(m.procedure.beforeReview?.version).toBe(10); expect(m.procedure.afterReview?.version).toBe(12);
     expect(m.procedure.beforeReview?.contentHash).toBe(m.procedure.afterReview?.contentHash);
@@ -39,7 +39,7 @@ describe("Synthèse Clients — programme et chaînes versionnées", () => {
     const m = buildClientMission(f.scope, [partial], f.imports, f.heads);
     expect(m.procedure.coverage).toMatchObject({ numerator: 1, denominator: 5, exclusions: partial.selection!.exclusions });
     expect(m.procedure.comparisons[1].coverage).toMatchObject({ numerator: 1, denominator: 2 });
-    expect(m.counters).toMatchObject({ planned: 1, plannedParts: 2, testedParts: 1 });
+    expect(m.counters).toMatchObject({ planned: 2, plannedParts: 5, testedParts: 1 });
   });
   it("montre les travaux périmés et conserve l’ancienne décision lors d’une révision", async () => {
     const f = await clientMissionFixture(), revision: WorkpaperRun = { ...f.run, id: "real-pilot:r2", revision: 2, version: 1, state: "draft", result: undefined, population: undefined, selection: undefined, importIds: [], notes: [], submittedHash: undefined };
@@ -55,7 +55,7 @@ describe("Synthèse Clients — programme et chaînes versionnées", () => {
   it("impose une affectation explicite si plusieurs feuilles couvrent la même procédure", async () => {
     const f = await clientMissionFixture(), second: WorkpaperRun = { ...f.run, id: "second", rootId: "second" };
     const m = buildClientMission(f.scope, [f.run, second], f.imports, f.heads);
-    expect(m.procedure.runId).toBeNull(); expect(m.counters.planned).toBe(1); expect(m.counters.executed).toBe(0);
+    expect(m.procedure.runId).toBeNull(); expect(m.counters.planned).toBe(2); expect(m.counters.executed).toBe(0);
     expect(buildClientMission(f.scope, [f.run, second], f.imports, f.heads, { id: "second", version: 10 }).procedure.runId).toBe("second");
   });
 });
