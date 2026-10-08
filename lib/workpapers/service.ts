@@ -118,6 +118,14 @@ export class WorkpaperService {
       return { ...run, notes: [...run.notes, { ...note, authorId: actor.id }] };
     });
   }
+  /** Several server-generated notes in one compare-and-swap: one execution never multiplies workpaper versions. */
+  async addNotes(scope: WorkpaperScope, id: string, version: number, notes: Omit<WorkpaperNote, "authorId" | "resolution">[]) {
+    return this.edit(scope, id, version, "notes", (run, actor) => {
+      const ids = notes.map(n => n.id);
+      if (!notes.length || ids.some(i => !i) || new Set(ids).size !== ids.length || run.notes.some(n => ids.includes(n.id))) throw new Error("NOTE_ID_INVALID");
+      return { ...run, notes: [...run.notes, ...notes.map(n => ({ ...n, authorId: actor.id }))] };
+    });
+  }
   async resolveNote(scope: WorkpaperScope, id: string, version: number, noteId: string, text: string, citation?: NoteCitation) {
     return this.edit(scope, id, version, "resolve_note", (run, actor) => {
       if (!text.trim() || !run.notes.some((n) => n.id === noteId && !n.resolution)) throw new Error("NOTE_RESOLUTION_INVALID");

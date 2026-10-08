@@ -117,6 +117,23 @@ describe("EQ-1104 chaîne serveur : sources → population figée → lectures �
     expect((await h.read()).body.runs[0]).toMatchObject({ id: run.id, version: 2 });
   });
 });
+describe("EQ-1107 bornes de stockage", () => {
+  it("une exécution aux nombreuses exceptions ajoute ses notes en une seule version", async () => {
+    const { run: frozen } = await h.frozenRun();
+    const run = await h.ok({ command: "execute", id: frozen.id, expectedVersion: frozen.version });
+    expect(run.notes.length).toBeGreaterThan(10);
+    expect(run.version).toBe(frozen.version + 2);
+    expect(run.events.at(-1)!.action).toBe("notes");
+  });
+  it("le budget global des sources est vérifié avant de conserver un aperçu", async () => {
+    await h.importSource("eq_balances");
+    const key = [eqScope.organizationId, EQ_DOSSIER, eqScope.periodId].join("|");
+    const existing = h.db.state.imports[key][0];
+    h.db.state.imports[key].push({ type: "eq_balances", batch: { ...existing.batch, id: "import-filler" }, original: "x".repeat(48 * 1024 * 1024) });
+    expect(await h.preview("eq_entries")).toMatchObject({ status: 413, body: { error: "EQ_STATE_LIMIT" } });
+    expect(h.db.state.imports[key].some(i => i.batch.document.documentType === "eq_entries")).toBe(false);
+  });
+});
 describe("EQ-1105 activation et codes d’erreur", () => {
   it("reste fermé hors recette jetable et en production", () => {
     expect(() => requireDisposableEquity({})).toThrow(); expect(() => requireDisposableEquity({ PROBANT_EQUITY_DURABLE: "disposable", VERCEL_ENV: "production" })).toThrow();

@@ -129,6 +129,9 @@ export class EquityRuntime {
     const staged = { ...base, previewHash: stableSha256(base) };
     const original = Buffer.from(await file.arrayBuffer()).toString("base64");
     return this.receipt(tx, scope, actor, key, { operation: "preview", period, batchHash: staged.previewHash }, async () => {
+      // The aggregate source budget is checked before storing: an append-only preview can never make the workspace unreadable.
+      const size = await tx.sizes(scope);
+      if (size.sourceBytes + Buffer.byteLength(JSON.stringify(staged)) + original.length > LIMITS.bytes) throw new ApiError("EQ_STATE_LIMIT", "Volume des sources de cette recette atteint : aucune nouvelle pièce n’est conservée.", 413);
       await tx.insertImport(scope, staged.document.documentType, staged, original);
       return { batch: EquityImports.from(await tx.imports(scope)).get(scope, staged.id, actor) };
     });
@@ -200,7 +203,8 @@ export class EquityRuntime {
           run = await service.execute(scope, id, v, { work: current.equityWork, runId: id });
           if (run.state === "executed" && run.result?.outcome !== "no_exception_detected") {
             const exceptions = (run.result!.result as EquityResult).exceptions;
-            for (const e of exceptions) run = await service.addNote(scope, id, run.version, { id: "eq-exception:" + e.id, kind: EQ_UNCERTAINTY_CODES.includes(e.code) ? "missing_evidence" : "observation", text: e.label + " — " + e.message, amount: e.amount, blocking: true });
+            // All generated notes land in a single version, however many exceptions the execution produced.
+            if (exceptions.length) run = await service.addNotes(scope, id, run.version, exceptions.map(e => ({ id: "eq-exception:" + e.id, kind: EQ_UNCERTAINTY_CODES.includes(e.code) ? "missing_evidence" as const : "observation" as const, text: e.label + " — " + e.message, amount: e.amount, blocking: true })));
           }
           break;
         }
