@@ -131,4 +131,3 @@ export class ClientsImports {
             report: { ...r.preview.report, calculationAllowed: true } } : r.preview), new Map(data.map((r) => [r.preview.id, r.original_base64])));
     }
 }
-
