@@ -96,8 +96,8 @@ describe.skipIf(!databaseUrl)("recette Stocks — PostgreSQL jetable, sessions s
     expect(after.versions.st_count).toHaveLength(2);
     const revised = await success({ command: "revise", id: run.id, expectedVersion: run.version });
     expect(revised).toMatchObject({ revision: 2, state: "draft", importIds: [] });
-    // Sub-lot 2 sources are accepted by the widened constraints of migration 0015.
-    await importSource("st_costs"); await importSource("st_ledger");
-    expect(((await read()).sourceHeads as { document_type: string }[]).map(h => h.document_type).sort()).toEqual(["st_costs", "st_count", "st_ledger", "st_movements", "st_support", "st_system"]);
+    // Sub-lot 2 and 3 sources are accepted by the widened constraints of migrations 0015 and 0016.
+    await importSource("st_costs"); await importSource("st_ledger"); await importSource("st_value");
+    expect(((await read()).sourceHeads as { document_type: string }[]).map(h => h.document_type).sort()).toEqual(["st_costs", "st_count", "st_ledger", "st_movements", "st_support", "st_system", "st_value"]);
   });
 });

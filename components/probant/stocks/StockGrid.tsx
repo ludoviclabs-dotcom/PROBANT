@@ -41,6 +41,7 @@ export const StockGrid = forwardRef<StockGridHandle, Props>(function StockGrid({
         <small>{u.label}</small>
         {val?.quantityDifferenceValueCents && val.quantityDifferenceValueCents !== "0" && <span className={st.valueLine}>Écart potentiel {formatCents(val.quantityDifferenceValueCents, { signed: true })}</span>}
         {val?.priceDifferenceCents && val.priceDifferenceCents !== "0" && <span className={st.valueLine}>Écart de prix {formatCents(val.priceDifferenceCents, { signed: true })}</span>}
+        {(() => { const rv = result.valueReview?.units.find(x => x.unitId === u.unitId); return rv?.differenceCents && rv.differenceCents !== "0" ? <span className={st.valueLine}>Valeur à apprécier {formatCents(rv.differenceCents, { signed: true })}</span> : rv?.status === "booked_without_hypothesis" ? <span className={st.valueLine}>Dépréciation sans hypothèse</span> : null; })()}
         {(u.expectedClosing !== null || u.systemQuantity !== null) && <span className={st.meter} aria-hidden="true">
           <span style={{ width: width(u.expectedClosing) * 100 + "%" }}/><span data-kind="system" style={{ width: width(u.systemQuantity) * 100 + "%" }}/></span>}
         <small>{u.expectedClosing !== null ? "Reconstitué " + formatQuantity(u.expectedClosing, u.uom) : u.counted !== null ? "Compté " + formatQuantity(u.counted, u.uoms.count.join("/")) : "Non compté"} · {u.systemQuantity !== null ? "théorique " + formatQuantity(u.systemQuantity, u.uoms.system) : "théorique absent"}</small>

@@ -5,7 +5,8 @@ import type { Principal } from "./policy";
 import { formatQuantity, ST_CATEGORY_EXCLUSIONS, ST_LIMITATIONS, ST_METHOD_TEXT, ST_SITE_NOT_VISITED, ST_STATUSES, stockResultSchema, stockWorkSchema, type StockCitation, type StockCitationInput, type StockDraft, type StockResult, type StockStatus, type StockUnitResult, type StockWork } from "./stock-contract";
 import { buildStockFacts, type StFact, type StUnitFact } from "./stock-sources";
 import { valueStocks } from "./stock-valuation";
-import { formatCents, ST_COST_METHOD_LABELS, ST_VALUE_LIMITATIONS, ST_VALUE_METHOD_TEXT } from "./stock-contract";
+import { reviewStockValue } from "./stock-value-review";
+import { formatCents, ST_COST_METHOD_LABELS, ST_REVIEW_LIMITATIONS, ST_REVIEW_METHOD_TEXT, ST_VALUE_LIMITATIONS, ST_VALUE_METHOD_TEXT } from "./stock-contract";
 import { money } from "@/lib/canonical-model/money";
 
 export * from "./stock-contract";
@@ -115,10 +116,15 @@ export function evaluateStocks(scope: WorkpaperScope, period: AccountingPeriod, 
     e.amount = { kind: "known", value: money(v.cents) };
   }
   exceptions.push(...valueExceptions);
-  const evidence = [...new Map([...facts.units.flatMap(u => [...u.counts, ...(u.system ? [u.system] : []), ...u.movements]), ...(facts.costs ?? []), ...(facts.ledger ?? [])].map(f => [f.proof.id, f.proof])).values()];
+  // Sub-lot 3: with frozen value hypotheses, the indicative gap is compared with the booked depreciation — nothing is booked.
+  const { review: valueReview, exceptions: reviewExceptions } = reviewStockValue(facts, units, closing);
+  exceptions.push(...reviewExceptions);
+  const evidence = [...new Map([...facts.units.flatMap(u => [...u.counts, ...(u.system ? [u.system] : []), ...u.movements]), ...(facts.costs ?? []), ...(facts.ledger ?? []), ...(facts.values ?? [])].map(f => [f.proof.id, f.proof])).values()];
   return stockResultSchema.parse({
-    schemaVersion: "stocks-result-2", valuation, scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
+    schemaVersion: "stocks-result-2", valuation, valueReview, scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
     sites: facts.sites.map(s => ({ site: s.site, countDate: s.countDate, visited: !!visited.get(s.site), countLines: s.countLines, systemLines: s.systemLines, units: units.filter(u => u.site === s.site).length })),
-    units, references, totals, exceptions, evidence, method: valuation ? ST_METHOD_TEXT + " " + ST_VALUE_METHOD_TEXT : ST_METHOD_TEXT, limitations: valuation ? [...ST_LIMITATIONS.filter(l => !l.includes("valeur relève du sous-lot")), ...ST_VALUE_LIMITATIONS] : ST_LIMITATIONS,
+    units, references, totals, exceptions, evidence,
+    method: [ST_METHOD_TEXT, ...(valuation ? [ST_VALUE_METHOD_TEXT] : []), ...(valueReview ? [ST_REVIEW_METHOD_TEXT] : [])].join(" "),
+    limitations: [...(valuation ? ST_LIMITATIONS.filter(l => !l.includes("valeur relève du sous-lot")) : ST_LIMITATIONS).filter(l => !(valueReview && l.startsWith("Aucune dépréciation n’est calculée"))), ...(valuation ? ST_VALUE_LIMITATIONS : []), ...(valueReview ? ST_REVIEW_LIMITATIONS : [])],
   });
 }

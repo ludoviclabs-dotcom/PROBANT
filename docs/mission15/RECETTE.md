@@ -1,4 +1,4 @@
-# Mission 15 — Recette des sous-lots 1 « quantités et mouvements » et 2 « coûts et cadrage »
+# Mission 15 — Recette des sous-lots 1 « quantités et mouvements », 2 « coûts et cadrage » et 3 « revue de valeur »
 
 Les données sont **100 % synthétiques** (`lib/workpapers/__tests__/stock-fixtures.ts`) : exercice 2026, trois entrepôts et un dépôt. Une suite verte sur ces fixtures **n'autorise aucune mission réelle**.
 
@@ -90,12 +90,35 @@ L'issue est « exceptions détectées ». Toutes les notes portent un montant **
 | Qualification | Méthode inconnue, coût en double, compte hors classe 3, valeur absente, illisible ou sans compte, colonne absente du fichier (unitaire) |
 | Sans coûts ni grand livre | Aucune valeur dérivée : sous-lot 1 inchangé (unitaire) |
 
+## Sous-lot 3 — montants calculés à la main
+
+| Cas | Calcul indépendant | Feuille |
+|---|---|---|
+| **REF-C** (FV-901, prix postérieur à la clôture) | Valeur actuelle 6,00 − 0,50 = 5,50 € < coût 8,00 € ; écart unitaire 2,50 € ; × 50 = **125,00 €** ; comptabilisé 150,00 € → **−25,00 €** | `VALUE_REVIEW_DIFFERENCE` au montant connu −25,00 € ; mention « ne propose ni ne comptabilise aucune dépréciation » |
+| REF-A (TAR-2027, tarif) | 15,00 − 1,00 = 14,00 € ≥ 12,00 € | Aucun écart |
+| REF-D (DEV-77, devis), dernier mouvement le 10/01/2026 | 2,50 − 0,20 = 2,30 € ≥ 2,00 € ; 355 jours avant la clôture | Aucun écart. **La rotation n'entraîne aucun calcul** (indice affiché seulement). |
+| REF-E Nord | 20,00 € comptabilisés, aucune hypothèse | `VALUE_HYPOTHESIS_MISSING` |
+| Comptes 39 | Grand livre 397 : −150,00 € soit 150,00 € ; détail 150 + 20 = 170,00 € → **−20,00 €** | `DEPRECIATION_FRAMING_DIFFERENCE` |
+| Bilan | 3 références revues, 5 non revues ; écart indicatif total 125,00 € | 17 exceptions et incertitudes (14 + 3), issue « exceptions détectées » |
+
+## Matrice de recette du sous-lot 3
+
+| Cas | Preuve |
+|---|---|
+| Analyse de valeur sur hypothèses justifiées | Pièce et justification obligatoires ; hypothèse citée jusqu'à sa ligne dans le panneau (unitaire, E2E) |
+| Aucune dépréciation automatique sur la rotation | REF-D : 355 jours, aucun montant ni exception (unitaire, E2E) |
+| Jugement humain | Différence en note bloquante ; traitement cité requis (runtime) |
+| Hypothèse dans une autre unité, coût absent | Revue incomplète, jamais un écart nul (unitaire) |
+| Référence inconnue, justification trop courte, pièce absente, coûts de sortie absents, nature inconnue, dernier mouvement après la clôture, dépréciation absente pour une ligne détenue | Refus avec ligne et colonne (unitaire) |
+| Péremption | Hypothèse remplacée : feuille périmée (runtime) |
+| Sans hypothèses | Revue non lancée, sous-lots 1 et 2 inchangés (unitaire) |
+
 ## Exécutions locales (09/10/2026)
 
-- **Tests unitaires complets** (`--pool=forks`) : 1 403 réussis, 42 ignorés (branche du sous-lot 2). Tests propres aux stocks : `stock-review.test.ts` 17/17, `stock-valuation.test.ts` 11/11, `stock-runtime.test.ts` 11/11. La branche du sous-lot 1 seul donnait 1 391 réussis et 42 ignorés.
+- **Tests unitaires complets** (`--pool=forks`) : 1 411 réussis, 42 ignorés (branche du sous-lot 3). Les branches précédentes donnaient 1 403 (sous-lot 2) et 1 391 (sous-lot 1) réussis, 42 ignorés. Tests propres aux stocks : `stock-review.test.ts` 17/17, `stock-valuation.test.ts` 11/11, `stock-value-review.test.ts` 7/7, `stock-runtime.test.ts` 12/12.
 - **Typecheck** : OK.
 - **Lint** : 0 erreur, 7 avertissements déjà présents avant ce lot.
-- **`db:check`** : 18 migrations, invariants valides (17 sur la branche du sous-lot 1).
+- **`db:check`** : 19 migrations, invariants valides (18 pour le sous-lot 2, 17 pour le sous-lot 1).
 - **Build de production** : OK.
-- **Chromium** (Playwright, build de production) : 91 réussis, 1 ignoré. `stocks.spec.ts` passe 5/5 (4 pour le sous-lot 1, 1 pour le sous-lot 2), sans violation axe sérieuse ni critique. Captures inspectées à 1440, 1024 et 390 px, ainsi qu'avec réduction des animations. La branche du sous-lot 1 seul donnait 90 réussis et 1 ignoré.
-- **Non exécuté localement** : `stock-durable.integration.test.ts`, qui couvre aussi l'import des coûts et du grand livre (migration 0015). Faute de PostgreSQL jetable sur ce poste, il s'exécute seulement dans la CI.
+- **Chromium** (Playwright, build de production) : 92 réussis, 1 ignoré. `stocks.spec.ts` passe 6/6 (4 pour le sous-lot 1, 1 pour le sous-lot 2, 1 pour le sous-lot 3), sans violation axe sérieuse ni critique. Captures inspectées à 1440, 1024 et 390 px, ainsi qu'avec réduction des animations. Les branches précédentes donnaient 91 (sous-lot 2) et 90 (sous-lot 1) réussis.
+- **Non exécuté localement** : `stock-durable.integration.test.ts`, qui couvre aussi l'import des coûts, du grand livre et des hypothèses (migrations 0015 et 0016). Faute de PostgreSQL jetable sur ce poste, il s'exécute seulement dans la CI.

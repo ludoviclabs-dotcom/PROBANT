@@ -5,7 +5,7 @@ import type { ImportBatch } from "./imports";
  * Population of the stock sheet (Mission 15). Kept free of server-only imports: the shared selection module is also
  * bundled for the browser demonstration.
  */
-export const ST_TYPES = ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"] as const;
+export const ST_TYPES = ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger", "st_value"] as const;
 export type StockSourceType = typeof ST_TYPES[number];
 /**
  * Ownership and status of a stock line. Only "own" stock is tested in quantity; the other categories are listed

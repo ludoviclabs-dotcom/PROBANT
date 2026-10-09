@@ -3,9 +3,9 @@
 La mission est livrée en trois sous-lots séquentiels, chacun proposé dans une PR distincte :
 1. **quantités et mouvements** — livré (sous-lot 1) ;
 2. **coûts et cadrage** — livré (sous-lot 2, PR empilée sur le sous-lot 1) ;
-3. **revue de valeur** — à suivre.
+3. **revue de valeur** — livré (sous-lot 3, PR empilée sur le sous-lot 2).
 
-Ce document décrit les sous-lots 1 et 2 ; le sous-lot 3 y ajoutera sa section.
+Ce document décrit les trois sous-lots.
 
 ## Problème utilisateur
 
@@ -199,8 +199,53 @@ La méthode déclarée pour chaque coût (PCG art. 213-33 à 213-35) est **affic
 
 **Limites.** L'outil n'applique aucune de ces règles de coût : il affiche le coût documenté par une pièce et la méthode déclarée. L'évaluation à la valeur actuelle et les dépréciations (art. 214-22 et suivants) relèvent du sous-lot 3. Aucun seuil ni aucune tolérance n'est encodé.
 
+## Sous-lot 3 — revue de valeur
+
+### Questions professionnelles
+
+1. Pour les références revues, la valeur actuelle *selon une hypothèse citée et justifiée* est-elle inférieure au coût documenté ?
+2. L'écart indicatif qui en résulte est-il cohérent avec la dépréciation comptabilisée ?
+3. Une dépréciation est-elle comptabilisée sans hypothèse qui la documente ?
+4. Le détail des dépréciations est-il cadré avec les comptes 39 du grand livre ?
+
+### Sources ajoutées (facultatives : sans elles, la revue n'est pas lancée)
+
+| Source | Champs | Contrôles (refus avec ligne, colonne et valeur) |
+|---|---|---|
+| `st_value` — hypothèses de valeur | ligne, référence, lot (facultatif), unité, prix de vente estimé par unité (colonne montant), coûts de sortie par unité, date, nature, pièce, justification ; date du dernier mouvement facultative | nature parmi `prix_post_cloture`, `tarif`, `devis`, `estimation_direction` ; **pièce et justification obligatoires** ; coûts de sortie explicites (0 si aucun) ; une hypothèse par référence et lot ; référence ou lot inconnu refusé ; dernier mouvement au plus tard à la clôture |
+| `st_system` — colonne ajoutée | dépréciation comptabilisée de la ligne | obligatoire (0 si aucune) pour une ligne détenue une fois la colonne mappée ; jamais négative |
+
+La migration additive `0016_stock_value_review` élargit à nouveau les contraintes de type de source. Son retour arrière est refusé si des hypothèses existent.
+
+### Comparaison (méthode interne, qui ne propose ni ne comptabilise rien)
+
+- **Valeur actuelle selon l'hypothèse** = prix de vente estimé − coûts de sortie. C'est la valeur vénale nette des coûts de sortie (PCG art. 214-6), éclairée par les prix et perspectives de vente (art. 214-22).
+- **Écart indicatif.** Si la valeur actuelle est inférieure au coût documenté (art. 214-5) : (coût − valeur actuelle) × quantité théorique ; sinon 0.
+- **Différence** = écart indicatif − dépréciation comptabilisée. Si elle n'est pas nulle : `VALUE_REVIEW_DIFFERENCE`, avec **jugement humain motivé et cité requis**.
+- **Dépréciation comptabilisée sans hypothèse** : `VALUE_HYPOTHESIS_MISSING` (incertitude).
+- **Hypothèse sans coût, sans ligne théorique ou dans une autre unité** : `VALUE_REVIEW_INCOMPLETE` (incertitude).
+- **Cadrage des dépréciations** : comptes 39 du grand livre (soldes créditeurs) − détail de l'état théorique (lignes détenues). Écart : `DEPRECIATION_FRAMING_DIFFERENCE`.
+- **Rotation.** La date du dernier mouvement est affichée comme **indice** (art. 214-16). **Aucune dépréciation n'est déduite de la rotation**, de l'ancienneté ou d'un seuil.
+- **Périmètre de la revue** : les unités testées en quantité et portant une hypothèse. Les autres restent « non revues » ; les écarts de propriété sont hors revue.
+
+### Sources consultées (09/10/2026)
+
+**PCG** (règlement ANC n° 2014-03), version au 1er janvier 2026, texte officiel ANC. Nature : **norme comptable**.
+
+| Article | Contenu |
+|---|---|
+| 214-5 | Définition de la dépréciation : valeur actuelle devenue inférieure à la valeur nette comptable |
+| 214-6 | Valeur actuelle = la plus élevée de la valeur vénale et de la valeur d'usage ; valeur vénale nette des coûts de sortie |
+| 214-16 | Indices de perte de valeur, dont l'obsolescence |
+| 214-19 | Reprise des dépréciations |
+| 214-22 | Évaluation des stocks à l'inventaire ; prix et perspectives de vente |
+| 214-23 | Contrat de vente ferme (non modélisé) |
+
+**Limites.** La valeur d'usage, les contrats de vente ferme et les positions globales sur matières (art. 214-22) ne sont pas modélisés. L'outil compare une hypothèse fournie : il ne l'établit pas et ne l'approuve pas.
+
 ## Exemple synthétique
 
 Voir `docs/mission15/RECETTE.md`, dont tous les montants sont calculés à la main :
 - **sous-lot 1** : 15 unités, 9 testées, 6 exclues avec motif, 9 exceptions ou incertitudes ;
-- **sous-lot 2** : 14 exceptions ou incertitudes, dont l'écart potentiel de −24,00 € sur REF-A.
+- **sous-lot 2** : 14 exceptions ou incertitudes, dont l'écart potentiel de −24,00 € sur REF-A ;
+- **sous-lot 3** : 17 exceptions ou incertitudes, dont la différence de −25,00 € à apprécier sur REF-C.

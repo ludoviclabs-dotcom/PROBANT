@@ -10,7 +10,7 @@ import { COST_ROWS, costCsv, LEDGER_ROWS, ledgerCsv, ST_CSV, stMapping, stPeriod
 const actor = (scope: WorkpaperScope): Principal => ({ id: "preparer-st", grants: [{ scope, permissions: ["read", "prepare", "review", "download"] }] });
 async function sources(texts: Partial<Record<StockSourceType, string>>, valued = true) {
   const batches: ImportBatch[] = [];
-  for (const type of ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"] as StockSourceType[]) {
+  for (const type of ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger", "st_value"] as StockSourceType[]) {
     if (texts[type] === undefined) continue;
     const batch = await previewImport(new File([texts[type]!], type + ".csv", { type: "text/csv" }), stScope, stMapping(type, undefined, valued), actor(stScope), type, "stocks.count");
     assertStockBatch(batch, stPeriod);
@@ -24,7 +24,8 @@ function run(batches: ImportBatch[]): StockResult {
   const work = stampStockWork({ imports: batches, draft: { sameDay: "before_count", instructions: { documentId: s.document.id, rowId: s.rows.find(r => r.original.Piece === "INSTR-INV")!.id } }, actor: actor(stScope), at: "2027-01-10T10:00:00.000Z" });
   return evaluateStocks(stScope, stPeriod, batches, "run-st", work);
 }
-const valued = () => sources({ ...ST_CSV });
+/** Sub-lot 2 sources: no value hypotheses, so the value review stays off. */
+const valued = () => { const { st_value: _v, ...rest } = ST_CSV; void _v; return sources(rest); };
 const v = (r: StockResult, id: string) => r.valuation!.units.find(u => u.unitId === id)!;
 
 describe("ST-1521 coûts — cas de référence calculés à la main", () => {
@@ -57,14 +58,14 @@ describe("ST-1521 coûts — cas de référence calculés à la main", () => {
   });
   it("coût exprimé dans une autre unité : bloqué, sans conversion", async () => {
     const costs = costCsv(COST_ROWS.map(c => c[0] === "K01" ? [...c.slice(0, 3), "carton", ...c.slice(4)] : c));
-    const r = run(await sources({ ...ST_CSV, st_costs: costs }));
+    const r = run(await sources({ ...ST_CSV, st_value: undefined, st_costs: costs }));
     expect(v(r, "REF-A|ENTREPOT-NORD|L1")).toMatchObject({ costStatus: "unit_incompatible", quantityDifferenceValueCents: null });
     expect(r.exceptions.find(e => e.id === "QTY:REF-A|ENTREPOT-NORD|L1")!.amount.kind).toBe("unknown");
     expect(r.exceptions.some(e => e.code === "COST_UNIT_INCOMPATIBLE")).toBe(true);
   });
   it("coût d’une référence sans lot appliqué à ses lots ; jamais le coût d’une autre référence", async () => {
     const costs = costCsv(COST_ROWS.map(c => c[0] === "K05" ? [c[0], c[1], "", ...c.slice(3)] : c));
-    const r = run(await sources({ ...ST_CSV, st_costs: costs }));
+    const r = run(await sources({ ...ST_CSV, st_value: undefined, st_costs: costs }));
     expect(v(r, "REF-E|ENTREPOT-SUD|L7").cost).toMatchObject({ lot: "", unitCostCents: "400" });
     expect(valueOf(-250n, 333n)).toBe(-833n);
     expect(valueOf(250n, 333n)).toBe(833n);
@@ -84,7 +85,7 @@ describe("ST-1522 cadrage état valorisé ↔ grand livre et propriété", () =>
     expect(acc("371000").methods).toEqual(["Coût moyen pondéré (PCG art. 213-34)", "Premier entré, premier sorti (PCG art. 213-34)"]);
   });
   it("compte valorisé absent du grand livre : cadrage incomplet, jamais réputé nul ; compte au grand livre sans ligne théorique : écart", async () => {
-    const r = run(await sources({ ...ST_CSV, st_ledger: ledgerCsv([...LEDGER_ROWS.filter(l => l[0] !== "331000"), ["355000", "500,00", "2026-12-31", "Produits finis"]]) }));
+    const r = run(await sources({ ...ST_CSV, st_value: undefined, st_ledger: ledgerCsv([...LEDGER_ROWS.filter(l => l[0] !== "331000"), ["355000", "500,00", "2026-12-31", "Produits finis"]]) }));
     expect(r.valuation!.accounts.find(a => a.account === "331000")).toMatchObject({ status: "ledger_missing", ledgerCents: null, differenceCents: null });
     expect(r.exceptions.find(e => e.id === "FRAME:331000")!.code).toBe("FRAMING_INCOMPLETE");
     expect(r.valuation!.accounts.find(a => a.account === "355000")).toMatchObject({ status: "system_missing", differenceCents: "50000" });

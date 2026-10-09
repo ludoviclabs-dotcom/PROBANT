@@ -73,6 +73,16 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
         <dt>Écart de quantité valorisé</dt><dd className={styles.money}>{v.quantityDifferenceValueCents === null ? "Non établi" : formatCents(v.quantityDifferenceValueCents, { signed: true }) + " (écart potentiel)"}</dd>
         <dt>Écart de prix</dt><dd className={styles.money}>{v.priceDifferenceCents === null ? "Non établi" : formatCents(v.priceDifferenceCents, { signed: true })}</dd></dl>
         {v.cost && canDownload && <a href={download(v.cost.documentVersionId)}>Télécharger la liste des coûts figée</a>}</div>; })()}
+    {(() => { const rv = result.valueReview?.units.find(x => x.unitId === unit.unitId); if (!rv || rv.status === "not_reviewed") return null;
+      return <div className={styles.sourceBox}><p><strong>Revue de valeur</strong></p><dl>
+        <dt>Hypothèse citée</dt><dd>{rv.hypothesis ? rv.hypothesis.kind + " · pièce " + rv.hypothesis.pieceRef + " · " + rv.hypothesis.fileName + (rv.hypothesis.row ? " ligne " + rv.hypothesis.row : "") + " · " + dateFr(rv.hypothesis.date) : "Aucune hypothèse figée"}</dd>
+        {rv.hypothesis && <><dt>Justification</dt><dd>{rv.hypothesis.justification}</dd>
+          <dt>Valeur actuelle</dt><dd className={styles.money}>{formatCents(rv.hypothesis.sellingPriceCents)} − {formatCents(rv.hypothesis.exitCostsCents)} = {formatCents(rv.hypothesis.currentValueCents)}</dd></>}
+        <dt>Écart indicatif</dt><dd className={styles.money}>{formatCents(rv.indicativeGapCents)}</dd>
+        <dt>Dépréciation comptabilisée</dt><dd className={styles.money}>{formatCents(rv.bookedCents)}</dd>
+        <dt>Différence</dt><dd className={styles.money}>{rv.differenceCents === null ? "Non établie" : formatCents(rv.differenceCents, { signed: true })}</dd>
+        {rv.rotation && <><dt>Indice de rotation</dt><dd>Dernier mouvement le {dateFr(rv.rotation.lastMovement)}, {rv.rotation.days} jours avant la clôture — aucun calcul n’en est déduit</dd></>}</dl>
+        <p className={styles.muted}>L’outil ne propose ni ne comptabilise aucune dépréciation : le jugement humain cité tranche.</p></div>; })()}
     <h3>Lignes de comptage</h3>
     {unit.countLines.length ? <ul className={st.pieceList}>{unit.countLines.map(l => lineBox(l, l.sheetRef, <small>{ST_CATEGORY_LABELS[l.category]} · {l.uomLabel}</small>))}</ul> : <p className={styles.muted}>Aucune ligne de comptage : la quantité réelle reste inconnue.</p>}
     <h3>Ligne théorique</h3>
@@ -81,6 +91,6 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
     {unit.movements.lines.length ? <ul className={st.pieceList}>{unit.movements.lines.map(l => lineBox(l, l.pieceRef, <small>{l.direction === "in" ? "Entrée" : "Sortie"} · {dateFr(l.date)} · {l.inWindow ? "pris en compte" : "hors période intercalaire"}</small>, l.inWindow ? undefined : st.outWindow))}</ul>
       : <p className={styles.muted}>{unit.movements.coverage === "missing_journal" ? "Aucun journal de mouvements approuvé." : unit.movements.coverage === "not_needed" ? "Aucun mouvement requis : comptage à la date de clôture." : "Aucun mouvement pour cette référence dans le journal."}</p>}
     {result.coverage && <p className={styles.muted}>Journal : {result.coverage.fileName}, période couverte déclarée du {dateFr(result.coverage.from)} au {dateFr(result.coverage.to)}.</p>}
-    <p className={styles.muted}>L’outil ne certifie pas la présence physique des stocks et ne déprécie rien automatiquement.</p>
+    <p className={styles.muted}>L’outil ne certifie pas la présence physique des stocks et ne déprécie rien automatiquement, ni sur la rotation ni autrement.</p>
   </aside>;
 });

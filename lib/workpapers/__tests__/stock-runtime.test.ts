@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { requireDisposableStocks, stockFailureStatus } from "../stock-http";
 import type { StockResult } from "../stock-contract";
 import type { WorkpaperRun } from "../model";
-import { COST_ROWS, costCsv, COUNT_ROWS, countCsv, stPeriod } from "./stock-fixtures";
+import { COST_ROWS, costCsv, COUNT_ROWS, countCsv, stPeriod, VALUE_ROWS, valueCsv } from "./stock-fixtures";
 import { createStockHarness, ST_OTHER_DOSSIER, type StockHarness } from "./stock-harness";
 
 let h: StockHarness;
@@ -104,6 +104,22 @@ describe("ST-1514 sous-lot 2 : coûts et cadrage dans la chaîne serveur", () =>
     expect(run.evidence.some(e => e.purpose === "Coût unitaire documenté")).toBe(true);
     v.clock.now += 60;
     await v.accept(await v.preview("st_costs", costCsv(COST_ROWS.map(c => c[0] === "K01" ? [...c.slice(0, 4), "11,50", ...c.slice(5)] : c))));
+    expect((await v.read()).body.sourcesCurrent[run.id]).toBe(false);
+  });
+});
+
+describe("ST-1515 sous-lot 3 : revue de valeur dans la chaîne serveur", () => {
+  it("sept sources figées ; différence REF-C −25,00 € et cadrage des comptes 39 −20,00 € en notes ; hypothèse remplacée → feuille périmée", async () => {
+    const v = createStockHarness(1_801_000_000, { valued: true });
+    const sources = await v.importAll(["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger", "st_value"]);
+    const { run } = await v.executed(sources);
+    expect(run.importIds).toHaveLength(7);
+    expect(run.notes).toHaveLength(17);
+    expect(run.notes.find(n => n.id === "st-exception:VREV:REF-C|ENTREPOT-NORD|")).toMatchObject({ kind: "observation", amount: { kind: "known", value: { amount: "-25.00" } } });
+    expect(run.notes.find(n => n.id === "st-exception:VHYP:REF-E|ENTREPOT-NORD|L7")!.kind).toBe("missing_evidence");
+    expect(run.evidence.some(e => e.purpose === "Hypothèse de valeur actuelle")).toBe(true);
+    v.clock.now += 60;
+    await v.accept(await v.preview("st_value", valueCsv(VALUE_ROWS.map(r => r[0] === "V02" ? [...r.slice(0, 4), "7,00", ...r.slice(5)] : r))));
     expect((await v.read()).body.sourcesCurrent[run.id]).toBe(false);
   });
 });

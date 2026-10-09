@@ -193,6 +193,34 @@ test("Stocks — sous-lot 2 : écart potentiel −24,00 €, écart de prix, cad
   await expect(page.getByText(/Cadrage état valorisé ↔ grand livre — 321000/)).toBeVisible();
 });
 
+test("Stocks — sous-lot 3 : revue de valeur sur hypothèse citée, différence −25,00 €, rotation simple indice, cadrage des comptes 39 ; captures 1440 / 390", async ({ page }, testInfo) => {
+  const h = createStockHarness(1_801_000_000, { valued: true }); await h.executed(await h.importAll(["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger", "st_value"])); await serve(page, h);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(sheet());
+  await expect(tile(page, /^REF-C, ENTREPOT-NORD/)).toContainText("Valeur à apprécier −25,00 €");
+  await expect(tile(page, /^REF-E lot L7, ENTREPOT-NORD/)).toContainText("Dépréciation sans hypothèse");
+  const review = page.getByRole("table", { name: /Revue de valeur par référence/ });
+  const c = review.getByRole("row", { name: /REF-C · ENTREPOT-NORD/ });
+  await expect(c).toContainText("5,50 €");
+  await expect(c).toContainText("125,00 €");
+  await expect(c).toContainText("150,00 €");
+  await expect(c).toContainText("−25,00 €");
+  await expect(c).toContainText("FV-901");
+  const d = review.getByRole("row", { name: /REF-D · ENTREPOT-SUD/ });
+  await expect(d).toContainText("355 j avant la clôture) — indice, aucun calcul");
+  await expect(d).toContainText("0,00 €");
+  await expect(page.getByText(/écart de cadrage −20,00\s€/)).toBeVisible();
+  await expect(page.getByText(/l’outil ne propose ni ne comptabilise aucune dépréciation/).first()).toBeVisible();
+  await c.getByRole("button", { name: /REF-C · ENTREPOT-NORD/ }).click();
+  await expect(panel(page)).toContainText("Ventes de janvier 2027 à 6,00 € l’unité, remise de fin de série");
+  await expect(panel(page)).toContainText("6,00 € − 0,50 € = 5,50 €");
+  await axe(page);
+  await capture(page, testInfo, "st-value-review-1440.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "st-value-review-390.png");
+});
+
 test("Stocks — inventaire décalé sans mouvements puis feuille de comptage remplacée : non concluant, puis périmé", async ({ page }, testInfo) => {
   const h = createStockHarness(); await h.executed(await h.importAll(["st_count", "st_system", "st_support"])); await serve(page, h);
   await page.setViewportSize({ width: 1440, height: 900 });

@@ -71,13 +71,33 @@ export const stockUnitResultSchema = z.object({
 export type StockUnitResult = z.infer<typeof stockUnitResultSchema>;
 export const ST_EXCEPTION_CODES = ["QUANTITY_DIFFERENCE", "NOT_IN_SYSTEM", "OWNERSHIP_MISMATCH", "NET_COMPENSATED", "UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED",
   // Sub-lot 2 « coûts et cadrage »
-  "PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE"] as const;
+  "PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE",
+  // Sub-lot 3 « revue de valeur »
+  "VALUE_REVIEW_DIFFERENCE", "DEPRECIATION_FRAMING_DIFFERENCE", "VALUE_HYPOTHESIS_MISSING", "VALUE_REVIEW_INCOMPLETE"] as const;
 export type StockExceptionCode = typeof ST_EXCEPTION_CODES[number];
 /** Codes that leave a part of the test unknown: they make the sheet inconclusive, never a validated anomaly. */
-export const ST_UNCERTAINTY_CODES: StockExceptionCode[] = ["UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE"];
+export const ST_UNCERTAINTY_CODES: StockExceptionCode[] = ["UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE", "VALUE_HYPOTHESIS_MISSING", "VALUE_REVIEW_INCOMPLETE"];
+const cents = z.string().regex(/^-?(0|[1-9]\d*)$/);
+export const ST_VALUE_KIND_LABELS: Record<string, string> = { prix_post_cloture: "Prix de vente postérieur à la clôture", tarif: "Tarif ou liste de prix", devis: "Devis ou offre", estimation_direction: "Estimation de la direction" };
+/**
+ * Sub-lot 3 « revue de valeur ». For each reviewed reference / site / lot: the current value per unit according to the
+ * preparer's cited hypothesis (selling price − exit costs, PCG art. 214-6), compared with the documented cost; the
+ * indicative gap is compared with the booked depreciation. Nothing is proposed nor booked; rotation is an indicator only.
+ */
+export const stockValueReviewSchema = z.object({
+  hypothesesProvided: z.literal(true), depreciationMapped: z.boolean(),
+  units: z.array(z.object({ unitId: id,
+    hypothesis: z.object({ importId: id, rowId: id, documentVersionId: id, fileName: z.string().min(1).max(300), row: z.number().int().positive().nullable(), date: dateSchema,
+      sellingPriceCents: cents, exitCostsCents: cents, currentValueCents: cents, kind: text, pieceRef: z.string().max(200), justification: text, lot: z.string().max(120) }).strict().nullable(),
+    costCents: cents.nullable(), systemQuantity: z.string().nullable(), unitGapCents: cents.nullable(), indicativeGapCents: cents.nullable(), bookedCents: cents.nullable(), differenceCents: cents.nullable(),
+    rotation: z.object({ lastMovement: dateSchema, days: z.number().int().nonnegative() }).strict().nullable(),
+    status: z.enum(["no_gap", "gap", "booked_without_hypothesis", "not_reviewed", "cost_missing", "unit_incompatible"]) }).strict()),
+  totals: z.object({ reviewed: z.number().int().nonnegative(), notReviewed: z.number().int().nonnegative(), indicativeGapCents: cents, bookedCents: cents.nullable(),
+    ledgerDepreciationCents: cents.nullable(), depreciationFramingDifferenceCents: cents.nullable() }).strict(),
+}).strict();
+export type StockValueReview = z.infer<typeof stockValueReviewSchema>;
 export const ST_COST_METHOD_LABELS: Record<string, string> = { cmp: "Coût moyen pondéré (PCG art. 213-34)", peps: "Premier entré, premier sorti (PCG art. 213-34)", identification_specifique: "Identification spécifique (PCG art. 213-33)",
   cout_standard: "Coût standard (PCG art. 213-35, si proche du coût)", prix_de_detail: "Prix de détail (PCG art. 213-35, si proche du coût)" };
-const cents = z.string().regex(/^-?(0|[1-9]\d*)$/);
 const lineRefSchema = z.object({ importId: id, rowId: id, documentVersionId: id, fileName: z.string().min(1).max(300), row: z.number().int().positive().nullable(), date: dateSchema }).strict();
 /**
  * Sub-lot 2 « coûts et cadrage ». Every amount is integer euro CENTS carried as a string; a value is quantity
@@ -110,6 +130,8 @@ export const stockResultSchema = z.object({
   evidence: z.array(proofSchema), method: text, limitations: z.array(text),
   /** Absent in sub-lot 1 results; null when no cost list and no ledger were frozen. */
   valuation: stockValuationSchema.nullable().optional(),
+  /** Absent before sub-lot 3; null when no value hypotheses were frozen. */
+  valueReview: stockValueReviewSchema.nullable().optional(),
 }).strict();
 export type StockResult = z.infer<typeof stockResultSchema>;
 
@@ -131,6 +153,12 @@ export const ST_VALUE_LIMITATIONS = [
   "Le coût documenté est celui de la pièce citée : l’outil ne recalcule ni coût moyen pondéré ni premier entré, premier sorti, et n’approuve aucune méthode.",
   "Un coût par référence et lot s’applique à tous les sites ; un coût différent par site n’est pas couvert.",
   "Un écart valorisé est un écart potentiel à expliquer : ni anomalie validée ni correction comptable.",
+];
+export const ST_REVIEW_METHOD_TEXT = "Revue de valeur : valeur actuelle unitaire selon l’hypothèse citée = prix de vente estimé − coûts de sortie (valeur vénale, PCG art. 214-6 ; prix et perspectives de vente, art. 214-22). Écart indicatif = (coût documenté − valeur actuelle) × quantité théorique lorsque la valeur actuelle est inférieure au coût (art. 214-5), comparé à la dépréciation comptabilisée. Méthode interne de comparaison : l’outil ne propose ni ne comptabilise aucune dépréciation ; la rotation est un indice (art. 214-16), jamais un calcul.";
+export const ST_REVIEW_LIMITATIONS = [
+  "L’écart indicatif dépend entièrement de l’hypothèse citée : il n’est ni une dépréciation proposée ni une estimation validée ; le jugement humain motivé et cité reste requis.",
+  "Aucune dépréciation n’est déduite de la rotation, de l’ancienneté ou d’un seuil : la date du dernier mouvement est affichée comme indice.",
+  "La valeur d’usage (flux actualisés) et les contrats de vente ferme (PCG art. 214-23) ne sont pas modélisés.",
 ];
 /** Euro cents → French text ("-2400" → "−24,00 €"). */
 export function formatCents(value: string | null, options: { signed?: boolean } = {}) {

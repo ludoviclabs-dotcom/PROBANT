@@ -13,7 +13,7 @@ export interface StockView {
 export type Kind = (typeof ST_STATUS_KIND)[StockStatus];
 export const KIND_LABELS: Record<Kind, string> = { ok: "Sans écart", quantity: "Écart de quantité", ownership: "Écart de propriété", blocked: "Bloqué", uncertain: "Non concluant", apart: "Présenté à part" };
 export const KIND_ORDER: Kind[] = ["quantity", "ownership", "blocked", "uncertain", "ok", "apart"];
-export const SOURCE_LABELS: Record<string, string> = { st_count: "Feuilles de comptage", st_system: "État théorique à la clôture", st_movements: "Mouvements intercalaires", st_support: "Pièces citables", st_costs: "Coûts unitaires documentés", st_ledger: "Grand livre des comptes de stocks" };
+export const SOURCE_LABELS: Record<string, string> = { st_count: "Feuilles de comptage", st_system: "État théorique à la clôture", st_movements: "Mouvements intercalaires", st_support: "Pièces citables", st_costs: "Coûts unitaires documentés", st_ledger: "Grand livre des comptes de stocks", st_value: "Hypothèses de valeur actuelle" };
 const MESSAGES: Record<string, string> = {
   ST_DURABLE_DISABLED: "Parcours Stocks durable fermé : réservé à la recette jetable (drapeau désactivé ou production).",
   ST_DURABLE_UNAVAILABLE: "Service Stocks indisponible. Aucune donnée n’a été modifiée ; réessayez.",
@@ -36,6 +36,14 @@ const MESSAGES: Record<string, string> = {
   ST_DIRECTION_INVALID: "Sens de mouvement inconnu (entree ou sortie).",
   ST_QUANTITY_NEGATIVE: "Quantité négative refusée : un retour se saisit comme mouvement.",
   ST_COUNT_DATE_OUTSIDE: "Date de comptage hors de l’exercice ou postérieure à la date de revue.",
+  ST_VALUE_JUSTIFICATION_REQUIRED: "Une hypothèse de valeur doit être justifiée (dix caractères au moins).",
+  ST_VALUE_PIECE_REQUIRED: "Une hypothèse de valeur doit citer sa pièce (prix postérieur, tarif, devis…).",
+  ST_VALUE_EXIT_COST_REQUIRED: "Coûts de sortie explicites requis (0 si aucun) : ils ne sont jamais présumés nuls.",
+  ST_VALUE_KIND_INVALID: "Nature d’hypothèse inconnue (prix_post_cloture, tarif, devis, estimation_direction).",
+  ST_VALUE_REFERENCE_UNKNOWN: "Hypothèse sur une référence (ou un lot) absente du comptage et du théorique.",
+  ST_VALUE_DUPLICATE: "Deux hypothèses pour la même référence et le même lot.",
+  ST_LAST_MOVEMENT_INVALID: "Date du dernier mouvement invalide ou postérieure à la clôture.",
+  ST_SYSTEM_DEPRECIATION_REQUIRED: "Une ligne détenue doit porter sa dépréciation comptabilisée (0 si aucune) une fois la colonne mappée.",
   ST_COLUMN_NOT_FOUND: "Colonne nommée dans le mapping absente du fichier : corrigez le nom ou videz le champ.",
   ST_COST_METHOD_INVALID: "Méthode de coût inconnue (cmp, peps, identification_specifique, cout_standard, prix_de_detail).",
   ST_COST_DUPLICATE: "Deux coûts pour la même référence et le même lot.",
