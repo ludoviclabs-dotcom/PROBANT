@@ -7,7 +7,7 @@ import styles from "../cash/cash.module.css";
 import st from "./stocks.module.css";
 
 export interface StockDetailHandle { focus(): void }
-interface Props { unit: StockUnitResult | null; result: StockResult | null; view: StockView; dossierId: string; periodId: string; onReturn(): void }
+interface Props { unit: StockUnitResult | null; result: StockResult | null; view: StockView; /** Imports frozen for the displayed version (current sources before the freeze). */ sourceIds: string[]; dossierId: string; periodId: string; onReturn(): void }
 type Line = { importId: string; rowId: string; documentVersionId: string; fileName: string; row: number | null; key: string; quantity: string; date: string };
 /** Inventory → closing bridge of one unit, with its tabular alternative. Bars are positioned on the server quantities only. */
 export function StockBridge({ unit }: { unit: StockUnitResult }) {
@@ -38,13 +38,13 @@ export function StockBridge({ unit }: { unit: StockUnitResult }) {
   </figure>;
 }
 
-export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function StockDetailPanel({ unit, result, view, dossierId, periodId, onReturn }, ref) {
+export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function StockDetailPanel({ unit, result, view, sourceIds, dossierId, periodId, onReturn }, ref) {
   const heading = useRef<HTMLHeadingElement>(null), [piece, setPiece] = useState<string | null>(null);
   useImperativeHandle(ref, () => ({ focus: () => heading.current?.focus() }), []);
   const close = (e: React.KeyboardEvent) => { if (e.key === "Escape") { e.preventDefault(); setPiece(null); onReturn(); } };
   const canDownload = view.permissions.includes("download");
   const download = (id: string) => "/api/workpapers/stocks?" + new URLSearchParams({ dossierId, periodId, operation: "download", id });
-  const supportBatch = view.imports.find(b => b.document.documentType === "st_support" && view.sourceHeads.some(h => h.import_id === b.id)), supports = supportBatch?.rows ?? [];
+  const supportBatch = view.imports.find(b => b.document.documentType === "st_support" && sourceIds.includes(b.id)), supports = supportBatch?.rows ?? [];
   const pieceRow = (ref: string) => ref ? supports.find(r => r.normalized?.key === ref) : undefined;
   const pieceLabel = (r: (typeof supports)[number]) => r.original[supportBatch?.mapping.stocks?.labelColumn ?? ""] ?? "";
   const lineBox = (l: Line, refName: string, extra: React.ReactNode, className?: string) => {

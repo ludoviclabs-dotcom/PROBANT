@@ -46,6 +46,7 @@ Statuts acceptés : `propre`, `tiers`, `consignation_recue`, `consignation_depos
 
 - **Unité de test : référence | site | lot**, le lot pouvant être vide. Le séparateur `|` est refusé dans chacune des trois parties.
 - **Population** : toutes les unités présentes dans le comptage ou dans le théorique (`stock_unit`).
+- Un mouvement d’une référence | site | lot absente à la fois du comptage et du théorique ne crée aucune unité de test : il reste dans le journal figé, consultable par le réviseur, mais n’est pas analysé (limite du lot).
 - **Mesure de population** : une quantité en centièmes d'unité de comptage (la quantité théorique, ou la quantité comptée si l'unité est absente du théorique). Ce n'est jamais un montant, et elle n'est jamais additionnée d'une unité à l'autre.
 - **Période** : l'exercice. La date de comptage est celle du site ; la clôture est la date de clôture de l'exercice.
 
@@ -181,6 +182,8 @@ La méthode déclarée pour chaque coût (PCG art. 213-33 à 213-35) est **affic
 |---|---|
 | `PRICE_DIFFERENCE`, `VALUE_ON_NOT_OWNED`, `FRAMING_DIFFERENCE`, `NET_COMPENSATED_VALUE` | Exceptions |
 | `COST_MISSING` (valeur inconnue, jamais nulle), `COST_UNIT_INCOMPATIBLE`, `FRAMING_INCOMPLETE` (compte absent du grand livre, valeurs non mappées, ligne valorisée sans compte) | Incertitudes |
+
+Sans colonne de valeur mappée dans le théorique, chaque compte du grand livre est présenté « valeurs théoriques non mappées » : valeur théorique et écart inconnus, jamais déduits du solde contre zéro.
 
 ### Sources consultées (09/10/2026)
 

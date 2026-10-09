@@ -3,7 +3,7 @@ import { formatCents, type StockResult } from "@/lib/workpapers/stock-contract";
 import styles from "../cash/cash.module.css";
 import st from "./stocks.module.css";
 
-const STATUS: Record<string, string> = { framed: "Cadré", difference: "Écart à expliquer", ledger_missing: "Grand livre absent — cadrage impossible", system_missing: "Aucune ligne théorique sur ce compte" };
+const STATUS: Record<string, string> = { framed: "Cadré", difference: "Écart à expliquer", ledger_missing: "Grand livre absent — cadrage impossible", system_missing: "Aucune ligne théorique sur ce compte", values_missing: "Valeurs théoriques non mappées — cadrage impossible" };
 /** Framing of the stated stock values against the closing ledger, and valued differences (sub-lot 2). Every amount comes from the server. */
 export function StockValuationView({ result }: { result: StockResult }) {
   const v = result.valuation;
@@ -17,7 +17,7 @@ export function StockValuationView({ result }: { result: StockResult }) {
     <div className={styles.tableScroll} role="region" aria-label="Cadrage par compte — défilement clavier" tabIndex={0}><table className={st.valueTable}>
       <caption>Cadrage par compte de stock, en euros ; écart = grand livre − état théorique valorisé</caption>
       <thead><tr><th scope="col">Compte</th><th scope="col">État valorisé (détenu)</th><th scope="col">Grand livre</th><th scope="col">Écart</th><th scope="col">Comparaison</th><th scope="col">Lecture</th></tr></thead>
-      <tbody>{v.accounts.map(a => <tr key={a.account} className={st.rowKind} data-kind={a.status === "framed" ? "ok" : a.status === "ledger_missing" ? "uncertain" : "quantity"}>
+      <tbody>{v.accounts.map(a => <tr key={a.account} className={st.rowKind} data-kind={a.status === "framed" ? "ok" : a.status === "ledger_missing" || a.status === "values_missing" ? "uncertain" : "quantity"}>
         <th scope="row">{a.account}<small className={st.sub}>{a.lines} ligne(s){a.methods.length ? " · " + a.methods.join(" ; ") : ""}</small></th>
         <td className={styles.money}>{formatCents(a.systemValueCents)}</td><td className={styles.money}>{formatCents(a.ledgerCents)}</td>
         <td className={styles.money}><span className={st.delta} data-sign={a.differenceCents === null ? "none" : a.differenceCents === "0" ? "zero" : a.differenceCents.startsWith("-") ? "neg" : "pos"}>{a.differenceCents === null ? "Inconnu" : formatCents(a.differenceCents, { signed: true })}</span></td>

@@ -73,6 +73,8 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
   for (const l of ledger) if (!accounts.has(l.account)) accounts.set(l.account, { system: 0n, notOwned: 0n, lines: 0 });
   const framed = [...accounts.entries()].sort(([a], [b]) => a < b ? -1 : 1).map(([account, a]) => {
     const l = ledger.find(x => x.account === account), methods = [...new Set(valued.filter(v => v.account === account && v.cost).map(v => v.cost!.method))].sort();
+    // Stated values not mapped: the system side is unknown, so no known framing difference is derived from the ledger balance.
+    if (facts.ledger && !facts.valueMapped) return { account, systemValueCents: null, ledgerCents: l?.quantity ?? null, differenceCents: null, lines: 0, notOwnedCents: "0", status: "values_missing" as const, ledger: l ? lineRef(l) : null, methods };
     if (!facts.ledger) return { account, systemValueCents: String(a.system), ledgerCents: null, differenceCents: null, lines: a.lines, notOwnedCents: String(a.notOwned), status: "ledger_missing" as const, ledger: null, methods };
     if (!l) {
       exceptions.push({ id: "FRAME:" + account, code: "FRAMING_INCOMPLETE", unitId: null, label: "Compte sans solde au grand livre — " + account, message: "L’état théorique valorise " + formatCents(String(a.system)) + " sur le compte " + account + ", absent du grand livre approuvé : cadrage impossible.", amount: unknown("Solde du grand livre inconnu") });
@@ -100,7 +102,7 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
     costsProvided: !!facts.costs, ledgerProvided: !!facts.ledger, valueMapped: facts.valueMapped, units: valued, accounts: framed,
     depreciation: depreciation.map(l => ({ account: l.account, ledgerCents: l.quantity, ledger: lineRef(l) })), references,
     totals: { netQuantityDifferenceCents: String(net), grossQuantityDifferenceCents: String(gross), compensated, valuedDifferences: all.length,
-      priceDifferenceNetCents: String(valued.reduce((n, v) => n + (v.priceDifferenceCents ? BigInt(v.priceDifferenceCents) : 0n), 0n)), systemValueCents: String(systemTotal),
+      priceDifferenceNetCents: String(valued.reduce((n, v) => n + (v.priceDifferenceCents ? BigInt(v.priceDifferenceCents) : 0n), 0n)), systemValueCents: facts.valueMapped ? String(systemTotal) : null,
       ledgerCents: facts.ledger ? String(ledger.reduce((n, l) => n + BigInt(l.quantity), 0n)) : null },
   };
   return { valuation, exceptions, quantityValue };

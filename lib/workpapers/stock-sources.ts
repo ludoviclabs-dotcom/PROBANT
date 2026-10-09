@@ -258,6 +258,9 @@ export function buildStockFacts(scope: WorkpaperScope, period: AccountingPeriod,
           method: METHODS[norm(cell(row, f.methodColumn))], pieceRef: cell(row, f.pieceColumn), label: cell(row, f.labelColumn) });
         continue;
       }
+      // A full journal may hold movements of references outside the counted / stated population (sources are processed
+      // count, system, then movements): they create no unit of test, and the frozen journal keeps them for the reviewer.
+      if (type === "st_movements" && !facts.units.some(u => u.unitId === stockUnitId(cell(row, f.referenceColumn), cell(row, f.siteColumn), cell(row, f.lotColumn)))) continue;
       const unit = unitOf(cell(row, f.referenceColumn), cell(row, f.siteColumn), cell(row, f.lotColumn)), uomLabel = cell(row, f.unitColumn), uom = norm(uomLabel), label = cell(row, f.labelColumn);
       if (label && !unit.label) unit.label = label;
       if (type === "st_count") unit.counts.push({ ...fact("Ligne de comptage"), uom, uomLabel, category: CATEGORIES[norm(cell(row, f.categoryColumn))], sheetRef: cell(row, f.pieceColumn), label });

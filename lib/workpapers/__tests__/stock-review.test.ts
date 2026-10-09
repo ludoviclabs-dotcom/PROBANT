@@ -125,6 +125,13 @@ describe("ST-1502 mouvements, dates et unités", () => {
     const r = run(await sources({ st_count: ST_CSV.st_count, st_system: ST_CSV.st_system, st_support: ST_CSV.st_support, st_movements: moves }));
     expect(unit(r, "REF-D|ENTREPOT-SUD|")).toMatchObject({ status: "unit_incompatible", uoms: { movements: ["carton"] } });
   });
+  it("mouvement d’une référence absente du comptage et du théorique : aucune unité de test créée, le gel n’échoue pas", async () => {
+    const moves = movementCsv([...MOVEMENT_ROWS, ["M9", "REF-Q", "ENTREPOT-NORD", "L9", "unite", "4", "2026-12-23", "sortie", "BL-9", "Hors population"], ["M10", "REF-Q", "SITE-INCONNU", "", "unite", "2", "2026-12-23", "entree", "BR-9", ""]]);
+    const base = run(await all()), r = run(await sources({ st_count: ST_CSV.st_count, st_system: ST_CSV.st_system, st_support: ST_CSV.st_support, st_movements: moves }));
+    expect(r.units.map(u => u.unitId)).toEqual(base.units.map(u => u.unitId));
+    expect(r.units.some(u => u.reference === "REF-Q")).toBe(false);
+    expect(r.sites.map(s => s.site)).toEqual(base.sites.map(s => s.site));
+  });
 });
 
 describe("ST-1503 qualification des sources (refus avec localisation)", () => {

@@ -110,12 +110,12 @@ export const stockValuationSchema = z.object({
     costStatus: z.enum(["documented", "missing", "unit_incompatible", "not_tested"]),
     expectedValueCents: cents.nullable(), systemValueCents: cents.nullable(), recalculatedSystemValueCents: cents.nullable(),
     quantityDifferenceValueCents: cents.nullable(), priceDifferenceCents: cents.nullable() }).strict()),
-  accounts: z.array(z.object({ account: id, systemValueCents: cents, ledgerCents: cents.nullable(), differenceCents: cents.nullable(), lines: z.number().int().nonnegative(),
-    notOwnedCents: cents, status: z.enum(["framed", "difference", "ledger_missing", "system_missing"]), ledger: lineRefSchema.nullable(), methods: z.array(text) }).strict()),
+  accounts: z.array(z.object({ account: id, systemValueCents: cents.nullable(), ledgerCents: cents.nullable(), differenceCents: cents.nullable(), lines: z.number().int().nonnegative(),
+    notOwnedCents: cents, status: z.enum(["framed", "difference", "ledger_missing", "system_missing", "values_missing"]), ledger: lineRefSchema.nullable(), methods: z.array(text) }).strict()),
   depreciation: z.array(z.object({ account: id, ledgerCents: cents, ledger: lineRefSchema }).strict()),
   references: z.array(z.object({ reference: id, net: cents, gross: cents, compensated: z.boolean(), units: z.number().int().positive() }).strict()),
   totals: z.object({ netQuantityDifferenceCents: cents, grossQuantityDifferenceCents: cents, compensated: z.boolean(), valuedDifferences: z.number().int().nonnegative(),
-    priceDifferenceNetCents: cents, systemValueCents: cents, ledgerCents: cents.nullable() }).strict(),
+    priceDifferenceNetCents: cents, systemValueCents: cents.nullable(), ledgerCents: cents.nullable() }).strict(),
 }).strict();
 export type StockValuation = z.infer<typeof stockValuationSchema>;
 export const stockResultSchema = z.object({

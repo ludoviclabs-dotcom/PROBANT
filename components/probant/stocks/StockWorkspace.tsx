@@ -176,7 +176,6 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
               <section className={styles.card} aria-labelledby="st-review-title"><header><h2 id="st-review-title">Exécution, conclusion et revue</h2><span className={styles.muted}>État : {STATE_LABELS[run.state] ?? run.state}{run.approval ? " · approuvée par " + run.approval.actorId : ""}</span></header>
                 <div className={styles.actions}>
                   {editable && run.state === "ready" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("execute")}>Calculer les quantités de clôture</button>}
-                  {editable && run.state === "executed" && <button type="button" disabled={saving} onClick={() => action("execute")}>Recalculer</button>}
                 </div>
                 {editable && run.state === "executed" && <><label>Conclusion de la préparation<textarea value={conclusion} disabled={saving} onChange={e => setConclusion(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" disabled={saving || !conclusion.trim()} onClick={() => action("conclude", { text: conclusion })}>Enregistrer la conclusion</button>
@@ -191,7 +190,7 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
               </section>
             </>}
           </div>
-          <StockDetailPanel ref={detailRef} unit={unit} result={result} view={view} dossierId={dossierId} periodId={pid} onReturn={returnFromPanel}/>
+          <StockDetailPanel ref={detailRef} unit={unit} result={result} view={view} sourceIds={frozenSources} dossierId={dossierId} periodId={pid} onReturn={returnFromPanel}/>
         </div>
       </> : <StockImportPanel view={view} period={period} periodId={pid} busy={saving} canPrepare={canPrepare} dossierId={dossierId} onPreview={data => void mutate(data, true)} onApprove={c => void mutate({ command: "approve_import", ...c }, true)}/>}
       <p className={styles.srOnly} aria-live="polite">{unit ? "Case ouverte : " + unit.reference + " " + unit.site : ""}</p>

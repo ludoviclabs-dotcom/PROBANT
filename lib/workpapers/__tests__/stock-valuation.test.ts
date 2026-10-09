@@ -90,6 +90,15 @@ describe("ST-1522 cadrage état valorisé ↔ grand livre et propriété", () =>
     expect(r.exceptions.find(e => e.id === "FRAME:331000")!.code).toBe("FRAMING_INCOMPLETE");
     expect(r.valuation!.accounts.find(a => a.account === "355000")).toMatchObject({ status: "system_missing", differenceCents: "50000" });
   });
+  it("valeurs théoriques non mappées avec un grand livre : cadrage inconnu par compte, aucun écart connu fabriqué à partir du solde", async () => {
+    const r = run(await sources({ ...ST_CSV, st_value: undefined }, false));
+    expect(r.valuation!.valueMapped).toBe(false);
+    expect(r.valuation!.accounts.find(a => a.account === "321000")).toMatchObject({ status: "values_missing", systemValueCents: null, ledgerCents: "110000", differenceCents: null });
+    expect(r.valuation!.accounts.every(a => a.differenceCents === null && a.systemValueCents === null)).toBe(true);
+    expect(r.exceptions.filter(e => e.code === "FRAMING_DIFFERENCE")).toEqual([]);
+    expect(r.exceptions.find(e => e.id === "FRAME:VALUES")).toMatchObject({ code: "FRAMING_INCOMPLETE", amount: { kind: "unknown" } });
+    expect(r.valuation!.totals.systemValueCents).toBeNull();
+  });
   it("issue et décompte : 14 exceptions et incertitudes, exceptions détectées", async () => {
     const r = run(await valued());
     expect(r.schemaVersion).toBe("stocks-result-2");
