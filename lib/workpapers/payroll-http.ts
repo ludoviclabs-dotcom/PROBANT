@@ -132,11 +132,28 @@ export function payrollFailure(error: unknown) {
   return Response.json({ error: code }, { status, headers: payrollHeaders });
 }
 
+async function payrollTemplateResponse(kindValue: string | null) {
+  // Fixed server-side permission for this export, before inspecting its input.
+  authorizePayroll(payrollActor, payrollScope, "export");
+  const kind = z.enum(payrollKinds).parse(kindValue);
+  const header = (await payrollFixture().files[kind].text()).split("\n")[0];
+  return new Response(header + "\n", {
+    headers: {
+      ...payrollHeaders,
+      "Content-Type": "text/csv;charset=utf-8",
+      "Content-Disposition": `attachment; filename="colonnes-${kind}.csv"`,
+    },
+  });
+}
+
 export async function payrollDemoGET(request: Request) {
   try {
     requirePayrollDemo(request);
-    const runtime = session(request),
-      params = new URL(request.url).searchParams;
+    const runtime = session(request);
+    // Every read requires the trusted server principal's HR capability;
+    // query parameters only choose the response, never whether to authorize.
+    authorizePayroll(payrollActor, payrollScope, "read");
+    const params = new URL(request.url).searchParams;
     if (
       [...params.keys()].some((k) => !["operation", "kind"].includes(k)) ||
       [...params.keys()].some((k) => params.getAll(k).length !== 1)
@@ -152,16 +169,7 @@ export async function payrollDemoGET(request: Request) {
       });
     }
     if (params.get("operation") === "template") {
-      authorizePayroll(payrollActor, payrollScope, "export");
-      const kind = z.enum(payrollKinds).parse(params.get("kind"));
-      const header = (await payrollFixture().files[kind].text()).split("\n")[0];
-      return new Response(header + "\n", {
-        headers: {
-          ...payrollHeaders,
-          "Content-Type": "text/csv;charset=utf-8",
-          "Content-Disposition": `attachment; filename="colonnes-${kind}.csv"`,
-        },
-      });
+      return await payrollTemplateResponse(params.get("kind"));
     }
     if (params.size) throw Error("HR_QUERY_INVALID");
     return Response.json(runtime.read(payrollActor), {

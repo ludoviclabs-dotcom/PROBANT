@@ -1,4 +1,5 @@
 import { afterEach, expect, it, vi } from "vitest";
+import * as payrollPolicy from "../payroll-contract";
 import {
   payrollDemoGET,
   payrollDemoPOST,
@@ -20,7 +21,10 @@ function enabled() {
   vi.stubEnv("PROBANT_DEMONSTRATION_ORIGIN", origin);
   vi.stubEnv("VERCEL_ENV", "");
 }
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.restoreAllMocks();
+});
 it("réel fermé sans lire une requête ou activer un flag", async () => {
   enabled();
   expect(payrollRealDisabled().status).toBe(503);
@@ -85,4 +89,50 @@ it("erreurs et corps volumineux ne divulguent pas de données RH", async () => {
   expect(
     await payrollFailure(Error("PRIVATE 50.00 employee NAME SQL")).text(),
   ).toBe('{"error":"HR_REQUEST_INVALID"}');
+});
+
+it("les paramètres de lecture ou d’export ne contournent pas l’habilitation RH", async () => {
+  enabled();
+  const init = await payrollDemoPOST(local({ action: "init", scenario: "empty" }));
+  const cookie = init.headers.get("set-cookie")!.split(";")[0];
+  const authorize = payrollPolicy.authorizePayroll;
+  vi.spyOn(payrollPolicy, "authorizePayroll").mockImplementation((actor, scope, permission) => {
+    if (permission === "read") throw Error("HR_FORBIDDEN");
+    authorize(actor, scope, permission);
+  });
+  for (const query of [
+    "",
+    "?operation=diagnostic",
+    "?operation=template&kind=journal",
+    "?operation=unknown",
+    "?operation=diagnostic&operation=template",
+  ]) {
+    const response = await payrollDemoGET(new Request(url + query, {
+      headers: { host: "127.0.0.1:3018", cookie },
+    }));
+    expect(response.status).toBe(403);
+    expect(await response.text()).toBe('{"error":"HR_FORBIDDEN"}');
+  }
+});
+
+it("le droit de lecture seul n’autorise ni diagnostic ni modèle CSV", async () => {
+  enabled();
+  const init = await payrollDemoPOST(local({ action: "init", scenario: "empty" }));
+  const cookie = init.headers.get("set-cookie")!.split(";")[0];
+  const authorize = payrollPolicy.authorizePayroll;
+  vi.spyOn(payrollPolicy, "authorizePayroll").mockImplementation((actor, scope, permission) => {
+    if (permission === "export") throw Error("HR_FORBIDDEN");
+    authorize(actor, scope, permission);
+  });
+  const read = await payrollDemoGET(new Request(url, {
+    headers: { host: "127.0.0.1:3018", cookie },
+  }));
+  expect(read.status).toBe(200);
+  for (const query of ["?operation=diagnostic", "?operation=template&kind=journal"]) {
+    const response = await payrollDemoGET(new Request(url + query, {
+      headers: { host: "127.0.0.1:3018", cookie },
+    }));
+    expect(response.status).toBe(403);
+    expect(await response.text()).toBe('{"error":"HR_FORBIDDEN"}');
+  }
 });

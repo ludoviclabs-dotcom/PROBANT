@@ -177,7 +177,7 @@ export class PayrollRuntime {
       const c = commandSchema.parse(command),
         state = this.state;
       if (c.version !== state.version) throw Error("HR_VERSION_CONFLICT");
-      let next = state;
+      let next: PayrollState;
       if (c.action === "approve_import") {
         const p = this.previews.get(c.previewId);
         if (
