@@ -5,6 +5,7 @@ import { payablesWorkSchema, type PayablesWork } from "./payables-investigation"
 import { clientsSalesResultSchema, clientsSalesWorkSchema, type ClientsSalesWork } from "./clients-sales";
 import { cashResultSchema, cashWorkSchema, type CashWork } from "./cash-reconciliation";
 import { fixedAssetResultSchema, fixedAssetResultEvidence, fixedAssetWorkSchema, type FixedAssetWork } from "./fixed-asset-review";
+import { fiscalResultEvidence, isFiscalProcedure, parseFiscalResult, parseFiscalWork, procedureOf, type FiscalWork } from "./fiscal-review";
 import { equityResultEvidence as capitauxResultEvidence, equityResultSchema as capitauxResultSchema, capitauxWorkSchema, type EquityWork as CapitauxWork } from "./capitaux-review";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
@@ -29,10 +30,10 @@ export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString(),
-    private readonly realAdapter?: "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review") {}
+    private readonly realAdapter?: "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo" && !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -42,12 +43,12 @@ export class WorkpaperService {
   async get(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.get(scope, id); }
   async history(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.history(scope, id); }
   async download(scope: WorkpaperScope, documentId: string) { const actor = await this.actor(scope, "download"); return this.imports.download(scope, documentId, actor); }
-  async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string, clientsWork?: ClientsSalesWork) {
+  async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string, clientsWork?: ClientsSalesWork, fiscalWork?: FiscalWork) {
     if (scope.mode === "real" && (template.id !== this.realAdapter || template.rule?.id !== this.realAdapter || template.rule.version !== "1.0.0")) throw new Error("CLIENT_TEMPLATE_REQUIRED");
     const actor = await this.actor(scope, "prepare"); if (!instanceKey.trim()) throw new Error("INSTANCE_KEY_REQUIRED");
     const id = `workpaper-${stableSha256({ scope, template: { id: template.id, version: template.version }, instanceKey })}`;
     return this.repository.create(this.stamp(validateRun({ id, rootId: id, revision: 1, version: 1, schemaVersion: "1.0.0", scope, period, template,
-      state: "draft", preparedBy: actor.id, ...(clientsWork ? { clientsWork: clientsSalesWorkSchema.parse(clientsWork) } : {}), importIds: [], evidence: [], findings: [], notes: [], events: [] }), actor, "create"));
+      state: "draft", preparedBy: actor.id, ...(clientsWork ? { clientsWork: clientsSalesWorkSchema.parse(clientsWork) } : {}), ...(fiscalWork ? { fiscalWork: parseFiscalWork(fiscalWork) } : {}), importIds: [], evidence: [], findings: [], notes: [], events: [] }), actor, "create"));
   }
   private async edit(scope: WorkpaperScope, id: string, version: number, action: string, update: (run: WorkpaperRun, actor: Principal) => WorkpaperRun) {
     const actor = await this.actor(scope, "prepare");
@@ -118,6 +119,18 @@ export class WorkpaperService {
     return this.repository.compareAndSwap(scope, id, version, run => {
       if (run.template.id !== "capitaux_propres.review" || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
       return this.stamp({ ...run, capitauxWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_capitaux");
+    });
+  }
+  /** Validated fiscal inputs (profile, explanations) replace any current result: a new execution and a new review are required. */
+  async configureFiscal(scope: WorkpaperScope, id: string, version: number, work: FiscalWork) {
+    const actor = await this.actor(scope, "prepare");
+    if (scope.mode !== "real" || !isFiscalProcedure(this.realAdapter)) throw new Error("FISCAL_ONLY");
+    const validated = parseFiscalWork(work);
+    return this.repository.compareAndSwap(scope, id, version, run => {
+      if (run.template.id !== this.realAdapter || procedureOf(validated) !== run.template.id || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
+      // The declarative period identifies the run: it is never changed by a configuration.
+      if (!run.fiscalWork || run.fiscalWork.period.startDate !== validated.period.startDate || run.fiscalWork.period.endDate !== validated.period.endDate) throw new Error("FX_PERIOD_IMMUTABLE");
+      return this.stamp({ ...run, fiscalWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_fiscal");
     });
   }
   async attachInputs(scope: WorkpaperScope, id: string, version: number, population: Population, selection: SelectionSet) {
@@ -200,6 +213,11 @@ export class WorkpaperService {
         assertScope(scope, capitaux.scope); if (capitaux.runId !== run.id) throw new Error("CAPITAUX_RESULT_IDENTITY_MISMATCH");
         evidence = [...new Map([...evidence, ...capitauxResultEvidence(capitaux)].map(link => [link.id, link])).values()];
       }
+      if (isFiscalProcedure(this.realAdapter) && result.execution === "completed") {
+        const fiscal = parseFiscalResult(result.result);
+        assertScope(scope, fiscal.scope); if (fiscal.runId !== run.id) throw new Error("FISCAL_RESULT_IDENTITY_MISMATCH");
+        evidence = [...new Map([...evidence, ...fiscalResultEvidence(fiscal, run.importIds.map(i => this.imports.get(scope, i, actor)))].map(link => [link.id, link])).values()];
+      }
       if (this.realAdapter === "fixed_assets.review" && result.execution === "completed") {
         const assets = fixedAssetResultSchema.parse(result.result);
         assertScope(scope, assets.scope); if (assets.runId !== run.id) throw new Error("FIXED_ASSET_RESULT_IDENTITY_MISMATCH");
@@ -243,12 +261,12 @@ export class WorkpaperService {
       return this.stamp({ ...old, id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
-        ...(scope.mode === "real" ? { investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
+        ...(scope.mode === "real" ? { investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
         evidence: (scope.mode === "real" ? [] : old.evidence).map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
     });
   }
   async lock(scope: WorkpaperScope, id: string, version: number) {
-    if (scope.mode !== "real" || !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
+    if (scope.mode !== "real" || !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
     const actor = await this.actor(scope, "review");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       assertTransition(run, "locked", actor);

@@ -1,0 +1,50 @@
+/* Fiscal sheets (Mission 13): navigation by tax and period, declaration lines that open entries then pieces. Base tokens come from cash.module.css. */
+.taxNav{display:flex;gap:6px;flex-wrap:wrap;margin:14px 0 4px}
+.taxNav button{padding:7px 14px;border-radius:999px;background:transparent;font-weight:600}
+.taxNav button[aria-pressed=true]{background:var(--accent-bg,#1b2650);border-color:var(--accent,#7c8cff);color:#e3e9ff}
+.taxNav button[aria-disabled=true]{opacity:.65;cursor:not-allowed;font-weight:500}
+.periodNav{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch;margin:10px 0 4px;padding:0;list-style:none}
+.periodNav button{display:grid;gap:3px;text-align:left;min-width:190px;padding:8px 12px;background:var(--pb-surface-2,#161d2b)}
+.periodNav button[aria-current=true]{border-color:var(--accent,#7c8cff);box-shadow:inset 3px 0 0 var(--accent,#7c8cff);background:var(--accent-bg,#1b2650)}
+.periodNav small{color:var(--muted,#8a99af);font-size:11px}
+.chip{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+.chip[data-tone=ok]{color:var(--ok,#3ccf7a);background:var(--ok-bg,#0f2417)}
+.chip[data-tone=warn]{color:var(--warn,#f0a63a);background:var(--warn-bg,#2a1d0c)}
+.chip[data-tone=danger]{color:var(--danger,#ff7a7a);background:var(--danger-bg,#2c1414)}
+.chip[data-tone=info]{color:var(--info,#7aa7ff);background:var(--info-bg,#121f3a)}
+.chip[data-tone=muted]{color:var(--muted,#8a99af);border-style:dashed}
+.free{max-height:none!important}
+.linkButton{border:0;background:none;padding:0;color:#9cbcff;text-decoration:underline;text-underline-offset:3px;font:inherit;font-variant-numeric:tabular-nums;cursor:pointer}
+.compare td:not(:first-child),.compare th:not(:first-child){text-align:right}
+.compare tbody th{font-weight:600;text-align:left;background:transparent;white-space:normal}
+.diff[data-zero=false]{color:var(--danger,#ff7a7a);font-weight:650}
+.diff[data-zero=true]{color:var(--ok,#3ccf7a)}
+.lineButton{width:100%;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:10px;align-items:center;text-align:left;padding:8px 10px;background:transparent;border-color:transparent}
+.lineButton:hover{background:var(--pb-surface-2,#161d2b)}
+.lineButton[aria-expanded=true]{background:var(--accent-bg,#1b2650);border-color:var(--accent,#7c8cff)}
+.chevron{display:inline-block;width:1em;transition:transform var(--motion,160ms) ease-out}
+.lineButton[aria-expanded=true] .chevron{transform:rotate(90deg)}
+.expand{display:grid;grid-template-rows:0fr;transition:grid-template-rows var(--motion,160ms) ease-out}
+.expand[data-open=true]{grid-template-rows:1fr}
+.expand > div{overflow:hidden;min-height:0}
+.entries{margin:4px 0 10px 28px;padding:0;list-style:none;display:grid;gap:4px}
+.entries button{width:100%;display:flex;flex-wrap:wrap;gap:4px 12px;justify-content:space-between;text-align:left;padding:6px 10px;background:var(--pb-surface-inset,#0e141f);font-size:12.5px}
+.entries button[aria-pressed=true]{border-color:var(--accent,#7c8cff);box-shadow:inset 3px 0 0 var(--accent,#7c8cff)}
+.selectedRow{background:#18233a!important;box-shadow:inset 3px 0 0 var(--accent,#7c8cff)}
+.rules{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.rules > li{border:1px solid var(--pb-border,#243044);border-left:3px solid var(--warn,#f0a63a);border-radius:0 6px 6px 0;padding:10px 12px;background:var(--pb-surface-2,#161d2b)}
+.rules > li[data-category=profile],.rules > li[data-category=document]{border-left-color:var(--info,#7aa7ff)}
+.rules h3{margin:0 0 4px;font-size:13.5px}
+.rules button{border:0;background:none;padding:0;color:#9cbcff;text-decoration:underline;text-underline-offset:3px;font-size:12px}
+.sourceList{margin:6px 0 0;padding-left:18px;font-size:12px;color:#c9d4e4}
+.sourceList li{margin:3px 0}
+.rateOrigin{font-size:12px;color:#c9d4e4;max-width:520px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.explanations{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.explanations li{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;border:1px solid var(--pb-border,#243044);border-radius:6px;padding:7px 10px;font-size:12.5px}
+.otherTaxes{font-size:12px;color:#c9d4e4;border:1px dashed var(--pb-border-strong,#324563);border-radius:6px;padding:8px 12px;margin-top:12px}
+/* Hashes and scope fields never widen the page: monospace widths differ between platforms. */
+.synth code{overflow-wrap:anywhere;word-break:break-all;white-space:normal}
+.synth form input{width:100%;min-width:0}
+@media (max-width:720px){.grid2{grid-template-columns:minmax(0,1fr)}.lineButton{grid-template-columns:auto minmax(0,1fr) auto}.lineButton > :nth-child(4){grid-column:2 / -1}.periodNav button{min-width:0;flex:1 1 140px}.entries{margin-left:8px}}
+@media (prefers-reduced-motion:reduce){.chevron,.expand{transition:none!important}}

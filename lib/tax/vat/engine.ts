@@ -28,7 +28,7 @@ import { canonicalJson, stableHash } from "@/lib/synthesis/canonical";
 import { getTaxFormVintage } from "@/lib/knowledge/tax-registry";
 import { createTaxReconciliationLine } from "../canonical";
 import { subtractCents } from "../corporate-tax/arithmetic";
-import { assessNormativeCoverage, type VatSourceRequirement } from "./coverage";
+import { assessNormativeCoverage, VAT_CONTROL_SOURCE_REQUIREMENTS, type VatSourceRequirement } from "./coverage";
 import {
   buildComparisonDataset,
   buildMissingPieceMatrix,
@@ -960,7 +960,7 @@ export class VatControlEngine {
       context.candidates.filter((candidate) => candidate.signals.includes(signal as never));
 
     // 9. Décalage de période — dépend du fait générateur (art. 269).
-    const shiftGuard = this.coverageGuard(context, "VAT.PERIOD.SHIFT", ["taxPoint"]);
+    const shiftGuard = this.coverageGuard(context, "VAT.PERIOD.SHIFT", VAT_CONTROL_SOURCE_REQUIREMENTS["VAT.PERIOD.SHIFT"]);
     const shifted = withSignal("period_shift_candidate");
     results.push(this.result({
       controlId: "VAT.PERIOD.SHIFT",
@@ -994,7 +994,7 @@ export class VatControlEngine {
     }));
 
     // 12. Pièce absente — sans référentiel de pièces, aucune conclusion.
-    const invoiceGuard = this.coverageGuard(context, "VAT.PIECE.MISSING", ["invoicing", "deduction"]);
+    const invoiceGuard = this.coverageGuard(context, "VAT.PIECE.MISSING", VAT_CONTROL_SOURCE_REQUIREMENTS["VAT.PIECE.MISSING"]);
     if (!context.invoiceRefsProvided) {
       results.push(this.result({
         controlId: "VAT.PIECE.MISSING",
@@ -1040,7 +1040,7 @@ export class VatControlEngine {
     }
 
     // 13. Écriture sans référence — obligation de facturation (art. 289).
-    const referenceGuard = this.coverageGuard(context, "VAT.ENTRY.NO_REFERENCE", ["invoicing"]);
+    const referenceGuard = this.coverageGuard(context, "VAT.ENTRY.NO_REFERENCE", VAT_CONTROL_SOURCE_REQUIREMENTS["VAT.ENTRY.NO_REFERENCE"]);
     const unreferenced = context.candidates.filter((candidate) => candidate.pieceRef === null);
     results.push(this.result({
       controlId: "VAT.ENTRY.NO_REFERENCE",

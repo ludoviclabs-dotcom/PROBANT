@@ -5,6 +5,7 @@ import { assertScope, frozen, type Population, type SelectionSet, type Workpaper
 import { authorize, type Principal } from "./policy";
 import { registerUnits } from "./fixed-asset-sources";
 import { equityPopulationItems as capitauxPopulationItems, isEquityPopulation as isCapitauxPopulation } from "./capitaux-sources";
+import { citPopulationItems, isFiscalPopulation, vatPopulationItems } from "./fiscal-population";
 
 /** Invoice grouping is limited to the validated Clients open-at-closing mapping. */
 export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], unit: Population["unit"], principal: Principal): Population {
@@ -22,11 +23,13 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   if (payablesUnit && (imports.some(b => b.mapping.version !== "payables-investigation-1" || !b.mapping.payables) || imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")).length !== 1)) throw new Error("PAYABLE_POPULATION_MAPPING_INVALID");
   // Capitaux propres (parallel Mission 11 sheet): one decision line or one movement of the validated capitaux mapping.
   const capitauxUnit = unit === "decision_movement" && isCapitauxPopulation(imports);
-  if (!investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  // Fiscal sheets (Mission 13): one FEC entry carrying a VAT line, from the single FEC of the fiscal chain.
+  const fiscalUnit = (unit === "vat_entry" || unit === "result_entry") && isFiscalPopulation(imports);
+  if (!investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
   const populationImports = investmentUnit ? imports.filter(b=>["investment_register","investment_distributions"].includes(b.document.documentType)) : equityUnit ? imports.filter(b=>["equity_ledger","equity_decisions"].includes(b.document.documentType)) : payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
-  const items = unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
+  const items = unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
     // The population measure is the gross closing value; an asset without one is refused rather than counted as zero.
     if (!u.grossClosing) throw new Error("FA_GROSS_CLOSING_REQUIRED");
     return { id: u.unitId, rowIds: u.rowIds, amount: u.grossClosing };
@@ -70,7 +73,7 @@ export function selectPopulation(population: Population, request: SelectionReque
     exclusions, requestedSize: request.requestedSize, validatedBy: principal.id, seed: request.seed,
     algorithm: request.method === "random" ? "sha256-rank-v1" : "explicit-ids-v1", selectedIds,
     selectedAmount: money(selectedIds.reduce((n, id) => n + cents(population.items.find((i) => i.id === id)!.amount), 0n)),
-    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : population.unit === "asset" ? "actifs ou composants" : population.unit === "decision_movement" ? "décisions et mouvements" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
+    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : population.unit === "asset" ? "actifs ou composants" : population.unit === "decision_movement" ? "décisions et mouvements" : population.unit === "vat_entry" ? "écritures de TVA" : population.unit === "result_entry" ? "écritures de résultat" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
   return frozen({ ...selection, id: `selection-${stableSha256(selection)}` });
 }
 export function validateSelectionSources(population: Population, selection: SelectionSet, imports: ImportBatch[]): void {

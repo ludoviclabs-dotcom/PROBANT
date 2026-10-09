@@ -13,11 +13,33 @@ export default defineConfig({
     // Bound worker pressure for PDF and jsdom tests on local and CI hosts.
     pool: "threads",
     maxWorkers: 2,
-    include: [
-      "lib/**/*.test.ts",
-      "lib/**/__tests__/**/*.test.ts",
-      "components/**/*.test.tsx",
-      "components/**/__tests__/**/*.test.tsx",
+    projects: [
+      {
+        extends: true,
+        test: {
+          name: "unit",
+          include: [
+            "lib/**/*.test.ts",
+            "lib/**/__tests__/**/*.test.ts",
+            "components/**/*.test.tsx",
+            "components/**/__tests__/**/*.test.tsx",
+          ],
+          exclude: ["**/node_modules/**", "**/*.integration.test.ts"],
+        },
+      },
+      {
+        // Disposable PostgreSQL recipes share one database, and the Clients
+        // recipe restarts its container: they run after the unit tests, one
+        // file at a time, so a restart never cuts another recipe's connection.
+        extends: true,
+        test: {
+          name: "durable",
+          include: ["lib/**/*.integration.test.ts"],
+          fileParallelism: false,
+          maxWorkers: 1,
+          sequence: { groupOrder: 1 },
+        },
+      },
     ],
   },
   resolve: {
