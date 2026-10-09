@@ -4,6 +4,9 @@ import type { NoteCitation, WorkpaperScope } from "./model";
 import type { Principal } from "./policy";
 import { formatQuantity, ST_CATEGORY_EXCLUSIONS, ST_LIMITATIONS, ST_METHOD_TEXT, ST_SITE_NOT_VISITED, ST_STATUSES, stockResultSchema, stockWorkSchema, type StockCitation, type StockCitationInput, type StockDraft, type StockResult, type StockStatus, type StockUnitResult, type StockWork } from "./stock-contract";
 import { buildStockFacts, type StFact, type StUnitFact } from "./stock-sources";
+import { valueStocks } from "./stock-valuation";
+import { formatCents, ST_COST_METHOD_LABELS, ST_VALUE_LIMITATIONS, ST_VALUE_METHOD_TEXT } from "./stock-contract";
+import { money } from "@/lib/canonical-model/money";
 
 export * from "./stock-contract";
 /** A citation names a frozen document version and, optionally, one of its rows; file name, hash and locator are resolved here. */
@@ -103,10 +106,19 @@ export function evaluateStocks(scope: WorkpaperScope, period: AccountingPeriod, 
     message: "Total net " + formatQuantity(r.net, r.uom, { signed: true }) + " pour des écarts bruts de " + formatQuantity(r.gross, r.uom) + " sur " + r.units + " sites ou lots : le total net ne justifie aucun écart individuel.", amount: unknown("Écarts compensés à expliquer un par un") });
   for (const s of facts.sites) if (!visited.get(s.site) && units.some(u => u.site === s.site && u.status === "site_not_visited")) exceptions.push({ id: "SITE:" + s.site, code: "SITE_NOT_VISITED", unitId: null, label: "Site non visité — " + s.site, message: ST_SITE_NOT_VISITED, amount: unknown("Quantités du site non testées") });
   const totals = Object.fromEntries(ST_STATUSES.map(s => [s, units.filter(u => u.status === s).length])) as StockResult["totals"];
-  const evidence = [...new Map(facts.units.flatMap(u => [...u.counts, ...(u.system ? [u.system] : []), ...u.movements]).map(f => [f.proof.id, f.proof])).values()];
+  // Sub-lot 2: with a cost list or a ledger, quantity differences are valued at the documented cost and the stated values are framed.
+  const { valuation, exceptions: valueExceptions, quantityValue } = valueStocks(facts, units);
+  for (const e of exceptions) {
+    const v = e.unitId ? quantityValue.get(e.unitId) : undefined;
+    if (e.code !== "QUANTITY_DIFFERENCE" || !v) continue;
+    e.message += " Valorisé " + formatCents(String(v.cents), { signed: true }) + " au coût documenté de " + formatCents(v.cost.quantity) + " (" + (ST_COST_METHOD_LABELS[v.cost.method] ?? v.cost.method) + (v.cost.pieceRef ? ", " + v.cost.pieceRef : "") + ") : écart potentiel.";
+    e.amount = { kind: "known", value: money(v.cents) };
+  }
+  exceptions.push(...valueExceptions);
+  const evidence = [...new Map([...facts.units.flatMap(u => [...u.counts, ...(u.system ? [u.system] : []), ...u.movements]), ...(facts.costs ?? []), ...(facts.ledger ?? [])].map(f => [f.proof.id, f.proof])).values()];
   return stockResultSchema.parse({
-    schemaVersion: "stocks-result-1", scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
+    schemaVersion: "stocks-result-2", valuation, scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
     sites: facts.sites.map(s => ({ site: s.site, countDate: s.countDate, visited: !!visited.get(s.site), countLines: s.countLines, systemLines: s.systemLines, units: units.filter(u => u.site === s.site).length })),
-    units, references, totals, exceptions, evidence, method: ST_METHOD_TEXT, limitations: ST_LIMITATIONS,
+    units, references, totals, exceptions, evidence, method: valuation ? ST_METHOD_TEXT + " " + ST_VALUE_METHOD_TEXT : ST_METHOD_TEXT, limitations: valuation ? [...ST_LIMITATIONS.filter(l => !l.includes("valeur relève du sous-lot")), ...ST_VALUE_LIMITATIONS] : ST_LIMITATIONS,
   });
 }

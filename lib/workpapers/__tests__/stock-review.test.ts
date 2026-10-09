@@ -9,19 +9,20 @@ import { COUNT_ROWS, countCsv, MOVEMENT_ROWS, movementCsv, ST_CSV, stMapping, st
 
 const actor = (scope: WorkpaperScope): Principal => ({ id: "preparer-st", grants: [{ scope, permissions: ["read", "prepare", "review", "download"] }] });
 /** Approved batches built through the real tabular parser and the stock row qualification. */
-async function sources(texts: Partial<Record<StockSourceType, string>>, options: { coverage?: { from: string; to: string }; period?: AccountingPeriod; scope?: WorkpaperScope } = {}) {
+async function sources(texts: Partial<Record<StockSourceType, string>>, options: { coverage?: { from: string; to: string }; period?: AccountingPeriod; scope?: WorkpaperScope; valued?: boolean } = {}) {
   const period = options.period ?? stPeriod, scope = options.scope ?? stScope, batches: ImportBatch[] = [];
-  for (const type of ["st_count", "st_system", "st_movements", "st_support"] as StockSourceType[]) {
+  for (const type of ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"] as StockSourceType[]) {
     const text = texts[type];
     if (text === undefined) continue;
-    const batch = await previewImport(new File([text], type + ".csv", { type: "text/csv" }), scope, stMapping(type, options.coverage), actor(scope), type, "stocks.count");
+    const batch = await previewImport(new File([text], type + ".csv", { type: "text/csv" }), scope, stMapping(type, options.coverage, options.valued), actor(scope), type, "stocks.count");
     assertStockBatch(batch, period);
     expect(batch.report.blocking).toEqual([]);
     batches.push({ ...batch, approval: { actorId: "preparer-st", at: "2027-01-10T09:00:00.000Z", previewHash: batch.previewHash }, report: { ...batch.report, calculationAllowed: true } });
   }
   return batches;
 }
-const all = () => sources({ ...ST_CSV });
+/** Sub-lot 1 sources only: no cost list and no ledger, so no value is derived. */
+const all = () => sources({ st_count: ST_CSV.st_count, st_system: ST_CSV.st_system, st_movements: ST_CSV.st_movements, st_support: ST_CSV.st_support });
 const instructions = (batches: ImportBatch[]) => { const s = batches.find(b => b.document.documentType === "st_support")!; return { documentId: s.document.id, rowId: s.rows.find(r => r.original.Piece === "INSTR-INV")!.id }; };
 function run(batches: ImportBatch[], draft: Partial<StockDraft> = {}, period = stPeriod, scope = stScope): StockResult {
   const work = stampStockWork({ imports: batches, draft: { sameDay: "before_count", instructions: instructions(batches), ...draft }, actor: actor(scope), at: "2027-01-10T10:00:00.000Z" });
@@ -94,7 +95,7 @@ describe("ST-1502 mouvements, dates et unités", () => {
   });
   it("journal ne couvrant qu’une partie de la période intercalaire : non concluant, jamais complété", async () => {
     const rows = MOVEMENT_ROWS.filter(m => m[6] >= "2026-12-25");
-    const r = run(await sources({ ...ST_CSV, st_movements: movementCsv(rows) }, { coverage: { from: "2026-12-25", to: "2026-12-31" } }));
+    const r = run(await sources({ st_count: ST_CSV.st_count, st_system: ST_CSV.st_system, st_support: ST_CSV.st_support, st_movements: movementCsv(rows) }, { coverage: { from: "2026-12-25", to: "2026-12-31" } }));
     expect(unit(r, "REF-D|ENTREPOT-SUD|").movements.coverage).toBe("not_covered");
     expect(unit(r, "REF-D|ENTREPOT-SUD|").reason).toContain("n’est pas entièrement couverte");
   });
@@ -121,7 +122,7 @@ describe("ST-1502 mouvements, dates et unités", () => {
   });
   it("mouvements dans une autre unité que le comptage : bloqué", async () => {
     const moves = movementCsv([["M1", "REF-D", "ENTREPOT-SUD", "", "carton", "1", "2026-12-22", "entree", "BR-1", ""]]);
-    const r = run(await sources({ ...ST_CSV, st_movements: moves }));
+    const r = run(await sources({ st_count: ST_CSV.st_count, st_system: ST_CSV.st_system, st_support: ST_CSV.st_support, st_movements: moves }));
     expect(unit(r, "REF-D|ENTREPOT-SUD|")).toMatchObject({ status: "unit_incompatible", uoms: { movements: ["carton"] } });
   });
 });

@@ -5,7 +5,7 @@ import type { ImportBatch } from "./imports";
  * Population of the stock sheet (Mission 15). Kept free of server-only imports: the shared selection module is also
  * bundled for the browser demonstration.
  */
-export const ST_TYPES = ["st_count", "st_system", "st_movements", "st_support"] as const;
+export const ST_TYPES = ["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"] as const;
 export type StockSourceType = typeof ST_TYPES[number];
 /**
  * Ownership and status of a stock line. Only "own" stock is tested in quantity; the other categories are listed
@@ -13,6 +13,8 @@ export type StockSourceType = typeof ST_TYPES[number];
  */
 export const ST_CATEGORIES = ["own", "third_party", "consignment_in", "consignment_out", "in_transit", "work_in_progress", "excluded"] as const;
 export type StockCategory = typeof ST_CATEGORIES[number];
+/** Categories the entity owns (valued in its stock accounts); third-party stock and received consignments are not owned. */
+export const ST_OWNED: StockCategory[] = ["own", "consignment_out", "in_transit", "work_in_progress", "excluded"];
 /** Unit of test: reference / site / lot (empty lot allowed). The separator is refused inside each part at import. */
 export const stockUnitId = (reference: string, site: string, lot: string) => reference.trim() + "|" + site.trim() + "|" + lot.trim();
 export const splitStockUnit = (unitId: string) => { const [reference, site, lot] = unitId.split("|"); return { reference, site, lot }; };

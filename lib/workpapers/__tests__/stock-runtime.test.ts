@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { requireDisposableStocks, stockFailureStatus } from "../stock-http";
 import type { StockResult } from "../stock-contract";
 import type { WorkpaperRun } from "../model";
-import { COUNT_ROWS, countCsv, stPeriod } from "./stock-fixtures";
+import { COST_ROWS, costCsv, COUNT_ROWS, countCsv, stPeriod } from "./stock-fixtures";
 import { createStockHarness, ST_OTHER_DOSSIER, type StockHarness } from "./stock-harness";
 
 let h: StockHarness;
@@ -88,6 +88,23 @@ describe("ST-1512 versions, péremption et convention", () => {
     const r = await h.preview("st_count", bad);
     expect(r).toMatchObject({ status: 422, body: { error: "ST_CATEGORY_INVALID", locator: { row: 2, column: "Statut", value: "louee" } } });
     expect((await h.read()).body.imports).toEqual([]);
+  });
+});
+
+describe("ST-1514 sous-lot 2 : coûts et cadrage dans la chaîne serveur", () => {
+  it("six sources figées ; écart de REF-A valorisé −24,00 € sur la note ; cadrage et propriété valorisée en notes ; coût remplacé → feuille périmée", async () => {
+    const v = createStockHarness(1_801_000_000, { valued: true });
+    const sources = await v.importAll(["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"]);
+    const { run } = await v.executed(sources);
+    expect(run.importIds).toHaveLength(6);
+    expect(run.notes).toHaveLength(14);
+    expect(run.notes.find(n => n.id === "st-exception:QTY:REF-A|ENTREPOT-NORD|L1")!.amount).toEqual({ kind: "known", value: { amount: "-24.00", currency: "EUR" } });
+    expect(run.notes.find(n => n.id === "st-exception:FRAME:321000")!.amount).toEqual({ kind: "known", value: { amount: "10.00", currency: "EUR" } });
+    expect(run.notes.find(n => n.id === "st-exception:COST:REF-H|ENTREPOT-NORD|")!.kind).toBe("missing_evidence");
+    expect(run.evidence.some(e => e.purpose === "Coût unitaire documenté")).toBe(true);
+    v.clock.now += 60;
+    await v.accept(await v.preview("st_costs", costCsv(COST_ROWS.map(c => c[0] === "K01" ? [...c.slice(0, 4), "11,50", ...c.slice(5)] : c))));
+    expect((await v.read()).body.sourcesCurrent[run.id]).toBe(false);
   });
 });
 

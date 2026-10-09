@@ -9,7 +9,7 @@ const target = { id: z.string().min(1).max(200), expectedVersion: z.number().int
 export const stockPeriodSchema = clientsPeriodSchema;
 export const stockCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.literal("create"), period: stockPeriodSchema }).strict(),
-  z.object({ command: z.literal("freeze"), ...target, importIds: z.array(z.string().min(1).max(200)).min(2).max(4), draft: stockDraftSchema }).strict(),
+  z.object({ command: z.literal("freeze"), ...target, importIds: z.array(z.string().min(1).max(200)).min(2).max(6), draft: stockDraftSchema }).strict(),
   z.object({ command: z.literal("configure"), ...target, draft: stockDraftSchema }).strict(),
   z.object({ command: z.literal("execute"), ...target }).strict(),
   z.object({ command: z.literal("conclude"), ...target, text }).strict(),

@@ -15,4 +15,6 @@ Captures produites le 09/10/2026 par `e2e/stocks.spec.ts` (Playwright, build de 
 | `st-exceptions-1440.jpg` | Exceptions et incertitudes en notes, dont « Écarts compensés — REF-E » |
 | `st-locked-1440.jpg` | Convention retenue et citée ; version approuvée et verrouillée par une autre identité |
 | `st-no-movements-1440.jpg` | Inventaire décalé sans journal de mouvements : non concluant, quantités inconnues dans le pont |
+| `st-valuation-1440.jpg`, `st-valuation-390.jpg` | Sous-lot 2. Cases : « Écart potentiel −24,00 € » (REF-A) et « Écart de prix +10,00 € » (REF-C). Panneau : coût documenté de 12,00 € (CMP, FA-501). Cadrage par compte : 371 et 331 cadrés, 321 +10,00 €, 1 800,00 € hors propriété exclus, 397 renvoyé à la revue de valeur. Total net −24,00 € pour 64,00 € bruts. |
+| `st-valuation-table-1440.jpg` | Tableau quantité / coût / valeur : coût documenté, valeur reconstituée, valeur théorique, écart valorisé, écart de prix |
 | `st-replaced-1440.jpg` | Feuille de comptage remplacée : travail périmé, version remplacée conservée avec son empreinte |

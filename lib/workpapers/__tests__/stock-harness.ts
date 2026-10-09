@@ -16,7 +16,7 @@ export type StockSources = Partial<Record<StockSourceType, Batch>>;
  * Real runtime and handlers over the in-memory TEST store (the Trésorerie double, generic over runs and imports).
  * Every response comes from the engine, never from hand-written JSON; this proves runtime rules, never durability.
  */
-export function createStockHarness(start = 1_801_000_000, options: { directImports?: boolean } = {}) {
+export function createStockHarness(start = 1_801_000_000, options: { directImports?: boolean; valued?: boolean } = {}) {
   const db = new MemoryCashDatabase(), auth = new TestAuthorizer(), clock = { now: start };
   db.addDossier(ST_DOSSIER, stScope.organizationId); db.addDossier(ST_OTHER_DOSSIER, "org-other");
   auth.add("preparer", "preparer-st", stScope.organizationId, ["preparer"]); auth.add("reviewer", "reviewer-st", stScope.organizationId, ["reviewer"]);
@@ -36,7 +36,7 @@ export function createStockHarness(start = 1_801_000_000, options: { directImpor
     async read(session = "preparer", extra = "") { return json(await handlers.GET(request(session, "GET", undefined, ST_DOSSIER, extra))); },
     // jsdom replaces FormData: presentation fixtures call the same runtime method without the multipart transport.
     async preview(type: StockSourceType, text = ST_CSV[type], session = "preparer", coverage?: { from: string; to: string }) {
-      const file = new File([text], type + ".csv", { type: "text/csv" }), mapping = stMapping(type, coverage);
+      const file = new File([text], type + ".csv", { type: "text/csv" }), mapping = stMapping(type, coverage, options.valued);
       if (options.directImports) return { status: 200, body: await runtime().preview(request(session), ST_DOSSIER, stPeriod, file, mapping, type, randomUUID()) };
       const form = new FormData();
       for (const [k, v] of Object.entries({ file, period: JSON.stringify(stPeriod), documentType: type, mapping: JSON.stringify(mapping) })) form.set(k, v);

@@ -1,10 +1,12 @@
-# Handoff — Mission 15 : Stocks et inventaires, sous-lot 1 « quantités et mouvements » (2026-10-09)
+# Handoff — Mission 15 : Stocks et inventaires, sous-lots 1 « quantités et mouvements » et 2 « coûts et cadrage » (2026-10-09)
 
 **Base.** `origin/main` `dc793e017e4661159e04f48cfa7b4187f24797ed` (PR #66, Mission 13, fusionnée).
 
-**Branche.** `claude/stocks-mission15` (sous-lot 1), dans le worktree `probant-analysis-setup-41121f`.
+**Branches locales**, dans le worktree `probant-analysis-setup-41121f` :
+- `claude/stocks-mission15` : sous-lot 1, commit `c2a74e5` ;
+- `claude/stocks-mission15-couts` : sous-lot 2, empilée sur le sous-lot 1 (commit suivant).
 
-**Livraison.** Trois sous-lots séquentiels, chacun proposé dans une PR distincte. Les sous-lots 2 (coûts et cadrage) et 3 (revue de valeur) sont **à suivre** ; ils ne sont pas prétendus livrés ici.
+**Livraison.** Trois sous-lots séquentiels, chacun proposé dans une PR distincte. Les sous-lots 1 et 2 sont livrés en local. Le sous-lot 3 (revue de valeur) est **à suivre** et n'est pas prétendu livré.
 
 **Opérations distantes.** Aucun push, aucune PR distante, aucune fusion, aucun déploiement, aucune configuration distante, aucune activation réelle.
 
@@ -29,9 +31,40 @@
 - Statut de propriété différent entre comptage et théorique : écart de propriété.
 - Total net compensé : signalé (net et brut par référence).
 
-**Ce que l'outil ne fait pas.** Aucune valeur monétaire dans ce sous-lot : les notes portent un montant **inconnu**. Aucune présence physique certifiée, aucune dépréciation.
+**Ce que l'outil ne fait pas (sous-lot 1).** Aucune valeur monétaire : les notes portent un montant **inconnu**. Aucune présence physique certifiée, aucune dépréciation.
 
 **Démonstration existante.** Le cycle « Stocks » de démonstration de `lib/rapprochement` (comparaison de montants) n'est pas modifié ni présenté comme test de quantité.
+
+## Sous-lot 2 — coûts et cadrage
+
+**Sources facultatives.**
+- Coûts documentés par référence (et lot), avec la méthode déclarée et la pièce.
+- Grand livre des comptes de classe 3 à la clôture.
+- Colonnes valeur et compte dans l'état théorique.
+
+Sans ces sources, aucune valeur n'est dérivée.
+
+**Calcul.**
+- **Écart de quantité valorisé** au coût documenté. C'est un **écart potentiel**, porté en montant connu sur la note. Recette : −2 × 12,00 = **−24,00 €**.
+- **Écart de prix** : valeur théorique − quantité × coût (REF-C : +10,00 €).
+- **Cadrage par compte** du stock détenu avec le grand livre (compte 321 : +10,00 €). Les stocks de tiers et consignations reçues valorisés sont exclus et signalés. Les comptes 39 sont renvoyés à la revue de valeur.
+- **Total net et brut en valeur** : −24,00 € pour 64,00 € bruts.
+
+**Incertitudes.** Coût manquant, unité du coût incompatible, cadrage incomplet. La valeur reste alors inconnue, jamais nulle.
+
+**Méthodes de coût.** Les méthodes CMP, PEPS, identification spécifique, coût standard et prix de détail sont affichées par compte, jamais recalculées ni approuvées par l'outil.
+
+**Garde à l'import.** Toute colonne nommée dans le mapping doit exister dans le fichier.
+
+**Stockage.** Migration additive `0015_stock_costs_ledger` (contraintes de type élargies ; retour arrière refusé si des coûts ou des soldes existent).
+
+**Interface.**
+- Cases : écart potentiel et écart de prix affichés.
+- Tableau : quantité, coût, valeur.
+- Panneau : « Coût et valeur » avec la pièce.
+- Carte « Coûts et cadrage » : barres état valorisé / grand livre et alternative tabulaire.
+
+**Sources consultées.** PCG (règlement ANC 2014-03, version au 1er janvier 2026, texte officiel ANC) : articles 213-30 à 213-35, 214-22, et plan de comptes de la classe 3. Le détail figure dans `docs/mission15/CONTRAT.md`.
 
 ## Routes et interactions visibles
 
@@ -61,18 +94,18 @@
 
 | Niveau | Résultat |
 |---|---|
-| Suite unitaire complète (`--pool=forks`) | 1 391 réussis, 42 ignorés (les 6 recettes PostgreSQL, dont Stocks) |
-| Moteur et runtime Stocks | `stock-review` 17/17, `stock-runtime` 10/10 |
+| Suite unitaire complète (`--pool=forks`) | Sous-lot 1 : 1 391 réussis, 42 ignorés. Sous-lot 2 : 1 403 réussis, 42 ignorés (les 6 recettes PostgreSQL, dont Stocks). |
+| Moteur et runtime Stocks | `stock-review` 17/17, `stock-valuation` 11/11, `stock-runtime` 11/11 |
 | Typecheck / build | OK / OK |
 | Lint | 0 erreur, 7 avertissements préexistants |
-| `db:check` | 17 migrations, invariants valides |
-| Chromium (build de production) | 90 réussis, 1 ignoré ; `stocks.spec.ts` 4/4 ; axe sans violation sérieuse ni critique |
+| `db:check` | 18 migrations, invariants valides (17 sur le sous-lot 1) |
+| Chromium (build de production) | Sous-lot 2 : 91 réussis, 1 ignoré ; `stocks.spec.ts` 5/5. Sous-lot 1 : 90 réussis. Axe sans violation sérieuse ni critique. |
 
 Les quantités de la recette ont été calculées à la main, puis comparées aux feuilles ; le détail est dans `docs/mission15/RECETTE.md`.
 
 ## Captures
 
-11 JPEG réels dans `docs/probant-lots/mission15-captures/` : 1440, 1024 et 390 px, plus réduction des animations. Le README indique le contenu de chaque capture.
+14 JPEG réels dans `docs/probant-lots/mission15-captures/` : 1440, 1024 et 390 px, plus réduction des animations. Le README indique le contenu de chaque capture.
 
 ## Sources professionnelles consultées (09/10/2026)
 
@@ -89,13 +122,16 @@ Aucune ne fixe la formule de passage à la clôture : elle reste une **méthode 
 - **Dates de comptage** : une seule date par site ; un comptage tournant sur plusieurs jours n'est pas couvert.
 - **Non couvert dans ce sous-lot** :
   - Synthèse de mission et paquet d'export Stocks : prévus au sous-lot 3 ;
-  - valeur, cadrage avec le grand livre et dépréciation : sous-lots 2 et 3 ;
+  - dépréciation et analyse de valeur : sous-lot 3 ;
+  - un coût différent par site ;
+  - recalcul du coût moyen pondéré ou du premier entré, premier sorti, à partir des entrées ;
   - carte géographique : aucune localisation vérifiée.
 - **Maturité** : démontrable sur données synthétiques, chaîne de revue complète en mémoire. **Produit non déclaré prêt globalement.**
 
-## Proposition de PR (non créée)
+## Propositions de PR (non créées)
 
-**Titre** : `feat(stocks): Mission 15 sous-lot 1 — quantités comptées, mouvements intercalaires et passage inventaire → clôture`, vers `main` (`dc793e0`).
+1. **Sous-lot 1** : `feat(stocks): Mission 15 sous-lot 1 — quantités comptées, mouvements intercalaires et passage inventaire → clôture`. Branche `claude/stocks-mission15` vers `main` (`dc793e0`).
+2. **Sous-lot 2** : `feat(stocks): Mission 15 sous-lot 2 — coûts documentés, écarts valorisés et cadrage avec le grand livre`. Branche `claude/stocks-mission15-couts`, à ouvrir **après la fusion du sous-lot 1**, ou vers la branche du sous-lot 1 en attendant. À relire en priorité : `lib/workpapers/stock-valuation.ts` et la migration `0015`.
 
 À relire en priorité :
 - les ajouts dans les fichiers partagés `lib/workpapers/{model,service,selection,imports}.ts` ;
@@ -104,8 +140,8 @@ Aucune ne fixe la formule de passage à la clôture : elle reste une **méthode 
 
 ## Dépendances des sous-lots suivants
 
-1. **Sous-lot 2, coûts et cadrage.** Coût documenté par référence et par lot, avec sa pièce ; quantité × coût ; valeur de l'écart (recette : 98 contre 100 × 12 = −24 €, présenté comme écart potentiel) ; écarts de prix ; cadrage état valorisé ↔ grand livre (classe 3) ; total net compensé en valeur. Avant toute règle d'évaluation, consulter le PCG (règlement ANC 2014-03, articles en vigueur sur les stocks).
-2. **Sous-lot 3, revue de valeur.** Analyse de valeur sur hypothèses justifiées et citées ; aucune dépréciation automatique sur la rotation ; Synthèse et paquet d'export.
+1. **Sous-lot 2** : livré (voir ci-dessus).
+2. **Sous-lot 3, revue de valeur.** Prix et perspectives de vente (PCG art. 214-22), à vérifier dans leur version applicable. Analyse de valeur sur hypothèses justifiées et citées ; aucune dépréciation automatique sur la rotation ; Synthèse et paquet d'export.
 3. **Recette PostgreSQL.** Exécuter `stock-durable.integration.test.ts` en CI.
 
 ---

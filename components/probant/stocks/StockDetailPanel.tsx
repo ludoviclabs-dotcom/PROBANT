@@ -1,6 +1,6 @@
 "use client";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { formatQuantity, ST_CATEGORY_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, formatQuantity, ST_CATEGORY_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
 import { KindBadge } from "./StockGrid";
 import { dateFr, unitLabel, type StockView } from "./format";
 import styles from "../cash/cash.module.css";
@@ -64,6 +64,15 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
     <dl><dt>Propriété</dt><dd>{unit.systemCategory ? "Théorique : " + ST_CATEGORY_LABELS[unit.systemCategory] : "Absent du théorique"}{unit.countCategories.length ? " · Compté : " + unit.countCategories.map(c => ST_CATEGORY_LABELS[c]).join(", ") : ""}</dd>
       <dt>Unités</dt><dd>{[...unit.uoms.count.map(u => "comptage " + u), unit.uoms.system ? "théorique " + unit.uoms.system : "", ...unit.uoms.movements.map(u => "mouvements " + u)].filter(Boolean).join(" · ") || "—"}</dd></dl>
     {unit.inScope && unit.status !== "ownership_mismatch" && <StockBridge unit={unit}/>}
+    {(() => { const v = result.valuation?.units.find(x => x.unitId === unit.unitId); if (!v || (!v.cost && v.systemValueCents === null && v.costStatus === "not_tested")) return null;
+      return <div className={styles.sourceBox}><p><strong>Coût et valeur</strong></p><dl>
+        <dt>Coût documenté</dt><dd>{v.cost ? formatCents(v.cost.unitCostCents) + " par " + v.cost.uomLabel + " · " + v.cost.method + (v.cost.pieceRef ? " · pièce " + v.cost.pieceRef : "") + " · " + v.cost.fileName + (v.cost.row ? " ligne " + v.cost.row : "") + " · " + dateFr(v.cost.date) : v.costStatus === "missing" ? "Non documenté : valeur inconnue" : v.costStatus === "unit_incompatible" ? "Unité incompatible : non valorisé" : "Non testé (hors stock propre testé)"}</dd>
+        <dt>Valeur reconstituée</dt><dd className={styles.money}>{formatCents(v.expectedValueCents)}</dd>
+        <dt>Valeur théorique déclarée</dt><dd className={styles.money}>{formatCents(v.systemValueCents)}{v.account ? " · compte " + v.account : ""}</dd>
+        <dt>Quantité théorique × coût</dt><dd className={styles.money}>{formatCents(v.recalculatedSystemValueCents)}</dd>
+        <dt>Écart de quantité valorisé</dt><dd className={styles.money}>{v.quantityDifferenceValueCents === null ? "Non établi" : formatCents(v.quantityDifferenceValueCents, { signed: true }) + " (écart potentiel)"}</dd>
+        <dt>Écart de prix</dt><dd className={styles.money}>{v.priceDifferenceCents === null ? "Non établi" : formatCents(v.priceDifferenceCents, { signed: true })}</dd></dl>
+        {v.cost && canDownload && <a href={download(v.cost.documentVersionId)}>Télécharger la liste des coûts figée</a>}</div>; })()}
     <h3>Lignes de comptage</h3>
     {unit.countLines.length ? <ul className={st.pieceList}>{unit.countLines.map(l => lineBox(l, l.sheetRef, <small>{ST_CATEGORY_LABELS[l.category]} · {l.uomLabel}</small>))}</ul> : <p className={styles.muted}>Aucune ligne de comptage : la quantité réelle reste inconnue.</p>}
     <h3>Ligne théorique</h3>

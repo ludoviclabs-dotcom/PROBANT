@@ -2,8 +2,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
-import { formatQuantity, ST_STATUS_KIND, ST_UNCERTAINTY_CODES, type StockDraft, type StockResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, formatQuantity, ST_STATUS_KIND, ST_UNCERTAINTY_CODES, type StockDraft, type StockResult } from "@/lib/workpapers/stock-contract";
 import { CompensationView, StockGrid, type StockFilters, type StockGridHandle } from "./StockGrid";
+import { StockValuationView } from "./StockValuationView";
 import { StockDetailPanel, type StockDetailHandle } from "./StockDetailPanel";
 import { StockImportPanel } from "./StockImportPanel";
 import { citableOptions, parseCitation, StockPreparation } from "./StockPreparation";
@@ -110,7 +111,7 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
 
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><a href="/immobilisations">Procédures de mission · Immobilisations</a><a href="/fiscal">Procédures de mission · Fiscalité</a><span aria-current="page">Procédures de mission · Stocks</span></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Stocks — quantités et mouvements</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Stocks — quantités, coûts et cadrage</h1>
       <p className={styles.muted}>Du comptage physique à la quantité de clôture, référence par référence, site par site, lot par lot. Le stock propre est distingué des stocks de tiers, consignations, transits et en-cours. L’outil ne certifie jamais la présence physique et ne déprécie rien automatiquement.</p></div></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
       <label>Dossier<input value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
@@ -145,15 +146,16 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
                 : <p className={styles.muted}>Population non figée : approuvez les sources (Pièces) puis figez-les avec la convention citée (Revue).</p>}
             </section>}
             {tab === "tests" && (result ? <>
-              <p className={styles.notice} data-tone="info">Résultat {run.result?.outcome === "no_exception_detected" ? "sans écart de quantité sur le périmètre testé" : run.result?.outcome === "exceptions_detected" ? "avec écarts à expliquer" : "non concluant sur une partie du périmètre"} · {kindTotals.filter(([, n]) => n).map(([k, n]) => plural(n, ...({ ok: ["case sans écart", "cases sans écart"], quantity: ["écart de quantité", "écarts de quantité"], ownership: ["écart de propriété", "écarts de propriété"], blocked: ["case bloquée", "cases bloquées"], uncertain: ["case non concluante", "cases non concluantes"], apart: ["case présentée à part", "cases présentées à part"] } as Record<Kind, [string, string]>)[k])).join(" · ")}. Convention : mouvements du jour du comptage {result.convention.sameDay === "before_count" ? "antérieurs" : "postérieurs"} au comptage ({result.convention.instructions.fileName}). Aucune valeur monétaire, aucune présence physique certifiée.</p>
+              <p className={styles.notice} data-tone="info">Résultat {run.result?.outcome === "no_exception_detected" ? "sans écart de quantité sur le périmètre testé" : run.result?.outcome === "exceptions_detected" ? "avec écarts à expliquer" : "non concluant sur une partie du périmètre"} · {kindTotals.filter(([, n]) => n).map(([k, n]) => plural(n, ...({ ok: ["case sans écart", "cases sans écart"], quantity: ["écart de quantité", "écarts de quantité"], ownership: ["écart de propriété", "écarts de propriété"], blocked: ["case bloquée", "cases bloquées"], uncertain: ["case non concluante", "cases non concluantes"], apart: ["case présentée à part", "cases présentées à part"] } as Record<Kind, [string, string]>)[k])).join(" · ")}. Convention : mouvements du jour du comptage {result.convention.sameDay === "before_count" ? "antérieurs" : "postérieurs"} au comptage ({result.convention.instructions.fileName}). {result.valuation ? "Valeurs au coût documenté : écarts potentiels, non validés comme anomalies ; aucune présence physique certifiée, aucune dépréciation." : "Aucune valeur monétaire sans coûts documentés ; aucune présence physique certifiée."}</p>
               <StockGrid ref={gridRef} result={result} filters={filters} selected={selected} onFilters={setFilters} onOpen={open}/>
               <CompensationView result={result}/>
+              <StockValuationView result={result}/>
               <details className={styles.card}><summary>Méthode et limites</summary><p>{result.method}</p><ul>{result.limitations.map(l => <li key={l}>{l}</li>)}</ul></details>
             </> : <section className={styles.card}><h2>Tests</h2><p className={styles.muted}>{run.population ? "Sources figées : exécutez le calcul (Revue)." : "Feuille non exécutée : approuvez puis figez les sources."}</p></section>)}
             {tab === "exceptions" && <section className={styles.card} aria-labelledby="st-exc-title"><header><h2 id="st-exc-title">Exceptions, incertitudes et traitements</h2><span className={styles.muted}>{plural(exceptions.filter(e => !ST_UNCERTAINTY_CODES.includes(e.code)).length, "exception")} · {plural(exceptions.filter(e => ST_UNCERTAINTY_CODES.includes(e.code)).length, "incertitude")}</span></header>
               {!run.notes.length && <p className={styles.muted}>Aucune exception ni note sur cette version.</p>}
               <ul className={styles.list}>{run.notes.map(n => { const r = resolution[n.id] ?? { text: "", citation: "" }, unitId = exceptions.find(e => "st-exception:" + e.id === n.id)?.unitId; return <li key={n.id} id={"st-note-" + n.id} tabIndex={-1}>
-                <div className={styles.kv}><strong>{n.text}</strong><span>{n.amount.kind === "known" ? n.amount.value.amount + " EUR" : n.amount.reason}</span><span className={styles.muted}>{n.kind} · {n.authorId}</span>{n.resolution ? <span>Traité</span> : n.blocking ? <span>Bloquant ouvert</span> : null}
+                <div className={styles.kv}><strong>{n.text}</strong><span>{n.amount.kind === "known" ? formatCents(n.amount.value.amount.replace(".", ""), { signed: true }) : n.amount.reason}</span><span className={styles.muted}>{n.kind} · {n.authorId}</span>{n.resolution ? <span>Traité</span> : n.blocking ? <span>Bloquant ouvert</span> : null}
                   {unitId && <button type="button" onClick={() => { setTab("tests"); open(unitId); }}>Voir la case</button>}</div>
                 {n.resolution && <p className={styles.muted}>Traitement : {n.resolution.text} — {n.resolution.authorId} · {n.resolution.citation ? n.resolution.citation.fileName + " · version " + n.resolution.citation.documentVersionId.slice(7, 19) + (n.resolution.citation.row ? " · ligne " + n.resolution.citation.row : "") : "sans citation"}</p>}
                 {!n.resolution && editable && n.blocking && <div className={styles.fields}>

@@ -1,6 +1,6 @@
 "use client";
 import { forwardRef, useImperativeHandle, useMemo, useRef } from "react";
-import { formatQuantity, ST_STATUS_KIND, ST_STATUS_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, formatQuantity, ST_STATUS_KIND, ST_STATUS_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
 import { dateFr, KIND_LABELS, KIND_ORDER, plural, type Kind } from "./format";
 import styles from "../cash/cash.module.css";
 import st from "./stocks.module.css";
@@ -29,7 +29,9 @@ export const StockGrid = forwardRef<StockGridHandle, Props>(function StockGrid({
   const toggle = (k: Kind) => onFilters({ ...filters, kinds: filters.kinds.includes(k) ? filters.kinds.filter(x => x !== k) : [...filters.kinds, k] });
   // The animation key changes with the filters only: cases re-enter when the question changes, never on a mere refresh.
   const animationKey = JSON.stringify([filters.kinds, filters.site, filters.lot, filters.q]);
+  const valueOf = (id: string) => result.valuation?.units.find(x => x.unitId === id) ?? null;
   const tile = (u: StockUnitResult) => {
+    const val = valueOf(u.unitId);
     const kind = ST_STATUS_KIND[u.status], max = [u.expectedClosing, u.systemQuantity].filter((x): x is string => x !== null).map(x => Math.abs(Number(x))).reduce((a, b) => Math.max(a, b), 0);
     const width = (q: string | null) => q === null || max === 0 ? 0 : Math.abs(Number(q)) / max;
     return <li key={u.unitId}>
@@ -37,6 +39,8 @@ export const StockGrid = forwardRef<StockGridHandle, Props>(function StockGrid({
         aria-label={u.reference + (u.lot ? " lot " + u.lot : "") + ", " + u.site + " — " + ST_STATUS_LABELS[u.status] + (u.difference !== null ? ", écart " + formatQuantity(u.difference, u.uom, { signed: true }) : "")}>
         <span className={st.tileTop}><strong>{u.reference}{u.lot ? " · " + u.lot : ""}</strong><span className={st.delta} data-sign={sign(u.difference)}>{u.difference !== null ? formatQuantity(u.difference, null, { signed: true }) : "—"}</span></span>
         <small>{u.label}</small>
+        {val?.quantityDifferenceValueCents && val.quantityDifferenceValueCents !== "0" && <span className={st.valueLine}>Écart potentiel {formatCents(val.quantityDifferenceValueCents, { signed: true })}</span>}
+        {val?.priceDifferenceCents && val.priceDifferenceCents !== "0" && <span className={st.valueLine}>Écart de prix {formatCents(val.priceDifferenceCents, { signed: true })}</span>}
         {(u.expectedClosing !== null || u.systemQuantity !== null) && <span className={st.meter} aria-hidden="true">
           <span style={{ width: width(u.expectedClosing) * 100 + "%" }}/><span data-kind="system" style={{ width: width(u.systemQuantity) * 100 + "%" }}/></span>}
         <small>{u.expectedClosing !== null ? "Reconstitué " + formatQuantity(u.expectedClosing, u.uom) : u.counted !== null ? "Compté " + formatQuantity(u.counted, u.uoms.count.join("/")) : "Non compté"} · {u.systemQuantity !== null ? "théorique " + formatQuantity(u.systemQuantity, u.uoms.system) : "théorique absent"}</small>
@@ -60,14 +64,19 @@ export const StockGrid = forwardRef<StockGridHandle, Props>(function StockGrid({
         <div className={st.siteHead}><h3>{s.site}</h3><span className={styles.muted}>{s.visited ? "Comptage du " + dateFr(s.countDate!) : "Site non visité — aucune feuille de comptage"} · {plural(s.countLines, "ligne comptée", "lignes comptées")} · {plural(s.systemLines, "ligne théorique", "lignes théoriques")}</span></div>
         <ul className={st.grid}>{units.map(tile)}</ul></section>;
     }) : <div className={styles.tableScroll} role="region" aria-label="Tableau des quantités — défilement clavier" tabIndex={0}><table className={st.stockTable}>
-      <caption>Quantités en unités de comptage ; écart = clôture reconstituée − théorique (négatif : manquant physique). Aucune valeur monétaire dans ce sous-lot.</caption>
-      <thead><tr><th scope="col">Référence</th><th scope="col">Site</th><th scope="col">Lot</th><th scope="col">Unité</th><th scope="col">Compté</th><th scope="col">Entrées</th><th scope="col">Sorties</th><th scope="col">Clôture reconstituée</th><th scope="col">Théorique</th><th scope="col">Écart</th><th scope="col">Statut</th></tr></thead>
+      <caption>Quantités en unités de comptage ; écart = clôture reconstituée − théorique (négatif : manquant physique). {result.valuation ? "Valeurs en euros au coût documenté : écarts potentiels, non validés." : "Aucune valeur monétaire sans coûts documentés."}</caption>
+      <thead><tr><th scope="col">Référence</th><th scope="col">Site</th><th scope="col">Lot</th><th scope="col">Unité</th><th scope="col">Compté</th><th scope="col">Entrées</th><th scope="col">Sorties</th><th scope="col">Clôture reconstituée</th><th scope="col">Théorique</th><th scope="col">Écart</th>
+        {result.valuation && <><th scope="col">Coût documenté</th><th scope="col">Valeur reconstituée</th><th scope="col">Valeur théorique</th><th scope="col">Écart valorisé</th><th scope="col">Écart de prix</th></>}<th scope="col">Statut</th></tr></thead>
       <tbody>{visible.map(u => <tr key={u.unitId} className={st.rowKind} data-kind={ST_STATUS_KIND[u.status]} aria-selected={selected === u.unitId}>
         <td><button type="button" className={st.link} onClick={() => onOpen(u.unitId)}>{u.reference}</button></td><td>{u.site}</td><td>{u.lot || "—"}</td><td>{u.uom ?? [...u.uoms.count, u.uoms.system].filter(Boolean).join(" ≠ ")}</td>
         <td className={styles.money}>{formatQuantity(u.counted)}</td><td className={styles.money}>{u.movements.inQty === null ? (u.movements.coverage === "not_needed" ? "0" : "Inconnu") : formatQuantity(u.movements.inQty)}</td>
         <td className={styles.money}>{u.movements.outQty === null ? (u.movements.coverage === "not_needed" ? "0" : "Inconnu") : formatQuantity(u.movements.outQty)}</td>
         <td className={styles.money}>{formatQuantity(u.expectedClosing)}</td><td className={styles.money}>{formatQuantity(u.systemQuantity)}</td>
-        <td className={styles.money}><span className={st.delta} data-sign={sign(u.difference)}>{u.difference === null ? "—" : formatQuantity(u.difference, null, { signed: true })}</span></td><td><KindBadge status={u.status}/></td></tr>)}</tbody></table></div>}
+        <td className={styles.money}><span className={st.delta} data-sign={sign(u.difference)}>{u.difference === null ? "—" : formatQuantity(u.difference, null, { signed: true })}</span></td>
+        {result.valuation && (() => { const v = valueOf(u.unitId)!; return <><td className={styles.money}>{v.cost ? formatCents(v.cost.unitCostCents) : v.costStatus === "missing" ? "Non documenté" : v.costStatus === "unit_incompatible" ? "Unité incompatible" : "—"}</td>
+          <td className={styles.money}>{v.expectedValueCents === null ? "—" : formatCents(v.expectedValueCents)}</td><td className={styles.money}>{v.systemValueCents === null ? "—" : formatCents(v.systemValueCents)}</td>
+          <td className={styles.money}>{v.quantityDifferenceValueCents === null ? "—" : formatCents(v.quantityDifferenceValueCents, { signed: true })}</td><td className={styles.money}>{v.priceDifferenceCents === null ? "—" : formatCents(v.priceDifferenceCents, { signed: true })}</td></>; })()}
+        <td><KindBadge status={u.status}/></td></tr>)}</tbody></table></div>}
     <ul className={st.legend} aria-label="Légende">{KIND_ORDER.map(k => <li key={k} data-kind={k}><i aria-hidden="true"/>{KIND_LABELS[k]}</li>)}</ul>
   </section>;
 });

@@ -69,12 +69,37 @@ export const stockUnitResultSchema = z.object({
   status: z.enum(ST_STATUSES), inScope: z.boolean(), reason: z.string().max(2000),
 }).strict();
 export type StockUnitResult = z.infer<typeof stockUnitResultSchema>;
-export const ST_EXCEPTION_CODES = ["QUANTITY_DIFFERENCE", "NOT_IN_SYSTEM", "OWNERSHIP_MISMATCH", "NET_COMPENSATED", "UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED"] as const;
+export const ST_EXCEPTION_CODES = ["QUANTITY_DIFFERENCE", "NOT_IN_SYSTEM", "OWNERSHIP_MISMATCH", "NET_COMPENSATED", "UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED",
+  // Sub-lot 2 « coûts et cadrage »
+  "PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE"] as const;
 export type StockExceptionCode = typeof ST_EXCEPTION_CODES[number];
 /** Codes that leave a part of the test unknown: they make the sheet inconclusive, never a validated anomaly. */
-export const ST_UNCERTAINTY_CODES: StockExceptionCode[] = ["UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED"];
+export const ST_UNCERTAINTY_CODES: StockExceptionCode[] = ["UNIT_INCOMPATIBLE", "MOVEMENTS_INCOMPLETE", "NOT_COUNTED", "SITE_NOT_VISITED", "COST_MISSING", "COST_UNIT_INCOMPATIBLE", "FRAMING_INCOMPLETE"];
+export const ST_COST_METHOD_LABELS: Record<string, string> = { cmp: "Coût moyen pondéré (PCG art. 213-34)", peps: "Premier entré, premier sorti (PCG art. 213-34)", identification_specifique: "Identification spécifique (PCG art. 213-33)",
+  cout_standard: "Coût standard (PCG art. 213-35, si proche du coût)", prix_de_detail: "Prix de détail (PCG art. 213-35, si proche du coût)" };
+const cents = z.string().regex(/^-?(0|[1-9]\d*)$/);
+const lineRefSchema = z.object({ importId: id, rowId: id, documentVersionId: id, fileName: z.string().min(1).max(300), row: z.number().int().positive().nullable(), date: dateSchema }).strict();
+/**
+ * Sub-lot 2 « coûts et cadrage ». Every amount is integer euro CENTS carried as a string; a value is quantity
+ * (hundredths) × documented unit cost (cents) ÷ 100, rounded half away from zero to the cent (internal convention).
+ */
+export const stockValuationSchema = z.object({
+  costsProvided: z.boolean(), ledgerProvided: z.boolean(), valueMapped: z.boolean(),
+  units: z.array(z.object({ unitId: id, account: z.string().max(20), owned: z.boolean(),
+    cost: z.object({ ...lineRefSchema.shape, unitCostCents: cents, uomLabel: text, method: text, pieceRef: z.string().max(200), lot: z.string().max(120) }).strict().nullable(),
+    costStatus: z.enum(["documented", "missing", "unit_incompatible", "not_tested"]),
+    expectedValueCents: cents.nullable(), systemValueCents: cents.nullable(), recalculatedSystemValueCents: cents.nullable(),
+    quantityDifferenceValueCents: cents.nullable(), priceDifferenceCents: cents.nullable() }).strict()),
+  accounts: z.array(z.object({ account: id, systemValueCents: cents, ledgerCents: cents.nullable(), differenceCents: cents.nullable(), lines: z.number().int().nonnegative(),
+    notOwnedCents: cents, status: z.enum(["framed", "difference", "ledger_missing", "system_missing"]), ledger: lineRefSchema.nullable(), methods: z.array(text) }).strict()),
+  depreciation: z.array(z.object({ account: id, ledgerCents: cents, ledger: lineRefSchema }).strict()),
+  references: z.array(z.object({ reference: id, net: cents, gross: cents, compensated: z.boolean(), units: z.number().int().positive() }).strict()),
+  totals: z.object({ netQuantityDifferenceCents: cents, grossQuantityDifferenceCents: cents, compensated: z.boolean(), valuedDifferences: z.number().int().nonnegative(),
+    priceDifferenceNetCents: cents, systemValueCents: cents, ledgerCents: cents.nullable() }).strict(),
+}).strict();
+export type StockValuation = z.infer<typeof stockValuationSchema>;
 export const stockResultSchema = z.object({
-  schemaVersion: z.literal("stocks-result-1"), scope: scopeSchema, runId: id, closingDate: dateSchema,
+  schemaVersion: z.enum(["stocks-result-1", "stocks-result-2"]), scope: scopeSchema, runId: id, closingDate: dateSchema,
   convention: z.object({ sameDay: z.enum(ST_SAME_DAY), instructions: stockCitationSchema }).strict(),
   coverage: z.object({ from: dateSchema, to: dateSchema, importId: id, fileName: z.string().min(1).max(300) }).strict().nullable(),
   sites: z.array(z.object({ site: id, countDate: dateSchema.nullable(), visited: z.boolean(), countLines: z.number().int().nonnegative(), systemLines: z.number().int().nonnegative(), units: z.number().int().nonnegative() }).strict()),
@@ -83,6 +108,8 @@ export const stockResultSchema = z.object({
   totals: z.record(z.enum(ST_STATUSES), z.number().int().nonnegative()),
   exceptions: z.array(z.object({ id, code: z.enum(ST_EXCEPTION_CODES), label: text, message: text, unitId: z.string().nullable(), amount: knownAmountSchema }).strict()),
   evidence: z.array(proofSchema), method: text, limitations: z.array(text),
+  /** Absent in sub-lot 1 results; null when no cost list and no ledger were frozen. */
+  valuation: stockValuationSchema.nullable().optional(),
 }).strict();
 export type StockResult = z.infer<typeof stockResultSchema>;
 
@@ -99,6 +126,18 @@ export const ST_LIMITATIONS = [
   "Les stocks de tiers, consignations, transits, en-cours et références exclues sont présentés à part, jamais ajoutés au stock propre.",
   "Aucune dépréciation n’est calculée, ni sur la rotation ni autrement.",
 ];
+export const ST_VALUE_METHOD_TEXT = "Valeur = quantité × coût unitaire documenté (référence et lot, sinon référence), arrondie au centime (demi-centime loin de zéro). Écart de quantité valorisé = écart × coût : écart potentiel, non une anomalie validée. Écart de prix = valeur théorique déclarée − quantité théorique × coût documenté. Cadrage = somme des valeurs théoriques des lignes détenues par l’entité, par compte, comparée au solde du grand livre ; les comptes 39 (dépréciations) relèvent de la revue de valeur. Méthodes internes : la méthode de coût déclarée (PCG art. 213-33 à 213-35) est affichée, jamais recalculée ni approuvée par l’outil.";
+export const ST_VALUE_LIMITATIONS = [
+  "Le coût documenté est celui de la pièce citée : l’outil ne recalcule ni coût moyen pondéré ni premier entré, premier sorti, et n’approuve aucune méthode.",
+  "Un coût par référence et lot s’applique à tous les sites ; un coût différent par site n’est pas couvert.",
+  "Un écart valorisé est un écart potentiel à expliquer : ni anomalie validée ni correction comptable.",
+];
+/** Euro cents → French text ("-2400" → "−24,00 €"). */
+export function formatCents(value: string | null, options: { signed?: boolean } = {}) {
+  if (value === null) return "Inconnu";
+  const n = BigInt(value), abs = n < 0n ? -n : n, whole = (abs / 100n).toString().replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+  return (n < 0n ? "−" : options.signed && n > 0n ? "+" : "") + whole + "," + (abs % 100n).toString().padStart(2, "0") + "\u00a0€";
+}
 /** Hundredths of a counting unit → French decimal text, without rounding ("9800" → "98", "-250" → "−2,5"). */
 export function formatQuantity(hundredths: string | null, uom?: string | null, options: { signed?: boolean } = {}) {
   if (hundredths === null) return "Inconnue";

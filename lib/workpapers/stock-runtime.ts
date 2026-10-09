@@ -21,7 +21,7 @@ const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1
 /** Human decisions that must cite a frozen piece and its version. */
 const CITED_NOTE_KINDS = ["judgment", "validated_anomaly"];
 /** Rows returned to the browser: the citable pieces in full; counts, system and movements are summarized (the result carries the lines it uses). */
-const ROWS_SENT: Record<StockSourceType, number> = { st_count: 5, st_system: 5, st_movements: 5, st_support: 2000 };
+const ROWS_SENT: Record<StockSourceType, number> = { st_count: 5, st_system: 5, st_movements: 5, st_support: 2000, st_costs: 5, st_ledger: 500 };
 
 /** Durable server runtime of the stock sheet. Identity, permissions, dates, authors and citations come from the server only. */
 export class StockRuntime {

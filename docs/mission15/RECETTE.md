@@ -1,4 +1,4 @@
-# Mission 15 — Recette du sous-lot 1 « quantités et mouvements »
+# Mission 15 — Recette des sous-lots 1 « quantités et mouvements » et 2 « coûts et cadrage »
 
 Les données sont **100 % synthétiques** (`lib/workpapers/__tests__/stock-fixtures.ts`) : exercice 2026, trois entrepôts et un dépôt. Une suite verte sur ces fixtures **n'autorise aucune mission réelle**.
 
@@ -55,12 +55,47 @@ L'issue est « exceptions détectées ». Toutes les notes portent un montant **
 | Garde de recette | Fermée sans le drapeau, toujours fermée en production (runtime) |
 | Absence de certification et de dépréciation | Mentions sur la feuille, dans le panneau, dans la méthode et dans les limites ; aucun calcul de valeur ni de dépréciation |
 
+## Sous-lot 2 — montants calculés à la main
+
+| Cas | Calcul indépendant | Feuille |
+|---|---|---|
+| **REF-A, coût 12,00 € (CMP, FA-501)** | −2 × 12,00 = **−24,00 €** | Note `QUANTITY_DIFFERENCE` au montant **connu** −24,00 € (écart potentiel) ; valeur reconstituée 98 × 12 = 1 176,00 € ; 100 × 12 = 1 200,00 € = valeur théorique |
+| REF-E, coût 4,00 € | Nord +5 × 4 = +20,00 € ; Sud −5 × 4 = −20,00 € | Net 0,00 €, brut 40,00 € : compensé |
+| Total valorisé | −24 + 20 − 20 = **−24,00 €** ; brut 24 + 20 + 20 = 64,00 € | `NET_COMPENSATED_VALUE` |
+| REF-C, coût 8,00 € (PEPS) | 50 × 8 = 400,00 € ; théorique 410,00 € → **+10,00 €** | `PRICE_DIFFERENCE` |
+| REF-B, coût 0,30 € par unité | Cartons non valorisés ; 120 × 0,30 = 36,00 € = théorique | Écart de prix 0 ; écart de quantité non valorisé |
+| REF-H, sans coût | — | `COST_MISSING` : valeur inconnue, jamais nulle |
+| REF-G, comptée hors théorique | 7 × 20 = 140,00 € | Valeur reconstituée seulement |
+| Compte 371 | 1 200 + 36 + 410 + 68 + 80 + 300 + 450 (transit) + 30 (exclue) + 360 (déposée) = 2 934,00 € ; grand livre 2 934,00 € | Cadré ; 1 800,00 € de consignation reçue (REF-F) exclus et signalés (`VALUE_ON_NOT_OWNED`) |
+| **Compte 321** | 90 + 1 000 = 1 090,00 € ; grand livre 1 100,00 € → **+10,00 €** | `FRAMING_DIFFERENCE` |
+| Compte 331 | 250,00 € (en-cours) = grand livre | Cadré |
+| Compte 397 | −150,00 € | Dépréciation renvoyée au sous-lot 3, aucune dépréciation calculée |
+| Totaux | Détenu 4 274,00 € ; grand livre (hors 39) 4 284,00 € | Écart de prix net +10,00 € |
+
+**Bilan valorisé.** 14 exceptions ou incertitudes : les 9 du sous-lot 1, plus un écart de prix, une valeur sur un bien non détenu, un écart de cadrage, une compensation en valeur et un coût manquant. L'issue est « exceptions détectées ».
+
+**Arrondi.** −2,50 × 3,33 = −8,325 → **−8,33 €** (demi-centime loin de zéro, convention interne).
+
+## Matrice de recette du sous-lot 2
+
+| Cas | Preuve |
+|---|---|
+| 98 contre 100, coût 12, écart potentiel −24 | Montant connu −24,00 € sur la note ; mention « écart potentiel » et « non validé comme anomalie » (unitaire, runtime, E2E) |
+| Total net compensé | En quantité (REF-E) et en valeur (total −24,00 € pour 64,00 € bruts) (unitaire, E2E) |
+| Cartons contre unités | Quantité bloquée ; coût dans une autre unité : valeur bloquée (unitaire) |
+| Stock de tiers ou consignation reçue valorisé | Exclu du cadrage, signalé (unitaire, E2E) |
+| Coût absent | Valeur inconnue, incertitude (unitaire, runtime) |
+| Cadrage | Comptes cadrés, écart de +10,00 €, compte absent du grand livre (cadrage incomplet), compte au grand livre sans ligne théorique (unitaire, E2E) |
+| Péremption | Liste des coûts remplacée : feuille périmée (runtime) |
+| Qualification | Méthode inconnue, coût en double, compte hors classe 3, valeur absente, illisible ou sans compte, colonne absente du fichier (unitaire) |
+| Sans coûts ni grand livre | Aucune valeur dérivée : sous-lot 1 inchangé (unitaire) |
+
 ## Exécutions locales (09/10/2026)
 
-- **Tests unitaires complets** (`--pool=forks`) : 1 391 réussis, 42 ignorés. Les tests propres aux stocks : `stock-review.test.ts` 17/17 et `stock-runtime.test.ts` 10/10.
+- **Tests unitaires complets** (`--pool=forks`) : 1 403 réussis, 42 ignorés (branche du sous-lot 2). Tests propres aux stocks : `stock-review.test.ts` 17/17, `stock-valuation.test.ts` 11/11, `stock-runtime.test.ts` 11/11. La branche du sous-lot 1 seul donnait 1 391 réussis et 42 ignorés.
 - **Typecheck** : OK.
 - **Lint** : 0 erreur, 7 avertissements déjà présents avant ce lot.
-- **`db:check`** : 17 migrations, invariants valides.
+- **`db:check`** : 18 migrations, invariants valides (17 sur la branche du sous-lot 1).
 - **Build de production** : OK.
-- **Chromium** (Playwright, build de production) : 90 réussis, 1 ignoré. `stocks.spec.ts` passe 4/4, sans violation axe sérieuse ni critique. Captures inspectées à 1440, 1024 et 390 px, ainsi qu'avec réduction des animations.
-- **Non exécuté localement** : `stock-durable.integration.test.ts`, faute de PostgreSQL jetable sur ce poste. Il s'exécute dans la CI, dans le projet Vitest « durable », un fichier à la fois.
+- **Chromium** (Playwright, build de production) : 91 réussis, 1 ignoré. `stocks.spec.ts` passe 5/5 (4 pour le sous-lot 1, 1 pour le sous-lot 2), sans violation axe sérieuse ni critique. Captures inspectées à 1440, 1024 et 390 px, ainsi qu'avec réduction des animations. La branche du sous-lot 1 seul donnait 90 réussis et 1 ignoré.
+- **Non exécuté localement** : `stock-durable.integration.test.ts`, qui couvre aussi l'import des coûts et du grand livre (migration 0015). Faute de PostgreSQL jetable sur ce poste, il s'exécute seulement dans la CI.

@@ -160,6 +160,39 @@ test("Stocks — préparation et revue dans l’interface : convention citée, g
   await capture(page, testInfo, "st-locked-1440.png");
 });
 
+test("Stocks — sous-lot 2 : écart potentiel −24,00 €, écart de prix, cadrage par compte et valeur sur bien non détenu ; captures 1440 / 390", async ({ page }, testInfo) => {
+  const h = createStockHarness(1_801_000_000, { valued: true }); await h.executed(await h.importAll(["st_count", "st_system", "st_movements", "st_support", "st_costs", "st_ledger"])); await serve(page, h);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(sheet());
+  const a = tile(page, /^REF-A lot L1, ENTREPOT-NORD — Écart de quantité/);
+  await expect(a).toContainText("Écart potentiel −24,00 €");
+  await expect(tile(page, /^REF-C, ENTREPOT-NORD/)).toContainText("Écart de prix +10,00 €");
+  await a.click();
+  const cost = panel(page);
+  await expect(cost.getByText("Coût et valeur")).toBeVisible();
+  await expect(cost).toContainText("12,00 € par unite · Coût moyen pondéré (PCG art. 213-34) · pièce FA-501");
+  await expect(cost).toContainText("−24,00 € (écart potentiel)");
+  const framing = page.getByRole("table", { name: /Cadrage par compte de stock/ });
+  await expect(framing.getByRole("row", { name: /^321000/ })).toContainText("+10,00 €");
+  await expect(framing.getByRole("row", { name: /^321000/ })).toContainText("Écart à expliquer");
+  await expect(framing.getByRole("row", { name: /^371000/ })).toContainText("1 800,00 € hors propriété exclus");
+  await expect(page.getByText(/Comptes de dépréciation au grand livre : 397000/)).toContainText("revue de valeur (sous-lot 3)");
+  await expect(page.getByText(/Total net −24,00\s€ · écarts bruts 64,00\s€/)).toBeVisible();
+  await axe(page);
+  await capture(page, testInfo, "st-valuation-1440.png");
+  await page.getByRole("group", { name: "Présentation" }).getByRole("button", { name: "Tableau" }).click();
+  await expect(page.getByRole("table", { name: /Quantités en unités de comptage/ }).getByRole("row", { name: /^REF-A/ })).toContainText("−24,00 €");
+  await capture(page, testInfo, "st-valuation-table-1440.png");
+  await page.getByRole("group", { name: "Présentation" }).getByRole("button", { name: "Cases" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "st-valuation-390.png");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.getByRole("tab", { name: /^Exceptions/ }).click();
+  await expect(page.getByText(/Valeur portée sur un bien non détenu — REF-F/)).toBeVisible();
+  await expect(page.getByText(/Cadrage état valorisé ↔ grand livre — 321000/)).toBeVisible();
+});
+
 test("Stocks — inventaire décalé sans mouvements puis feuille de comptage remplacée : non concluant, puis périmé", async ({ page }, testInfo) => {
   const h = createStockHarness(); await h.executed(await h.importAll(["st_count", "st_system", "st_support"])); await serve(page, h);
   await page.setViewportSize({ width: 1440, height: 900 });

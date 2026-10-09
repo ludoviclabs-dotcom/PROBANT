@@ -1,11 +1,11 @@
 # Mission 15 — Stocks et inventaires : contrat
 
 La mission est livrée en trois sous-lots séquentiels, chacun proposé dans une PR distincte :
-1. **quantités et mouvements** — livré ici ;
-2. **coûts et cadrage** — à suivre ;
+1. **quantités et mouvements** — livré (sous-lot 1) ;
+2. **coûts et cadrage** — livré (sous-lot 2, PR empilée sur le sous-lot 1) ;
 3. **revue de valeur** — à suivre.
 
-Ce document décrit le sous-lot 1. Les sous-lots suivants y ajouteront leur section.
+Ce document décrit les sous-lots 1 et 2 ; le sous-lot 3 y ajoutera sa section.
 
 ## Problème utilisateur
 
@@ -136,6 +136,71 @@ Le guide pédagogique ne fournit pas de méthode complète pour les stocks. Les 
 
 Aucun seuil, aucune tolérance et aucune durée n'est encodé.
 
+## Sous-lot 2 — coûts et cadrage
+
+### Questions professionnelles
+
+1. Au coût unitaire documenté, que représentent en valeur les écarts de quantité ? Ce sont des **écarts potentiels**, non validés comme anomalies.
+2. La valeur théorique déclarée de chaque ligne est-elle égale à la quantité théorique × le coût documenté (écart de prix) ?
+3. Pour chaque compte de stock, l'état théorique valorisé est-il cadré avec le solde du grand livre à la clôture ?
+4. Une valeur est-elle portée en stock pour un bien que l'entité ne détient pas ?
+5. Un total net valorisé cache-t-il des écarts de sens opposés ?
+
+### Sources ajoutées (facultatives : sans elles, aucune valeur n'est dérivée)
+
+| Source | Champs | Contrôles (refus avec ligne, colonne et valeur) |
+|---|---|---|
+| `st_costs` — coûts documentés | ligne, référence, lot (facultatif), unité, coût unitaire en euros, date, méthode, pièce, libellé | méthode parmi `cmp`, `peps`, `identification_specifique`, `cout_standard`, `prix_de_detail` ; coût ≥ 0 ; date au plus tard à la date de revue ; un seul coût par référence et lot |
+| `st_ledger` — grand livre des stocks | compte (identifiant), solde en euros, date, libellé | compte de classe 3 ; date égale à la clôture |
+| `st_system` — colonnes ajoutées | valeur théorique en euros, compte | valeur obligatoire pour une ligne détenue une fois la colonne mappée ; valeur ≥ 0 ; compte de classe 3 pour une ligne valorisée |
+
+Toute colonne nommée dans le mapping doit exister dans le fichier (`ST_COLUMN_NOT_FOUND`) : une colonne manquante n'est jamais lue comme vide.
+
+La migration additive `0015_stock_costs_ledger` élargit les contraintes de type de source. Son retour arrière est refusé si des coûts ou des soldes existent.
+
+### Calcul (méthodes internes)
+
+- **Coût applicable** : celui de la référence et du lot, sinon celui de la référence sans lot. **Jamais celui d'une autre référence.**
+- **Unité du coût.** Elle doit être celle du théorique et du comptage. Sinon, la valeur est bloquée (`COST_UNIT_INCOMPATIBLE`), sans conversion.
+- **Valeur** = quantité × coût, arrondie au centime, le demi-centime s'arrondissant loin de zéro.
+- **Écart de quantité valorisé** = écart × coût. C'est un écart potentiel : la note correspondante porte un montant connu.
+- **Écart de prix** = valeur théorique déclarée − quantité théorique × coût.
+- **Cadrage par compte**, avec :
+  - écart = solde du grand livre − somme des valeurs théoriques des lignes **détenues** (propre, consignation déposée, transit, en-cours, référence exclue) ;
+  - les stocks de tiers et consignations reçues valorisés sont exclus du cadrage et signalés (`VALUE_ON_NOT_OWNED`) ;
+  - les **comptes 39** (dépréciations des stocks et en-cours, plan de comptes du PCG) sont réservés à la revue de valeur.
+- **Total net et brut** des écarts valorisés, par référence et au total (`NET_COMPENSATED_VALUE`).
+
+### Méthode de coût
+
+La méthode déclarée pour chaque coût (PCG art. 213-33 à 213-35) est **affichée par compte**. L'outil ne recalcule pas le coût moyen pondéré ni le premier entré, premier sorti, et **n'approuve aucune méthode**. La cohérence des méthodes pour des stocks de nature et d'usage similaires (art. 213-35) relève du jugement humain.
+
+### États
+
+| Code | Nature |
+|---|---|
+| `PRICE_DIFFERENCE`, `VALUE_ON_NOT_OWNED`, `FRAMING_DIFFERENCE`, `NET_COMPENSATED_VALUE` | Exceptions |
+| `COST_MISSING` (valeur inconnue, jamais nulle), `COST_UNIT_INCOMPATIBLE`, `FRAMING_INCOMPLETE` (compte absent du grand livre, valeurs non mappées, ligne valorisée sans compte) | Incertitudes |
+
+### Sources consultées (09/10/2026)
+
+**Plan comptable général** (règlement ANC n° 2014-03), [version consolidée au 1er janvier 2026](https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf), page ANC [Plan comptable général](https://www.anc.gouv.fr/plan-comptable-general-0). Nature : **norme comptable**.
+
+| Article | Contenu | Usage dans l'outil |
+|---|---|---|
+| 213-30 | Composition du coût des stocks ; pertes et gaspillages exclus | Repère, non recalculé |
+| 213-31 | Coût d'acquisition | Repère, non recalculé |
+| 213-32 | Coût de production | Repère, non recalculé |
+| 213-33 | Identification spécifique pour les éléments non fongibles | Méthode déclarée |
+| 213-34 | Biens interchangeables : coût moyen pondéré ou premier entré, premier sorti | Méthode déclarée |
+| 213-35 | Même méthode pour une nature et un usage similaires ; coût standard et prix de détail s'ils sont proches du coût | Méthode déclarée ; cohérence laissée au jugement humain |
+| 214-22 | Évaluation à l'inventaire unité par unité ou catégorie par catégorie ; l'unité d'inventaire est la plus petite partie qui peut être inventoriée | Fonde le choix de l'unité référence / site / lot |
+| Plan de comptes, classe 3 | Comptes 31 à 37 ; 39 = dépréciations des stocks et en-cours | Comptes acceptés au grand livre ; comptes 39 écartés du cadrage |
+
+**Limites.** L'outil n'applique aucune de ces règles de coût : il affiche le coût documenté par une pièce et la méthode déclarée. L'évaluation à la valeur actuelle et les dépréciations (art. 214-22 et suivants) relèvent du sous-lot 3. Aucun seuil ni aucune tolérance n'est encodé.
+
 ## Exemple synthétique
 
-Voir `docs/mission15/RECETTE.md` : 15 unités, 9 testées, 6 exclues avec motif, 9 exceptions ou incertitudes, toutes calculées à la main.
+Voir `docs/mission15/RECETTE.md`, dont tous les montants sont calculés à la main :
+- **sous-lot 1** : 15 unités, 9 testées, 6 exclues avec motif, 9 exceptions ou incertitudes ;
+- **sous-lot 2** : 14 exceptions ou incertitudes, dont l'écart potentiel de −24,00 € sur REF-A.

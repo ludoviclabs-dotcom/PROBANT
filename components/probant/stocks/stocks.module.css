@@ -50,6 +50,11 @@
 .pieceList button[aria-expanded=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346)}
 .pieceList small{color:var(--muted,#8a99af)}
 .outWindow{opacity:.6}
+.sub{display:block;font-size:11px;color:var(--muted,#8a99af);font-weight:400}
+.meterCell{min-width:120px}
+.valueTable{min-width:760px}
+.valueTable td:nth-child(n+2):nth-child(-n+4),.valueTable th:nth-child(n+2):nth-child(-n+4){text-align:right}
+.valueLine{font-size:11px;font-variant-numeric:tabular-nums;color:#ffd27a}
 /* In the side panel the bridge stacks label and value above a full-width track, so every bar stays visible. */
 .stepStack{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"label value" "track track";row-gap:4px!important}
 .stepStack > :nth-child(1){grid-area:label}.stepStack > :nth-child(2){grid-area:track}.stepStack > :nth-child(3){grid-area:value}
