@@ -35,7 +35,9 @@ describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessi
     const db = drizzle(client, { schema });
     store = new DrizzleSessionStore(db);
     const authorizer = new RequestAuthorizer({ sessionStore: store, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
-    handlers = fiscalHandlers(() => new FiscalRuntime(new PostgresFiscalDatabase(db), authorizer, () => now), () => {});
+    handlers = fiscalHandlers(() => new FiscalRuntime(new PostgresFiscalDatabase(db), authorizer, () => now), () => {},
+      error => { if (error instanceof Error) console.error("FISCAL_RECIPE_ERROR", error.name, error.message.split("
+")[0], error.cause instanceof Error ? error.cause.message : ""); });
   }
   async function session(org: string, subject: string, roles: ProbantRole[]) {
     const secret = newSessionSecret(), record = await store.create({ tokenSha256: sessionTokenDigest(secret), issuer: "https://idp.example.test", subject, organizationId: org, roles, acr: "mfa", amr: ["mfa"], mfaSatisfied: true, nowEpochSeconds: now, idleTtlSeconds: 3600, absoluteTtlSeconds: 7200 });
