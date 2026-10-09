@@ -27,6 +27,17 @@ export const VAT_SOURCE_REQUIREMENTS = {
 export type VatSourceRequirement = keyof typeof VAT_SOURCE_REQUIREMENTS;
 
 /**
+ * Familles de sources exigées par les contrôles soumis à une garde de
+ * couverture. Partagé avec les feuilles fiscales, qui affichent la source
+ * requise d'un contrôle bloqué sans redéclarer cette table.
+ */
+export const VAT_CONTROL_SOURCE_REQUIREMENTS = {
+  "VAT.PERIOD.SHIFT": ["taxPoint"],
+  "VAT.PIECE.MISSING": ["invoicing", "deduction"],
+  "VAT.ENTRY.NO_REFERENCE": ["invoicing"],
+} as const satisfies Record<string, readonly VatSourceRequirement[]>;
+
+/**
  * Évalue la couverture normative de la période pour un jeu d'exigences.
  *
  * Renvoie `not_covered` quand la période commence déjà hors couverture, et

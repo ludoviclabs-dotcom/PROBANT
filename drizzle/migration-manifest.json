@@ -16,7 +16,8 @@
     "0009_payables_investigation.up.sql",
     "0010_equity_dossier.up.sql",
     "0011_investment_review.up.sql",
-    "0012_capitaux_propres.up.sql"
+    "0012_capitaux_propres.up.sql",
+    "0013_fiscal_workpapers.up.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -33,7 +34,8 @@
     "0009_payables_investigation.down.sql",
     "0010_equity_dossier.down.sql",
     "0011_investment_review.down.sql",
-    "0012_capitaux_propres.down.sql"
+    "0012_capitaux_propres.down.sql",
+    "0013_fiscal_workpapers.down.sql"
   ],
   "tables": [
     "control_executions",

@@ -40,11 +40,17 @@ export default async function FiscalitePage({
   ) as Record<TaxCockpitScope, TaxCockpitDatasets>;
 
   return (
-    <TaxCockpitWorkspace
-      bundles={bundles}
-      initialScope={parseScope(params.impot)}
-      initialOutcome={params.statut ?? "tous"}
-      evidenceSource={source}
-    />
+    <>
+      {/* The cockpit stays a demonstration surface; the real-dossier VAT sheets live in the mission procedures (Mission 13). */}
+      <nav aria-label="Feuilles de travail fiscales" style={{ background: "#0b1220", color: "#e6edf6", padding: "10px 24px", fontSize: 13, borderBottom: "1px solid #243044" }}>
+        Cockpit de démonstration (dossier synthétique). Pour un dossier réel en recette : <a href="/fiscal" style={{ color: "#9cbcff", textDecoration: "underline" }}>feuilles de travail TVA par période</a> · <a href="/fiscal/synthese" style={{ color: "#9cbcff", textDecoration: "underline" }}>Synthèse fiscale</a>.
+      </nav>
+      <TaxCockpitWorkspace
+        bundles={bundles}
+        initialScope={parseScope(params.impot)}
+        initialOutcome={params.statut ?? "tous"}
+        evidenceSource={source}
+      />
+    </>
   );
 }
