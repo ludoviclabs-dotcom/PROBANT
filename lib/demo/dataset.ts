@@ -1068,20 +1068,20 @@ const findResExc: Finding = {
   siloId: "resultat-exceptionnel",
   titre: "Charges récurrentes classées en exceptionnel",
   constat:
-    "95 000 € de charges (compte 678) sont classés en exceptionnel alors qu'elles présentent un caractère récurrent lié à l'exploitation (pénalités commerciales).",
+    "95 000 € de charges en 678 constituent des événements candidats. Le libellé et la récurrence ne suffisent pas à qualifier leur présentation.",
   explication:
-    "Le résultat exceptionnel ne doit accueillir que les opérations non récurrentes étrangères à l'activité ordinaire. Un classement erroné fausse la lecture du résultat d'exploitation.",
-  mesure: { constate: 95000, seuil: 0, unite: "EUR", libelle: "charges à reclasser en exploitation" },
+    "La revue /resultat-exceptionnel établit le PCG applicable à l’exercice, examine les pièces et les catégories particulières, puis documente une décision par événement.",
+  mesure: { constate: 95000, seuil: 0, unite: "EUR", libelle: "charges candidates à examiner" },
   source: SOURCES.PCG_STRUCTURE,
   comptesConcernes: ["678", "671"],
   lignesSource: [2750],
   faisceau: ["charges récurrentes", "lien avec l'exploitation", "classement en 67"],
-  annotation: "95 k€ « exceptionnels » récurrents — reclassement",
+  annotation: "95 k€ en 678 — qualification à documenter",
   cibleRowId: "resexc-autres",
   preuve: [
     { etape: "Source", detail: "Grand-livre 67 + nature des opérations" },
     { etape: "Règle", detail: "Classification courant / exceptionnel (PCG)" },
-    { etape: "Résultat", detail: "95 k€ à reclasser en exploitation" },
+    { etape: "Résultat", detail: "Aucune reclassification sans référentiel, pièces et décision" },
   ],
   statutRevue: "en_attente",
 };

@@ -6,7 +6,7 @@ import { authorize, type Principal } from "./policy";
 
 export const SOURCE_REQUIRED = "SOURCE REQUISE";
 export const CYCLE_FRAMEWORK_VERSION = "1.0.0";
-export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" }
+export interface CycleContext { scope: WorkpaperScope; period: AccountingPeriod; purpose: "synthetic_technical" | "real"; procedure?: "exceptional.review" | "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" }
 export interface SourcedAmount { amount: Money; date: string; source: SourceRow }
 export interface PostClosingWindow { startDate: string; endDate: string; documentVersionIds: string[]; coverage: "documented" | "incomplete" }
 export function assertContext(context: CycleContext) {
@@ -75,4 +75,10 @@ export function assertInvestmentContext(context: CycleContext) {
  if (context.scope.mode === 'demo') { assertContext(context); return; }
  scopeSchema.parse(context.scope);
  if (context.purpose !== 'real' || context.procedure !== 'investments.review' || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw Error('INVESTMENT_CONTEXT_INVALID');
+}
+
+export function assertExceptionalContext(context: CycleContext) {
+ if(context.scope.mode === "demo") { assertContext(context); return; }
+ scopeSchema.parse(context.scope);
+ if(context.purpose !== "real" || context.procedure !== "exceptional.review" || periodIssues(context.period).length || context.scope.periodId !== periodId(context.period)) throw Error("EXCEPTIONAL_CONTEXT_INVALID");
 }
