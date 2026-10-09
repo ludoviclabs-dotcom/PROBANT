@@ -31,7 +31,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        # Docker Official Image mirror: avoids Docker Hub's anonymous pull quota.
+        image: public.ecr.aws/docker/library/postgres:17-alpine
         env:
           POSTGRES_USER: probant
           POSTGRES_PASSWORD: probant_ci
@@ -90,7 +91,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:17-alpine
+        # Same official PostgreSQL image and version as the verification job.
+        image: public.ecr.aws/docker/library/postgres:17-alpine
         env:
           POSTGRES_USER: probant
           POSTGRES_PASSWORD: probant_ci

@@ -107,7 +107,7 @@ export const AUDIT_CYCLES: AuditCycle[] = [
   {
     id: "paie",
     nom: "Paie & Personnel",
-    description: "Journal de paie / DSN ↔ grand-livre 43x/64x.",
+    description: "Cadrage générique journal ↔ GL. Revue étagée des exports structurés et congés séparés sur /paie-personnel ; aucun parseur DSN natif.",
     famillesComptes: ["43", "64"],
     cloison: "resultat",
     config: CONFIG_PAIE,
