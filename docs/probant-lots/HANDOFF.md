@@ -1,3 +1,27 @@
+# Handoff — Capitaux propres, feuille parallèle `/capitaux-propres` (2026-10-09)
+
+**Base.** Branche `claude/capitaux-propres-cohabitation`, partie de `main` `5e49934` (Missions 08, 11 Codex `/equity` et 12 fusionnées). Elle reprend la Mission 11 développée par Claude (PR #63, devenue non fusionnable quand la PR #62 de Codex a été fusionnée). À la demande du propriétaire, elle **cohabite** avec `/equity` sans la modifier :
+- noms dédiés (`capitaux-*`, `capitaux_propres.review`, `capitauxWork`, mapping `capitaux`) ;
+- migration `0012_capitaux_propres` (tables `eq_*`) ;
+- drapeau `PROBANT_CAPITAUX_DURABLE`.
+
+`reviewEquity` (moteur partagé, contexte `equity.review`) est complété de façon additive. La composante ou le capital non établis (`null`) restent inconnus. Les tests de `/equity` restent verts.
+
+**Contenu :**
+- balance, écritures, tableau fourni, registre des décisions, règlements, PV en PDF versionnés par pièce ;
+- carte art. 821-1 PCG ;
+- décision / comptabilisation / paiement séparés ;
+- transferts neutres ;
+- lecture de PV et traitements citant pièce et version ;
+- notes d'exécution en une seule version, budget des sources vérifié avant stockage ;
+- feuille `/capitaux-propres` et Synthèse.
+
+Contrat et recette : `docs/mission11/CONTRAT.md`, `docs/mission11/RECETTE.md`.
+
+**À arbitrer.** Le produit propose deux feuilles Capitaux propres (`/equity` et `/capitaux-propres`). Le choix de la feuille cible, ou leur convergence, est une décision produit. **Maturité :** démontrable sur données synthétiques ; PostgreSQL jetable non exécuté localement ; activation réelle bloquée ; produit non déclaré prêt globalement.
+
+---
+
 # Publication et fusion autorisées (2026-10-09)
 
 Le propriétaire demande explicitement une PR et sa fusion pour Mission 12. La base 464bdc7 est la tête de PR #62 et comprend les dépendances Missions 08 et 11, encore absentes de main. La PR Mission 12 vers main inclut cette base, avec validation CI complète et PostgreSQL avant fusion, puis vérification du déploiement Vercel automatique. Aucun gate durable de production ni configuration distante ne sera activé. Les comptes rendus locaux ci-dessous décrivent les états historiques datés.
