@@ -15,7 +15,8 @@ import type { FiscalCommand } from "../fiscal-commands";
 import type { FiscalTabularType } from "../fiscal-sources";
 import type { VatResult } from "../fiscal-vat";
 import { periodId, type WorkpaperRun } from "../model";
-import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, ca3Text, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, T1, T2 } from "./fiscal-fixtures";
+import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, ca3Text, citText, DECL_2065, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, LIASSE_2058A, T1, T2 } from "./fiscal-fixtures";
+import type { CitResult } from "../fiscal-cit-contract";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -101,5 +102,25 @@ describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessi
     const mission = (await (await handlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=mission"))).json()).mission;
     expect(mission.procedure).toMatchObject({ stale: true, state: "locked" });
     expect(mission.replaced).toEqual([expect.objectContaining({ importId: ids.t2, usedByRun: true })]);
+  });
+  it("IS de l’exercice : liasse et 2065 persistées, pont documenté, moteur TAX-05, revue distincte et verrouillage ; la déclaration de TVA remplacée ne le périme pas", async () => {
+    const cit = (boxes: Record<string, string>, documentType: "liasse_2050_2059" | "declaration_2065", formNumber: string) => importSource({ file: new File([citText(boxes, { documentType, formNumber })], documentType + ".csv", { type: "text/csv" }), documentType: "fx_cit_return", declaration: JSON.stringify({ documentType, expectedSiren: FX_SIREN }) });
+    await cit(LIASSE_2058A, "liasse_2050_2059", "2058-A-SD"); await cit(DECL_2065, "declaration_2065", "2065-SD");
+    let isRun = await success({ command: "create", period: fxPeriod, tax: "cit", formVintage: 2026 });
+    const view = await read(), expected = view.expectedSources[isRun.id] as string[];
+    const support = view.imports.find((b: { document: { documentType: string } }) => b.document.documentType === "fx_support");
+    const regime = support.rows.find((r: { normalized?: { key: string } }) => r.normalized?.key === "ATT-REGIME").id as string;
+    isRun = await success({ command: "freeze", id: isRun.id, expectedVersion: isRun.version, importIds: expected, draft: { formVintage: 2026, resultBasis: "before_tax", adjustments: [],
+      profile: { regime: "standard", groupStatus: "none", turnoverCents: "10240000", capitalPaid: "partially_paid", ownershipBasisPoints: 8000, siren: FX_SIREN, evidence: { documentId: support.document.id, rowId: regime } } } });
+    isRun = await success({ command: "execute", id: isRun.id, expectedVersion: isRun.version });
+    const r = isRun.result!.result as CitResult;
+    expect(r).toMatchObject({ framing: { status: "framed" }, computation: { grossTaxCents: 1795000 }, bridge: { basis: "before_tax", startCents: 7080000, residualCents: 100000 } });
+    for (const n of isRun.notes.filter(x => x.blocking)) isRun = await success({ command: "resolve", id: isRun.id, expectedVersion: isRun.version, noteId: n.id, text: "Pénalité de 1 000 réintégrée dans WR (recette jetable).", citation: { documentId: support.document.id, rowId: regime } });
+    isRun = await success({ command: "conclude", id: isRun.id, expectedVersion: isRun.version, text: "IS cadré ; résidu de pont documenté ; aucune liquidation." });
+    isRun = await success({ command: "submit", id: isRun.id, expectedVersion: isRun.version });
+    isRun = await success({ command: "review", id: isRun.id, expectedVersion: isRun.version, decision: "approved", submittedHash: isRun.submittedHash!, text: "Revue distincte IS." }, reviewer);
+    isRun = await success({ command: "lock", id: isRun.id, expectedVersion: isRun.version }, reviewer);
+    expect(isRun).toMatchObject({ state: "locked", template: { id: "is.computation" }, approval: { actorId: "fx-reviewer" } });
+    expect((await read()).sourcesCurrent[isRun.id]).toBe(true);
   });
 });

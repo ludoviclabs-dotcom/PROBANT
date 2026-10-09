@@ -296,9 +296,11 @@ export function fiscalSourcesCurrent(importIds: string[], heads: { document_type
   return current.length === frozenIds.length && current.every((x, i) => x === frozenIds[i]);
 }
 /** Heads a fiscal run depends on, computed from the current heads (a newly approved previous return is relevant). */
-export function fiscalRelevance(run: { fiscalWork?: { period: { startDate: string; endDate: string } } }, heads: { document_type: string }[]) {
+export function fiscalRelevance(run: { fiscalWork?: { tax: "vat" | "cit"; period: { startDate: string; endDate: string } } }, heads: { document_type: string }[]) {
   const w = run.fiscalWork;
   if (!w) return () => false;
+  // IS: the FEC, the supporting pieces and every return form of the exercise (2058-A, 2058-B, 2033-B, 2065).
+  if (w.tax === "cit") return (key: string) => ["fx_fec", "fx_support"].includes(key) || (key.startsWith("fx_cit_return:") && key.endsWith(`:${w.period.startDate}:${w.period.endDate}`));
   const keys = vatRelevantKeys(w.period.startDate, w.period.endDate, previousVatKey(heads, w.period.startDate));
   return (key: string) => keys.includes(key);
 }
@@ -310,4 +312,4 @@ export function previousVatKey(heads: { document_type: string }[], start: string
   const [, s, e] = key.split(":");
   return { start: s, end: e };
 }
-export { isFiscalPopulation, vatPopulationExclusions, vatPopulationItems } from "./fiscal-population";
+export { citPopulationExclusions, citPopulationItems, isFiscalPopulation, vatPopulationExclusions, vatPopulationItems } from "./fiscal-population";

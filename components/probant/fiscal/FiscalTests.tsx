@@ -1,5 +1,5 @@
 "use client";
-import type { VatResult } from "@/lib/workpapers/fiscal-vat";
+import type { VatResult } from "@/lib/workpapers/fiscal-vat-contract";
 import { VAT_EXPLANATION_LABELS } from "@/lib/workpapers/fiscal-labels";
 import { CATEGORY_LABELS, cents, CONTROL_LABELS, COVERAGE_LABELS, dateFr, OUTCOME_LABELS, rate, TIER_LABELS } from "./format";
 import type { FiscalSelection } from "./types";
@@ -90,7 +90,7 @@ export function ControlsView({ result }: { result: VatResult }) {
 }
 
 /** Blocked rules with the source they require: title, publisher, URL, versions and verification date, all read from the registry. */
-export function BlockedRules({ result, selection, onSelect }: { result: VatResult; selection: FiscalSelection; onSelect(code: string): void }) {
+export function BlockedRules({ result, selection, onSelect }: { result: Pick<VatResult, "blockedRules" | "otherTaxes">; selection: FiscalSelection; onSelect(code: string): void }) {
   return <section className={styles.card} aria-labelledby="fx-rules-title">
     <header><h2 id="fx-rules-title">Règles bloquées et source requise</h2><span className={styles.muted}>{result.blockedRules.length} règle(s) · aucune version voisine substituée</span></header>
     <ul className={fx.rules}>{result.blockedRules.map(r => <li key={r.code} data-category={r.category} className={selection?.kind === "rule" && selection.id === r.code ? fx.selectedRow : undefined}>

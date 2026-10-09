@@ -14,8 +14,8 @@ describe("FX-1301 chaîne serveur TVA : sources → période déclarative → po
   it("parcours complet T2 2026 : écart du moteur expliqué par le pont, note traitée en citant la pièce, revue par une autre identité", async () => {
     const { sources, run: frozen } = await h.frozen();
     expect(frozen).toMatchObject({ state: "ready", population: { unit: "vat_entry" } });
-    // Population: the VAT entries of the FEC (T1, T2, T3 and September); the selection keeps the T2 ones, the others are excluded with their date.
-    expect(frozen.population!.items.map(i => i.id)).toEqual(["E:AC:AC1001", "E:AC:AC2001", "E:AC:AC2002", "E:VE:VE1001", "E:VE:VE2001", "E:VE:VE2002", "E:VE:VE2003", "E:VE:VE3001", "E:VE:VE3002"]);
+    // Population: the VAT entries of the FEC (T1 to T4); the selection keeps the T2 ones, the others are excluded with their date.
+    expect(frozen.population!.items.map(i => i.id)).toEqual(["E:AC:AC1001", "E:AC:AC2001", "E:AC:AC2002", "E:VE:VE1001", "E:VE:VE2001", "E:VE:VE2002", "E:VE:VE2003", "E:VE:VE3001", "E:VE:VE3002", "E:VE:VE9001"]);
     expect(frozen.selection!.selectedIds.sort()).toEqual(["E:AC:AC2001", "E:AC:AC2002", "E:VE:VE2001", "E:VE:VE2002", "E:VE:VE2003"]);
     expect(frozen.selection!.exclusions.find(e => e.id === "E:VE:VE1001")?.reason).toMatch(/hors période déclarative 2026-04-01 – 2026-06-30/);
     // The run depends on its own return and on the previous one (credit carried forward), not on other periods.

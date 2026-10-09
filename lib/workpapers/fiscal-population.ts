@@ -40,3 +40,28 @@ export function vatPopulationExclusions(imports: ImportBatch[], start: string, e
   return vatPopulationItems(imports).filter(i => { const d = dates.get(i.id.slice(2))!; return d < start || d > end; })
     .map(i => ({ id: i.id, reason: `Écriture datée du ${dates.get(i.id.slice(2))}, hors période déclarative ${start} – ${end}` }));
 }
+const resultAccount = (account: string) => account.startsWith("6") || account.startsWith("7");
+/**
+ * IS population: one item per FEC entry carrying a result line (classes 6 and 7 of the PCG, documented internal table).
+ * The measure is the entry's signed effect on the accounting result (credit minus debit), in cents.
+ */
+export function citPopulationItems(imports: ImportBatch[]) {
+  const fec = imports.find(b => b.document.documentType === "fx_fec")!;
+  const entries = new Map<string, { rowIds: string[]; result: bigint; touched: boolean }>();
+  for (const r of fec.rows) {
+    if (!r.normalized || r.errors.length) throw new Error("POPULATION_ROW_INVALID");
+    const key = r.normalized.key, e = entries.get(key) ?? { rowIds: [], result: 0n, touched: false };
+    e.rowIds.push(r.id);
+    if (resultAccount(r.original.CompteNum)) { e.touched = true; e.result += BigInt(r.original.CreditCents) - BigInt(r.original.DebitCents); }
+    entries.set(key, e);
+  }
+  return [...entries.entries()].filter(([, e]) => e.touched).map(([key, e]) => ({ id: "R:" + key, rowIds: e.rowIds, amount: money(e.result) })).sort((a, b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0);
+}
+/** Result entries dated outside the exercise are excluded with their motive. */
+export function citPopulationExclusions(imports: ImportBatch[], start: string, end: string) {
+  const fec = imports.find(b => b.document.documentType === "fx_fec")!;
+  const dates = new Map<string, string>();
+  for (const r of fec.rows) if (r.normalized && !dates.has(r.normalized.key)) dates.set(r.normalized.key, r.normalized.date);
+  return citPopulationItems(imports).filter(i => { const d = dates.get(i.id.slice(2))!; return d < start || d > end; })
+    .map(i => ({ id: i.id, reason: `Écriture datée du ${dates.get(i.id.slice(2))}, hors exercice ${start} – ${end}` }));
+}

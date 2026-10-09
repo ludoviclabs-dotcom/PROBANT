@@ -56,7 +56,7 @@ test("TVA T2 2026 — comptabilisé / déclaré / écart, pont explicatif, case 
   await expect(compare.getByRole("row", { name: /^TVA nette/ })).toContainText("+100,00 EUR · écart");
   await expect(page.getByText("Résidu non expliqué :")).toContainText("0,00 EUR · aucun écart");
   await expect(page.getByRole("button", { name: "TVA · T2 2026" })).toHaveAttribute("aria-current", "true");
-  await expect(page.getByRole("button", { name: "IS — sous-lot suivant" })).toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("group", { name: "Impôt" }).getByRole("button", { name: "IS" })).toHaveAttribute("aria-pressed", "false");
   // Declaration line → entries → piece.
   const box16 = page.getByRole("button", { name: /^Case 16/ });
   await box16.click();
@@ -196,4 +196,42 @@ test("TVA — déclaration remplacée : feuille périmée, versions conservées 
   await capture(page, testInfo, "fx-synthesis-390.png");
   expect(run.state).toBe("executed");
   expect(fxPeriod.closingDate).toBe("2026-12-31");
+});
+
+test("IS 2026 — résultat cadré, pont documenté, tranches du barème publié, retraitement sourcé ; double ajustement signalé ; captures 1440 / 390", async ({ page }, testInfo) => {
+  const h = createFiscalHarness(); await h.citExecuted(); await serve(page, h);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(sheet({ tax: "cit" }));
+  await expect(page.getByRole("group", { name: "Impôt" }).getByRole("button", { name: "IS" })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByRole("button", { name: /^IS · Exercice 01\/01\/2026 → 31\/12\/2026/ })).toHaveAttribute("aria-current", "true");
+  const framing = page.getByRole("table", { name: /^Résultat des classes 6 et 7 du FEC/ });
+  await expect(framing.getByRole("row", { name: /^Résultat après impôt \(FEC\)/ })).toContainText("52 850,00");
+  await expect(framing.getByRole("row", { name: /^Écart/ })).toContainText("aucun écart");
+  await expect(page.getByRole("table", { name: /^Du résultat comptable au résultat fiscal avant déficits/ }).getByRole("row", { name: /^Résidu non expliqué/ })).toContainText("0,00 EUR · aucun écart");
+  const brackets = page.getByRole("table", { name: "Tranches du barème publié de l’exercice" });
+  await expect(brackets.getByRole("row", { name: /^Taux normal/ })).toContainText("17 950,00");
+  await expect(brackets.getByRole("row", { name: /^Taux reduit PME/ })).toContainText("Non éligible");
+  await page.getByRole("button", { name: "AMENDE — Pénalité de retard" }).click();
+  await expect(panel(page).getByRole("heading", { name: "AMENDE — Pénalité de retard" })).toBeFocused();
+  await expect(panel(page).getByRole("link", { name: "Code general des impots, article 39" })).toHaveAttribute("href", /legifrance/);
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("button", { name: "AMENDE — Pénalité de retard" })).toBeFocused();
+  await axe(page);
+  await capture(page, testInfo, "fx-cit-2026-1440.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "fx-cit-2026-390.png");
+  await page.setViewportSize({ width: 1440, height: 900 });
+  // Preparation: an IS adjustment on a before-tax basis is flagged before sending and refused by the server.
+  await page.getByRole("tab", { name: /^Revue/ }).click();
+  const prep = page.getByRole("region", { name: /^Préparation IS/ });
+  await prep.getByRole("radio", { name: /^Avant impôt/ }).check();
+  await prep.getByLabel("Identifiant").fill("IS-BIS");
+  await prep.getByRole("combobox", { name: "Nature" }).selectOption("accounted_tax");
+  await expect(prep.getByText(/Double ajustement d’IS : un seul retraitement/)).toBeVisible();
+  await expect(prep.getByRole("button", { name: "Ajouter le retraitement au brouillon" })).toBeDisabled();
+  await prep.getByRole("button", { name: "Enregistrer profil, base et retraitements" }).click();
+  await expect(page.getByRole("alert").filter({ hasText: "Double ajustement d’IS refusé" })).toBeVisible();
+  await axe(page);
+  await capture(page, testInfo, "fx-cit-double-adjustment-1440.png");
 });

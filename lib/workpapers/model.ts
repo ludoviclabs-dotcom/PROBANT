@@ -61,7 +61,7 @@ export interface EvidenceLink {
   status: "verified" | "suggestion"; purpose: string;
 }
 export interface Population {
-  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "security_distribution" | "account" | "asset" | "decision_movement" | "vat_entry";
+  id: string; scope: WorkpaperScope; importIds: string[]; unit: "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "security_distribution" | "account" | "asset" | "decision_movement" | "vat_entry" | "result_entry";
   items: { id: string; rowIds: string[]; amount: Money }[]; hash: string;
 }
 export interface SelectionSet {
@@ -98,7 +98,7 @@ export function validateRun(run: WorkpaperRun): WorkpaperRun {
   if(run.equityWork && (run.template.id !== "equity.review" || run.equityWork.schemaVersion !== "equity-dossier-1" || !run.equityWork.authorId || !Number.isFinite(Date.parse(run.equityWork.authoredAt)))) throw new Error("EQUITY_WORK_INVALID");
   if (run.capitauxWork && (run.template.id !== "capitaux_propres.review" || run.clientsWork || run.cashWork || run.fixedAssetWork || run.equityWork || run.capitauxWork.schemaVersion !== "equity-1" || !run.capitauxWork.convention?.validatedBy)) throw new Error("CAPITAUX_WORK_INVALID");
   // Fiscal sheets (Mission 13): one fiscal work per run, bound to its tax procedure.
-  if (run.fiscalWork && (!["tva.reconciliation"].includes(run.template.id) || run.clientsWork || run.cashWork || run.fixedAssetWork || run.equityWork || run.capitauxWork || (run.fiscalWork.tax === "vat") !== (run.template.id === "tva.reconciliation") || !run.fiscalWork.configuredBy)) throw new Error("FISCAL_WORK_INVALID");
+  if (run.fiscalWork && (!["tva.reconciliation", "is.computation"].includes(run.template.id) || run.clientsWork || run.cashWork || run.fixedAssetWork || run.equityWork || run.capitauxWork || (run.fiscalWork.tax === "vat" ? "tva.reconciliation" : "is.computation") !== run.template.id || !run.fiscalWork.configuredBy)) throw new Error("FISCAL_WORK_INVALID");
   if (run.payablesWork && (!run.template.id.startsWith("payables.") || run.payablesWork.schemaVersion !== "payables-investigation-1" || !run.payablesWork.authorId || !Number.isFinite(Date.parse(run.payablesWork.authoredAt)))) throw new Error("PAYABLE_WORK_INVALID");
   if (run.clientsWork && (run.template.id !== "clients.sales" || run.clientsWork.schemaVersion !== "clients-sales-1" || !run.clientsWork.framing.runId || !run.clientsWork.framing.rootId || !Number.isSafeInteger(run.clientsWork.framing.version) || run.clientsWork.framing.version < 1 || !/^[a-f0-9]{64}$/.test(run.clientsWork.framing.contentHash))) throw new Error("CLIENT_SALES_WORK_INVALID");
   if (run.cashWork && (run.template.id !== "cash.reconciliation" || run.clientsWork || run.cashWork.schemaVersion !== "cash-reconciliation-1" || !run.cashWork.convention?.validatedBy)) throw new Error("CASH_WORK_INVALID");

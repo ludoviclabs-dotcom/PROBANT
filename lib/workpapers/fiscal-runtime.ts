@@ -6,15 +6,18 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { buildFiscalMissionPackage, type FiscalExportKind } from "@/lib/evidence/fiscal-mission-package";
-import { FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
+import { CIT_TEMPLATE, FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
 import { buildFiscalMission, type FiscalMissionSelection } from "./fiscal-mission";
 import type { FiscalCommand } from "./fiscal-commands";
 import { parseFiscalWork, type FiscalResult } from "./fiscal-review";
-import { assertFiscalBatch, FiscalSourceError, FX_TABULAR_TYPES, fiscalRelevance, previewDeclaration, previewFec, vatPopulationExclusions, fiscalSourcesCurrent, type DeclarationForm, type FiscalTabularType } from "./fiscal-sources";
-import { initialVatWork, stampVatWork, VAT_UNCERTAINTY_CODES } from "./fiscal-vat";
+import { assertFiscalBatch, FiscalSourceError, FX_TABULAR_TYPES, fiscalRelevance, previewDeclaration, previewFec, citPopulationExclusions, vatPopulationExclusions, fiscalSourcesCurrent, type DeclarationForm, type FiscalTabularType } from "./fiscal-sources";
+import { initialVatWork, stampVatWork, vatDraftSchema, VAT_UNCERTAINTY_CODES } from "./fiscal-vat";
+import { CIT_UNCERTAINTY_CODES, citDraftSchema, initialCitWork, stampCitWork } from "./fiscal-cit";
+import type { FiscalWork } from "./fiscal-review";
 import { periodMatchesFrequency, resolveCitation, toNoteCitation, type FiscalCitationInput } from "./fiscal-work";
 import { FiscalImports, FiscalWorkpaperRepository, type FiscalDatabase, type FiscalSourceHead, type FiscalTx } from "./fiscal-store";
 import { previewImport, type ImportBatch, type ImportMapping } from "./imports";
+import { taxKnowledgeRegistry } from "@/lib/knowledge/tax-registry";
 import { periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
@@ -90,7 +93,10 @@ export class FiscalRuntime {
       for (const b of imports.batches.filter(b => b.approval)) (versions[b.document.logicalId] ??= []).push({ importId: b.id, documentVersionId: b.document.id, fileName: b.document.fileName, sha256: b.document.byteHash, approvedAt: b.approval!.at,
         current: heads.some(h => h.document_type === b.document.logicalId && h.import_id === b.id) });
       for (const list of Object.values(versions)) list.sort((a, b) => a.approvedAt < b.approvedAt ? -1 : a.approvedAt > b.approvedAt ? 1 : a.importId < b.importId ? -1 : 1);
-      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, sourcesCurrent, expectedSources, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])), versions,
+      // Legal sources an IS adjustment may cite: the corporate income tax sources of the registry, with their version status.
+      const citSources = taxKnowledgeRegistry.sources.filter(s => s.taxTypes.includes("corporate_income_tax")).flatMap(s => taxKnowledgeRegistry.sourceVersions.filter(v => v.sourceId === s.id)
+        .map(v => ({ sourceId: s.id, sourceVersionId: v.id, label: s.title + " — " + v.versionLabel + (v.status === "effective" ? "" : " [" + v.status + "]") })));
+      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, sourcesCurrent, expectedSources, lineageCurrent, citSources, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])), versions,
         imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, ROWS_SENT[b.document.documentType] ?? 0), rowCount: b.rows.length })), sourceHeads: heads, ...(history && id ? { history: await repository.history(scope, id) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("FX_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);
       return response;
@@ -148,14 +154,12 @@ export class FiscalRuntime {
   }
   async previewDeclaration(request: Request, dossierId: string, period: AccountingPeriod, file: File, form: DeclarationForm, key: string) {
     return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => {
-      // Only VAT returns are accepted until the IS sub-lot is delivered.
-      if (!["declaration_tva_ca3", "declaration_tva_ca12"].includes(form.documentType)) throw new Error("FX_DECLARATION_TYPE_NOT_ENABLED");
       const f = await this.safeFile(file); return this.stage(tx, scope, actor, key, period, await previewDeclaration(f, scope, period, form, actor), f);
     });
   }
   async preview(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: FiscalTabularType, key: string) {
     if (!(FX_TABULAR_TYPES as readonly string[]).includes(type)) throw new Error("FX_SOURCE_TYPE_INVALID");
-    return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => { const f = await this.safeFile(file); return this.stage(tx, scope, actor, key, period, await previewImport(f, scope, mapping, actor, type, "tva.reconciliation"), f); });
+    return this.transaction(request, dossierId, periodId(period), "prepare", async (tx, scope, actor) => { const f = await this.safeFile(file); return this.stage(tx, scope, actor, key, period, await previewImport(f, scope, mapping, actor, type, type === "fx_support" ? "is.computation" : "tva.reconciliation"), f); });
   }
   async approveImport(request: Request, dossierId: string, pid: string, command: { importId: string; previewHash: string; expectedSourceId: string | null }, key: string) {
     return this.transaction(request, dossierId, pid, "prepare", async (tx, scope, actor) => this.receipt(tx, scope, actor, key, { operation: "approve_import", ...command }, async () => {
@@ -173,19 +177,32 @@ export class FiscalRuntime {
     const permission = command.command === "review" || command.command === "lock" ? "review" : "prepare";
     return this.transaction(request, dossierId, pid, permission, async (tx, scope, actor) => this.receipt(tx, scope, actor, key, command, async () => {
       const imports = FiscalImports.from(await tx.imports(scope)), repository = new FiscalWorkpaperRepository(tx), at = new Date(this.now() * 1000).toISOString();
-      const service = new WorkpaperService(repository, imports, new FiscalRegistry(), async () => actor, () => at, "tva.reconciliation");
+      // The service is bound to the run's own tax procedure: a VAT command can never act on an IS run, and conversely.
+      const serviceFor = (procedure: "tva.reconciliation" | "is.computation") => new WorkpaperService(repository, imports, new FiscalRegistry(), async () => actor, () => at, procedure);
       if (command.command === "create") {
         if (periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
+        if (command.tax === "cit") {
+          // The IS run covers the exercise itself: no declarative period nor frequency is accepted.
+          if (command.declarativePeriod || command.frequency) throw new Error("FX_CIT_PERIOD_IS_THE_EXERCISE");
+          const exercise = { startDate: command.period.startDate, endDate: command.period.closingDate };
+          return { run: await serviceFor("is.computation").create(scope, command.period, CIT_TEMPLATE, `cit:${exercise.startDate}:${exercise.endDate}`, undefined, initialCitWork({ period: exercise, formVintage: command.formVintage, actor, at })) };
+        }
         const dp = command.declarativePeriod;
+        if (!dp || !command.frequency) throw new Error("FX_DECLARATIVE_PERIOD_REQUIRED");
         if (dp.startDate > dp.endDate || dp.startDate < command.period.startDate || dp.endDate > command.period.closingDate) throw new Error("FX_DECLARATIVE_PERIOD_OUTSIDE_EXERCISE");
         if (!periodMatchesFrequency(dp, command.frequency)) throw new Error("FX_PERIOD_FREQUENCY_INVALID");
         const work = initialVatWork({ period: dp, frequency: command.frequency, formVintage: command.formVintage, actor, at });
-        return { run: await service.create(scope, command.period, VAT_TEMPLATE, `vat:${dp.startDate}:${dp.endDate}`, undefined, work) };
+        return { run: await serviceFor("tva.reconciliation").create(scope, command.period, VAT_TEMPLATE, `vat:${dp.startDate}:${dp.endDate}`, undefined, work) };
       }
       const current = await repository.get(scope, command.id);
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (!current.fiscalWork) throw new Error("FX_WORK_REQUIRED");
       parseFiscalWork(current.fiscalWork);
+      const isCit = current.fiscalWork.tax === "cit", service = serviceFor(isCit ? "is.computation" : "tva.reconciliation");
+      /** Draft of the run's own tax, stamped by the server against the given frozen sources. */
+      const stamp = (batches: ImportBatch[], draft: unknown, previous: FiscalWork): FiscalWork => previous.tax === "cit"
+        ? stampCitWork({ scope, runId: current.id, imports: batches, draft: citDraftSchema.parse(draft), actor, at, previous })
+        : stampVatWork({ scope, runId: current.id, imports: batches, draft: vatDraftSchema.parse(draft), actor, at, previous });
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion, work = current.fiscalWork;
       let run: WorkpaperRun;
@@ -196,12 +213,15 @@ export class FiscalRuntime {
           if (stableSha256([...command.importIds].sort()) !== stableSha256(this.expected(current, await tx.heads(scope)))) throw new Error("FX_CURRENT_SOURCES_REQUIRED");
           const batches = command.importIds.map(i => imports.get(scope, i, actor));
           batches.forEach(assertFiscalBatch);
-          const stamped = stampVatWork({ scope, runId: id, imports: batches, draft: command.draft, actor, at, previous: work });
-          const population = freezePopulation(scope, batches, "vat_entry", actor), exclusions = vatPopulationExclusions(batches, work.period.startDate, work.period.endDate);
+          const stamped = stamp(batches, command.draft, work);
+          const population = freezePopulation(scope, batches, isCit ? "result_entry" : "vat_entry", actor);
+          const exclusions = (isCit ? citPopulationExclusions : vatPopulationExclusions)(batches, work.period.startDate, work.period.endDate);
           const selectedIds = population.items.map(i => i.id).filter(i => !exclusions.some(e => e.id === i));
-          if (!selectedIds.length) throw new Error("FX_NO_VAT_ENTRY_IN_PERIOD");
+          if (!selectedIds.length) throw new Error(isCit ? "FX_NO_RESULT_ENTRY_IN_EXERCISE" : "FX_NO_VAT_ENTRY_IN_PERIOD");
           run = await service.configureFiscal(scope, id, v, stamped);
-          const selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les écritures portant une ligne de TVA (comptes 4457 / 4456, table interne documentée) datées dans la période déclarative ; les autres sont exclues avec leur date", requestedSize: selectedIds.length, selectedIds, exclusions }, actor);
+          const criteria = isCit ? "Toutes les écritures portant une ligne de résultat (classes 6 et 7 du PCG, table interne documentée) datées dans l’exercice ; les autres sont exclues avec leur date"
+            : "Toutes les écritures portant une ligne de TVA (comptes 4457 / 4456, table interne documentée) datées dans la période déclarative ; les autres sont exclues avec leur date";
+          const selection = selectPopulation(population, { method: "targeted", criteria, requestedSize: selectedIds.length, selectedIds, exclusions }, actor);
           run = await service.attachInputs(scope, id, run.version, population, selection);
           for (const batch of batches) run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source fiscale figée");
           run = await service.transition(scope, id, run.version, "ready"); break;
@@ -209,14 +229,14 @@ export class FiscalRuntime {
         case "configure": {
           if (!current.population) throw new Error("FX_FROZEN_INPUTS_REQUIRED");
           const batches = current.importIds.map(i => imports.get(scope, i, actor));
-          run = await service.configureFiscal(scope, id, v, stampVatWork({ scope, runId: id, imports: batches, draft: command.draft, actor, at, previous: work })); break;
+          run = await service.configureFiscal(scope, id, v, stamp(batches, command.draft, work)); break;
         }
         case "execute": {
           run = await service.execute(scope, id, v, { work, runId: id });
           if (run.state === "executed" && run.result?.outcome !== "no_exception_detected") {
             const exceptions = (run.result!.result as FiscalResult).exceptions;
             // All generated notes land in a single version, however many exceptions the execution produced.
-            if (exceptions.length) run = await service.addNotes(scope, id, run.version, exceptions.map(e => ({ id: "fx-exception:" + e.id, kind: VAT_UNCERTAINTY_CODES.includes(e.code) ? "missing_evidence" as const : "observation" as const, text: e.label + " — " + e.message, amount: e.amount, blocking: true })));
+            if (exceptions.length) run = await service.addNotes(scope, id, run.version, exceptions.map(e => ({ id: "fx-exception:" + e.id, kind: ([...VAT_UNCERTAINTY_CODES, ...CIT_UNCERTAINTY_CODES] as string[]).includes(e.code) ? "missing_evidence" as const : "observation" as const, text: e.label + " — " + e.message, amount: e.amount, blocking: true })));
           }
           break;
         }

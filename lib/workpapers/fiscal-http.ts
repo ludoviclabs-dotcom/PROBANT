@@ -2,7 +2,7 @@ import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
 import { fiscalApprovalSchema, fiscalCommandSchema, fiscalPeriodSchema } from "./fiscal-commands";
 import type { FiscalRuntime } from "./fiscal-runtime";
-import { declarationFormSchema, FiscalSourceError, fiscalMappingSchema, FX_TABULAR_TYPES } from "./fiscal-sources";
+import { declarationFormSchema, fiscalDeclarationType, FiscalSourceError, fiscalMappingSchema, FX_TABULAR_TYPES } from "./fiscal-sources";
 import { FiscalConflict } from "./fiscal-store";
 import { periodId } from "./model";
 import type { FiscalExportKind } from "@/lib/evidence/fiscal-mission-package";
@@ -52,7 +52,7 @@ async function bounded(request: Request, max: number) {
   for (const p of parts) { bytes.set(p, offset); offset += p.length; }
   return new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
 }
-const FORM_FIELDS: Record<string, string[]> = { fx_fec: ["file", "period", "documentType"], fx_vat_return: ["file", "period", "documentType", "declaration"] };
+const FORM_FIELDS: Record<string, string[]> = { fx_fec: ["file", "period", "documentType"], fx_vat_return: ["file", "period", "documentType", "declaration"], fx_cit_return: ["file", "period", "documentType", "declaration"] };
 export function fiscalHandlers(create: () => FiscalRuntime, enabled: () => void = requireDisposableFiscal, observeError?: (error: unknown) => void) {
   const fail = (error: unknown) => { observeError?.(error); return failure(error); };
   return {
@@ -108,7 +108,12 @@ export function fiscalHandlers(create: () => FiscalRuntime, enabled: () => void 
           const period = fiscalPeriodSchema.parse(JSON.parse(String(form.get("period"))));
           if (periodId(period) !== q.periodId) throw new Error("WORKPAPER_PERIOD_INVALID");
           if (type === "fx_fec") return Response.json(await runtime.previewFec(request, q.dossierId, period, file, key), { headers });
-          if (type === "fx_vat_return") return Response.json(await runtime.previewDeclaration(request, q.dossierId, period, file, declarationFormSchema.parse(JSON.parse(String(form.get("declaration")))), key), { headers });
+          if (type === "fx_vat_return" || type === "fx_cit_return") {
+            // The routing field and the declared form must name the same tax: a liasse is never filed as a VAT return.
+            const declaration = declarationFormSchema.parse(JSON.parse(String(form.get("declaration"))));
+            if (fiscalDeclarationType(declaration.documentType) !== type) throw new Error("FX_DECLARATION_TYPE_MISMATCH");
+            return Response.json(await runtime.previewDeclaration(request, q.dossierId, period, file, declaration, key), { headers });
+          }
           const tabular = z.enum(FX_TABULAR_TYPES).parse(type);
           return Response.json(await runtime.preview(request, q.dossierId, period, file, fiscalMappingSchema.parse(JSON.parse(String(form.get("mapping")))), tabular, key), { headers });
         }

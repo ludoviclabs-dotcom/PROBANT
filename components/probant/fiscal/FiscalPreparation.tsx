@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useState } from "react";
 import { VAT_EXPLANATION_KINDS, VAT_EXPLANATION_LABELS, VAT_GROUP_STATUSES, VAT_REGIMES, type VatExplanationKind } from "@/lib/workpapers/fiscal-labels";
-import type { VatDraft, VatWork } from "@/lib/workpapers/fiscal-vat";
+import type { VatDraft, VatWork } from "@/lib/workpapers/fiscal-vat-contract";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import { cents, dateFr, FREQUENCY_LABELS, GROUP_LABELS, parseEurInput, REGIME_LABELS, SOURCE_LABELS } from "./format";
 import type { FiscalView } from "./types";
@@ -25,7 +25,7 @@ export function citableOptions(view: FiscalView, importIds: string[]) {
   ]);
 }
 export function FiscalPreparation({ run, view, busy, editable, frozenSources, onFreeze, onConfigure }: { run: WorkpaperRun; view: FiscalView; busy: boolean; editable: boolean; frozenSources: string[]; onFreeze(draft: VatDraft): void; onConfigure(draft: VatDraft): void }) {
-  const work = run.fiscalWork!, frozen = !!run.population;
+  const work = run.fiscalWork as VatWork, frozen = !!run.population;
   const [draft, setDraft] = useState<VatDraft>(() => draftFromWork(work));
   const [line, setLine] = useState<{ id: string; label: string; kind: VatExplanationKind; amount: string; citation: string }>({ id: "", label: "", kind: "credit_carried", amount: "", citation: "" });
   useEffect(() => { setDraft(draftFromWork(work)); }, [work]);

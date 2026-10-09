@@ -1,6 +1,6 @@
 "use client";
 import { forwardRef, useImperativeHandle, useRef } from "react";
-import type { VatResult } from "@/lib/workpapers/fiscal-vat";
+import type { VatResult } from "@/lib/workpapers/fiscal-vat-contract";
 import { VAT_ROLE_LABELS } from "@/lib/workpapers/fiscal-labels";
 import { cents, dateFr, locatorLabel, plural } from "./format";
 import type { FiscalSelection } from "./types";

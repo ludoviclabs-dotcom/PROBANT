@@ -6,7 +6,7 @@ import { dateFr, locatorLabel, plural, SOURCE_LABELS } from "./format";
 import type { FiscalView } from "./types";
 import styles from "../cash/cash.module.css";
 
-type Kind = "fx_fec" | "fx_vat_return" | FiscalTabularType;
+type Kind = "fx_fec" | "fx_vat_return" | "fx_cit_return" | FiscalTabularType;
 type Field = "key" | "amount" | "date" | "periodStart" | "periodEnd" | "direction" | "base" | "label" | "sheet";
 type Columns = Record<Field, string>;
 const blank: Columns = { key: "", amount: "", date: "", periodStart: "", periodEnd: "", direction: "", base: "", label: "", sheet: "" };
@@ -21,20 +21,21 @@ const LABELS: Record<Field, string> = { key: "Colonne identifiant (pièce, réf�
 const MEANING: Record<Kind, string> = {
   fx_fec: "FEC de l’exercice (texte UTF-8, séparateur tabulation, barre verticale ou point-virgule). Lu par le parseur FEC historique ; toute ligne illisible ou écriture déséquilibrée bloque l’import : aucun montant n’est réputé nul.",
   fx_vat_return: "CA3 ou CA12 au gabarit PROBANT (JSON, CSV ou XLSX : formulaire, millésime, période, cases). Lue par le processeur fiscal existant ; une déclaration corrigée pour la même période remplace la précédente, qui reste conservée.",
+  fx_cit_return: "2058-A, 2058-B, 2033-B ou 2065 au gabarit PROBANT, une pièce par formulaire. Lue par le processeur fiscal existant ; un millésime non publié est conservé comme pièce sans être lu.",
   fx_invoices: "Inventaire des pièces : référence identique au FEC (PieceRef), TVA de la pièce, date ; sens et base HT facultatifs. Une pièce absente de l’inventaire n’est pas une pièce absente du dossier.",
   fx_vat_payments: "Paiements de TVA au Trésor : référence, montant positif, date, période déclarative payée (début et fin).",
   fx_support: "Pièces justificatives citables (attestation de régime, note de report de crédit…) : référence, montant (0 si sans objet), date, libellé.",
 };
-const TYPES: Kind[] = ["fx_fec", "fx_vat_return", "fx_invoices", "fx_vat_payments", "fx_support"];
+const TYPES: Kind[] = ["fx_fec", "fx_vat_return", "fx_cit_return", "fx_invoices", "fx_vat_payments", "fx_support"];
 export function buildFiscalMapping(type: FiscalTabularType, c: Columns, f: { delimiter: ";" | "," | "\t"; decimal: "," | "."; dateFormat: "ISO" | "DD/MM/YYYY" }): FiscalMapping {
   const v = (field: Field) => VISIBLE[type].includes(field) && c[field].trim() ? c[field].trim() : undefined;
   return { version: "fiscal-1", headerRow: 1, ...(c.sheet.trim() ? { sheet: c.sheet.trim() } : {}), columns: { key: c.key, amount: c.amount, date: c.date }, delimiter: f.delimiter, decimal: f.decimal, dateFormat: f.dateFormat, sign: 1, currency: "EUR",
     fiscal: JSON.parse(JSON.stringify({ basis: type === "fx_invoices" ? "invoices" : type === "fx_vat_payments" ? "payments" : "support", periodStartColumn: v("periodStart"), periodEndColumn: v("periodEnd"), directionColumn: v("direction"), baseColumn: v("base"), labelColumn: v("label") })) };
 }
-const keyLabel = (key: string) => key.startsWith("fx_vat_return:") ? "Période " + key.split(":").slice(1).map(dateFr).join(" → ") : SOURCE_LABELS[key] ?? key;
+const keyLabel = (key: string) => key.startsWith("fx_vat_return:") ? "Période " + key.split(":").slice(1).map(dateFr).join(" → ") : key.startsWith("fx_cit_return:") ? key.split(":")[1] + " · exercice " + key.split(":").slice(2).map(dateFr).join(" → ") : SOURCE_LABELS[key] ?? key;
 export function FiscalImportPanel({ view, period, periodId, busy, canPrepare, dossierId, onPreview, onApprove }: { view: FiscalView; period: AccountingPeriod; periodId: string; busy: boolean; canPrepare: boolean; dossierId: string; onPreview(data: FormData): void; onApprove(command: { importId: string; previewHash: string; expectedSourceId: string | null }): void }) {
   const [type, setType] = useState<Kind>("fx_fec"), [file, setFile] = useState<File | null>(null), [columns, setColumns] = useState<Columns>(blank);
-  const [declaration, setDeclaration] = useState<{ documentType: "declaration_tva_ca3" | "declaration_tva_ca12"; expectedSiren: string }>({ documentType: "declaration_tva_ca3", expectedSiren: "" });
+  const [declaration, setDeclaration] = useState<{ documentType: "declaration_tva_ca3" | "declaration_tva_ca12" | "liasse_2050_2059" | "liasse_2033" | "declaration_2065"; expectedSiren: string }>({ documentType: "declaration_tva_ca3", expectedSiren: "" });
   const [format, setFormat] = useState<{ delimiter: ";" | "," | "\t"; decimal: "," | "."; dateFormat: "ISO" | "DD/MM/YYYY" }>({ delimiter: ";", decimal: ",", dateFormat: "ISO" });
   const headOf = (key: string) => view.sourceHeads.find(h => h.document_type === key)?.import_id ?? null;
   const download = (id: string) => "/api/workpapers/fiscal?" + new URLSearchParams({ dossierId, periodId, operation: "download", id });
@@ -53,7 +54,7 @@ export function FiscalImportPanel({ view, period, periodId, busy, canPrepare, do
       return <li key={t}>
         <div className={styles.kv}><strong>{SOURCE_LABELS[t]}</strong>{!current.length && <span className={styles.muted}>{t === "fx_fec" ? "Requis — absent (bloquant)" : "Conditionnel — absent"}</span>}</div>
         {current.map(h => { const b = batches.find(x => x.id === h.import_id); const history = view.versions[h.document_type] ?? []; return b && <p key={h.document_type} className={styles.muted}>
-          {t === "fx_vat_return" ? keyLabel(h.document_type) + " · " : ""}{b.document.fileName} · {plural(b.rowCount ?? b.rows.length, "ligne")} · approuvée par {b.approval?.actorId} le {dateFr(b.approval!.at.slice(0, 10))}
+          {t === "fx_vat_return" || t === "fx_cit_return" ? keyLabel(h.document_type) + " · " : ""}{b.document.fileName} · {plural(b.rowCount ?? b.rows.length, "ligne")} · approuvée par {b.approval?.actorId} le {dateFr(b.approval!.at.slice(0, 10))}
           {history.length > 1 && <> · <strong>{plural(history.length - 1, "version remplacée", "versions remplacées")} conservée{history.length > 2 ? "s" : ""}</strong> ({history.filter(v => !v.current).map(v => v.fileName + " · " + v.sha256.slice(0, 10)).join(" ; ")})</>}
           {canDownload && <> · <a href={download(b.document.id)}>original</a></>}</p>; })}
         {unapproved.map(pending)}
@@ -62,21 +63,23 @@ export function FiscalImportPanel({ view, period, periodId, busy, canPrepare, do
     {canPrepare && <form onSubmit={e => {
       e.preventDefault(); if (!file) return;
       const data = new FormData(); data.set("file", file); data.set("documentType", type); data.set("period", JSON.stringify(period));
-      if (type === "fx_vat_return") data.set("declaration", JSON.stringify({ documentType: declaration.documentType, ...(declaration.expectedSiren ? { expectedSiren: declaration.expectedSiren } : {}) }));
+      if (type === "fx_vat_return" || type === "fx_cit_return") data.set("declaration", JSON.stringify({ documentType: declaration.documentType, ...(declaration.expectedSiren ? { expectedSiren: declaration.expectedSiren } : {}) }));
       else if (type !== "fx_fec") data.set("mapping", JSON.stringify(buildFiscalMapping(type, columns, format)));
       onPreview(data);
     }}>
       <h3>Qualifier une pièce</h3>
       <div className={styles.fields}>
-        <label>Type de pièce<select value={type} disabled={busy} onChange={e => { const t = e.target.value as Kind; setType(t); if (t !== "fx_fec" && t !== "fx_vat_return") setColumns(DEFAULTS[t]); }}>{TYPES.map(t => <option key={t} value={t}>{SOURCE_LABELS[t]}</option>)}</select></label>
-        <label>Fichier (3 Mio maximum)<input type="file" accept={type === "fx_fec" ? ".txt,.csv" : type === "fx_vat_return" ? ".csv,.json,.xlsx" : ".csv,.xlsx"} required disabled={busy} onChange={e => setFile(e.target.files?.[0] ?? null)}/></label>
+        <label>Type de pièce<select value={type} disabled={busy} onChange={e => { const t = e.target.value as Kind; setType(t); if (t === "fx_vat_return") setDeclaration(d => ({ ...d, documentType: "declaration_tva_ca3" })); else if (t === "fx_cit_return") setDeclaration(d => ({ ...d, documentType: "liasse_2050_2059" })); else if (t !== "fx_fec") setColumns(DEFAULTS[t]); }}>{TYPES.map(t => <option key={t} value={t}>{SOURCE_LABELS[t]}</option>)}</select></label>
+        <label>Fichier (3 Mio maximum)<input type="file" accept={type === "fx_fec" ? ".txt,.csv" : type === "fx_vat_return" || type === "fx_cit_return" ? ".csv,.json,.xlsx" : ".csv,.xlsx"} required disabled={busy} onChange={e => setFile(e.target.files?.[0] ?? null)}/></label>
       </div>
       <p className={styles.muted}>{MEANING[type]}</p>
-      {type === "fx_vat_return" && <div className={styles.fields}>
-        <label>Formulaire<select value={declaration.documentType} disabled={busy} onChange={e => setDeclaration(d => ({ ...d, documentType: e.target.value as typeof d.documentType }))}><option value="declaration_tva_ca3">CA3 (3310-CA3-SD)</option><option value="declaration_tva_ca12">CA12 (3517-S-SD)</option></select></label>
+      {(type === "fx_vat_return" || type === "fx_cit_return") && <div className={styles.fields}>
+        <label>Formulaire<select value={declaration.documentType} disabled={busy} onChange={e => setDeclaration(d => ({ ...d, documentType: e.target.value as typeof d.documentType }))}>{type === "fx_vat_return"
+          ? <><option value="declaration_tva_ca3">CA3 (3310-CA3-SD)</option><option value="declaration_tva_ca12">CA12 (3517-S-SD)</option></>
+          : <><option value="liasse_2050_2059">Liasse réel normal (2058-A, 2058-B)</option><option value="liasse_2033">Liasse réel simplifié (2033-B)</option><option value="declaration_2065">Déclaration 2065</option></>}</select></label>
         <label>SIREN attendu (facultatif)<input value={declaration.expectedSiren} inputMode="numeric" pattern="\d{9}" disabled={busy} onChange={e => setDeclaration(d => ({ ...d, expectedSiren: e.target.value.trim() }))}/></label>
       </div>}
-      {type !== "fx_fec" && type !== "fx_vat_return" && <>
+      {type !== "fx_fec" && type !== "fx_vat_return" && type !== "fx_cit_return" && <>
         <div className={styles.fields}>{VISIBLE[type].map(k => <label key={k}>{LABELS[k]}<input value={columns[k]} disabled={busy} required={REQUIRED[type].includes(k)} onChange={e => setColumns(c => ({ ...c, [k]: e.target.value }))}/></label>)}</div>
         <div className={styles.fields}>
           <label>Séparateur<select value={format.delimiter} onChange={e => setFormat(f => ({ ...f, delimiter: e.target.value as ";" | "," | "\t" }))}><option value=";">Point-virgule</option><option value=",">Virgule</option><option value={"\t"}>Tabulation</option></select></label>

@@ -7,13 +7,15 @@ import type { VatDraft } from "../fiscal-vat";
 import type { FiscalMissionSnapshot } from "../fiscal-mission";
 import type { ImportBatch } from "../imports";
 import type { WorkpaperRun } from "../model";
-import { CA3_T1, CA3_T2, ca3Text, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, fxScope, T1, T2 } from "./fiscal-fixtures";
+import { CA3_T1, CA3_T2, ca3Text, citText, DECL_2065, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, fxScope, LIASSE_2058A, T1, T2 } from "./fiscal-fixtures";
+import type { CitDraft } from "../fiscal-cit-contract";
 import { MemoryCashDatabase, TestAuthorizer } from "./cash-memory-database";
 
 export const FX_DOSSIER = fxScope.dossierId, FX_OTHER_DOSSIER = "99999999-9999-4999-8999-999999999999";
 type Period = { startDate: string; endDate: string };
 type Batch = ImportBatch & { rowCount?: number };
 export type FiscalSources = Record<"fec" | "t1" | "t2" | "invoices" | "payments" | "support", Batch>;
+export type CitSources = Record<"fec" | "liasse" | "d2065" | "support", Batch>;
 /**
  * Real runtime and handlers over the in-memory TEST store (the Trésorerie double, generic over runs and imports).
  * Every response comes from the engines, never from hand-written JSON; this proves runtime rules, never durability.
@@ -53,6 +55,11 @@ export function createFiscalHarness(start = 1_801_000_000, options: { directImpo
       if (options.directImports) return { status: 200, body: await runtime().previewDeclaration(request(session), FX_DOSSIER, fxPeriod, file, declaration, randomUUID()) };
       return multipart({ file, period: JSON.stringify(fxPeriod), documentType: "fx_vat_return", declaration: JSON.stringify(declaration) }, session);
     },
+    async previewCit(text: string, documentType: "liasse_2050_2059" | "declaration_2065" = "liasse_2050_2059", routing: "fx_cit_return" | "fx_vat_return" = "fx_cit_return", session = "preparer") {
+      const file = new File([text], documentType + ".csv", { type: "text/csv" }), declaration = { documentType, expectedSiren: FX_SIREN };
+      if (options.directImports) return { status: 200, body: await runtime().previewDeclaration(request(session), FX_DOSSIER, fxPeriod, file, declaration, randomUUID()) };
+      return multipart({ file, period: JSON.stringify(fxPeriod), documentType: routing, declaration: JSON.stringify(declaration) }, session);
+    },
     async preview(type: FiscalTabularType, text = FX_CSV[type], session = "preparer") {
       const file = new File([text], type + ".csv", { type: "text/csv" });
       if (options.directImports) return { status: 200, body: await runtime().preview(request(session), FX_DOSSIER, fxPeriod, file, fxMapping(type), type, randomUUID()) };
@@ -83,6 +90,32 @@ export function createFiscalHarness(start = 1_801_000_000, options: { directImpo
       return { frequency: "quarterly", formVintage: 2026,
         profile: { vatRegime: "real_normal", vatGroupStatus: "none", siren: FX_SIREN, evidence: await h.rowOf(sources.support.id, "ATT-REGIME") },
         explanations: [{ id: "CREDIT-T1", label: "Crédit du T1 reporté en case 22", kind: "credit_carried", amountCents: "-10000", citation: await h.rowOf(sources.t2.id, "22") }], ...overrides };
+    },
+    /** IS sources of the reference exercise: FEC, 2058-A, 2065 and supporting pieces. */
+    async importCit(): Promise<CitSources> {
+      return { fec: await h.accept(await h.previewFec()), liasse: await h.accept(await h.previewCit(citText(LIASSE_2058A))),
+        d2065: await h.accept(await h.previewCit(citText(DECL_2065, { documentType: "declaration_2065", formNumber: "2065-SD" }), "declaration_2065")), support: await h.accept(await h.preview("fx_support")) };
+    },
+    async createCit(formVintage = 2026): Promise<WorkpaperRun> { return h.ok({ command: "create", period: fxPeriod, tax: "cit", formVintage }); },
+    async fecRowOf(fecImportId: string, account: string): Promise<{ documentId: string; rowId: string }> {
+      // FEC rows are not sent to the browser; the test reads them from the server-side store like the runtime does.
+      const fec = (await h.db.transaction(async tx => tx.imports(fxScope))).map(r => r.batch).find(b => b.id === fecImportId)!;
+      return { documentId: fec.document.id, rowId: fec.rows.find(r => r.original.CompteNum === account)!.id };
+    },
+    /** Reference IS draft: confirmed profile (capital partially paid), after-tax basis, IS and penalty documented with their FEC lines. */
+    async citDraft(sources: CitSources, overrides: Partial<CitDraft> = {}): Promise<CitDraft> {
+      return { formVintage: 2026, resultBasis: "after_tax",
+        profile: { regime: "standard", groupStatus: "none", turnoverCents: "10240000", capitalPaid: "partially_paid", ownershipBasisPoints: 8000, siren: FX_SIREN, evidence: await h.rowOf(sources.support.id, "ATT-REGIME") },
+        adjustments: overrides.adjustments ?? [
+          { id: "IS", label: "Impôt sur les bénéfices comptabilisé", category: "accounted_tax", direction: "reintegration", amountCents: "1795000", treatment: "documents_declared", legalSource: null, citation: await h.fecRowOf(sources.fec.id, "695000") },
+          { id: "AMENDE", label: "Pénalité de retard", category: "explicit_non_deductible", direction: "reintegration", amountCents: "100000", treatment: "documents_declared", legalSource: { sourceId: "cgi-art-39", sourceVersionId: "cgi-art-39-v2024-02-23", locator: "article 39, 2" }, citation: await h.fecRowOf(sources.fec.id, "671200") }],
+        ...overrides } as CitDraft;
+    },
+    async citExecuted(overrides: Partial<CitDraft> = {}): Promise<{ sources: CitSources; run: WorkpaperRun }> {
+      const sources = await h.importCit();
+      let run = await h.createCit();
+      run = await h.ok({ command: "freeze", id: run.id, expectedVersion: run.version, importIds: await h.expected(run.id), draft: await h.citDraft(sources, overrides) });
+      return { sources, run: await h.ok({ command: "execute", id: run.id, expectedVersion: run.version }) };
     },
     async frozen(period: Period = T2, overrides: Partial<VatDraft> = {}): Promise<{ sources: FiscalSources; run: WorkpaperRun }> {
       const sources = await h.importAll();

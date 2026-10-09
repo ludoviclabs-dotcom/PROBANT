@@ -10,7 +10,8 @@ import fx from "./fiscal.module.css";
 type ExportFormat = "html" | "pdf" | "json" | "manifest" | "exceptions_csv" | "decisions_csv" | "procedures_csv" | "sources_csv";
 const CSV = [{ id: "exceptions_csv", label: "Exceptions" }, { id: "decisions_csv", label: "Décisions" }, { id: "procedures_csv", label: "Procédures" }, { id: "sources_csv", label: "Index des sources" }] as const;
 const FILTERS: { id: FiscalMissionFilter; label: string }[] = [{ id: "all", label: "Tous les travaux" }, { id: "blocked", label: "Blocages et règles" }, { id: "exceptions", label: "Exceptions à expliquer" }, { id: "evidence", label: "Pièces attendues" }, { id: "review", label: "Revues" }, { id: "stale", label: "Travaux périmés" }];
-const UNCERTAINTY = ["ENGINE_BLOCKED", "LEDGER_ONLY", "PROFILE_UNCONFIRMED", "SOURCE_NOT_COVERED", "MISSING_INFORMATION"];
+const UNCERTAINTY = ["ENGINE_BLOCKED", "LEDGER_ONLY", "PROFILE_UNCONFIRMED", "SOURCE_NOT_COVERED", "MISSING_INFORMATION", "LIASSE_ABSENT"];
+const IMPACT_LABELS: Record<string, string> = { tax_computed: "Impôt calculé par le moteur", tax_estimated: "Impôt estimé (information manquante)", tax_not_computed: "Impôt non calculé", tax_reviewed: "Impôt revu" };
 /** Synthèse of the fiscal sheets: one line per tax and period, the selected period in detail, no fiscal or legal green light. */
 export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId = "", initialRootId = "", initialRunId = "", initialVersion }: { initialDossierId?: string; initialPeriodId?: string; initialRootId?: string; initialRunId?: string; initialVersion?: number }) {
   const [dossier, setDossier] = useState(initialDossierId), [period, setPeriod] = useState(initialPeriodId), [scope, setScope] = useState({ dossierId: initialDossierId, periodId: initialPeriodId });
@@ -27,8 +28,8 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
     } catch (e) { setError(e instanceof Error ? e.message : "Chargement impossible"); setView(null); } finally { setLoading(false); }
   }, [scope, selection]);
   useEffect(() => { void load(); }, [load]);
-  const m = view?.mission, p = m?.procedure, vat = p?.vat;
-  const approvedReady = p?.state === "locked" && !p.stale && !!vat;
+  const m = view?.mission, p = m?.procedure, vat = p?.vat, cit = p?.cit, result = vat ?? cit;
+  const approvedReady = p?.state === "locked" && !p.stale && !!result;
   async function download(kind: "diagnostic" | "approved", format: ExportFormat) {
     if (!m || exporting) return;
     setExporting(true); setError("");
@@ -59,13 +60,13 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
         <span>Programme <strong>{m.program.id} @ {m.program.version}</strong></span><span><strong>{m.counters.executed}/{m.counters.planned}</strong> période(s) exécutée(s)</span><span><strong>{m.counters.reviewed}/{m.counters.planned}</strong> revue(s) courante(s)</span>
         <span><strong>{m.counters.stale}</strong> périmée(s)</span><button type="button" onClick={() => void load()} disabled={loading}>Actualiser</button></div>
       <div className={styles.scopeNote}>{m.program.outOfScope.map(o => <span key={o}>Hors programme : {o}</span>)}</div>
-      <section className={styles.card} aria-labelledby="fx-synth-periods"><header><h2 id="fx-synth-periods">Impôts et périodes</h2><span className={styles.muted}>IS : sous-lot suivant de la mission</span></header>
-        {m.periods.length ? <div className={styles.tableScroll + " " + fx.free} role="region" aria-label="Périodes — défilement clavier" tabIndex={0}><table><caption>Une ligne par période déclarative TVA : état, résultat, revue et péremption</caption><thead><tr><th scope="col">Période</th><th scope="col">État</th><th scope="col">Résultat</th><th scope="col">Preuve / couverture</th><th scope="col">Exceptions · incertitudes · règles bloquées</th><th scope="col">Revue</th></tr></thead>
+      <section className={styles.card} aria-labelledby="fx-synth-periods"><header><h2 id="fx-synth-periods">Impôts et périodes</h2><span className={styles.muted}>TVA par période déclarative, IS de l’exercice</span></header>
+        {m.periods.length ? <div className={styles.tableScroll + " " + fx.free} role="region" aria-label="Périodes — défilement clavier" tabIndex={0}><table><caption>Une ligne par période déclarative TVA et par exercice IS : état, résultat, revue et péremption</caption><thead><tr><th scope="col">Période</th><th scope="col">État</th><th scope="col">Résultat</th><th scope="col">Preuve / couverture</th><th scope="col">Exceptions · incertitudes · règles bloquées</th><th scope="col">Revue</th></tr></thead>
           <tbody>{m.periods.map(x => <tr key={x.rootId} className={x.rootId === m.assignment.rootId ? fx.selectedRow : undefined}>
             <th scope="row"><button type="button" className={fx.linkButton} aria-current={x.rootId === m.assignment.rootId} onClick={() => setSelection({ rootId: x.rootId })}>{x.label}</button><br/><span className={styles.muted}>{dateFr(x.period.startDate)} → {dateFr(x.period.endDate)}</span></th>
             <td>{STATE_LABELS[x.state] ?? x.state}{x.stale && <><br/><span className={fx.chip} data-tone="danger">Périmée</span></>}</td><td>{x.resultLabel}</td>
-            <td>{x.engine ? TIER_LABELS[x.engine.tier] + " · " + (COVERAGE_LABELS[x.engine.coverage ?? ""] ?? "—") : "Non exécutée"}</td><td>{x.exceptions} · {x.uncertainties} · {x.blockedRules}</td><td>{x.reviewLabel}</td></tr>)}</tbody></table></div>
-          : <p className={styles.muted}>Aucune feuille TVA : créez une période dans la feuille fiscale.</p>}
+            <td>{x.engine ? (TIER_LABELS[x.engine.detail] ?? IMPACT_LABELS[x.engine.detail] ?? x.engine.detail) + " · " + (x.tax === "cit" ? (x.engine.coverage === "covered" ? "barème publié" : "barème non publié") : COVERAGE_LABELS[x.engine.coverage ?? ""] ?? "—") : "Non exécutée"}</td><td>{x.exceptions} · {x.uncertainties} · {x.blockedRules}</td><td>{x.reviewLabel}</td></tr>)}</tbody></table></div>
+          : <p className={styles.muted}>Aucune feuille fiscale : créez une période TVA ou la feuille IS dans la feuille fiscale.</p>}
       </section>
       {p.stale && <p role="status" className={styles.notice} data-tone="danger">Travail périmé — {p.staleReasons.join(" ")}</p>}
       <div className={styles.filters} role="group" aria-label="Filtres métier">{FILTERS.map(f => <button key={f.id} type="button" aria-pressed={filter === f.id} onClick={() => setFilter(f.id)}>{f.label}</button>)}</div>
@@ -83,12 +84,19 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
             {vat && vat.blockedRules.length > 0 && <><h3>Règles bloquées</h3><ul className={fx.rules}>{vat.blockedRules.map(r => <li key={r.code} data-category={r.category}><h3>{r.label} <span className={fx.chip} data-tone="warn">{CATEGORY_LABELS[r.category]}</span></h3><p>{r.requiredSource}</p></li>)}</ul></>}
             <p className={styles.notice} data-tone="info">{p.legal.meaning}</p>
             <h3>Avant / après revue</h3><div className={styles.sideBySide}><section><strong>Version soumise {p.beforeReview?.version ?? "—"}</strong><p>{p.beforeReview?.conclusion || "Aucune soumission conservée."}</p></section><section><strong>Après revue · version {p.afterReview?.version ?? "—"}</strong><p>{p.review?.note ?? "Aucune décision de revue."}</p></section></div>
-            <details><summary>Historique des versions, profil et explications</summary><ul className={styles.list}>{m.versionIndex.map(v => <li key={v.id + ":" + v.version}>r{v.revision} v{v.version} · {v.state} · {v.actorId}{v.profile ? " · profil " + v.profile.vatRegime + " (" + v.profile.status + ")" : ""}{v.approval ? " · " + v.approval.actorId + " : " + v.approval.note : ""}<code>{v.contentHash}</code></li>)}</ul></details>
+            <details><summary>Historique des versions, profil et explications</summary><ul className={styles.list}>{m.versionIndex.map(v => <li key={v.id + ":" + v.version}>r{v.revision} v{v.version} · {v.state} · {v.actorId}{v.profile ? " · profil " + v.profile.regime + " (" + v.profile.status + ")" : ""}{v.approval ? " · " + v.approval.actorId + " : " + v.approval.note : ""}<code>{v.contentHash}</code></li>)}</ul></details>
           </section>
-          {vat && <section className={styles.card} aria-labelledby="fx-synth-exceptions"><h2 id="fx-synth-exceptions">Exceptions et incertitudes conservées après revue</h2><ul className={styles.list}>{vat.exceptions.filter(e => filter === "all" || (filter === "exceptions" && !UNCERTAINTY.includes(e.code)) || (filter === "evidence" && UNCERTAINTY.includes(e.code)) || filter === "blocked").map(e => { const q = m.queue.find(x => x.id === e.id);
+          {cit && <section className={styles.card} aria-labelledby="fx-synth-cit"><h2 id="fx-synth-cit">IS — cadrage, pont et calcul</h2>
+            <div className={styles.tableScroll + " " + fx.free} role="region" aria-label="IS — défilement clavier" tabIndex={0}><table><caption>Résultat comptable, pont documenté et impôt du moteur (euros)</caption><thead><tr><th scope="col">Grandeur</th><th scope="col">Montant</th></tr></thead>
+              <tbody><tr><th scope="row">Résultat FEC après impôt / déclaré ({cit.framing.declaredBox ?? "—"})</th><td className={styles.money}>{cents(cit.framing.resultAfterTaxCents)} / {cents(cit.framing.declaredResultCents)}</td></tr>
+                <tr><th scope="row">Résidu du pont documenté (base {cit.bridge.basis === "after_tax" ? "après" : "avant"} impôt)</th><td className={styles.money}>{cents(cit.bridge.residualCents, { signed: true })}</td></tr>
+                <tr><th scope="row">IS brut du moteur</th><td className={styles.money}>{cit.computation ? cents(cit.computation.grossTaxCents) : "Non calculé — moteur bloqué"}</td></tr>
+                {cit.comparisons.map(c => <tr key={c.key}><th scope="row">{c.label}</th><td className={styles.money}>{cents(c.differenceCents, { signed: true })}</td></tr>)}</tbody></table></div>
+            {cit.blockedRules.length > 0 && <ul className={fx.rules}>{cit.blockedRules.map(r => <li key={r.code} data-category={r.category}><h3>{r.label} <span className={fx.chip} data-tone="warn">{CATEGORY_LABELS[r.category]}</span></h3><p>{r.requiredSource}</p></li>)}</ul>}</section>}
+          {result && <section className={styles.card} aria-labelledby="fx-synth-exceptions"><h2 id="fx-synth-exceptions">Exceptions et incertitudes conservées après revue</h2><ul className={styles.list}>{result.exceptions.filter((e: { code: string }) => filter === "all" || (filter === "exceptions" && !UNCERTAINTY.includes(e.code)) || (filter === "evidence" && UNCERTAINTY.includes(e.code)) || filter === "blocked").map(e => { const q = m.queue.find(x => x.id === e.id);
             return <li key={e.id}><div className={styles.kv}><strong>{e.label}</strong><span className={styles.money}>{e.amount.kind === "known" ? cents(e.amount.value.amount.replace(".", ""), { signed: true }) : e.amount.reason}</span></div><p>{e.message}</p>
             {q && p.version && <a href={q.href}>Ouvrir la feuille sur cet élément (v{p.version})</a>}</li>; })}
-            {!vat.exceptions.length && <li>Aucune exception : cela ne vaut ni conformité fiscale ni liquidation.</li>}</ul></section>}
+            {!result.exceptions.length && <li>Aucune exception : cela ne vaut ni conformité fiscale ni liquidation.</li>}</ul></section>}
         </div>
         <aside className={styles.detail} aria-label="File de travail et pièces">
           <h2>File de travail</h2><p className={styles.muted}>Priorité aux travaux périmés et aux règles bloquées.</p>

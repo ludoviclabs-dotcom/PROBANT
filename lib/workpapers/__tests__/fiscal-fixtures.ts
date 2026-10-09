@@ -35,6 +35,11 @@ export const FEC_LINES: Line[] = [
   ["BQ", "BQ2001", "20260520", "512000", "Banque", "", "0,00", "50,00"], ["BQ", "BQ2001", "20260520", "627000", "Frais bancaires", "", "50,00", "0,00"],
   ["VE", "VE3001", "20260703", "411000", "Client Zeta", "F-3001", "240,00", "0,00"], ["VE", "VE3001", "20260703", "706000", "Prestations", "F-3001", "0,00", "200,00"], ["VE", "VE3001", "20260703", "445710", "TVA collectée", "F-3001", "0,00", "40,00"],
   ["VE", "VE3002", "20260915", "411000", "Client Eta", "F-3002", "360,00", "0,00"], ["VE", "VE3002", "20260915", "706000", "Prestations", "F-3002", "0,00", "300,00"], ["VE", "VE3002", "20260915", "445710", "TVA collectée", "F-3002", "0,00", "60,00"],
+  // IS recipe (exercise 2026): annual service contract, salaries, a non-deductible penalty and the recorded corporate income tax.
+  ["VE", "VE9001", "20261130", "411000", "Client Theta", "F-9001", "120000,00", "0,00"], ["VE", "VE9001", "20261130", "706000", "Contrat annuel", "F-9001", "0,00", "100000,00"], ["VE", "VE9001", "20261130", "445710", "TVA collectée", "F-9001", "0,00", "20000,00"],
+  ["OD", "OD9001", "20261231", "641000", "Salaires", "PAIE-12", "30000,00", "0,00"], ["OD", "OD9001", "20261231", "421000", "Personnel", "PAIE-12", "0,00", "30000,00"],
+  ["OD", "OD9002", "20261215", "671200", "Pénalité de retard", "AMENDE-1", "1000,00", "0,00"], ["OD", "OD9002", "20261215", "512000", "Banque", "AMENDE-1", "0,00", "1000,00"],
+  ["OD", "OD9003", "20261231", "695000", "Impôt sur les bénéfices", "IS-2026", "17950,00", "0,00"], ["OD", "OD9003", "20261231", "444000", "État — impôt sur les bénéfices", "IS-2026", "0,00", "17950,00"],
 ];
 export const fecText = (lines: Line[] = FEC_LINES) => [FEC_HEADER.join(";"), ...lines.map(line)].join("\n") + "\n";
 
@@ -64,3 +69,26 @@ export function fxMapping(type: FiscalTabularType): FiscalMapping {
   if (type === "fx_vat_payments") return { ...base, columns: { key: "reference", amount: "montant", date: "date" }, fiscal: { basis: "payments", periodStartColumn: "debut", periodEndColumn: "fin", labelColumn: "libelle" } };
   return { ...base, columns: { key: "ref", amount: "montant", date: "date" }, fiscal: { basis: "support", labelColumn: "libelle" } };
 }
+
+/**
+ * IS recipe, exercise 2026 (régime réel normal, 2058-A). Hand computation:
+ * produits 500 + 1 000 − 100 + 500 + 200 + 300 + 100 000 = 102 400 ; charges 400 + 150 + 50 + 30 000 + 1 000 = 31 600 ;
+ * résultat avant impôt 70 800 ; IS comptabilisé (695) 17 950 ; résultat après impôt 52 850 = WA.
+ * WR = 17 950 (IS) + 1 000 (pénalité) = 18 950 ; XI = XN = 71 800. Profil confirmé, capital partiellement libéré : taux réduit non applicable,
+ * 71 800 × 25 % = 17 950 = charge comptabilisée = dette 444.
+ */
+export const LIASSE_2058A = { WA: "52850,00", WR: "18950,00", XH: "0,00", XI: "71800,00", XL: "0,00", XN: "71800,00" };
+export const DECL_2065 = { "C.RESULTAT_FISCAL_BENEFICE": "71800,00", "C.RESULTAT_TAUX_NORMAL": "71800,00", "C.RESULTAT_TAUX_REDUIT": "0,00" };
+export function citText(boxes: Record<string, string>, options: { documentType?: string; formNumber?: string; vintage?: number; start?: string; end?: string } = {}) {
+  const start = options.start ?? fxPeriod.startDate, end = options.end ?? fxPeriod.closingDate;
+  const meta = [options.documentType ?? "liasse_2050_2059", options.formNumber ?? "2058-A-SD", String(options.vintage ?? 2026), FX_SIREN, start, end, end.slice(0, 4)];
+  return [DECL_HEADER, ...Object.entries(boxes).map(([code, value]) => [...meta, code, value, "1", code].join(";"))].join("\n") + "\n";
+}
+/** Exercise 2024: no rate schedule and no form vintage are published for it; the computation must stay blocked. */
+export const fx2024Period = { startDate: "2024-01-01", closingDate: "2024-12-31", asOfDate: "2025-03-31", currency: "EUR", validation: "provisional" } as const satisfies AccountingPeriod;
+export const fx2024Scope: WorkpaperScope = { organizationId: "org-fx-synthetic", dossierId: "77777777-7777-4777-8777-777777777777", periodId: periodId(fx2024Period), mode: "real" };
+export const FEC_2024: Line[] = [
+  ["VE", "V24001", "20240630", "411000", "Client", "F24-1", "60000,00", "0,00"], ["VE", "V24001", "20240630", "706000", "Prestations", "F24-1", "0,00", "50000,00"], ["VE", "V24001", "20240630", "445710", "TVA", "F24-1", "0,00", "10000,00"],
+  ["OD", "O24001", "20241231", "695000", "Impôt sur les bénéfices", "IS-2024", "12500,00", "0,00"], ["OD", "O24001", "20241231", "444000", "État — IS", "IS-2024", "0,00", "12500,00"],
+];
+export const LIASSE_2024 = { WA: "37500,00", WR: "12500,00", XH: "0,00", XI: "50000,00", XL: "0,00", XN: "50000,00" };

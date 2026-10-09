@@ -40,7 +40,7 @@ export const CONTROL_LABELS: Record<string, string> = {
 };
 export const SIGNAL_LABELS: Record<string, string> = { missing_piece_reference: "Pièce non référencée ou absente", missing_piece_date: "Date de pièce absente", duplicate_piece_candidate: "Pièce en double (candidat)", period_shift_candidate: "Décalage de période (candidat)",
   reverse_charge_candidate: "Autoliquidation (candidat)", unusual_rate_candidate: "Taux inhabituel (candidat)", rate_not_derivable: "Taux non dérivable", base_not_linked: "Base HT non rattachée" };
-export const SOURCE_LABELS: Record<string, string> = { fx_fec: "FEC / grand livre", fx_vat_return: "Déclaration CA3 / CA12", fx_invoices: "Inventaire des factures", fx_vat_payments: "Paiements au Trésor", fx_support: "Pièces justificatives" };
+export const SOURCE_LABELS: Record<string, string> = { fx_fec: "FEC / grand livre", fx_vat_return: "Déclaration CA3 / CA12", fx_cit_return: "Liasse IS et 2065", fx_invoices: "Inventaire des factures", fx_vat_payments: "Paiements au Trésor", fx_support: "Pièces justificatives" };
 
 const MESSAGES: Record<string, string> = {
   FX_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette jetable.", FX_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
@@ -54,7 +54,10 @@ const MESSAGES: Record<string, string> = {
   FX_CITATION_REQUIRED: "Une décision humaine doit citer une pièce et sa version.", FX_CITATION_SOURCE_REQUIRED: "La pièce citée doit appartenir aux sources figées de cette version.", FX_CITATION_ROW_INVALID: "La ligne citée n’existe pas dans cette version de la pièce.",
   FX_SOURCE_REPLACED_REVISION_REQUIRED: "Une source dont dépend cette période a été remplacée ou ajoutée. Rechargez puis créez une nouvelle révision.", FX_SOURCE_HEAD_CONFLICT: "Une autre version a été approuvée entre-temps. Rechargez avant d’approuver.",
   FX_FEC_ENCODING_UTF8_REQUIRED: "Le FEC doit être encodé en UTF-8.", FX_FEC_LINE_LIMIT: "FEC limité à 20 000 lignes pour cette recette.", FX_FILE_FORMAT_UNSUPPORTED: "Format de fichier non accepté pour ce type de pièce.",
-  FX_DECLARATION_UNREADABLE: "Déclaration illisible : utilisez le gabarit PROBANT (JSON, CSV ou XLSX).", FX_DECLARATION_TYPE_NOT_ENABLED: "Seules les déclarations de TVA sont acceptées dans ce sous-lot.",
+  FX_DECLARATION_UNREADABLE: "Déclaration illisible : utilisez le gabarit PROBANT (JSON, CSV ou XLSX).", FX_DECLARATION_TYPE_MISMATCH: "Le formulaire choisi ne correspond pas au type de pièce (TVA ou IS).",
+  FX_CIT_DOUBLE_TAX_ADJUSTMENT: "Double ajustement d’IS refusé : un seul retraitement d’IS comptabilisé, en réintégration, et aucun sur une base avant impôt.", FX_CIT_CORRECTION_SOURCE_REQUIRED: "Une correction proposée doit citer une source du registre.",
+  FX_CIT_SOURCE_NOT_COVERED: "La source citée ne couvre pas tout l’exercice dans le registre (version absente ou à vérifier) : la correction ne peut pas entrer dans le calcul.", FX_CIT_SOURCE_UNKNOWN: "Source inconnue du registre ou sans rapport avec l’IS.",
+  FX_NO_RESULT_ENTRY_IN_EXERCISE: "Aucune écriture de résultat (classes 6 et 7) datée dans l’exercice : rien à cadrer.", FX_CIT_PERIOD_IS_THE_EXERCISE: "La feuille IS couvre l’exercice entier.",
   FX_COLUMN_REQUIRED: "Une colonne obligatoire du mapping n’est pas renseignée.", FX_KEY_INVALID_OR_DUPLICATE: "Identifiant absent ou en double.", FX_PAYMENT_PERIOD_INVALID: "Période du paiement illisible : début et fin requis.", FX_PAYMENT_SIGN_INVALID: "Le montant d’un paiement doit être positif.",
   FX_IMPORT_FIELDS_INVALID: "Requête d’import refusée : champs inattendus.", FX_FILE_LIMIT: "Le fichier dépasse la limite de 3 Mio de cette recette.", FX_STATE_LIMIT: "La feuille dépasse les bornes de cette recette.",
   UNRESOLVED_BLOCKING_NOTE: "Documentez le traitement des points bloquants avant l’approbation.", SELF_APPROVAL_FORBIDDEN: "Une autre identité autorisée doit approuver cette version.",

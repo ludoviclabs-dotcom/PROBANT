@@ -30,10 +30,10 @@ export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString(),
-    private readonly realAdapter?: "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation") {}
+    private readonly realAdapter?: "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo" && !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -266,7 +266,7 @@ export class WorkpaperService {
     });
   }
   async lock(scope: WorkpaperScope, id: string, version: number) {
-    if (scope.mode !== "real" || !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
+    if (scope.mode !== "real" || !["investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
     const actor = await this.actor(scope, "review");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       assertTransition(run, "locked", actor);
