@@ -72,6 +72,56 @@ Une feuille dépend du FEC, des inventaires, de sa déclaration et de celle de l
 - Idempotence, contrôle de concurrence par version (CAS), budget de sources vérifié avant stockage.
 - Parcours ouvert seulement avec le drapeau `PROBANT_FISCAL_DURABLE=disposable`, et refusé si `VERCEL_ENV=production`.
 
-## Sous-lot 2 — IS
+## Sous-lot 2 — IS (livré)
 
-Voir la section IS de ce contrat lorsqu'elle est livrée. Le dispatch `fiscal-review.ts` et le champ `fiscalWork` sont déjà conçus pour l'ajouter sans toucher aux fichiers partagés.
+### Données et identité
+
+- **Une feuille par exercice** (`is.computation`). L'exercice identifie la feuille ; une période déclarative est refusée (`FX_CIT_PERIOD_IS_THE_EXERCISE`).
+- **Sources.**
+  - FEC de l'exercice (`fx_fec`) ;
+  - liasse et 2065 (`fx_cit_return`), lues par le processeur fiscal existant, une tête par formulaire et par exercice : `fx_cit_return:<formulaire>:<début>:<fin>` ;
+  - pièces justificatives (`fx_support`).
+
+  Une déclaration de TVA ne périme jamais la feuille IS ; une liasse corrigée la périme. Une liasse déposée comme déclaration de TVA est refusée (`FX_DECLARATION_TYPE_MISMATCH`).
+- **Population.** Les écritures du FEC portant une ligne de résultat (classes 6 et 7 du PCG, table interne `CIT_ACCOUNT_MAP` documentée), avec leur effet signé sur le résultat. Les écritures hors exercice sont exclues avec leur date.
+- **Profil confirmé par une pièce citée** : régime (réel normal 2058-A ou simplifié 2033-B), intégration fiscale, chiffre d'affaires, libération et détention du capital. Une donnée absente reste inconnue. Si l'éligibilité au taux réduit est inconnue, ce taux n'est pas appliqué et l'impôt est seulement estimé (`REDUCED_RATE_ELIGIBILITY_UNKNOWN`, issue non concluante).
+- **Millésime.** Il est égal à celui des formulaires figés (`FX_VINTAGE_MISMATCH` sinon). Un millésime ou un barème non publié bloque le moteur, sans aucun repli sur un millésime voisin.
+
+### Résultat (schéma `fiscal-cit-result-1`)
+
+- **Résultat comptable cadré.** Le résultat des classes 6 et 7 du FEC (après impôt), la charge d'IS 695, le résultat avant impôt et la dette 444 sont comparés au résultat déclaré (WA / WS, ou 312 / 314 en régime simplifié).
+- **Base avant ou après impôt et pont fiscal documenté.** Résultat de départ, plus les réintégrations documentées, moins les déductions documentées, donne le résultat documenté. Le résidu est le résultat fiscal avant déficits déclaré (XI / XJ, ou 352 / 354) moins le résultat documenté.
+  - Un seul retraitement d'IS comptabilisé est admis, en réintégration, et uniquement sur une base après impôt.
+  - Toute autre combinaison est refusée : **double ajustement d'IS** (`FX_CIT_DOUBLE_TAX_ADJUSTMENT`), au gel comme à la configuration.
+- **Retraitements documentés.** Chacun cite une pièce figée (ligne du FEC ou pièce justificative) et, le cas échéant, une source du registre (titre, URL, couverture, date de vérification). Le moteur reprend déjà les totaux déclarés (WR, XH) ; on distingue donc :
+  - un retraitement qui **documente** la déclaration : il n'est jamais ajouté une seconde fois au calcul ;
+  - une **correction proposée**, absente de la déclaration : elle entre dans le calcul comme ajustement confirmé. Elle exige une source du registre couvrant tout l'exercice (`FX_CIT_CORRECTION_SOURCE_REQUIRED`, `FX_CIT_SOURCE_UNKNOWN`, `FX_CIT_SOURCE_NOT_COVERED`).
+- **Calcul du moteur** `computeCorporateTax` : étapes de la chaîne retenue, tranches du barème publié avec conditions et sources, IS brut. Le calcul est absent (et non nul) si le moteur est bloqué.
+- **Rapprochements du moteur** : résultat fiscal déclaré, bases 2065, charge 695 et dette 444 comptabilisées.
+- **Règles bloquées et source requise.** Exemple : exercice 2024, règle « Barème d’IS non publié pour l’exercice 2024 », dont la source requise précise que seuls les exercices 2026 sont publiés. La version applicable du CGI art. 219 n'est pas publiée pour cette période.
+
+### Issue
+
+Même règle que pour la TVA.
+- **Incertitudes** : moteur bloqué, profil non confirmé, liasse absente, source non couverte, information manquante.
+- **Exceptions** : résultat non cadré, résidu du pont, écart du moteur, correction proposée.
+
+Les incertitudes deviennent des notes `missing_evidence`, créées dans la même écriture que l'exécution.
+
+## Sources officielles
+
+**Aucune règle, aucun taux, aucun barème et aucune source n'a été ajouté ni modifié par cette mission.** Le registre (`data/tax/*`, vérifié le 16/08/2026) est seulement lu.
+
+Les ruptures qu'il contient restent des blocages explicites :
+- versions de CGI art. 269 et 289 arrêtées au 31/08/2026 (recodification) ;
+- CGI art. 271 effectif à compter du 21/02/2026 ;
+- version de CGI art. 39 « à vérifier » : citée, jamais couvrante ;
+- barème d'IS publié pour 2026 seulement ;
+- millésimes de formulaires 2026 seulement.
+
+Publier une version successeur exige de consulter la source officielle applicable et d'enregistrer, pour chaque version :
+- titre, organisme, URL et article ;
+- dates d'effet et date de consultation ;
+- limites d'application.
+
+C'est une décision humaine, hors de cette mission.

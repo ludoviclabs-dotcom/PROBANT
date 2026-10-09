@@ -1,3 +1,122 @@
+# Handoff — Mission 13 : parcours fiscal harmonisé avec les feuilles, TVA puis IS (2026-10-09)
+
+**Base.** `origin/main` `a82ed3cdbfb371eeef180baf5efc29098e186c51` (PR #65 fusionnée). Branche locale `claude/fiscal-tva-is-mission13`, dans le worktree `probant-analysis-setup-41121f`. Trois commits locaux, dans l'ordre séquentiel exigé :
+
+| Commit | Contenu |
+|---|---|
+| `704ba15` | Sous-lot TVA |
+| `6de103b` | Sous-lot IS |
+| commit suivant | Documentation, recette, captures et ce handoff |
+
+**Aucun push, aucune PR distante, aucune fusion, aucun déploiement, aucune configuration distante, aucune activation réelle.** Aucun travail d'un autre chantier n'a été écrasé.
+
+## Changements métier
+
+Les moteurs existants sont réutilisés tels quels : `reconcileVat` (TAX-06), `computeCorporateTax` (TAX-05), le processeur CA3 / CA12 / liasses et le registre fiscal. Il n'y a ni calcul parallèle dans React ni substitution du millésime le plus proche.
+
+Les seules retouches de moteur et de processeur préservent le comportement : les empreintes des 21 cas golden TVA sont inchangées et les 56 tests d'ingestion passent.
+- L'extraction pure `buildTaxDocumentSnapshot` permet de lire une pièce figée sans base de données.
+- La table `VAT_CONTROL_SOURCE_REQUIREMENTS` est désormais exportée.
+
+**TVA** (une feuille par entité, régime et période déclarative) :
+- **sources** : FEC / grand livre, déclaration versionnée par période, factures, paiements, pièces ;
+- **comparaisons** : comptabilisé, déclaré, écart ; un écart sans objet est signalé « Sans objet » ;
+- **pont explicatif** : crédit reporté cité par sa case ;
+- **paiements et continuité du crédit** ;
+- **taux constatés**, avec leur origine, jamais présentés comme taux légaux ;
+- **règles bloquées**, avec la source requise.
+
+**IS** (une feuille par exercice) :
+- résultat comptable cadré FEC ↔ WA ;
+- base avant ou après impôt ;
+- pont fiscal documenté, avec résidu sur XI ;
+- retraitements cités (pièce et source du registre) ;
+- correction proposée acceptée seulement si sa source couvre l'exercice ;
+- double ajustement d'IS refusé ;
+- profil confirmé par une pièce ;
+- millésime égal à celui des formulaires ; IS 2024 maintenu bloqué.
+
+**Invariants** :
+- Un résultat inconnu reste inconnu, jamais zéro : moteur bloqué, déclaration absente ou non lue, liasse absente.
+- Les autres taxes du registre (CFE, CVAE, C3S, taxe sur les salaires) restent des capacités séparées et ne sont jamais annoncées comme couvertes.
+
+**Invalidation.** La période identifie la feuille.
+- Les événements suivants rendent la feuille TVA périmée : déclaration remplacée, déclaration précédente corrigée ou ajoutée, nouvelle facture, paiement, pièce ou FEC.
+- La déclaration d'une autre période ne la périme pas.
+- Une CA3 ne périme pas l'IS ; une liasse corrigée le périme.
+
+Contrat : `docs/mission13/CONTRAT.md`. Recette, cas de référence calculés à la main et matrice : `docs/mission13/RECETTE.md`.
+
+## Routes et interactions visibles
+
+- **`/fiscal`** : onglets TVA / IS, puis navigation par période (trimestres, exercice). Filtres : tout, bloqué, exceptions, pièces, revue, périmé.
+  - Les lignes de déclaration ouvrent les écritures, puis la pièce, dans un panneau latéral ; Échap rend le focus.
+  - Préparation : profil cité, explications, retraitements. Ensuite : exécution, traitements cités, conclusion, revue par une autre identité, verrouillage, révision.
+  - État dans l'URL : `tax`, `period`, `item` (`L:`, `E:`, `R:`, `B:`, `A:`), `noteId`.
+- **`/fiscal/synthese`** : une ligne par impôt et par période, péremption, file de travail, versions remplacées, autres taxes non couvertes. Exports diagnostic et approuvé.
+- **API** : `/api/workpapers/fiscal`, `/imports`, `/export`. Prévisualisation puis approbation des imports ; idempotence ; contrôle de concurrence par version.
+  - L'API est fermée sauf avec `PROBANT_FISCAL_DURABLE=disposable`, et refusée si `VERCEL_ENV=production`.
+- **Liens** : depuis `/dashboard/synthese`, le résumé synthétique et le cockpit `/dashboard/fiscalite`.
+- **Stockage** : migration additive `0013_fiscal_workpapers` (tables `fx_*`, append-only par trigger, down refusé si des données existent).
+
+## Tests exécutés (local, 2026-10-09)
+
+| Niveau | Résultat |
+|---|---|
+| Suite unitaire complète | 1 362 réussis, 39 ignorés (PostgreSQL) |
+| Tests fiscaux TVA | `fiscal-vat` 13, `fiscal-vat-golden` 9 (cas de la gate rejoués par le chemin fichiers) |
+| Tests fiscaux IS | `fiscal-cit` 18, dont 10 cas golden rejoués |
+| Tests runtime | `fiscal-runtime` 11, `fiscal-runtime-cit` 5 |
+| Typecheck / build | OK / OK |
+| Lint | 0 erreur, 7 avertissements préexistants |
+| `db:check` | 16 migrations, 17 tables, invariants valides |
+| Chromium (build de production) | 86 réussis, 1 ignoré ; `fiscal.spec.ts` 5/5 (4 TVA, 1 IS), axe sans violation sérieuse ni critique |
+
+**Validation indépendante des montants.**
+- **TVA T2 2026** : collectée 230, déductible 110, nette 120 ; CA3 20 ; crédit reporté 100 ; résidu 0.
+- **IS 2026** : avant impôt 70 800 ; WA 52 850 ; XI 71 800 ; 71 800 × 25 % = 17 950 = charge 695 = dette 444.
+
+Ces montants ont été calculés à la main, puis comparés aux feuilles. Les cas golden de la gate de release passent par deux chemins indépendants et donnent des résultats identiques.
+
+## Captures
+
+`docs/probant-lots/mission13-captures/` contient 14 JPEG réels, produits par Chromium sur le build de production, à 1440, 1024 et 390 px, plus une capture en réduction des animations. Le README liste le contenu de chaque capture.
+
+## Limites
+
+- **PostgreSQL jetable non exécuté localement.** `fiscal-durable.integration.test.ts` (scénarios TVA et IS) est ignoré sans base dédiée. Aucun échange OIDC réel n'a été vérifié.
+- **Activation réelle fermée** : drapeau désactivé et refusé en production. **Une suite verte sur fixtures synthétiques n'autorise aucune mission réelle.**
+- **Registre non modifié** (vérifié le 16/08/2026, aucune règle évoluée par ce lot, donc aucune nouvelle consultation des sources officielles). Restent bloqués :
+  - TVA à partir du 01/09/2026 (CGI art. 269 et 289 arrêtés au 31/08/2026) ;
+  - IS 2024 et 2025 (barème 2026 seulement) ;
+  - millésimes de formulaires autres que 2026.
+  
+  CGI art. 39 est cité avec une version « à vérifier » : non couvrant.
+- **Formats** : les déclarations sont déposées dans la feuille en CSV, JSON ou XLSX (gabarits du processeur fiscal). La lecture PDF du processeur n'est pas branchée sur la feuille. EUR uniquement.
+- **Périmètre** : aucune liquidation, aucun dépôt, aucune conformité déclarée ; la feuille constate des écarts sur le périmètre testé.
+- **Maturité** : démontrable sur données synthétiques, avec une chaîne de revue complète en mémoire. **Produit non déclaré prêt globalement.**
+
+## Proposition de PR (non créée)
+
+**Titre** : `feat(fiscal): Mission 13 — feuilles TVA par période et IS par exercice raccordées aux moteurs`. Base `main` (`a82ed3c`), 3 commits ; diff `a82ed3c..HEAD` : 61 fichiers de code, +5 212 / −467, plus la documentation et les captures.
+
+Points à relire en priorité :
+- hunks additifs des fichiers partagés `lib/workpapers/{model,service,selection,imports}.ts` ;
+- extraction `lib/ingestion/tax-document-snapshot.ts` ;
+- `lib/tax/vat/coverage.ts` ;
+- migration `0013`.
+
+Avant fusion : CI complète, avec PostgreSQL jetable.
+
+## Dépendances du lot suivant
+
+1. Exécuter **complètement** `fiscal-durable.integration.test.ts` sur une base jetable `_test` / `_ci`, avec les migrations appliquées explicitement.
+2. Faire publier par un humain les versions successeurs du registre, après consultation des sources officielles, si la TVA après le 31/08/2026 ou l'IS 2025 doivent être couverts : CIBS, barème 2025, millésimes, version de CGI art. 39.
+3. Brancher la lecture PDF du processeur sur la feuille, si elle est requise.
+4. Vérifier OIDC et les droits dans le navigateur avant toute activation, sur autorisation distincte.
+
+---
+
 # Handoff — Capitaux propres, feuille parallèle `/capitaux-propres` (2026-10-09)
 
 **Base.** Branche `claude/capitaux-propres-cohabitation`, partie de `main` `5e49934` (Missions 08, 11 Codex `/equity` et 12 fusionnées). Elle reprend la Mission 11 développée par Claude (PR #63, devenue non fusionnable quand la PR #62 de Codex a été fusionnée). À la demande du propriétaire, elle **cohabite** avec `/equity` sans la modifier :

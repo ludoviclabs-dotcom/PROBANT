@@ -36,9 +36,48 @@ Les deux chemins donnent les mêmes montants (collectée, déductible, nette, d�
 | Revue distincte | Auto-revue refusée (403) ; approbation et verrouillage par une autre identité (runtime, E2E, intégration PostgreSQL) |
 | Autres taxes | Listées comme capacités séparées non couvertes (feuille, Synthèse, export) |
 
+## Cas de référence IS — exercice 2026, montants calculés à la main
+
+| Grandeur | Calcul indépendant | Feuille |
+|---|---|---|
+| Produits (classe 7) | 500 + 1 000 + 500 − 100 (avoir) + 200 + 300 + 100 000 = 102 400 | — |
+| Charges hors IS (classe 6) | 400 + 150 + 50 + 30 000 + 1 000 (pénalité) = 31 600 | — |
+| Résultat avant impôt | 102 400 − 31 600 = 70 800 | 70 800,00 |
+| IS comptabilisé (695) | 17 950 | 17 950,00 ; dette 444 = 17 950,00 |
+| Résultat après impôt | 70 800 − 17 950 = 52 850 | 52 850,00 = WA → cadré |
+| Pont après impôt | 52 850 + 17 950 (IS) + 1 000 (pénalité) = 71 800 | XI = 71 800 → résidu 0 |
+| Pont avant impôt | 70 800 + 1 000 = 71 800 ; ajout de l'IS refusé | résidu 0 ; `FX_CIT_DOUBLE_TAX_ADJUSTMENT` |
+| Impôt | capital partiellement libéré → taux réduit non éligible ; 71 800 × 25 % = 17 950 | IS brut 17 950 = charge = dette |
+| Correction proposée | don de 2 000 : (71 800 + 2 000) × 25 % = 73 800 × 25 % = 18 450 | 73 800 / 18 450, écarts signalés |
+
+**Validation par un chemin indépendant.** `fiscal-cit.test.ts` rejoue les 10 cas golden IS de la gate de release TAX-10 :
+- **chemin de la gate** : objets canoniques construits en mémoire ;
+- **chemin de la feuille** : liasse, 2058-B et 2065 écrites en fichiers puis lues par le processeur ; FEC pour la charge d'IS ; profil ; `evaluateCit`.
+
+Les deux chemins donnent le même statut, la même issue, le même statut d'impôt, le même IS brut, la même base, le même résultat avant déficits et la même ventilation par tranche.
+
+## Matrice de recette IS
+
+| Cas exigé | Preuve |
+|---|---|
+| Résultat comptable cadré | FEC (classes 6 et 7) = WA ; écart affiché sinon (unitaire, runtime, E2E) |
+| Base avant / après impôt | Les deux bases affichées ; pont recalculé selon la base choisie (unitaire, runtime, intégration PostgreSQL) |
+| Retraitements documentés | Pièce figée citée (ligne du FEC, pièce justificative) ; source du registre avec URL et couverture ; « source non couvrante » pour une version à vérifier (unitaire, E2E) |
+| Double ajustement d'IS refusé | Deuxième ajustement d'IS, ajustement d'IS en déduction ou sur base avant impôt : refus serveur (422) et alerte dans le formulaire (unitaire, runtime, E2E) |
+| Profil confirmé | Profil non cité : « brouillon », moteur bloqué si le régime est inconnu ; éligibilité au taux réduit inconnue : impôt estimé, issue non concluante (unitaire, runtime) |
+| Millésime couvert | Millésime 2024 conservé comme pièce, non lu ; substitution par 2026 refusée (unitaire) |
+| IS 2024 maintenu bloqué | Barème 2024 absent : moteur bloqué, calcul absent, règle « barème non publié » avec sources ; même avec un millésime 2026 et sans liasse (unitaire) |
+| Liasse absente | Résultat déclaré inconnu, jamais nul (unitaire) |
+| TVA et IS cohabitent | Une CA3 ne périme pas l'IS ; une liasse corrigée le périme ; une liasse déposée comme TVA est refusée (runtime) |
+| Revue distincte et verrouillage | Paquet IS approuvé exporté (runtime, intégration PostgreSQL) |
+
 ## Exécutions locales (2026-10-09)
 
-- Suite unitaire complète : 1 339 réussis, 38 ignorés. Les tests PostgreSQL sont ignorés sans base jetable locale ; ils ne sont **pas exécutés** localement.
-- Typecheck : OK. Lint : 7 avertissements préexistants, 0 erreur. `db:check` : 16 migrations, invariants valides. Build de production : OK.
-- Chromium (Playwright, build de production) : `fiscal.spec.ts` 4/4, avec cockpit, accessibilité et gate fiscale 22/22. Captures 1440 / 1024 / 390 px et réduction des animations inspectées ; axe sans violation sérieuse ni critique.
-- **Non exécuté localement** : `fiscal-durable.integration.test.ts` (PostgreSQL jetable de la CI).
+- **Suite unitaire complète** : 1 362 réussis, 39 ignorés. Les tests PostgreSQL sont ignorés sans base jetable locale ; ils ne sont **pas exécutés** localement.
+- **Contrôles statiques** :
+  - typecheck : OK ;
+  - lint : 7 avertissements préexistants, 0 erreur ;
+  - `db:check` : 16 migrations, invariants valides ;
+  - build de production : OK.
+- **Chromium** (Playwright, build de production) : 86 réussis, 1 ignoré (parcours persistant). `fiscal.spec.ts` passe 5/5, en TVA et en IS. Captures 1440 / 1024 / 390 px et réduction des animations inspectées ; axe sans violation sérieuse ni critique. Voir `docs/probant-lots/mission13-captures/`.
+- **Non exécuté localement** : `fiscal-durable.integration.test.ts` (TVA et IS, PostgreSQL jetable de la CI).
