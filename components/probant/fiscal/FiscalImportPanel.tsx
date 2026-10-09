@@ -17,7 +17,7 @@ const DEFAULTS: Record<FiscalTabularType, Columns> = {
 };
 const VISIBLE: Record<FiscalTabularType, Field[]> = { fx_invoices: ["key", "amount", "date", "direction", "base", "label", "sheet"], fx_vat_payments: ["key", "amount", "date", "periodStart", "periodEnd", "label", "sheet"], fx_support: ["key", "amount", "date", "label", "sheet"] };
 const REQUIRED: Record<FiscalTabularType, Field[]> = { fx_invoices: ["key", "amount", "date"], fx_vat_payments: ["key", "amount", "date", "periodStart", "periodEnd"], fx_support: ["key", "amount", "date", "label"] };
-const LABELS: Record<Field, string> = { key: "Colonne identifiant (pièce, référence)", amount: "Colonne montant", date: "Colonne date", periodStart: "Colonne début de période payée", periodEnd: "Colonne fin de période payée", direction: "Colonne sens (facultative)", base: "Colonne base HT (facultative)", label: "Colonne libellé", sheet: "Feuille XLSX (facultative)" };
+const LABELS: Record<Field, string> = { key: "Colonne identifiant (pièce, référence)", amount: "Colonne montant", date: "Colonne date", periodStart: "Colonne début de période payée", periodEnd: "Colonne fin de période payée", direction: "Colonne sens (facultative)", base: "Colonne base HT (facultative)", label: "Colonne libellé", sheet: "Feuille XLSX (obligatoire pour un classeur)" };
 const MEANING: Record<Kind, string> = {
   fx_fec: "FEC de l’exercice (texte UTF-8, séparateur tabulation, barre verticale ou point-virgule). Lu par le parseur FEC historique ; toute ligne illisible ou écriture déséquilibrée bloque l’import : aucun montant n’est réputé nul.",
   fx_vat_return: "CA3 ou CA12 au gabarit PROBANT (JSON, CSV ou XLSX : formulaire, millésime, période, cases). Lue par le processeur fiscal existant ; une déclaration corrigée pour la même période remplace la précédente, qui reste conservée.",
@@ -80,7 +80,7 @@ export function FiscalImportPanel({ view, period, periodId, busy, canPrepare, do
         <label>SIREN attendu (facultatif)<input value={declaration.expectedSiren} inputMode="numeric" pattern="\d{9}" disabled={busy} onChange={e => setDeclaration(d => ({ ...d, expectedSiren: e.target.value.trim() }))}/></label>
       </div>}
       {type !== "fx_fec" && type !== "fx_vat_return" && type !== "fx_cit_return" && <>
-        <div className={styles.fields}>{VISIBLE[type].map(k => <label key={k}>{LABELS[k]}<input value={columns[k]} disabled={busy} required={REQUIRED[type].includes(k)} onChange={e => setColumns(c => ({ ...c, [k]: e.target.value }))}/></label>)}</div>
+        <div className={styles.fields}>{VISIBLE[type].map(k => <label key={k}>{LABELS[k]}<input value={columns[k]} disabled={busy} required={REQUIRED[type].includes(k) || (k === "sheet" && !!file?.name.toLowerCase().endsWith(".xlsx"))} onChange={e => setColumns(c => ({ ...c, [k]: e.target.value }))}/></label>)}</div>
         <div className={styles.fields}>
           <label>Séparateur<select value={format.delimiter} onChange={e => setFormat(f => ({ ...f, delimiter: e.target.value as ";" | "," | "\t" }))}><option value=";">Point-virgule</option><option value=",">Virgule</option><option value={"\t"}>Tabulation</option></select></label>
           <label>Décimales<select value={format.decimal} onChange={e => setFormat(f => ({ ...f, decimal: e.target.value as "," | "." }))}><option value=",">Virgule</option><option value=".">Point</option></select></label>

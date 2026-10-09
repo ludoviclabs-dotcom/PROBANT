@@ -191,7 +191,9 @@ export async function previewDeclaration(file: File, scope: WorkpaperScope, peri
   else {
     const s = built.snapshot, known = !!getTaxFormVintage(s.formNumber, s.formVintage);
     logicalId = declarationHeadKey(type, s.formNumber, built.period.startDate, built.period.endDate);
-    if (built.period.startDate < period.startDate || built.period.endDate > period.closingDate) blocking.push("FX_DECLARATION_PERIOD_OUTSIDE_EXERCISE");
+    // A VAT return ending the day before the exercise is the previous declarative period of its first sheet (carried credit).
+    const priorVat = type === "fx_vat_return" && built.period.endDate === dayBefore(period.startDate);
+    if (!priorVat && (built.period.startDate < period.startDate || built.period.endDate > period.closingDate)) blocking.push("FX_DECLARATION_PERIOD_OUTSIDE_EXERCISE");
     if (!known) warnings.push(`FX_FORM_VINTAGE_NOT_PUBLISHED:${s.formNumber} ${s.formVintage} — pièce conservée, non lue par le moteur`);
     else if (built.requiresReview) blocking.push("FX_DECLARATION_FIELDS_REQUIRE_CORRECTION:" + built.warnings.join(","));
   }
@@ -301,13 +303,19 @@ export function fiscalRelevance(run: { fiscalWork?: { tax: "vat" | "cit"; period
   if (!w) return () => false;
   // IS: the FEC, the supporting pieces and every return form of the exercise (2058-A, 2058-B, 2033-B, 2065).
   if (w.tax === "cit") return (key: string) => ["fx_fec", "fx_support"].includes(key) || (key.startsWith("fx_cit_return:") && key.endsWith(`:${w.period.startDate}:${w.period.endDate}`));
-  const keys = vatRelevantKeys(w.period.startDate, w.period.endDate, previousVatKey(heads, w.period.startDate));
+  const keys = vatRelevantKeys(w.period.startDate, w.period.endDate, previousVatKey(heads, w.period.startDate, w.period.endDate));
   return (key: string) => keys.includes(key);
 }
-/** Previous declarative period of the same length immediately before `start`, if a return exists for it. */
-export function previousVatKey(heads: { document_type: string }[], start: string) {
-  const before = new Date(Date.parse(start + "T00:00:00Z") - 86_400_000).toISOString().slice(0, 10);
-  const key = heads.map(h => h.document_type).find(k => k.startsWith("fx_vat_return:") && k.endsWith(":" + before));
+const dayBefore = (date: string) => new Date(Date.parse(date + "T00:00:00Z") - 86_400_000).toISOString().slice(0, 10);
+const months = (start: string, end: string) => (Number(end.slice(0, 4)) - Number(start.slice(0, 4))) * 12 + Number(end.slice(5, 7)) - Number(start.slice(5, 7)) + 1;
+/** Previous declarative period of the same length (same frequency) immediately before `start`, if a return exists for it. */
+export function previousVatKey(heads: { document_type: string }[], start: string, end: string) {
+  const before = dayBefore(start), length = months(start, end);
+  const key = heads.map(h => h.document_type).find(k => {
+    if (!k.startsWith("fx_vat_return:") || !k.endsWith(":" + before)) return false;
+    const [, s, e] = k.split(":");
+    return months(s, e) === length;
+  });
   if (!key) return null;
   const [, s, e] = key.split(":");
   return { start: s, end: e };

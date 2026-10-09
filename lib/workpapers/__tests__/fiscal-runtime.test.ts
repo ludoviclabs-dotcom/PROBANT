@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { fiscalFailureStatus, requireDisposableFiscal } from "../fiscal-http";
 import type { VatResult } from "../fiscal-vat";
 import type { WorkpaperRun } from "../model";
-import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, CA3_T3, fxScope, T1, T2, T3 } from "./fiscal-fixtures";
+import { previousVatKey } from "../fiscal-sources";
+import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, CA3_T3, fxPeriod, fxScope, T1, T2, T3 } from "./fiscal-fixtures";
 import { createFiscalHarness, FX_DOSSIER, FX_OTHER_DOSSIER, type FiscalHarness } from "./fiscal-harness";
 
 let h: FiscalHarness;
@@ -67,6 +68,21 @@ describe("FX-1301 chaîne serveur TVA : sources → période déclarative → po
 });
 
 describe("FX-1302 versions, périodes et péremption", () => {
+  it("première période de l’exercice : la déclaration qui précède l’exercice est acceptée comme période précédente, pas une période plus ancienne", async () => {
+    const q4 = { startDate: "2025-10-01", endDate: "2025-12-31" }, q3 = { startDate: "2025-07-01", endDate: "2025-09-30" };
+    const prior = await h.previewReturn(q4, CA3_T1);
+    expect(prior.body.batch.report.blocking).not.toContain("FX_DECLARATION_PERIOD_OUTSIDE_EXERCISE");
+    expect((await h.previewReturn(q3, CA3_T1)).body.batch.report.blocking).toContain("FX_DECLARATION_PERIOD_OUTSIDE_EXERCISE");
+    const accepted = await h.accept(prior);
+    const run = await h.ok({ command: "create", period: fxPeriod, tax: "vat", declarativePeriod: T1, frequency: "quarterly", formVintage: 2026 });
+    expect(await h.expected(run.id)).toContain(accepted.id);
+  });
+  it("période précédente : seule une déclaration de même fréquence est retenue", () => {
+    const heads = [{ document_type: "fx_vat_return:2026-01-01:2026-03-31" }, { document_type: "fx_vat_return:2026-03-01:2026-03-31" }];
+    expect(previousVatKey(heads, "2026-04-01", "2026-04-30")).toEqual({ start: "2026-03-01", end: "2026-03-31" });
+    expect(previousVatKey([...heads].reverse(), "2026-04-01", "2026-06-30")).toEqual({ start: "2026-01-01", end: "2026-03-31" });
+    expect(previousVatKey(heads.slice(0, 1), "2026-04-01", "2026-04-30")).toBeNull();
+  });
   it("déclaration remplacée : la feuille T2 devient périmée, la version remplacée reste visible ; une révision repart des sources courantes", async () => {
     const { sources, run: executed } = await h.executed();
     const corrected = await h.accept(await h.previewReturn(T2, CA3_T2_CORRECTED));

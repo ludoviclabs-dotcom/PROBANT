@@ -67,7 +67,7 @@ export function vatFacts(imports: ImportBatch[], work: VatWork, taxPeriod: { id:
   const fec = imports.find(b => b.document.documentType === "fx_fec");
   if (!fec) throw new Error("FX_FEC_REQUIRED");
   const ret = imports.find(b => b.document.logicalId === returnKey(work.period));
-  const prevKey = previousVatKey(imports.map(b => ({ document_type: b.document.logicalId })), work.period.startDate);
+  const prevKey = previousVatKey(imports.map(b => ({ document_type: b.document.logicalId })), work.period.startDate, work.period.endDate);
   const prev = prevKey ? imports.find(b => b.document.logicalId === `fx_vat_return:${prevKey.start}:${prevKey.end}`) ?? null : null;
   return { fec, current: ret ? declarationSnapshot(ret, taxPeriod, true) : null, previous: prev ? declarationSnapshot(prev, { id: "fxperiod:previous", version: "1" }, true) : null,
     invoices: imports.find(b => b.document.documentType === "fx_invoices") ?? null, payments: imports.find(b => b.document.documentType === "fx_vat_payments") ?? null };
