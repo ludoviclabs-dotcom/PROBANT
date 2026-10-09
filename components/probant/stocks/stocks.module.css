@@ -1,0 +1,63 @@
+/* Stocks (Mission 15) — grille de cases par référence / site / lot, pont inventaire → clôture. Jetons de base : cash.module.css. */
+.kindBar{display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 4px}
+.kindBar button{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:var(--pb-surface-2,#161d2b);font-size:12.5px;transition:background var(--motion,160ms),border-color var(--motion,160ms)}
+.kindBar button[aria-pressed=true]{background:var(--accent-bg,#1a2346);border-color:var(--accent,#6c8cff);color:#e3e9ff}
+.kindBar button strong{font-variant-numeric:tabular-nums}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:8px 0 14px}
+.toolbar label{min-width:150px}
+.toolbar input[type=search]{min-width:200px}
+.views{display:inline-flex;border:1px solid var(--pb-border-strong,#324563);border-radius:8px;overflow:hidden;margin-left:auto}
+.views button{border:0;border-radius:0;background:transparent;padding:7px 12px;font-size:12.5px}
+.views button[aria-pressed=true]{background:var(--accent-bg,#1a2346);color:#e3e9ff}
+.site{margin:0 0 18px}
+.siteHead{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:0 0 8px}
+.siteHead h3{margin:0;font-size:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(188px,1fr));gap:8px;margin:0;padding:0;list-style:none}
+.grid > li{min-width:0}
+.tile{width:100%;height:100%;min-width:0;display:grid;gap:6px;align-content:start;text-align:left;padding:10px 12px 10px 14px;border-radius:8px;border:1px solid var(--pb-border,#243044);background:var(--pb-surface-2,#161d2b);position:relative;
+  transition:transform var(--motion,160ms) ease-out,border-color var(--motion,160ms),background var(--motion,160ms);animation:tileIn 180ms ease-out both}
+.tile::before{content:"";position:absolute;left:0;top:8px;bottom:8px;width:3px;border-radius:0 3px 3px 0;background:var(--kind)}
+.tile:hover{transform:translateY(-1px);border-color:var(--pb-border-strong,#324563)}
+.tile[aria-pressed=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346)}
+.tile[data-kind=ok]{--kind:var(--ok,#3ccf7a)}
+.tile[data-kind=quantity]{--kind:var(--warn,#f0a63a)}
+.tile[data-kind=ownership]{--kind:#b99cff}
+.tile[data-kind=blocked]{--kind:var(--danger,#ff7b72)}
+.tile[data-kind=uncertain]{--kind:var(--muted,#8a99af);border-style:dashed}
+.tile[data-kind=apart]{--kind:#5d6b80;background:repeating-linear-gradient(135deg,var(--pb-surface-2,#161d2b) 0 8px,#141a26 8px 16px)}
+.tileTop{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tileTop strong{font-size:13px;overflow-wrap:anywhere}
+.tile small{color:var(--muted,#8a99af);font-size:11px;overflow-wrap:anywhere}
+.delta{font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap}
+.delta[data-sign=neg]{color:var(--warn,#f0a63a)}.delta[data-sign=pos]{color:#ffd27a}.delta[data-sign=zero]{color:var(--ok,#3ccf7a)}.delta[data-sign=none]{color:var(--muted,#8a99af);font-weight:500}
+.meter{display:grid;gap:3px}
+.meter span{display:block;height:5px;border-radius:3px;background:#5774b8;transform-origin:left;transition:transform var(--motion,160ms) ease-out;animation:grow 220ms ease-out both}
+.meter span[data-kind=system]{background:#9aa9c2}
+.badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--kind);border:1px solid currentColor;border-radius:999px;padding:1px 7px;justify-self:start;max-width:100%;min-width:0;background:transparent}
+.badge svg{width:11px;height:11px;flex:none}
+.legend{display:flex;flex-wrap:wrap;gap:8px 16px;font-size:11.5px;color:#b8c4d6;margin:6px 0 0;padding:0;list-style:none}
+.legend li{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;background:var(--kind)}
+.legend li[data-kind=ok]{--kind:var(--ok,#3ccf7a)}.legend li[data-kind=quantity]{--kind:var(--warn,#f0a63a)}.legend li[data-kind=ownership]{--kind:#b99cff}.legend li[data-kind=blocked]{--kind:var(--danger,#ff7b72)}.legend li[data-kind=uncertain]{--kind:var(--muted,#8a99af)}.legend li[data-kind=apart]{--kind:#5d6b80}
+.rowKind{box-shadow:inset 3px 0 0 var(--kind)}
+.rowKind[data-kind=ok]{--kind:var(--ok,#3ccf7a)}.rowKind[data-kind=quantity]{--kind:var(--warn,#f0a63a)}.rowKind[data-kind=ownership]{--kind:#b99cff}.rowKind[data-kind=blocked]{--kind:var(--danger,#ff7b72)}.rowKind[data-kind=uncertain]{--kind:var(--muted,#8a99af)}.rowKind[data-kind=apart]{--kind:#5d6b80}
+.stockTable{min-width:1080px}
+.stockTable td:nth-child(n+5):not(:last-child),.stockTable th:nth-child(n+5):not(:last-child){text-align:right}
+.stockTable tbody tr{transition:background var(--motion,160ms)}
+.stockTable tbody tr[aria-selected=true]{background:#18233a}
+.pieceList{display:grid;gap:6px;margin:6px 0;padding:0;list-style:none}
+.pieceList button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;text-align:left;padding:7px 9px;background:var(--pb-surface-2,#161d2b);font-size:12.5px}
+.pieceList button[aria-expanded=true]{border-color:var(--accent,#6c8cff);background:var(--accent-bg,#1a2346)}
+.pieceList small{color:var(--muted,#8a99af)}
+.outWindow{opacity:.6}
+/* In the side panel the bridge stacks label and value above a full-width track, so every bar stays visible. */
+.stepStack{grid-template-columns:minmax(0,1fr) auto!important;grid-template-areas:"label value" "track track";row-gap:4px!important}
+.stepStack > :nth-child(1){grid-area:label}.stepStack > :nth-child(2){grid-area:track}.stepStack > :nth-child(3){grid-area:value}
+.link{border:0;background:none;padding:0;color:#9cbcff;text-decoration:underline;text-underline-offset:3px;font:inherit;cursor:pointer}
+.convention{display:grid;gap:8px}
+.convention label.radio{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;color:#c9d4e4}
+.convention label.radio input{margin-top:3px}
+@keyframes tileIn{from{opacity:0;transform:translateY(4px) scale(.98)}to{opacity:1;transform:none}}
+@keyframes grow{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+@media (max-width:720px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}.views{margin-left:0}.toolbar label{min-width:0;flex:1 1 140px}.toolbar input[type=search]{min-width:0;width:100%}}
+@media (prefers-reduced-motion:reduce){.tile,.meter span,.kindBar button{animation:none!important;transition:none!important}.tile:hover{transform:none}}
