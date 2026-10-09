@@ -43,5 +43,8 @@
 .explanations{list-style:none;margin:0;padding:0;display:grid;gap:6px}
 .explanations li{display:flex;flex-wrap:wrap;gap:6px 12px;justify-content:space-between;align-items:center;border:1px solid var(--pb-border,#243044);border-radius:6px;padding:7px 10px;font-size:12.5px}
 .otherTaxes{font-size:12px;color:#c9d4e4;border:1px dashed var(--pb-border-strong,#324563);border-radius:6px;padding:8px 12px;margin-top:12px}
+/* Hashes and scope fields never widen the page: monospace widths differ between platforms. */
+.synth code{overflow-wrap:anywhere;word-break:break-all;white-space:normal}
+.synth form input{width:100%;min-width:0}
 @media (max-width:720px){.grid2{grid-template-columns:minmax(0,1fr)}.lineButton{grid-template-columns:auto minmax(0,1fr) auto}.lineButton > :nth-child(4){grid-column:2 / -1}.periodNav button{min-width:0;flex:1 1 140px}.entries{margin-left:8px}}
 @media (prefers-reduced-motion:reduce){.chevron,.expand{transition:none!important}}

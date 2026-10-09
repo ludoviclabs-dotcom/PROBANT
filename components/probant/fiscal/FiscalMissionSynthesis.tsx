@@ -45,7 +45,7 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
     } catch (e) { setError(e instanceof Error ? e.message : "Export impossible"); } finally { setExporting(false); }
   }
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
-  return <main className={styles.page}>
+  return <main className={styles.page + " " + fx.synth}>
     <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</a><a href="/tresorerie/synthese">Procédures de mission · Trésorerie</a><a href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres</a><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse fiscale</h1><p className={styles.muted}>Une ligne par impôt et par période déclarative. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucune liquidation, aucune conformité déclarée ; les autres impôts restent des capacités séparées.</p></div>
       <a href={m ? fiscalSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all", p?.period ? { tax: "vat", period: p.period } : {}) : "/fiscal"}>Ouvrir la feuille fiscale</a></header>
