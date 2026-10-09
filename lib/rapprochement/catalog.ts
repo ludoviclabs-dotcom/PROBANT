@@ -131,7 +131,7 @@ export const AUDIT_CYCLES: AuditCycle[] = [
   {
     id: "resultat-exceptionnel",
     nom: "Résultat exceptionnel",
-    description: "Détail des charges/produits exceptionnels ↔ grand-livre 67/77.",
+    description: "Repérage 67/77 et revue de classement par événement dans /resultat-exceptionnel. Le rapprochement ne qualifie pas les opérations.",
     famillesComptes: ["67", "77"],
     cloison: "resultat",
     config: CONFIG_RESULTAT_EXCEPTIONNEL,
@@ -385,7 +385,7 @@ export const DOCUMENT_TYPES: DocumentType[] = [
     role: "source",
     code: "detail_charges_produits_exceptionnels",
     libelle: "Détail des charges/produits exceptionnels",
-    description: "Détail des opérations exceptionnelles par pièce (67/77).",
+    description: "Détail des écritures candidates par pièce ; qualification documentée dans /resultat-exceptionnel.",
     formats: ["xlsx", "csv"],
     typeDocument: "autre",
     champsRequis: ["piece", "montant"],

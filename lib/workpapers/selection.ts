@@ -3,6 +3,7 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { ImportBatch } from "./imports";
 import { assertScope, frozen, type Population, type SelectionSet, type WorkpaperScope } from "./model";
 import { authorize, type Principal } from "./policy";
+import { exceptionalUnits } from './exceptional-dossier';
 import { registerUnits } from "./fixed-asset-sources";
 import { equityPopulationItems as capitauxPopulationItems, isEquityPopulation as isCapitauxPopulation } from "./capitaux-sources";
 import { citPopulationItems, isFiscalPopulation, vatPopulationItems } from "./fiscal-population";
@@ -16,6 +17,8 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   const accountUnit = unit === "account" && imports.filter(b => b.document.documentType === "cash_ledger").length === 1 && imports.every(b => b.mapping.version === "cash-reconciliation-1" && !!b.mapping.cash) && imports.find(b => b.document.documentType === "cash_ledger")?.mapping.cash?.basis === "ledger_closing";
   // One asset / component = the lines of the single register of the validated fixed-asset mapping.
   const assetUnit = unit === "asset" && imports.filter(b => b.document.documentType === "fa_register").length === 1 && imports.every(b => b.mapping.version === "fixed-assets-1" && !!b.mapping.fixedAssets) && imports.find(b => b.document.documentType === "fa_register")?.mapping.fixedAssets?.basis === "asset_register";
+  const exceptionalUnit=unit==='event';
+  if(exceptionalUnit && (imports.some(b=>b.mapping.version!=='exceptional-review-1') || imports.filter(b=>b.document.documentType==='exceptional_ledger').length!==1)) throw Error('EXCEPTIONAL_POPULATION_MAPPING_INVALID');
   const investmentUnit=unit==='security_distribution';
   if(investmentUnit && (imports.some(b=>b.mapping.version!=='investment-review-1') || imports.filter(b=>b.document.documentType==='investment_register').length!==1)) throw Error('INVESTMENT_POPULATION_MAPPING_INVALID');
   const equityUnit = unit === "equity_decision_movement";
@@ -28,11 +31,11 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   const fiscalUnit = (unit === "vat_entry" || unit === "result_entry") && isFiscalPopulation(imports);
   // Stock sheet (Mission 15): one reference / site / lot of the single count and system state of the stock mapping.
   const stockUnit = unit === "stock_unit" && isStockPopulation(imports);
-  if (!investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  if (!exceptionalUnit && !investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
   const populationImports = investmentUnit ? imports.filter(b=>["investment_register","investment_distributions"].includes(b.document.documentType)) : equityUnit ? imports.filter(b=>["equity_ledger","equity_decisions"].includes(b.document.documentType)) : payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
-  const items = unit === "stock_unit" ? stockPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
+  const items = exceptionalUnit ? exceptionalUnits(imports) : unit === "stock_unit" ? stockPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
     // The population measure is the gross closing value; an asset without one is refused rather than counted as zero.
     if (!u.grossClosing) throw new Error("FA_GROSS_CLOSING_REQUIRED");
     return { id: u.unitId, rowIds: u.rowIds, amount: u.grossClosing };
@@ -76,7 +79,7 @@ export function selectPopulation(population: Population, request: SelectionReque
     exclusions, requestedSize: request.requestedSize, validatedBy: principal.id, seed: request.seed,
     algorithm: request.method === "random" ? "sha256-rank-v1" : "explicit-ids-v1", selectedIds,
     selectedAmount: money(selectedIds.reduce((n, id) => n + cents(population.items.find((i) => i.id === id)!.amount), 0n)),
-    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : population.unit === "asset" ? "actifs ou composants" : population.unit === "decision_movement" ? "décisions et mouvements" : population.unit === "vat_entry" ? "écritures de TVA" : population.unit === "result_entry" ? "écritures de résultat" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
+    limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "event" ? "événements" : population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : population.unit === "asset" ? "actifs ou composants" : population.unit === "decision_movement" ? "décisions et mouvements" : population.unit === "vat_entry" ? "écritures de TVA" : population.unit === "result_entry" ? "écritures de résultat" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
   return frozen({ ...selection, id: `selection-${stableSha256(selection)}` });
 }
 export function validateSelectionSources(population: Population, selection: SelectionSet, imports: ImportBatch[]): void {
