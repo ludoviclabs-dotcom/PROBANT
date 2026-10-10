@@ -137,6 +137,10 @@ describe("PV-1602 ponts, comparaisons et sources", () => {
     expect(none.exceptions.find(x => x.code === "ANNEX_SOURCE_MISSING")!.message).toContain("2 événement(s) sans écriture");
     expect(ev(none, "EV-06").annex.status).toBe("not_provided");
   });
+  it("engagement donné publié en engagement reçu : rubrique incohérente avec le sens de l’engagement", async () => {
+    const r = run(await all({ pv_annex: annexCsv([["A03", "200,00", "2027-03-10", "EV-03", "engagement_recu", "publie", ""]]) }));
+    expect(r.exceptions.find(x => x.id === "ANNEX_RUBRIC_MISMATCH:EV-03:A03")).toBeDefined();
+  });
   it("informations des avocats non obtenues avec des litiges : incertitude citant NEP 501, sans issue déduite", async () => {
     const batches = await all();
     const r = run(batches, { lawyers: { status: "not_obtained", reason: "Demande adressée, réponses non reçues" } });
@@ -162,6 +166,8 @@ describe("PV-1603 qualification des sources (refus avec localisation)", () => {
     await refused("pv_register", registerCsv([REGISTER_ROWS[2].map((c, i) => i === 8 ? "5,00" : c)]), "PV_TREATMENT_PROVISION_INCONSISTENT");
     await refused("pv_register", registerCsv([REGISTER_ROWS[0].map((c, i) => i === 17 ? "peut-être" : c)]), "PV_CONFIDENTIAL_FLAG_INVALID");
     await refused("pv_register", registerCsv([REGISTER_ROWS[1].map((c, i) => i === 9 ? "3,00" : c)]), "PV_COMMITMENT_TREATMENT_INVALID");
+    // An impossible calendar date is refused at preview, never normalized to another day.
+    await refused("pv_register", registerCsv([REGISTER_ROWS[0].map((c, i) => i === 16 ? "2026-02-31" : c)]), "PV_DECISION_DATE_INVALID");
   });
   it("une valeur confidentielle n’est jamais renvoyée dans la localisation d’un refus", async () => {
     const e = await refused("pv_register", registerCsv([REGISTER_ROWS[0].map((c, i) => i === 10 ? "" : c)]), "PV_OBLIGATION_REQUIRED");
@@ -191,6 +197,8 @@ describe("PV-1604 masquage confidentiel du résultat (projection serveur)", () =
     expect(e.pieces.find(p => p.key === "LET-AVOCAT-01")!.label).toBeNull();
     expect(e.chronology.filter(c => c.kind === "estimation").every(c => c.label.includes("Masqué"))).toBe(true);
     expect(JSON.stringify(m)).not.toContain("Client Alpha");
+    expect(e.movements.every(x => x.justification === null)).toBe(true);
+    expect(JSON.stringify(m)).not.toContain("Complément au vu de la lettre");
     expect(JSON.stringify(m)).not.toContain("Issue défavorable");
     expect(JSON.stringify(m.exceptions)).not.toContain("80,00");
     expect(m.exceptions.find(x => x.id === "ESTIMATE_DIFFERENCE:EV-01")!.amount).toEqual({ kind: "unknown", reason: "Montant masqué — habilitation confidentielle requise" });

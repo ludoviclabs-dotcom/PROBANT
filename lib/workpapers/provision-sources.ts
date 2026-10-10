@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { cents } from "@/lib/canonical-model/money";
-import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import { isCivilDate, type AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { assertScope, type EvidenceLink, type SourceLocator, type SourceRow, type WorkpaperScope } from "./model";
 import type { ImportBatch, ImportMapping } from "./imports";
@@ -64,7 +64,8 @@ const YES: Record<string, boolean> = { oui: true, o: true, yes: true, true: true
 const cell = (row: SourceRow, column?: string) => column ? row.original[column]?.trim() ?? "" : "";
 const part = z.string().trim().min(1).max(120);
 const ACCOUNT = /^15\d{1,8}$/;
-const isDate = (v: string) => /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
+// The shared civil-date validator: an impossible date such as 2026-02-31 is refused at preview, never normalized.
+const isDate = (v: string) => isCivilDate(v);
 
 /** Row-level qualification of one previewed or approved batch; cross-source checks happen in buildProvisionFacts. */
 export function assertProvisionBatch(batch: ImportBatch, period: AccountingPeriod) {

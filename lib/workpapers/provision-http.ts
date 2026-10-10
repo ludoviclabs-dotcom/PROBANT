@@ -20,7 +20,7 @@ export function provisionFailureStatus(code: string) {
       || /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|MISMATCH|DUPLICATE|UNKNOWN|UNSUPPORTED|OUTSIDE|IMMUTABLE/.test(code) ? 422 : 503;
 }
 function failure(error: unknown) {
-  if (error instanceof ProvisionConflict) return Response.json({ error: error.message, expectedVersion: error.expectedVersion, current: error.current }, { status: 409, headers });
+  if (error instanceof ProvisionConflict) return Response.json({ error: error.message, expectedVersion: error.expectedVersion, current: { id: error.current.id, version: error.current.version, state: error.current.state } }, { status: 409, headers });
   if (error instanceof SyntaxError || error instanceof z.ZodError) return Response.json({ error: "PV_REQUEST_INVALID" }, { status: 400, headers });
   if (error instanceof ApiError) return Response.json({ error: error.code }, { status: error.status, headers });
   if (error instanceof ProvisionSourceError) return Response.json({ error: error.code, ...(error.locator ? { locator: error.locator } : {}) }, { status: 422, headers });

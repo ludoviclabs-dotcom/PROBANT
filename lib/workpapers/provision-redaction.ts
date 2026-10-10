@@ -66,7 +66,7 @@ export function redactProvisionResult(result: ProvisionResult): ProvisionResult 
       const chronology = e.chronology.map(c => c.kind === "estimation" && e.confidential ? { ...c, label: "Estimation — " + PV_MASKED }
         : c.kind === "piece" && [...confidentialPieces].some(k => c.label.includes(" " + k)) ? { ...c, label: c.label.replace(/ — .*$/, "") + " — libellé masqué" } : c);
       if (!e.confidential) return { ...e, pieces, chronology };
-      return { ...e, masked: true, obligation: null, counterparty: null, method: null, decision: null, estimates: [], retainedEstimateCents: null, estimateDifferenceCents: null, pieces, chronology,
+      return { ...e, masked: true, movements: e.movements.map(m => ({ ...m, justification: null })), obligation: null, counterparty: null, method: null, decision: null, estimates: [], retainedEstimateCents: null, estimateDifferenceCents: null, pieces, chronology,
         annex: { ...e.annex, lines: e.annex.lines.map(l => l.referenceKind === "estimate" ? { ...l, referenceCents: null, differenceCents: null } : l) } };
     }),
     exceptions: result.exceptions.map(x => x.sensitive ? { ...x, message: "Contenu relatif à un événement confidentiel — " + PV_MASKED + ".", amount: masked } : x),

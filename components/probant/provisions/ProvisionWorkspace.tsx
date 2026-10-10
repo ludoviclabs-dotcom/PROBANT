@@ -25,7 +25,7 @@ export function ProvisionWorkspace({ initialDossierId = "", requested }: { initi
   const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(emptyPeriod);
   const [view, setView] = useState<ProvisionView | null>(null), [activeId, setActiveId] = useState("");
   const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
-  const [conflict, setConflict] = useState<{ current: WorkpaperRun; expectedVersion: number } | null>(null);
+  const [conflict, setConflict] = useState<{ current: Pick<WorkpaperRun, "id" | "version">; expectedVersion: number } | null>(null);
   const [tab, setTab] = useState<ProvisionTab>(requested?.tab ?? "registre");
   const [selected, setSelected] = useState<string | null>(requested?.item ?? null);
   const [filters, setFilters] = useState<ProvisionFilters>(requested?.filters ?? emptyFilters);

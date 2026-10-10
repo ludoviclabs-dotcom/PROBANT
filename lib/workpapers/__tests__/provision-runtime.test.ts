@@ -125,8 +125,11 @@ describe("PV-1613 autorisations, idempotence et garde de recette", () => {
     const first = await h.command(body, "preparer", "cle-idempotence-pv"), again = await h.command(body, "preparer", "cle-idempotence-pv");
     expect(again.body.run.id).toBe(first.body.run.id);
     expect((await h.command({ ...body, period: { ...pvPeriod, asOfDate: "2027-04-30" } }, "preparer", "cle-idempotence-pv")).body.error).toBe("IDEMPOTENCY_KEY_REUSED");
-    const { run } = await createProvisionHarness().frozen().then(x => x);
-    expect(run.state).toBe("ready");
+    // A version conflict returns metadata only, never the stored (unmasked) run.
+    const fresh = createProvisionHarness(), { run } = await fresh.executed();
+    const stale = await fresh.command({ command: "conclude", id: run.id, expectedVersion: run.version - 1, text: "x" }, "preparer");
+    expect(stale.status).toBe(409);
+    expect(stale.body.current).toEqual({ id: run.id, version: run.version, state: "executed" });
   });
   it("garde de recette : fermée sans le drapeau, toujours fermée en production ; codes HTTP", () => {
     expect(() => requireDisposableProvisions({})).toThrow();
