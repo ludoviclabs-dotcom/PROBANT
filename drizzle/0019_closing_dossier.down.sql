@@ -1,0 +1,9 @@
+BEGIN;
+DO $$ BEGIN
+ IF EXISTS (SELECT 1 FROM cl_events) OR EXISTS (SELECT 1 FROM cl_pieces) THEN
+  RAISE EXCEPTION 'CLOSING_DATA_PREVENTS_DOWNGRADE';
+ END IF;
+END $$;
+DROP TABLE IF EXISTS cl_command_receipts, cl_pieces, cl_events;
+DROP FUNCTION IF EXISTS probant_cl_immutable();
+COMMIT;
