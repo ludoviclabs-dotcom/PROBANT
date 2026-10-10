@@ -1,8 +1,229 @@
+# Handoff — Mission 19 : dossier professionnel, contrôle interne et clôture (2026-10-10)
+
+**Base.** `origin/main` `b9daf1b` : Missions 15, 16, 17 et 18 fusionnées. C'est aussi le dernier déploiement Production rapporté par GitHub à Vercel (état « success », 10/10/2026 01:46 UTC). Ce SHA a été lu par l'API GitHub des déploiements, pas en visitant le site.
+
+**Branche locale.** `claude/dossier-mission19`, dans le worktree `probant-analysis-setup-41121f`. Elle n'est **pas poussée** et aucune PR distante n'est créée.
+
+**Contrat et recette.**
+- [docs/mission19/CONTRAT.md](../mission19/CONTRAT.md)
+- [docs/mission19/RECETTE.md](../mission19/RECETTE.md)
+
+## Changements métier
+
+**Objectif : empêcher de présenter un ensemble de cycles comme un audit complet.**
+
+**Programme de travail.**
+- Il relie risques, assertions (NEP 500 §09, en trois catégories), procédures, sources et pièces.
+- **Risque.** Il porte une évaluation humaine selon l'échelle du cabinet (méthode interne, sans valeur par défaut) ; un risque non évalué bloque la clôture.
+- **Procédure.** Elle ne couvre que des assertions de ses risques.
+- **Couple risque × assertion sans procédure applicable.** C'est un trou visible du programme, jamais un oubli silencieux.
+
+**Feuilles de cycle outillées.** Les Missions 05 à 17 sont **observées** en lecture seule dans les sept familles de tables (`clients_`, `cash_`, `fa_`, `eq_`, `fx_`, `st_`, `pv_`) :
+- état, version, révision, revue et assertions déclarées ;
+- population et sources ;
+- empreinte de contenu.
+
+Le dossier ne recalcule, ne revoit et ne verrouille aucune feuille. Une feuille réalisée hors programme est une incohérence à rattacher.
+
+**Travaux manuels traçables, sans moteur** : contrôles internes, confirmations, observation physique, estimations, événements postérieurs, autres procédures.
+- **Qui et quand** : identité et heure fixées par le serveur.
+- **Ce qui est enregistré** : date de réalisation déclarée ; sur quoi ; éléments examinés ; ce qui a été fait ; résultat.
+- **Avec quelle preuve** : pièce, version, page ou zone, nature et empreinte, résolues par le serveur.
+- **Travail sans pièce** : il reste visible dans la file des pièces manquantes et ne fonde aucune conclusion.
+
+**Contrôle interne.**
+- **Trois étapes distinctes** : description (conception), mise en œuvre (NEP 315 §34), test de fonctionnement (NEP 330).
+- **Fonctionnement.** Il n'est jamais déduit. Un test exige description et mise en œuvre documentées.
+- **Conclusion.** Elle précise sa portée : conception et mise en œuvre seulement (la limite « fonctionnement non testé » est alors affichée), ou fonctionnement.
+
+**ITGC.** Ils ont leur propre périmètre (systèmes, processus, période) et leur méthode. Aucun travail ni aucune conclusion avant ce périmètre : une checklist ne vaut pas couverture.
+
+**Déclarations de la direction.**
+- Une déclaration est une pièce parmi d'autres.
+- Elle ne fonde seule ni une conclusion, ni une correction, ni la résolution d'une contradiction.
+- C'est une méthode interne, fondée sur la lecture de la NEP 580 §04. La NEP ne contient pas cette phrase.
+
+**Revue et suivi.**
+- **Points de revue.** Ils sont levés par la revue, reçoivent une réponse du préparateur, puis sont clos par une autre personne que l'auteur de la réponse.
+- **Revue d'une procédure.** Ni l'auteur de la conclusion ni l'auteur d'un travail ne peut la revoir.
+- **Anomalies.**
+  - Une correction exige une **preuve nouvelle** : pièce déposée après l'anomalie, autre que celle qui l'a révélée.
+  - Une anomalie non corrigée reçoit une appréciation humaine.
+  - Un montant inconnu le reste, jamais zéro.
+  - Aucun seuil de signification n'est appliqué.
+- **Limites d'étendue.** Leur incidence est appréciée par le professionnel.
+- **Contradictions.** Elles opposent deux pièces différentes et se résolvent en citant une pièce corroborante.
+
+**Péremption.** Toute modification de la base d'une conclusion la rend périmée : procédure, risques, population, applicabilité, périmètre ITGC, travaux, ou nouvelle version d'une pièce citée.
+
+**Clôture.**
+- La vue liste les travaux restants et les contradictions par famille.
+- **La validation de clôture** :
+  - exige `dossier:sign` **et** une habilitation de clôture fournie par le serveur, **accordée à personne par défaut** ;
+  - est refusée tant qu'un élément reste ouvert ;
+  - fige le dossier ;
+  - devient périmée si une feuille de cycle change ;
+  - se lève par une réouverture motivée et tracée.
+- **Aucune opinion d'audit n'est générée.**
+
+**Journal.** Il est en ajout seul (`cl_events`, `cl_pieces` et `cl_command_receipts`, protégés par déclencheurs) et ses empreintes sont chaînées. C'est un contrôle d'intégrité local, ni une signature ni une preuve inviolable.
+
+**Recette** (valeurs calculées à la main, détail dans [RECETTE.md](../mission19/RECETTE.md)) :
+- **contrôle décrit mais non testé** (P-03) ;
+- **procédure non applicable motivée** (P-08) ;
+- **population absente** (P-04) ;
+- **anomalie corrigée avec nouvelle preuve** (A-01, 1 240,00 €) ;
+- **contradiction non résolue** (C-01 : lettre d'affirmation contre réponse de l'avocat) ;
+- **cycle verrouillé mais dossier incomplet** : la feuille Provisions est réellement verrouillée par sa propre chaîne, 1 / 1. Pourtant :
+  - 2 / 7 procédures revues ;
+  - 4 / 13 couples risque × assertion avec une procédure revue ;
+  - 19 travaux restants ;
+  - validation refusée même au signataire habilité.
+
+**Fichiers partagés modifiés.** Aucun moteur partagé de `lib/workpapers` n'est modifié. Les autres modifications sont des ajouts :
+- `drizzle/migration-manifest.json` (+ 0019) ;
+- `.env.example` (`PROBANT_CLOSING_DURABLE=`) ;
+- un lien dans `app/dashboard/synthese/page.tsx` et dans `components/probant/SyntheticSummary.tsx`.
+
+## Routes et interactions visibles
+
+- **`/dossier-cloture`**, relié depuis `/dashboard/synthese` et la synthèse synthétique, avant la liste des cycles.
+  - **Bandeau de vérité** : feuilles verrouillées, travaux restants, pièces manquantes, absence d'opinion.
+  - **Registre de 13 indicateurs.** Chacun est une fraction, avec son unité, ses exclusions et un segment par élément réel. Un segment cliquable ouvre la procédure ou l'onglet concerné.
+  - **Programme.**
+    - Carte de couverture risques × assertions : ✓ revue, ◐ en cours, ✕ aucune procédure, — non applicable. Sélectionner une case met en évidence les procédures qui la couvrent.
+    - Un couloir par risque : état, procédure, nature, assertions, responsable, travaux et pièces, dernière action (qui et quand).
+    - Filtres : nature, état, responsable, recherche.
+    - Éditeur du programme.
+  - **Fiche de traçabilité** (panneau latéral). Elle présente :
+    - le fil risques → population → périmètre ITGC → étapes et travaux → conclusion → revue ;
+    - le reste à faire et les limites ;
+    - les formulaires d'action selon les droits ;
+    - le refus du serveur, expliqué dans la fiche.
+
+    Échap rend le focus à l'élément d'origine.
+  - **Pièces.** File des pièces manquantes, de la plus ancienne à la plus récente ; clôture d'une demande (reçue ou annulée motivée) ; registre des pièces versionnées avec leur empreinte ; dépôt.
+  - **Anomalies et limites.** Totaux connus et inconnus, correction, appréciation, contradictions en vis-à-vis, incohérences détectées, limites d'étendue.
+  - **Revue.** Points de revue et procédures en attente de revue.
+  - **Clôture.** Travaux restants par famille, feuilles de cycle observées, validation ou réouverture (professionnel habilité).
+  - **Journal.** Filtré par procédure, avec empreintes.
+  - Le contexte (onglet, procédure, filtres) est conservé dans l'URL.
+- **`/api/workpapers/closing`** (GET lecture et téléchargement, POST commande) et **`/api/workpapers/closing/pieces`** (dépôt multipart).
+  - Fermés sans `PROBANT_CLOSING_DURABLE=disposable`, toujours refusés sur Vercel production.
+  - Concurrence optimiste sur la tête du journal (409 avec la position courante) et idempotence par clé.
+
+## Tests exécutés (local, 2026-10-10, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| Tests unitaires (`--pool=forks`) | 1 512 réussis, dont 16 nouveaux (`closing-runtime.test.ts`) |
+| Typecheck | OK |
+| Lint | 0 erreur (7 avertissements préexistants, hors de ce lot) |
+| `db:check` | 22 migrations valides |
+| Build de production | OK (`/dossier-cloture` : 27,4 kB) |
+| `e2e/closing.spec.ts` | 3/3, axe sans violation grave ou critique |
+| Suite Chromium complète | 99 réussis, 1 ignoré, 0 échec |
+
+**Non exécuté localement** : `closing-durable.integration.test.ts`, la recette PostgreSQL jetable. Ce poste n'a ni PostgreSQL ni Docker. Elle tournera en CI, dans le projet Vitest « durable ». Elle couvre :
+- la lecture réelle des sept familles de tables ;
+- les déclencheurs d'ajout seul ;
+- la concurrence sous verrou de ligne ;
+- la reprise après reconnexion.
+
+## Captures
+
+11 captures réelles dans [mission19-captures](mission19-captures/README.md) : 1440, 1024 et 390 px, réduction des animations, fiche de feuille verrouillée, pièces, anomalies, clôture refusée, refus du serveur, journal.
+
+L'inspection a fait corriger :
+- deux violations axe :
+  - `aria-label` sur un `span` ;
+  - `dd` portant un rôle `group` ;
+- un débordement de page à 390 px (textes réservés aux lecteurs d'écran, en position absolue, hors du conteneur défilant) ;
+- des en-têtes de la carte de couverture qui se chevauchaient ;
+- des colonnes non alignées entre couloirs ;
+- des travaux restants sans identifiant de procédure ;
+- un refus serveur affiché loin du formulaire.
+
+## Sources professionnelles consultées (10/10/2026)
+
+| Source | Nature | Repères |
+|---|---|---|
+| Code de commerce, art. L821-53 et L821-11 (Légifrance, depuis le 01/01/2024) | Obligation légale | Certification ; NEP homologuées par arrêté |
+| Arrêtés du 28/12/2023 (JORF 31/12/2023) et du 13/11/2024 (JORF 19/11/2024) | Obligation légale | Recodification ; NEP 315, 330 et 265 révisées. NEP 315 et 330 applicables aux exercices ouverts depuis le 19/11/2024. |
+| NEP 230, 315, 330, 450, 500, 501, 505, 560, 580, 265, 700 (H2A) | Normes professionnelles | Voir le tableau du contrat |
+
+**Fidélité de lecture.**
+- **Lus mot à mot :** NEP 230 §03-04 et §08-09, NEP 580 §01, §04 et §13, NEP 265 §01-02, intertitres de la NEP 700.
+- **Lus à travers une synthèse des pages H2A**, numéros à revérifier avant toute citation dans le produit : NEP 315, 330, 450, 500, 501, 505 et 560.
+
+**Méthodes internes.** Elles sont nommées comme telles dans le contrat :
+- déclaration seule ;
+- preuve nouvelle ;
+- revue par une autre personne ;
+- ITGC sans périmètre ;
+- péremption ;
+- blocage de la clôture.
+
+## Limites
+
+- **Habilitation de clôture.** Elle n'est branchée sur aucune source réelle (inscription, mandat, IdP) et n'est accordée à personne dans le serveur durable.
+- **Non modélisé :**
+  - périodicité des tests de contrôles ;
+  - communication des faiblesses ;
+  - dates d'arrêté et de signature ;
+  - seuil de signification ;
+  - lettre d'affirmation structurée.
+- **Paie.** Elle n'est pas observable (pas de feuille durable).
+- **Responsable.** C'est une affectation déclarée, pas une identité vérifiée.
+- **Plusieurs feuilles pour une même procédure.** La plus avancée est retenue ; les autres sont listées.
+- **Non vérifié :**
+  - la recette PostgreSQL, non exécutée localement ;
+  - le lien NEP 315 / ISA 315 (2019) ;
+  - les arrêtés de 2025-2026 (NEP 600, 911, 912, 9510), non lus.
+
+## Maturité
+
+Démontrable sur données synthétiques :
+- programme, travaux manuels, revue et clôture sur stockage mémoire de test ;
+- observation d'une vraie feuille Provisions verrouillée.
+
+**Le produit n'est pas déclaré globalement prêt.** Une validation de clôture enregistrée n'est pas une opinion d'audit. Une suite verte n'autorise aucune mission réelle.
+
+## SHA, base et diff
+
+| Élément | Valeur |
+|---|---|
+| Base | `origin/main` `b9daf1b` (= dernier déploiement Production rapporté) |
+| Branche | `claude/dossier-mission19`, local |
+| Diff hors captures | 36 fichiers, +3 523 / −2 (handoff compris) |
+| Captures | 11 JPEG et un README |
+
+## Proposition de PR (non créée)
+
+- **Titre** : `feat(dossier): Mission 19 — programme de travail, contrôle interne et clôture, sans opinion générée`
+- **Cible** : `main`, depuis `claude/dossier-mission19`.
+- **À relire en priorité** :
+  - `lib/workpapers/closing-decide.ts` : règles et séparation des tâches ;
+  - `lib/workpapers/closing-evaluate.ts` : états, indicateurs, blocages ;
+  - `lib/workpapers/closing-store.ts` : lecture des sept familles par liste fermée ;
+  - la migration `0019_closing_dossier`.
+
+## Dépendances du lot suivant (Mission 20)
+
+- Recette PostgreSQL en CI (`closing-durable.integration.test.ts`).
+- Source réelle de l'habilitation de clôture (inscription, mandat, IdP, audit d'accès), avant toute activation, sur autorisation distincte.
+- Feuille durable pour la paie, pour l'observer.
+- Recette indépendante du parcours complet (Prompt 20).
+
+---
+
 # Handoff — Mission 16 : Provisions et engagements (2026-10-10)
 
 **Base.** `origin/main` `cbd354b` (Missions 15, 17 et 18 fusionnées).
 
 **Branche locale.** `claude/provisions-mission16`, dans le worktree `probant-analysis-setup-41121f`. Deux commits (code puis statistiques du handoff), **non poussés**, et aucune PR distante n’est créée.
+
+**Mise à jour (10/10/2026).** Poussée sur autorisation explicite, corrigée après revue (`9ac58f9`), puis fusionnée dans `main` par la PR #71 (`b9daf1b`).
 
 **Contrat et recette.**
 - [docs/mission16/CONTRAT.md](../mission16/CONTRAT.md)

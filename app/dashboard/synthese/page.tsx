@@ -480,6 +480,7 @@ export default function SynthesePage() {
         </div>
       </header>
 
+      <p className="my-4 text-sm"><a className="underline font-semibold" href="/dossier-cloture">Ouvrir le dossier professionnel — programme de travail, contrôle interne et clôture</a> · les feuilles de cycle ci-dessous ne forment pas un audit complet : travaux restants, pièces manquantes et contradictions ; aucune opinion générée.</p>
       <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
       <p className="my-4 text-sm"><a className="underline" href="/resultat-exceptionnel">Résultat exceptionnel · revue par événement</a> · <a className="underline" href="/participations">Participations · droits, distributions et valeur</a> · <a className="underline" href="/equity/synthesis">Capitaux propres · décisions et mouvements</a></p>
 <p className="my-4 text-sm"><a className="underline" href="/payables/synthesis">Synthèse Achats et fournisseurs</a> · <a className="underline" href="/cutoff">Cut-off transversal ventes / achats</a></p>
