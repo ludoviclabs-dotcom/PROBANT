@@ -1,3 +1,174 @@
+# Handoff — Mission 16 : Provisions et engagements (2026-10-10)
+
+**Base.** `origin/main` `cbd354b` (Missions 15, 17 et 18 fusionnées).
+
+**Branche locale.** `claude/provisions-mission16`, dans le worktree `probant-analysis-setup-41121f`. Deux commits (code puis statistiques du handoff), **non poussés**, et aucune PR distante n’est créée.
+
+**Contrat et recette.**
+- [docs/mission16/CONTRAT.md](../mission16/CONTRAT.md)
+- [docs/mission16/RECETTE.md](../mission16/RECETTE.md)
+
+## Changements métier
+
+**Registre unique des risques et engagements.**
+- **Population** : événements ouverts à l'ouverture, nouveaux et clos pendant l'exercice, avec ou sans écriture. Un événement né après la clôture ou clos avant l'ouverture est exclu avec son motif.
+- **Unité de test** : l'événement (`pv_event`).
+- **Sources** (6, tabulaires, mapping `provisions-1`) :
+  - registre et grand livre 15, requis ;
+  - mouvements, estimations et scénarios, annexe, pièces citables.
+
+**Calculs, uniquement des ponts et comparaisons documentés.**
+- Pont par événement : ouverture + dotations − utilisations − reprises = clôture calculée, comparée à la clôture déclarée.
+- Estimation retenue − provision : différence **à examiner**, au montant connu.
+- Événement / annexe : présence, montant et rubrique.
+- Cadrage par compte 15 à l'ouverture, à la clôture, et pont du grand livre.
+- Tableau des provisions par catégorie (art. 832-13).
+
+**Ce que l'outil ne fait pas.**
+- Aucune formule probabilité × montant.
+- Aucune qualification d'obligation ni issue juridique déduite.
+- Un inconnu reste inconnu : sans journal, sans estimation, sans annexe ou sans solde du grand livre, la valeur est inconnue, jamais zéro.
+
+**Recette** (calculée à la main) :
+- **EV-01** : estimation documentée 80 contre provision 50, soit **+30,00 € à examiner**.
+- **EV-02** : reprise sans justificatif (10,00 €, incertitude).
+- **EV-03** : engagement hors grand livre (200, sans écriture, annexe concordante).
+- **EV-04** : risque clôturé (40 − 35 − 5 = 0).
+- **EV-05** : estimation absente, non concluant.
+- **EV-06** : passif éventuel absent de l'annexe.
+- **EV-07** : hors population.
+- **Totaux** : 95 + 35 − 40 − 15 = 75, égal au grand livre. Issue « exceptions détectées » (2 différences, 2 incertitudes).
+
+**Jugement humain cité.**
+- Préparation : déclaration sur les informations des avocats (NEP 501 §§ 07-08), pièce citée ou motif.
+- Chaque point devient une note bloquante, traitée en citant une pièce figée et sa version.
+- Revue par une autre identité sur l'empreinte soumise, puis verrouillage.
+
+**Confidentialité.**
+- Le registre et les pièces marquent la confidentialité. L'accès au contenu confidentiel est une capacité serveur distincte, jamais déduite d'un rôle général. **Par défaut, personne ne la détient** dans le serveur durable.
+- Sans elle, le serveur **retire de la réponse** :
+  - l'obligation, la contrepartie, la méthode et la décision ;
+  - les scénarios, l'estimation et la différence ;
+  - les libellés de pièces confidentielles ;
+  - les lignes confidentielles des sources, y compris la copie conservée en entrée du calcul ;
+  - les notes sensibles.
+- Le téléchargement des originaux confidentiels est refusé (403).
+- Les montants comptabilisés et publiés restent visibles. Les runs stockés et les empreintes ne changent pas.
+
+**Fichiers partagés modifiés (ajouts seulement).**
+
+| Fichier | Ajout |
+|---|---|
+| `lib/workpapers/model.ts` | `provisionWork`, unité `pv_event`, empreinte et validation |
+| `lib/workpapers/service.ts` | adaptateur `provisions.register`, `configureProvisions`, preuves du résultat, révision |
+| `lib/workpapers/selection.ts` | population `pv_event` |
+| `lib/workpapers/imports.ts` | mapping `provisions` et types admis |
+
+## Routes et interactions visibles
+
+- **`/provisions`**, relié depuis `/dashboard/synthese` et la synthèse synthétique.
+  - **Onglet Registre.** Il réunit :
+    - le bandeau « Pont de provision » animé : chaque case de mouvement met en évidence les événements qui y contribuent ;
+    - le registre en cases sur trois couloirs (ouverts, nouveaux, clos, plus le hors population), avec filtres par nature, type, état et recherche, et bascule Cases / Tableau ;
+    - la liste « Engagements et passifs sans écriture ».
+  - **Fiche latérale.** Elle présente :
+    - l'obligation et la décision ;
+    - le pont de l'événement ;
+    - l'échelle estimation / écriture (scénarios, provision, crochet de différence) ;
+    - l'annexe, les mouvements, la chronologie et les pièces.
+
+    Échap rend le focus à la case.
+  - **Autres onglets** : Pont et cadrage, Exceptions (traitement cité), Pièces (6 sources, versions conservées), Revue.
+  - Le contexte (case, filtres, mise en évidence, vue, onglet) est conservé dans l'URL.
+- **`/api/workpapers/provisions` et `/imports`** : fermés sans `PROBANT_PROVISIONS_DURABLE=disposable`, toujours refusés sur Vercel production.
+
+## Tests exécutés (local, 2026-10-10, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| Unitaires (`--pool=forks`) | 1 495 réussis, dont 30 nouveaux (20 moteur, 10 runtime) |
+| Typecheck | OK |
+| Lint | 0 erreur (7 avertissements préexistants hors périmètre) |
+| `db:check` | 21 migrations valides |
+| Build de production | OK |
+| `e2e/provisions.spec.ts` | 4/4, axe sans violation grave ou critique |
+| Suite Chromium complète | 95 réussis, 1 ignoré, 1 échec |
+
+L'échec est `accessibility › depot`, un délai `networkidle` sur une page non modifiée. Relancé seul, il passe 8/8.
+
+**Non exécuté localement** : `provision-durable.integration.test.ts` (PostgreSQL jetable). Il tournera en CI, dans le projet Vitest « durable ».
+
+## Captures
+
+10 captures réelles dans [mission16-captures](mission16-captures/README.md) : 1440, 1024 et 390 px, réduction des animations, lecture masquée, cadrage, exceptions, version verrouillée.
+
+L'inspection a fait corriger quatre défauts :
+- une fiche défilante non focalisable (axe) ;
+- un cadenas non dimensionné ;
+- un sélecteur de pièce chevauchant le bouton ;
+- un montant de reprise affiché signé.
+
+## Sources professionnelles consultées (10/10/2026)
+
+| Source | Nature | Repères |
+|---|---|---|
+| Code de commerce, art. L123-20 (Légifrance, version du 01/01/2016) | Obligation légale | Prudence et passifs |
+| PCG, règlement ANC 2014-03, version au 1er janvier 2026 (PDF officiel lu) | Obligation légale | Art. 321-1, 321-5, 321-6, 322-1, 322-2, 322-4, 322-5, 322-8, 323-2, 323-10, 323-12, 832-13, 832-14, 836-1, comptes 151 et 152 |
+| NEP 540 (arrêté du 13/11/2024, JO du 19/11/2024 ; lue dans la reproduction CNCC) | Norme professionnelle | Estimations comptables |
+| NEP 501 §§ 07-08 (H2A, arrêté du 27/11/2024) | Norme professionnelle | Informations des avocats |
+
+Le reste relève de la méthode interne ou de paramètres utilisateur. Le détail, avec URL et limites, figure dans le contrat.
+
+## Limites
+
+- **Ce qui reste humain.** L'exhaustivité du registre n'est pas établie par l'outil : le cadrage avec le grand livre et l'annexe la signale seulement là où une différence apparaît. La significativité (832-14) et la faible probabilité (832-13) restent du jugement humain.
+- **Ce qui n'est pas couvert.**
+  - reclassement entre comptes ;
+  - mouvement sans événement (refusé) ;
+  - provisions pour retraite (324-1) ;
+  - actualisation ;
+  - remboursements attendus (323-8) ;
+  - événements postérieurs à la clôture (hors population).
+- **Confidentialité.**
+  - Le serveur durable n'accorde la capacité confidentielle à personne. Le branchement sur une habilitation dédiée (IdP, groupe ou dossier) reste à valider.
+  - Une note libre non rattachée à un événement n'est pas masquée.
+  - Les reçus d'idempotence conservent la réponse complète côté serveur.
+- **Non livré** : synthèse ni export Provisions.
+- **Non vérifié** : recette PostgreSQL non exécutée localement ; texte du JO de la NEP 540 de 2024 non lu directement.
+
+## Maturité
+
+Démontrable sur données synthétiques, avec une chaîne de revue complète sur stockage mémoire de test. **Le produit n'est pas déclaré globalement prêt.** Une suite verte n'autorise aucune mission réelle.
+
+## SHA, base et diff
+
+| Élément | Valeur |
+|---|---|
+| Base | `origin/main` `cbd354b` |
+| Branche | `claude/provisions-mission16`, deux commits locaux |
+| Diff hors captures | 42 fichiers (handoff compris), +3 397 / −13 |
+| Captures | 10 JPEG |
+
+## Proposition de PR (non créée)
+
+- **Titre** : `feat(provisions): Mission 16 — registre des risques et engagements relié au grand livre et à l'annexe, masquage confidentiel serveur`
+- **Cible** : `main`, depuis `claude/provisions-mission16`.
+- **À relire en priorité** :
+  - les ajouts dans `lib/workpapers/{model,service,selection,imports}.ts` ;
+  - la migration `0018_provision_workpapers` ;
+  - `provision-review.ts` (calculs) ;
+  - `provision-redaction.ts` et `provision-runtime.ts` (masquage, téléchargements).
+
+## Dépendances du lot suivant
+
+- Recette PostgreSQL en CI (`provision-durable.integration.test.ts`).
+- Habilitation confidentielle dédiée (source, portée par dossier, audit d'accès) avant toute activation, sur autorisation distincte.
+- Synthèse et export Provisions.
+- Événements postérieurs à la clôture.
+- Provisions pour retraite et actualisation, après vérification des sources.
+
+---
+
 # Handoff — Mission 15 : Stocks et inventaires, sous-lots 1 « quantités et mouvements », 2 « coûts et cadrage » et 3 « revue de valeur » (2026-10-09)
 
 **Base.** `origin/main` `dc793e017e4661159e04f48cfa7b4187f24797ed` (PR #66, Mission 13, fusionnée).
