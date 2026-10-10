@@ -10,7 +10,7 @@ const submit = (send: Send, build: (f: FormData) => Record<string, unknown>) => 
 /** Misstatements (corrected with new evidence or not), scope limitations, declared contradictions and factual inconsistencies. None is judged by the tool. */
 export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpen, download }: { view: ClosingView; canPrepare: boolean; canReview: boolean; send: Send; busy: boolean;
   onOpen: (id: string, origin: HTMLElement) => void; download?: (id: string) => string }) {
-  const e = view.evaluation, m = e.misstatements, { misstatements, limitations, contradictions } = e.items;
+  const e = view.evaluation, m = e.misstatements, { misstatements, limitations, contradictions, staleCorrections, staleResolutions } = e.items;
   const procOptions = e.procedures.map(p => <option key={p.procedureId} value={p.procedureId}>{p.procedureId} · {p.label}</option>);
   return <div>
     <section aria-labelledby="cl-misstatements">
@@ -27,11 +27,11 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
           <td><strong>{x.misstatementId}</strong> · {x.description}<br/><span className={cl.who}>Relevée par {x.by} le {stampFr(x.at)}</span></td>
           <td>{CL_CYCLE_LABELS[x.cycle]}{x.procedureId ? <><br/><button type="button" className={cl.link} onClick={ev => onOpen(x.procedureId!, ev.currentTarget)}>{x.procedureId}</button></> : null}</td>
           <td className={cl.num}>{x.amount.kind === "known" ? euros(x.amount.value.amount) : <span>Inconnu<br/><span className={cl.small}>{x.amount.reason}</span></span>}</td>
-          <td>{x.correction ? <span className={cl.pill} data-tone="ok">Corrigée</span> : x.assessment ? <span className={cl.pill} data-tone="open">Non corrigée — appréciée</span> : <span className={cl.pill} data-tone="danger">Non corrigée — à apprécier</span>}</td>
+          <td>{staleCorrections.includes(x.misstatementId) ? <span className={cl.pill} data-tone="danger">Correction à réexaminer — pièce remplacée</span> : x.correction ? <span className={cl.pill} data-tone="ok">Corrigée</span> : x.assessment ? <span className={cl.pill} data-tone="open">Non corrigée — appréciée</span> : <span className={cl.pill} data-tone="danger">Non corrigée — à apprécier</span>}</td>
           <td><Cites list={x.citations} download={download}/>
             {x.correction ? <><p className={cl.small}>Correction : {x.correction.text} — par {x.correction.by} le {stampFr(x.correction.at)}</p><Cites list={x.correction.citations} download={download}/></> : null}
             {x.assessment ? <p className={cl.small}>Appréciation : {x.assessment.text} — par {x.assessment.by} le {stampFr(x.assessment.at)}</p> : null}
-            {!x.correction && canPrepare ? <details><summary>Documenter la correction</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "correct_misstatement", misstatementId: x.misstatementId, text: f.get("text"), citations: readCitations(f, "mc") }))}>
+            {(!x.correction || staleCorrections.includes(x.misstatementId)) && canPrepare ? <details><summary>Documenter la correction</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "correct_misstatement", misstatementId: x.misstatementId, text: f.get("text"), citations: readCitations(f, "mc") }))}>
               <label>Correction<textarea name="text" required maxLength={1000}/></label><CitationPicker pieces={view.pieces} name="mc" label="Preuve nouvelle (déposée après l’anomalie)" required/><button className={cl.submit} disabled={busy}>Enregistrer la correction</button></form></details> : null}
             {!x.correction && !x.assessment && canReview ? <details><summary>Apprécier l’anomalie non corrigée</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "assess_misstatement", misstatementId: x.misstatementId, text: f.get("text") }))}>
               <label>Appréciation (humaine)<textarea name="text" required maxLength={1500}/></label><button className={cl.submit} disabled={busy}>Enregistrer</button></form></details> : null}
@@ -48,15 +48,15 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
     </section>
 
     <section className={cl.section} aria-labelledby="cl-contradictions">
-      <h2 id="cl-contradictions">Contradictions déclarées <span className={cl.small}>{contradictions.filter(c => !c.resolution).length} non résolue(s) sur {contradictions.length}</span></h2>
+      <h2 id="cl-contradictions">Contradictions déclarées <span className={cl.small}>{contradictions.filter(c => !c.resolution || staleResolutions.includes(c.contradictionId)).length} non résolue(s) ou à réexaminer sur {contradictions.length}</span></h2>
       {contradictions.map(c => <article key={c.contradictionId} aria-label={"Contradiction " + c.contradictionId}>
-        <p><strong>{c.contradictionId}</strong> · {c.description} <span className={cl.pill} data-tone={c.resolution ? "ok" : "danger"}>{c.resolution ? "Résolue" : "Non résolue"}</span></p>
+        <p><strong>{c.contradictionId}</strong> · {c.description} <span className={cl.pill} data-tone={c.resolution && !staleResolutions.includes(c.contradictionId) ? "ok" : "danger"}>{staleResolutions.includes(c.contradictionId) ? "Résolution à réexaminer — pièce remplacée" : c.resolution ? "Résolue" : "Non résolue"}</span></p>
         <div className={cl.versus}><div>{citationText(c.left)}<br/><span className={cl.small}>{c.left.kind === "declaration_direction" ? "Déclaration de la direction" : c.left.kind === "reponse_tiers" ? "Réponse de tiers" : "Document"}</span></div>
           <span className={cl.clash} aria-label="contredit">⟷</span>
           <div>{citationText(c.right)}<br/><span className={cl.small}>{c.right.kind === "declaration_direction" ? "Déclaration de la direction" : c.right.kind === "reponse_tiers" ? "Réponse de tiers" : "Document"}</span></div></div>
         <p className={cl.who}>Déclarée par {c.by} le {stampFr(c.at)}{c.procedureIds.length ? " · " + c.procedureIds.join(", ") : ""}</p>
-        {c.resolution ? <><p className={cl.small}>Résolution : {c.resolution.text} — par {c.resolution.by} le {stampFr(c.resolution.at)}</p><Cites list={c.resolution.citations} download={download}/></>
-          : canPrepare ? <details><summary>Résoudre en citant une pièce</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "resolve_contradiction", contradictionId: c.contradictionId, text: f.get("text"), citations: readCitations(f, "rc") }))}>
+        {c.resolution ? <><p className={cl.small}>Résolution : {c.resolution.text} — par {c.resolution.by} le {stampFr(c.resolution.at)}</p><Cites list={c.resolution.citations} download={download}/></> : null}
+        {(!c.resolution || staleResolutions.includes(c.contradictionId)) && canPrepare ? <details><summary>Résoudre en citant une pièce</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "resolve_contradiction", contradictionId: c.contradictionId, text: f.get("text"), citations: readCitations(f, "rc") }))}>
             <label>Résolution<textarea name="text" required maxLength={1500}/></label><CitationPicker pieces={view.pieces} name="rc" required/><p className={cl.small}>Une déclaration de la direction seule ne résout pas une contradiction.</p><button className={cl.submit} disabled={busy}>Enregistrer</button></form></details> : null}
       </article>)}
       {!contradictions.length ? <p className={cl.small}>Aucune contradiction déclarée.</p> : null}

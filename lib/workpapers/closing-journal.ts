@@ -54,6 +54,9 @@ export const nextId = {
 export const currentValidation = (s: ClosingState) => { const last = s.validations.at(-1); return last && !last.reopened ? last : null; };
 export const latestPieceVersion = (s: ClosingState, pieceId: string) => s.pieces.filter(p => p.pieceId === pieceId).sort((a, b) => b.version - a.version)[0] ?? null;
 export const isSuperseded = (s: ClosingState, c: ResolvedCitation) => latestPieceVersion(s, c.pieceId)?.pieceVersionId !== c.pieceVersionId;
+/** A correction or a resolution holds only while every piece it cites is still the current version; otherwise it is to be re-examined. */
+export const correctionCurrent = (s: ClosingState, m: Misstatement) => !!m.correction && !m.correction.citations.some(c => isSuperseded(s, c));
+export const resolutionCurrent = (s: ClosingState, c: Contradiction) => !!c.resolution && !c.resolution.citations.some(x => isSuperseded(s, x));
 
 /**
  * What a conclusion rests on: the procedure and its risks, population, applicability, ITGC scope, every work record and the latest version of each cited piece.

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { closingFailureStatus, requireDisposableClosing } from "../closing-http";
+import { attachmentName, closingFailureStatus, requireDisposableClosing } from "../closing-http";
 import { fold } from "../closing-journal";
 import type { ProcedureView } from "../closing-evaluate";
 import { buildRecipe } from "./closing-fixtures";
@@ -197,6 +197,33 @@ describe("CL-1902 péremption, validation de clôture, concurrence et accès", {
     v = (await h.ok({ command: "reopen", reason: "Feuille Provisions révisée après la validation." }, "signer")).view;
     expect(v.evaluation.validation).toMatchObject({ status: "reouverte", reopened: { by: "signer-cl", reason: "Feuille Provisions révisée après la validation." } });
     expect(v.journal.map(l => l.type).slice(-2)).toEqual(["validate_closing", "reopen"]);
+  });
+  it("correction et résolution appuyées sur une pièce remplacée : à réexaminer, bloquantes, puis refaites sur la version courante", async () => {
+    const { h, v: before, pc } = await recipe();
+    expect(indicator(before, "anomalies")).toEqual([1, 3]);
+    await h.ok({ command: "resolve_contradiction", contradictionId: "C-01", text: "Lettre d’affirmation complétée.", citations: [{ pieceVersionId: pc.lawyer }] });
+    // New versions of the pieces cited by the A-01 correction (PC-04) and the C-01 resolution (PC-05).
+    await h.piece("Écriture de correction OD-2027-014 (contre-passée)", "document", "Écriture contre-passée — synthétique\n", "PC-04");
+    await h.piece("Réponse de l’avocat 1 — complément", "reponse_tiers", "Complément synthétique\n", "PC-05");
+    const v = await h.view();
+    expect(v.evaluation.items).toMatchObject({ staleCorrections: ["A-01"], staleResolutions: ["C-01"] });
+    expect(codes(v)).toEqual(expect.arrayContaining(["MISSTATEMENT_CORRECTION_STALE:A-01", "CONTRADICTION_RESOLUTION_STALE:C-01"]));
+    expect(indicator(v, "anomalies")).toEqual([0, 3]);
+    expect(indicator(v, "contradictions")).toEqual([0, 1]);
+    expect(v.evaluation.misstatements).toMatchObject({ corrected: 0, uncorrected: 3, knownUncorrected: { amount: "4240.00" } });
+    const od2 = await h.piece("Écriture de correction OD-2027-021");
+    const after = (await h.ok({ command: "correct_misstatement", misstatementId: "A-01", text: "Nouvelle écriture de correction.", citations: [{ pieceVersionId: od2 }] })).view;
+    expect(after.evaluation.items.staleCorrections).toEqual([]);
+    expect(codes(after)).not.toContain("MISSTATEMENT_CORRECTION_STALE:A-01");
+    expect(await h.error({ command: "correct_misstatement", misstatementId: "A-01", text: "x", citations: [{ pieceVersionId: od2 }] })).toEqual({ status: 422, error: "CL_MISSTATEMENT_ALREADY_CORRECTED" });
+    const resolved = (await h.ok({ command: "resolve_contradiction", contradictionId: "C-01", text: "Résolution sur la version courante.", citations: [{ pieceVersionId: "PC-05-v2" }] })).view;
+    expect(resolved.evaluation.items.staleResolutions).toEqual([]);
+  });
+  it("téléchargement : le nom de fichier stocké est conservé (repli ASCII et forme UTF-8)", async () => {
+    expect(attachmentName("procès-verbal \"final\".pdf")).toBe("attachment; filename=\"proces-verbal _final_.pdf\"; filename*=UTF-8''proc%C3%A8s-verbal%20%22final%22.pdf");
+    const h = createClosingHarness(); await small(h);
+    const r = await h.handlers.GET(h.request("reviewer", "GET", undefined, undefined, "&operation=download&id=PC-01-v1"));
+    expect(r.headers.get("Content-Disposition")).toContain("filename=\"releve-bancaire-au-31-12-2026.txt\"");
   });
   it("concurrence optimiste et idempotence : un seul écrivain par position du journal, jamais de fusion", async () => {
     const h = createClosingHarness();

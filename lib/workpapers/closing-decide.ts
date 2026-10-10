@@ -2,7 +2,7 @@ import { periodIssues } from "@/lib/canonical-model/period";
 import { engineProcedure, isControl, stepsFor, type CitationInput, type ClosingCommand, type PieceKind, type ResolvedCitation } from "./closing-contract";
 import { fingerprint, type CycleObservation } from "./closing-cycles";
 import { evaluateClosing } from "./closing-evaluate";
-import { currentValidation, isSuperseded, latestPieceVersion, nextId, procedureBasis, type ClosingEventType, type ClosingState } from "./closing-journal";
+import { correctionCurrent, currentValidation, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type ClosingEventType, type ClosingState } from "./closing-journal";
 
 /**
  * Decision rules of the professional file: one command, checked against the folded journal, becomes one event.
@@ -175,7 +175,8 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
     case "correct_misstatement": {
       const m = s.misstatements[command.misstatementId];
       if (!m) throw new Error("CL_MISSTATEMENT_UNKNOWN");
-      if (m.correction) throw new Error("CL_MISSTATEMENT_ALREADY_CORRECTED");
+      // A correction resting on a replaced piece is re-examined: a new correction citing current evidence replaces it.
+      if (correctionCurrent(s, m)) throw new Error("CL_MISSTATEMENT_ALREADY_CORRECTED");
       const citations = resolveAll(s, command.citations), original = new Set(m.citations.map(c => c.pieceVersionId));
       // A correction rests on new evidence: a piece version recorded after the misstatement, other than the pieces that revealed it, and not a representation alone.
       const fresh = citations.filter(c => !original.has(c.pieceVersionId) && s.pieces.find(x => x.pieceVersionId === c.pieceVersionId)!.seq > m.seq);
@@ -186,7 +187,7 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
     case "assess_misstatement": {
       const m = s.misstatements[command.misstatementId];
       if (!m) throw new Error("CL_MISSTATEMENT_UNKNOWN");
-      if (m.correction) throw new Error("CL_MISSTATEMENT_ALREADY_CORRECTED");
+      if (correctionCurrent(s, m)) throw new Error("CL_MISSTATEMENT_ALREADY_CORRECTED");
       if (m.by === ctx.actorId) throw new Error("CL_SELF_REVIEW_FORBIDDEN");
       return { type: "assess_misstatement", payload: { misstatementId: m.misstatementId, text: command.text } };
     }
@@ -209,7 +210,7 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
     case "resolve_contradiction": {
       const c = s.contradictions[command.contradictionId];
       if (!c) throw new Error("CL_CONTRADICTION_UNKNOWN");
-      if (c.resolution) throw new Error("CL_CONTRADICTION_RESOLVED");
+      if (resolutionCurrent(s, c)) throw new Error("CL_CONTRADICTION_RESOLVED");
       const citations = resolveAll(s, command.citations);
       if (!corroborated(citations)) throw new Error("CL_REPRESENTATION_ONLY");
       return { type: "resolve_contradiction", payload: { contradictionId: c.contradictionId, text: command.text, citations } };

@@ -103,7 +103,7 @@ export function ClosingWorkspace({ initialDossierId = "", requested }: { initial
     const next = ev.key === "Home" ? 0 : ev.key === "End" ? TABS.length - 1 : (index + (ev.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
     goTab(TABS[next].id);
   };
-  const counts: Record<ClosingTab, number | null> = e ? { programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution).length + e.items.limitations.length,
+  const counts: Record<ClosingTab, number | null> = e ? { programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution || e.items.staleResolutions.includes(c.contradictionId)).length + e.items.limitations.length,
     revue: e.items.reviewPoints.filter(r => !r.closed).length, cloture: e.blockers.length, journal: view!.journal.length } : { programme: null, pieces: null, anomalies: null, revue: null, cloture: null, journal: null };
 
   return <main className={`${styles.page} ${cl.root}`}>

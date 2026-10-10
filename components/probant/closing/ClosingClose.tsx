@@ -45,7 +45,7 @@ const FAMILIES: { id: string; label: string; codes: RegExp }[] = [
   { id: "pieces", label: "Pièces attendues", codes: /^REQUEST_/ },
   { id: "revue", label: "Points de revue", codes: /^REVIEW_POINT/ },
   { id: "contradictions", label: "Contradictions et incohérences", codes: /^(CONTRADICTION_|CYCLE_OUTSIDE|NA_WITH|MISSTATEMENT_IN)/ },
-  { id: "anomalies", label: "Anomalies et limites à apprécier", codes: /^(MISSTATEMENT_UNASSESSED|LIMITATION_)/ },
+  { id: "anomalies", label: "Anomalies et limites à apprécier", codes: /^(MISSTATEMENT_UNASSESSED|MISSTATEMENT_CORRECTION_|LIMITATION_)/ },
   { id: "validation", label: "Validation", codes: /^VALIDATION_/ },
 ];
 

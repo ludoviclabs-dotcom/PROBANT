@@ -3,7 +3,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { assertionLabel, CL_CYCLE_LABELS, CL_NATURE_LABELS, CL_NO_OPINION, CL_STEP_LABELS, engineProcedure, isControl, stepsFor, type ClosingAssertion, type ClosingNature, type ClosingStep, type ResolvedCitation } from "./closing-contract";
 import { bestObservation, fingerprint, type CycleObservation } from "./closing-cycles";
 import { formatCents } from "./stock-contract";
-import { currentValidation, isSuperseded, latestPieceVersion, procedureBasis, type ClosingEvent, type ClosingState, type Conclusion, type Contradiction, type ItgcScopeEntry, type Limitation, type Misstatement, type PopulationEntry, type Review, type ReviewPoint, type RiskEntry, type WorkRecord } from "./closing-journal";
+import { correctionCurrent, currentValidation, isSuperseded, resolutionCurrent, latestPieceVersion, procedureBasis, type ClosingEvent, type ClosingState, type Conclusion, type Contradiction, type ItgcScopeEntry, type Limitation, type Misstatement, type PopulationEntry, type Review, type ReviewPoint, type RiskEntry, type WorkRecord } from "./closing-journal";
 
 /**
  * Derived view of the professional file. Every state is computed here, on the server, from the journal and the observed cycle sheets:
@@ -42,7 +42,7 @@ export interface ClosingEvaluation {
   opened: boolean; period?: AccountingPeriod; entity?: string; risks: RiskView[]; procedures: ProcedureView[]; indicators: Indicator[]; missing: MissingItem[]; coherence: CoherencePoint[];
   misstatements: MisstatementSummary; blockers: RemainingItem[];
   /** Recorded facts, as written in the journal (authors, dates, citations): the browser lists them, it never re-derives them. */
-  items: { misstatements: Misstatement[]; limitations: Limitation[]; contradictions: Contradiction[]; reviewPoints: ReviewPoint[] }; closable: boolean; observations: CycleObservation[]; outsideProgram: CycleObservation[];
+  items: { misstatements: Misstatement[]; limitations: Limitation[]; contradictions: Contradiction[]; reviewPoints: ReviewPoint[]; staleCorrections: string[]; staleResolutions: string[] }; closable: boolean; observations: CycleObservation[]; outsideProgram: CycleObservation[];
   validation: { status: "absente" | "validee" | "perimee" | "reouverte"; by?: string; at?: string; text?: string; changed: string[]; reopened?: { by: string; at: string; reason: string } };
   noOpinion: string;
 }
@@ -156,8 +156,10 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   const points = Object.values(s.reviewPoints);
   for (const rp of points.filter(x => !x.closed)) add(blockers, "REVIEW_POINT_OPEN", rp.pointId + " · " + (rp.answers.length ? "réponse à examiner par la revue" : "réponse du préparateur attendue"), "point", rp.pointId, rp.target.kind === "procedure" ? rp.target.id : undefined);
   const contradictions = Object.values(s.contradictions);
+  for (const c of contradictions.filter(x => x.resolution && !resolutionCurrent(s, x))) add(blockers, "CONTRADICTION_RESOLUTION_STALE", c.contradictionId + " · résolution appuyée sur une pièce remplacée : à réexaminer", "contradiction", c.contradictionId);
   for (const c of contradictions.filter(x => !x.resolution)) add(blockers, "CONTRADICTION_OPEN", c.contradictionId + " · contradiction non résolue : " + c.left.label + " / " + c.right.label, "contradiction", c.contradictionId);
   const misstatements = Object.values(s.misstatements);
+  for (const m of misstatements.filter(x => x.correction && !correctionCurrent(s, x))) add(blockers, "MISSTATEMENT_CORRECTION_STALE", m.misstatementId + " · correction appuyée sur une pièce remplacée : à réexaminer", "misstatement", m.misstatementId);
   for (const m of misstatements.filter(x => !x.correction && !x.assessment)) add(blockers, "MISSTATEMENT_UNASSESSED", m.misstatementId + " · anomalie non corrigée : évaluation humaine à documenter (NEP 450)", "misstatement", m.misstatementId);
   const limitations = Object.values(s.limitations);
   for (const l of limitations.filter(x => !x.assessment)) add(blockers, "LIMITATION_UNASSESSED", l.limitationId + " · limite d’étendue : incidence à apprécier par le professionnel", "limitation", l.limitationId);
@@ -212,13 +214,13 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
     { id: "pieces", label: "Pièces demandées reçues", numerator: activeRequests.filter(r => r.closed?.outcome === "received").length, denominator: activeRequests.length, unit: "demandes de pièces",
       ...(cancelled ? { excluded: plural(cancelled, "demande annulée motivée exclue", "demandes annulées motivées exclues") } : {}), segments: activeRequests.map(r => segment(r.requestId, r.closed ? "done" : "todo", r.requestId + " · " + r.description)) },
     { id: "points", label: "Points de revue clos", numerator: points.filter(x => x.closed).length, denominator: points.length, unit: "points de revue", segments: points.map(x => segment(x.pointId, x.closed ? "done" : x.answers.length ? "partial" : "todo", x.pointId + " · " + x.text)) },
-    { id: "contradictions", label: "Contradictions résolues", numerator: contradictions.filter(x => x.resolution).length, denominator: contradictions.length, unit: "contradictions déclarées", segments: contradictions.map(x => segment(x.contradictionId, x.resolution ? "done" : "blocked", x.contradictionId + " · " + x.description)) },
-    { id: "anomalies", label: "Anomalies corrigées", numerator: misstatements.filter(m => m.correction).length, denominator: misstatements.length, unit: "anomalies relevées",
-      note: "Corrigée = correction documentée par une preuve nouvelle ; une anomalie non corrigée n’est ni acceptée ni jugée par l’outil.", segments: misstatements.map(m => segment(m.misstatementId, m.correction ? "done" : m.assessment ? "partial" : "todo", m.misstatementId + " · " + m.description)) },
+    { id: "contradictions", label: "Contradictions résolues", numerator: contradictions.filter(x => resolutionCurrent(s, x)).length, denominator: contradictions.length, unit: "contradictions déclarées", segments: contradictions.map(x => segment(x.contradictionId, resolutionCurrent(s, x) ? "done" : "blocked", x.contradictionId + " · " + x.description)) },
+    { id: "anomalies", label: "Anomalies corrigées", numerator: misstatements.filter(m => correctionCurrent(s, m)).length, denominator: misstatements.length, unit: "anomalies relevées",
+      note: "Corrigée = correction documentée par une preuve nouvelle ; une anomalie non corrigée n’est ni acceptée ni jugée par l’outil.", segments: misstatements.map(m => segment(m.misstatementId, correctionCurrent(s, m) ? "done" : m.correction ? "blocked" : m.assessment ? "partial" : "todo", m.misstatementId + " · " + m.description)) },
     { id: "limites", label: "Limites d’étendue appréciées", numerator: limitations.filter(l => l.assessment).length, denominator: limitations.length, unit: "limites d’étendue", segments: limitations.map(l => segment(l.limitationId, l.assessment ? "done" : "todo", l.limitationId + " · " + l.description)) },
   ];
   const known = (list: typeof misstatements) => list.filter(m => m.amount.kind === "known").map(m => (m.amount as { value: Money }).value);
-  const corrected = misstatements.filter(m => m.correction), uncorrected = misstatements.filter(m => !m.correction);
+  const corrected = misstatements.filter(m => correctionCurrent(s, m)), uncorrected = misstatements.filter(m => !correctionCurrent(s, m));
   const summary: MisstatementSummary = { total: misstatements.length, corrected: corrected.length, uncorrected: uncorrected.length, knownCorrected: sum(known(corrected)), knownUncorrected: sum(known(uncorrected)),
     unknownUncorrected: uncorrected.filter(m => m.amount.kind === "unknown").length, unknownCorrected: corrected.filter(m => m.amount.kind === "unknown").length };
 
@@ -233,7 +235,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   } else if (last?.reopened) validation = { status: "reouverte", by: last.by, at: last.at, text: last.text, changed: [], reopened: { by: last.reopened.by, at: last.reopened.at, reason: last.reopened.reason } };
 
   return { opened: !!s.opened, ...(s.opened ? { period: s.opened.period, entity: s.opened.entity } : {}), risks, procedures, indicators, missing, coherence, misstatements: summary, blockers,
-    items: { misstatements, limitations, contradictions, reviewPoints: points },
+    items: { misstatements, limitations, contradictions, reviewPoints: points, staleCorrections: misstatements.filter(m => m.correction && !correctionCurrent(s, m)).map(m => m.misstatementId), staleResolutions: contradictions.filter(c => c.resolution && !resolutionCurrent(s, c)).map(c => c.contradictionId) },
     closable: !!s.opened && blockers.length === 0, observations, outsideProgram, validation, noOpinion: CL_NO_OPINION };
 }
 

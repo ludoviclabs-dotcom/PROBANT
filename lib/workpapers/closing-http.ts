@@ -46,6 +46,12 @@ async function bounded(request: Request, max: number) {
   return new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
 }
 const FORM_FIELDS = ["file", "meta"];
+/** The stored (already neutralized) file name, with an ASCII fallback and its RFC 5987 UTF-8 form: versions stay distinguishable once saved. */
+export function attachmentName(fileName: string) {
+  const name = fileName.replace(/[\r\n]/g, "").trim() || "piece-dossier";
+  const ascii = name.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\x20-\x7e]|["\\]/g, "_");
+  return "attachment; filename=\"" + ascii + "\"; filename*=UTF-8''" + encodeURIComponent(name).replace(/['()*]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase());
+}
 export function closingHandlers(create: () => ClosingRuntime, enabled: () => void = requireDisposableClosing, observeError?: (error: unknown) => void) {
   const fail = (error: unknown) => { observeError?.(error); return failure(error); };
   return {
@@ -56,7 +62,7 @@ export function closingHandlers(create: () => ClosingRuntime, enabled: () => voi
         if (q.operation === "download") {
           const found = await runtime.download(request, q.dossierId, q.periodId, q.id!);
           if (!found) return Response.json({ error: "CL_PIECE_NOT_FOUND" }, { status: 404, headers });
-          return new Response(Uint8Array.from(found.bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": "attachment; filename=\"piece-dossier\"", "X-Content-Type-Options": "nosniff" } });
+          return new Response(Uint8Array.from(found.bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": attachmentName(found.fileName), "X-Content-Type-Options": "nosniff" } });
         }
         return Response.json(await runtime.read(request, q.dossierId, q.periodId), { headers });
       } catch (error) { return fail(error); }
