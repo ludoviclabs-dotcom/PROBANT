@@ -75,7 +75,7 @@ describe.skipIf(!databaseUrl)("recette Dossier de clôture — PostgreSQL jetabl
       period: pvPeriod, template: { id: "provisions.register", version: "1.0.0", objective: "Registre synthétique", kind: "calculated", assertions: [], requiredDocumentTypes: [] }, state: "draft", preparedBy: "cl-preparer",
       importIds: [], evidence: [], findings: [], notes: [], events: [] };
     await client`INSERT INTO pv_workpaper_heads (organization_id,dossier_id,period_id,id,version) VALUES (${orgA},${dossierA},${pid},${run.id},1)`;
-    await client`INSERT INTO pv_workpaper_versions (organization_id,dossier_id,period_id,id,version,run) VALUES (${orgA},${dossierA},${pid},${run.id},1,${client.json(run as never)})`;
+    await client`INSERT INTO pv_workpaper_versions (organization_id,dossier_id,period_id,id,version,run) VALUES (${orgA},${dossierA},${pid},${run.id},1,${JSON.stringify(run)}::jsonb)`;
     view = await read();
     expect(view.evaluation.coherence).toMatchObject([{ code: "CYCLE_OUTSIDE_PROGRAM" }]);
     expect(view.evaluation.observations).toMatchObject([{ family: "pv", procedure: "provisions.register", state: "draft", runId: "pv-durable-1" }]);
