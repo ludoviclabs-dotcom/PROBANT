@@ -2,7 +2,7 @@
 
 **Base.** `origin/main` `cbd354b` (Missions 15, 17 et 18 fusionnées).
 
-**Branche locale.** `claude/provisions-mission16`, dans le worktree `probant-analysis-setup-41121f`. Un commit, **non poussé**, et aucune PR distante n'est créée.
+**Branche locale.** `claude/provisions-mission16`, dans le worktree `probant-analysis-setup-41121f`. Deux commits (code puis statistiques du handoff), **non poussés**, et aucune PR distante n’est créée.
 
 **Contrat et recette.**
 - [docs/mission16/CONTRAT.md](../mission16/CONTRAT.md)
@@ -145,8 +145,8 @@ Démontrable sur données synthétiques, avec une chaîne de revue complète sur
 | Élément | Valeur |
 |---|---|
 | Base | `origin/main` `cbd354b` |
-| Branche | `claude/provisions-mission16`, un commit local |
-| Diff hors captures | 41 fichiers, +3 226 / −13 |
+| Branche | `claude/provisions-mission16`, deux commits locaux |
+| Diff hors captures | 42 fichiers (handoff compris), +3 397 / −13 |
 | Captures | 10 JPEG |
 
 ## Proposition de PR (non créée)
