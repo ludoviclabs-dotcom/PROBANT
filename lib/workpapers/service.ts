@@ -8,6 +8,7 @@ import { cashResultSchema, cashWorkSchema, type CashWork } from "./cash-reconcil
 import { fixedAssetResultSchema, fixedAssetResultEvidence, fixedAssetWorkSchema, type FixedAssetWork } from "./fixed-asset-review";
 import { fiscalResultEvidence, isFiscalProcedure, parseFiscalResult, parseFiscalWork, procedureOf, type FiscalWork } from "./fiscal-review";
 import { stockResultEvidence, stockResultSchema, stockWorkSchema, type StockWork } from "./stock-contract";
+import { provisionResultEvidence, provisionResultSchema, provisionWorkSchema, type ProvisionWork } from "./provision-contract";
 import { equityResultEvidence as capitauxResultEvidence, equityResultSchema as capitauxResultSchema, capitauxWorkSchema, type EquityWork as CapitauxWork } from "./capitaux-review";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
@@ -32,10 +33,10 @@ export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString(),
-    private readonly realAdapter?: "exceptional.review" | "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation" | "stocks.count") {}
+    private readonly realAdapter?: "exceptional.review" | "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation" | "stocks.count" | "provisions.register") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo" && !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -143,6 +144,16 @@ export class WorkpaperService {
       return this.stamp({ ...run, fiscalWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_fiscal");
     });
   }
+  /** The server-stamped provisions work (lawyers' information) replaces any current result: a new execution and a new review are required. */
+  async configureProvisions(scope: WorkpaperScope, id: string, version: number, work: ProvisionWork) {
+    const actor = await this.actor(scope, "prepare");
+    if (scope.mode !== "real" || this.realAdapter !== "provisions.register") throw new Error("PROVISIONS_ONLY");
+    const validated = provisionWorkSchema.parse(work);
+    return this.repository.compareAndSwap(scope, id, version, run => {
+      if (run.template.id !== "provisions.register" || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
+      return this.stamp({ ...run, provisionWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_provisions");
+    });
+  }
   /** The server-stamped stock convention replaces any current result: a new execution and a new review are required. */
   async configureStocks(scope: WorkpaperScope, id: string, version: number, work: StockWork) {
     const actor = await this.actor(scope, "prepare");
@@ -239,6 +250,11 @@ export class WorkpaperService {
         assertScope(scope, fiscal.scope); if (fiscal.runId !== run.id) throw new Error("FISCAL_RESULT_IDENTITY_MISMATCH");
         evidence = [...new Map([...evidence, ...fiscalResultEvidence(fiscal, run.importIds.map(i => this.imports.get(scope, i, actor)))].map(link => [link.id, link])).values()];
       }
+      if (this.realAdapter === "provisions.register" && result.execution === "completed") {
+        const provisions = provisionResultSchema.parse(result.result);
+        assertScope(scope, provisions.scope); if (provisions.runId !== run.id) throw new Error("PROVISION_RESULT_IDENTITY_MISMATCH");
+        evidence = [...new Map([...evidence, ...provisionResultEvidence(provisions)].map(link => [link.id, link])).values()];
+      }
       if (this.realAdapter === "stocks.count" && result.execution === "completed") {
         const stocks = stockResultSchema.parse(result.result);
         assertScope(scope, stocks.scope); if (stocks.runId !== run.id) throw new Error("STOCK_RESULT_IDENTITY_MISMATCH");
@@ -288,12 +304,12 @@ export class WorkpaperService {
       return this.stamp({ ...old, id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
-        ...(scope.mode === "real" ? { exceptionalWork: undefined, investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, stockWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
+        ...(scope.mode === "real" ? { exceptionalWork: undefined, investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, stockWork: undefined, provisionWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
         evidence: (scope.mode === "real" ? [] : old.evidence).map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
     });
   }
   async lock(scope: WorkpaperScope, id: string, version: number) {
-    if (scope.mode !== "real" || !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
+    if (scope.mode !== "real" || !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
     const actor = await this.actor(scope, "review");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       assertTransition(run, "locked", actor);
