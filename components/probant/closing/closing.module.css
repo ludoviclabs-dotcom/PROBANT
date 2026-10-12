@@ -20,8 +20,8 @@
 .metric dd{margin:0}
 .fraction{font-variant-numeric:tabular-nums;font-weight:650;white-space:nowrap;text-align:right}
 .fraction small{display:block;font-weight:400;font-size:10.5px;color:var(--muted)}
-.stripCell{grid-column:1/-1;margin:0}
-.strip{display:flex;gap:2px;align-items:center;min-height:12px;margin:0}
+.stripCell{grid-column:1/-1;margin:0;min-width:0}
+.strip{display:flex;gap:2px;align-items:center;min-height:12px;margin:0;max-width:100%;overflow-x:auto;padding:4px 0}
 .seg.seg{flex:1 1 0;min-width:5px;max-width:64px;height:10px;padding:0;border:0;border-radius:2px;background:transparent;box-shadow:inset 0 0 0 1px var(--pb-border-strong,#324563);transition:background-color 200ms,transform 140ms,box-shadow 200ms}
 .seg[data-state=done]{background:var(--ok);box-shadow:none}
 .seg[data-state=partial]{background:linear-gradient(90deg,var(--open) 50%,transparent 50%);box-shadow:inset 0 0 0 1px var(--open)}
@@ -36,6 +36,7 @@
 /* Layout: central work area + traceability panel. */
 .layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(320px,410px);gap:22px;align-items:start}
 .layout[data-panel=closed]{grid-template-columns:minmax(0,1fr)}
+.layout > *{min-width:0}
 .toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin:0 0 12px}
 .toolbar label{min-width:140px;flex:1 1 140px}
 .toolbar label > :is(select,input){width:100%}

@@ -230,7 +230,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     }
     function dirty() { setStatus("idle"); setConflict(null); pending.current = null; }
     const controlClass = "rounded border border-[var(--pb-border)] bg-transparent p-2";
-    return <main className="mx-auto max-w-6xl space-y-5 p-6">
+    return <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-6 [overflow-wrap:anywhere]">
     <header><p className="text-sm">Recette jetable · identité serveur</p><h1 className="text-2xl font-semibold">{isSales ? "Clients et ventes" : "Cadrage Clients"}</h1>
       <p>{isSales ? "Encaissements, avoirs et jugement documenté ; cadrage lié à sa version verrouillée." : "Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus."}</p><a className="underline" href={"/clients-framing/synthesis?" + new URLSearchParams({ dossierId, periodId: requested?.periodId || periodId(period), ...(run ? { rootId: run.rootId, id:run.id, version:String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse de mission</a></header>
     <style>{`@keyframes pb-exception-resolved{from{background:#293d54}to{background:transparent}}.pb-exception-resolved{animation:pb-exception-resolved 180ms ease-out}@media(prefers-reduced-motion:reduce){.pb-exception-resolved{animation:none}}`}</style>

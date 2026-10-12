@@ -63,7 +63,7 @@ export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "h
     >
       <PlayCircle size={16} />
       <span style={{ flex: 1, textAlign: "left" }}>Visite guidée</span>
-      <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>95 s</span>
+      <span style={{ fontSize: 10, fontWeight: 500, color: "var(--pb-text-faint)" }}>95 s</span>
     </button>
   );
 }

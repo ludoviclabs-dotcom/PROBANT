@@ -32,7 +32,7 @@ import { focusStyle } from "@/components/synthesis/tokens";
 const ACCENT  = "#5b9dff";
 const TEXT    = "#e6edf6";
 const MUTED   = "#8a99af";
-const FAINT   = "#5c6b82";
+const FAINT   = "var(--pb-text-faint)";
 const BORDER  = "#1c2430";
 const BORDERS = "#324563";
 const SURFACE = "#0b0e13";
