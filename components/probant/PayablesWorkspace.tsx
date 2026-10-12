@@ -10,6 +10,7 @@ import { PayablesWorkForm, type PayablesFacts } from "./PayablesWorkForm";
 import { PayablesDetails } from "./PayablesDetails";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 import s from "./Payables.module.css";
+import { sameDraft, saveStateLabel, type SaveStatus } from "@/lib/workpapers/draft-state";
 type Initial = {
     dossierId: string;
     periodId: string;
@@ -47,7 +48,7 @@ export function PayablesWorkspace({ initial }: {
         id?: string;
         version?: number;
     }>({ id: initial.id, version: initial.version });
-    const [view, setView] = useState<View | null>(null), [draft, setDraft] = useState<PayablesDraft | null>(null), [procedure, setProcedure] = useState<PayableProcedure>(initial.procedure??"payables.purchases"), [busy, setBusy] = useState(false), [status, setStatus] = useState("Modifications non sauvegardées"), [error, setError] = useState(""), [conflict, setConflict] = useState<WorkpaperRun | null>(null), [preview, setPreview] = useState<ImportBatch | null>(null), [criteria, setCriteria] = useState(""), [selection, setSelection] = useState("all"), [selectedIds, setSelectedIds] = useState<string[]>([]), [excluded, setExcluded] = useState<Record<string, string>>({}), [conclusion, setConclusion] = useState(""), [note, setNote] = useState(""), [review, setReview] = useState(""), [resolved, setResolved] = useState<string | null>(null);
+    const [view, setView] = useState<View | null>(null), [draft, setDraft] = useState<PayablesDraft | null>(null), [procedure, setProcedure] = useState<PayableProcedure>(initial.procedure??"payables.purchases"), [busy, setBusy] = useState(false), [status, setStatus] = useState<SaveStatus | "rebased">("idle"), [error, setError] = useState(""), [conflict, setConflict] = useState<WorkpaperRun | null>(null), [preview, setPreview] = useState<ImportBatch | null>(null), [criteria, setCriteria] = useState(""), [selection, setSelection] = useState("all"), [selectedIds, setSelectedIds] = useState<string[]>([]), [excluded, setExcluded] = useState<Record<string, string>>({}), [conclusion, setConclusion] = useState(""), [note, setNote] = useState(""), [review, setReview] = useState(""), [resolved, setResolved] = useState<string | null>(null);
     const csrf = useRef(""), inflight = useRef(false), pending = useRef<{
         body: Record<string, unknown> | FormData;
         imports: boolean;
@@ -56,6 +57,8 @@ export function PayablesWorkspace({ initial }: {
     const run = view?.runs.find(r => r.id === focus.id) ?? view?.runs[0], facts = run ? view?.facts[run.id] : undefined;
     const historical = !!run && (view?.currentVersions[run.id] !== run.version || view?.lineageCurrent[run.rootId]?.id !== run.id), stale = !!run && view?.sourcesCurrent[run.id] === false;
     const editable = !!run && view?.permissions.includes("prepare") && !historical && !stale && ["draft", "ready", "executed"].includes(run.state);
+    /** Brouillon comparé à sa base hydratée (C02, M20-UI-03) : chargé sans saisie = aucune modification en attente. */
+    const dirty = !!run && ((!!draft && !sameDraft(draft, unstamp(run) ?? emptyDraft(run.period))) || conclusion !== (run.conclusion ?? ""));
     const query = (extra: Record<string, string> = {}) => new URLSearchParams({ ...scope, ...extra });
     async function session() { const response = await fetch("/api/auth/session", { cache: "no-store" }); const data = await response.json(); if (!response.ok || !data.csrfToken)
         throw new Error("Session requise : reconnectez-vous."); csrf.current = data.csrfToken; }
@@ -86,20 +89,20 @@ export function PayablesWorkspace({ initial }: {
         void load(); /* Scope and version changes are explicit user navigation. */ // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [scope, focus.id, focus.version]);
     async function mutate(body: Record<string, unknown> | FormData, imports = false, retry = false) { if (inflight.current)
-        return; const activeElement=document.activeElement as HTMLElement|null,position={x:window.scrollX,y:window.scrollY};let acknowledged=false; inflight.current = true; setBusy(true); setError(""); setStatus("Sauvegarde en cours…"); if (!retry)
+        return; const activeElement=document.activeElement as HTMLElement|null,position={x:window.scrollX,y:window.scrollY};let acknowledged=false; inflight.current = true; setBusy(true); setError(""); setStatus("saving"); if (!retry)
         pending.current = { body, imports, key: crypto.randomUUID() }; const p = pending.current!; try {
         await session();
         const response = await fetch("/api/workpapers/payables" + (p.imports ? "/imports" : "") + "?" + query(), { method: "POST", headers: { "x-probant-csrf": csrf.current, "Idempotency-Key": p.key, ...(p.body instanceof FormData ? {} : { "Content-Type": "application/json" }) }, body: p.body instanceof FormData ? p.body : JSON.stringify(p.body) }), data = await response.json();
         if (response.status === 409 && data.current) {
             setConflict(data.current);
-            setStatus("Conflit de modification");
+            setStatus("conflict");
             return;
         }
         if (!response.ok)
             throw new Error(payablesFailure(response.status, data.error));
         acknowledged=true;if(!(p.body instanceof FormData)&&p.body.command==="resolve")setResolved(String(p.body.noteId));
         pending.current = null;
-        setStatus("Sauvegardée — accusé serveur reçu");
+        setStatus("saved");
         if (data.batch && !(p.body instanceof FormData)) {
             setPreview(null);
             await load({ id: run?.id });
@@ -117,7 +120,7 @@ export function PayablesWorkspace({ initial }: {
         }
     }
     catch (e) {
-        setStatus("Échec de sauvegarde");
+        setStatus("failed");
         setError(e instanceof Error ? e.message : "Échec serveur");
     }
     finally {
@@ -126,7 +129,7 @@ export function PayablesWorkspace({ initial }: {
         requestAnimationFrame(()=>{if(acknowledged&&!(p.body instanceof FormData)&&p.body.command==="resolve")document.getElementById("payable-note-"+String(p.body.noteId))?.focus({preventScroll:true});else if(activeElement?.isConnected)activeElement.focus({preventScroll:true});window.scrollTo(position.x,position.y);});
     } }
     const command = (command: string, extra: Record<string, unknown> = {}) => run && void mutate({ command, id: run.id, expectedVersion: run.version, ...extra });
-    const change = (d: PayablesDraft) => { setDraft(d); pending.current = null; setStatus("Modifications non sauvegardées"); };
+    const change = (d: PayablesDraft) => { setDraft(d); pending.current = null; setStatus("idle"); };
     const sourceIds = run ? (run.template.id === "payables.frame" ? view?.sourceHeads.filter(h => PAYABLE_REQUIRED["payables.frame"].includes(h.document_type)) : view?.sourceHeads.filter(h => !PAYABLE_REQUIRED["payables.frame"].includes(h.document_type)))?.map(h => h.import_id) ?? [] : [];
     const completeSources = !!run && PAYABLE_REQUIRED[run.template.id as PayableProcedure].every(t => view?.sourceHeads.some(h => h.document_type === t));
     const choices = run?.population?.items.map(i => ({ id: i.id, label: i.rowIds.join(" ; ") })) ?? (run?.template.id === "payables.rpne" ? facts?.payments?.map(p => ({ id: p.rowId, label: p.id + " · " + p.party })) : facts?.ledger?.map(l => ({ id: l.rowId, label: l.id + " · " + l.amount.amount + " HT" }))) ?? [];
@@ -134,10 +137,10 @@ export function PayablesWorkspace({ initial }: {
     const links = query(run ? { id: run.id, version: String(run.version) } : {});
     return <main className={s.workspace}><nav className={s.links}><a href="/dashboard/synthese">DEMO SA · constats historiques</a><a href="/atelier">Atelier synthétique</a><span>Procédures de mission · achats / fournisseurs</span></nav><header className={s.header}><p className={s.eyebrow}>MISSION 08 · RECETTE JETABLE</p><h1>Achats et fournisseurs</h1><p>Deux investigations complémentaires, une identité par événement économique.</p><nav className={s.links}><a href={"/payables/synthesis?" + links}>Synthèse et export</a><a href={"/cutoff?" + links}>Cut-off transversal</a><a href={"/clients-framing?" + query()}>Cycle Clients</a></nav></header>
  <form className={s.form} onSubmit={e => { e.preventDefault(); const pid = periodId(period); setFocus({}); setScope({ dossierId: dossier.trim(), periodId: pid }); }}><label>Dossier<input required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>{([['startDate', 'Début exercice'], ['closingDate', 'Clôture'], ['asOfDate', 'Revue au']] as const).map(([key, label]) => <label key={key}>{label}<input required type="date" value={period[key]} onChange={e => setPeriod({ ...period, [key]: e.target.value })}/></label>)}<button disabled={busy}>Charger le dossier</button><a href={"/api/auth/login?returnTo=" + encodeURIComponent("/payables?" + query())}>Se connecter</a></form>
- <p role="status" aria-live="polite" className={s.save}>{status}</p>{error && <p role="alert" className={s.notice}>{error}</p>}{pending.current && status === "Échec de sauvegarde" && <button disabled={busy} onClick={() => void mutate(pending.current!.body, pending.current!.imports, true)}>Rejouer la même requête</button>}
+ <p role="status" aria-live="polite" className={s.save}>{status === "rebased" ? "Modifications non sauvegardées — base serveur actualisée, vérifiez avant sauvegarde" : saveStateLabel({ status, dirty, readOnly: !!run && !editable })}</p>{error && <p role="alert" className={s.notice}>{error}</p>}{pending.current && status === "failed" && <button disabled={busy} onClick={() => void mutate(pending.current!.body, pending.current!.imports, true)}>Rejouer la même requête</button>}
  {view && <><div className={s.meta}><span>Organisation autorisée par le serveur · identité {view.actorId}</span><span>Période {scope.periodId}</span><button disabled={busy} onClick={() => void load()}>Actualiser la version affichée</button></div><div className={s.form}><label>Procédure à préparer<select value={procedure} onChange={e => setProcedure(e.target.value as PayableProcedure)}>{PAYABLE_PROCEDURES.map(p => <option key={p} value={p}>{PAYABLE_OBJECTIVES[p]}</option>)}</select></label><button disabled={busy || !view.permissions.includes("prepare")} onClick={() => void mutate({ command: "create_payables", procedure, period, instanceKey: crypto.randomUUID() })}>Créer une feuille</button><label>Feuille à ouvrir<select value={run?.id ?? ""} onChange={e => setFocus({ id: e.target.value })}><option value="" disabled>Choisir</option>{(view.choices??view.runs.map(r=>({id:r.id,objective:r.template.objective,version:r.version,revision:r.revision}))).map(r => <option value={r.id} key={r.id}>{r.objective} · r{r.revision} v{r.version}</option>)}</select></label></div>
  {run && <><h2>{run.template.objective}</h2><p>Version affichée {run.version} · version courante {view.currentVersions[run.id]} · révision {run.revision} · auteur réel {run.events.at(-1)?.actorId ?? run.preparedBy}</p>{(historical || stale) && <p className={s.notice}>{historical ? "Version historique — décision conservée. " : ""}{stale ? "Source remplacée : travail périmé. " : ""}<button onClick={() => setFocus({ id: view.lineageCurrent[run.rootId]?.id ?? run.id })}>Ouvrir la feuille courante</button></p>}
- {conflict && <section role="alert" className={s.notice}><h2>Conflit de modification · comparaison</h2><p>Votre version {run.version} ; version serveur {conflict.version}. Votre préparation reste dans le formulaire.</p><div className={s.compare}><div><h3>Votre préparation</h3><p>{draft?.method.note}</p><p>{draft?.window.note}</p><p>{draft?.allocations.map(a => a.paymentId + " → " + a.invoiceId + " : " + a.amount.amount + " TTC / " + a.status).join(" ; ")}</p></div><div><h3>Préparation serveur · {conflict.payablesWork?.authorId}</h3><p>{conflict.payablesWork?.method.note}</p><p>{conflict.payablesWork?.window.note}</p><p>{conflict.payablesWork?.allocations.map(a => a.paymentId + " → " + a.invoiceId + " : " + a.amount.amount + " TTC / " + a.status).join(" ; ")}</p></div></div><details><summary>Comparer tous les champs</summary><div className={s.compare}><pre>{JSON.stringify(draft, null, 2)}</pre><pre>{JSON.stringify(unstamp(conflict), null, 2)}</pre></div></details><button onClick={() => { const saved = structuredClone(draft); setView(v => v ? { ...v, runs: v.runs.map(r => r.id === conflict.id ? conflict : r), currentVersions: { ...v.currentVersions, [conflict.id]: conflict.version } } : v); setDraft(saved); setConflict(null); pending.current = null; setStatus("Modifications non sauvegardées — base serveur actualisée, vérifiez avant sauvegarde"); }}>Conserver ma préparation sur la nouvelle base</button><button onClick={() => void load({ id: conflict.id })}>Recharger la préparation serveur</button></section>}
+ {conflict && <section role="alert" className={s.notice}><h2>Conflit de modification · comparaison</h2><p>Votre version {run.version} ; version serveur {conflict.version}. Votre préparation reste dans le formulaire.</p><div className={s.compare}><div><h3>Votre préparation</h3><p>{draft?.method.note}</p><p>{draft?.window.note}</p><p>{draft?.allocations.map(a => a.paymentId + " → " + a.invoiceId + " : " + a.amount.amount + " TTC / " + a.status).join(" ; ")}</p></div><div><h3>Préparation serveur · {conflict.payablesWork?.authorId}</h3><p>{conflict.payablesWork?.method.note}</p><p>{conflict.payablesWork?.window.note}</p><p>{conflict.payablesWork?.allocations.map(a => a.paymentId + " → " + a.invoiceId + " : " + a.amount.amount + " TTC / " + a.status).join(" ; ")}</p></div></div><details><summary>Comparer tous les champs</summary><div className={s.compare}><pre>{JSON.stringify(draft, null, 2)}</pre><pre>{JSON.stringify(unstamp(conflict), null, 2)}</pre></div></details><button onClick={() => { const saved = structuredClone(draft); setView(v => v ? { ...v, runs: v.runs.map(r => r.id === conflict.id ? conflict : r), currentVersions: { ...v.currentVersions, [conflict.id]: conflict.version } } : v); setDraft(saved); setConflict(null); pending.current = null; setStatus("rebased"); }}>Conserver ma préparation sur la nouvelle base</button><button onClick={() => void load({ id: conflict.id })}>Recharger la préparation serveur</button></section>}
  {facts?.issue && <p className={s.notice}>Sources à compléter : {facts.issue}</p>}{draft && <PayablesWorkForm key={run.id} draft={draft} onChange={change} facts={facts} disabled={!editable || busy} procedure={run.template.id}/>}
  {!run.population && <fieldset disabled={!editable || busy}><legend>Population et sélection à figer</legend><label>Critères et limites de la sélection<textarea value={criteria} onChange={e => setCriteria(e.target.value)}/></label><label>Méthode de sélection<select value={selection} onChange={e => setSelection(e.target.value)}><option value="all">Toutes les unités admissibles</option><option value="targeted">Sélection ciblée explicitement</option></select></label>{choices.map(c => <div className={s.form} key={c.id}>{selection === "targeted" && <label><input type="checkbox" checked={selectedIds.includes(c.id)} onChange={e => setSelectedIds(e.target.checked ? [...selectedIds, c.id] : selectedIds.filter(id => id !== c.id))}/>{c.label}</label>}<label>Exclusion de {c.label} (motif facultatif)<input value={excluded[c.id] ?? ""} onChange={e => setExcluded({ ...excluded, [c.id]: e.target.value })}/></label></div>)}<p>Unité : {run.template.id === "payables.purchases" ? "écriture d’achat HT" : run.template.id === "payables.rpne" ? "paiement ultérieur TTC" : "ligne de solde à clôture"}. Les sources secondaires sont conservées et versionnées.</p></fieldset>}
  <div className={s.actions}><button disabled={!editable || busy || !draft || (!run.population && (!criteria.trim() || !completeSources))} onClick={save}>{run.population ? "Sauvegarder la préparation" : "Figer la population et la sélection"}</button>{run.state === "ready" && <button disabled={!editable || busy} onClick={() => command("execute")}>Exécuter cette version</button>}</div>

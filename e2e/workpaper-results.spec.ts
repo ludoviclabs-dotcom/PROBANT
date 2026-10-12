@@ -5,8 +5,8 @@ import { TARGET_CONTROL } from "../lib/workpapers/demo-assessment";
 
 for (const cycle of demoCycleSchema.options) test(`contrat de résultat ${cycle} : atelier → synthèse → export`, async ({ page }) => {
   await page.goto("/dashboard/tests");
-  const workshop = page.getByRole("region", { name: /Atelier des dix cycles/ });
-  await workshop.getByRole("button", { name: "Ouvrir un dossier synthétique dédié" }).click();
+  const workshop = page.getByRole("region", { name: /Laboratoire de scénarios/ });
+  await workshop.getByRole("button", { name: "Nouveau scénario synthétique" }).click();
   await workshop.getByRole("combobox", { name: "Cycle", exact: true }).selectOption(cycle);
   const scenario = workshop.getByRole("combobox", { name: "Scénario", exact: true });
   const target = workshop.locator(`[data-control-id="${TARGET_CONTROL[cycle].id}"]`);

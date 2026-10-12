@@ -25,6 +25,9 @@ import { EvidenceFlow } from "@/components/evidence/EvidenceFlow";
 import { EvidenceExportToolbar } from "@/components/evidence/EvidenceExportToolbar";
 import { ReviewEventPanel } from "@/components/evidence/ReviewEventPanel";
 import { ModuleAvailability } from "@/components/probant/ModuleAvailability";
+import { CycleRegistryList } from "@/components/probant/CycleRegistryList";
+import { DossierContextBar } from "@/components/probant/DossierContextBar";
+import { priorityCycle, projectCycleRows, projectSourceState, sortCycleRows } from "@/lib/dossier/cycle-registry";
 import { SyntheticSummary } from "@/components/probant/SyntheticSummary";
 import { focusStyle } from "@/components/synthesis/tokens";
 
@@ -393,6 +396,12 @@ export default function SynthesePage() {
     [synthesis, d.societe, findings, snapshot.admissibilityFindings],
   );
 
+  // ── Registre des cycles (projection C02, lib/dossier/cycle-registry) ───
+  const cycleRows = useMemo(() => sortCycleRows(projectCycleRows(snapshot)), [snapshot]);
+  const sourceState = useMemo(() => projectSourceState(snapshot), [snapshot]);
+  const priority = useMemo(() => priorityCycle(cycleRows), [cycleRows]);
+  const engineAction = datasets.decision.items.find((i) => i.id === "prochaine-action")?.value ?? null;
+
   const downloadNote = useCallback(() => {
     const note = generateSynthesisNote(synthesis, d.societe);
     const blob = new Blob([note], { type: "text/markdown;charset=utf-8" });
@@ -480,21 +489,27 @@ export default function SynthesePage() {
         </div>
       </header>
 
-      <p className="my-4 text-sm"><a className="underline font-semibold" href="/dossier-cloture">Ouvrir le dossier professionnel — programme de travail, contrôle interne et clôture</a> · les feuilles de cycle ci-dessous ne forment pas un audit complet : travaux restants, pièces manquantes et contradictions ; aucune opinion générée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/resultat-exceptionnel">Résultat exceptionnel · revue par événement</a> · <a className="underline" href="/participations">Participations · droits, distributions et valeur</a> · <a className="underline" href="/equity/synthesis">Capitaux propres · décisions et mouvements</a></p>
-<p className="my-4 text-sm"><a className="underline" href="/payables/synthesis">Synthèse Achats et fournisseurs</a> · <a className="underline" href="/cutoff">Cut-off transversal ventes / achats</a></p>
-      <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/capitaux-propres/synthese">Ouvrir la Synthèse — Capitaux propres, feuille décisions et PV versionnés</a> · <a className="underline" href="/capitaux-propres">feuille /capitaux-propres</a> · procédure parallèle à /equity ; aucune conclusion juridique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/fiscal/synthese">Ouvrir la Synthèse fiscale — TVA par période déclarative, IS par exercice</a> · <a className="underline" href="/fiscal">feuille /fiscal</a> · moteurs fiscaux existants, aucune liquidation ni conformité déclarée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/stocks">Ouvrir la feuille Stocks — quantités comptées, mouvements intercalaires, passage inventaire → clôture</a> · stock propre distingué des stocks de tiers ; aucune présence physique certifiée, aucune dépréciation automatique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/provisions">Ouvrir le registre Provisions et engagements — ponts, estimation / écriture, événement / annexe</a> · événements avec ou sans écriture ; contenu confidentiel masqué par le serveur ; aucune issue juridique déduite.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/paie-personnel">Paie · journal, déclarations et paiements</a> · <a className="underline" href="/paie-personnel/conges">Congés · revue indépendante</a> · usage réel bloqué, accès RH à valider.</p>
-      <ModuleAvailability snapshot={snapshot} />
+      {/* ── Dossier, état des sources, action prioritaire — avant tout accès secondaire ── */}
+      <DossierContextBar
+        className="mb-4"
+        dossier={{ name: d.societe.raisonSociale, period: `Exercice ${d.societe.exercice}${d.period ? ` · ${d.period.startDate} → ${d.period.closingDate}` : ""}`, id: d.id }}
+        sources={sourceState}
+        priority={priority}
+        engineAction={engineAction}
+      />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}
       <DecisionHeader decision={datasets.decision} onDownloadNote={downloadNote} />
+
+      {/* ── Cycles du dossier : entrées générées depuis le registre ──────── */}
+      <CycleRegistryList rows={cycleRows} className="mb-4" />
+      <details className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
+        <summary className="pbz-focusable cursor-pointer select-none px-4 py-3 text-[14px] font-semibold text-[var(--pb-text)]">Méthode · disponibilité et limites par module</summary>
+        <div className="pb-panel-in border-t border-[var(--pb-border)] px-4 pb-2">
+          <ModuleAvailability snapshot={snapshot} />
+        </div>
+      </details>
+
       <EvidenceExportToolbar synthesis={synthesis} />
       <ReviewEventPanel />
 

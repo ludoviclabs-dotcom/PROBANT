@@ -1,19 +1,28 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { periodId } from "@/lib/workpapers/model";
+import { priorityCycle, projectCycleRows, projectSourceState, sortCycleRows } from "@/lib/dossier/cycle-registry";
 import { ModuleAvailability } from "./ModuleAvailability";
+import { CycleRegistryList } from "./CycleRegistryList";
+import { DossierContextBar } from "./DossierContextBar";
 
 function download(name: string, text: string, mime: string) {
   const url = URL.createObjectURL(new Blob([new TextEncoder().encode(text)], { type: mime }));
   const link = document.createElement("a"); link.href = url; link.download = name; link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+const linkClass = "pbz-focusable text-[13px] text-[var(--pb-accent)] underline-offset-2 hover:underline";
+
+/** Synthèse d'un scénario du laboratoire : mêmes entrées de registre que la Synthèse historique, sans constat DEMO SA. */
 export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
   const [bundle, setBundle] = useState<ReturnType<typeof buildWorkpaperPackage> | null>(null);
   const [message, setMessage] = useState("");
+  const rows = useMemo(() => sortCycleRows(projectCycleRows(snapshot, { synthetic: true })), [snapshot]);
+  const sources = useMemo(() => projectSourceState(snapshot), [snapshot]);
+  const priority = useMemo(() => priorityCycle(rows), [rows]);
   function prepareExport() {
     try {
       if (!snapshot.dossier.period) throw new Error("PÉRIODE_INDISPONIBLE");
@@ -22,22 +31,17 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
       setMessage("Export figé prêt pour ce dossier synthétique.");
     } catch (error) { setBundle(null); setMessage(error instanceof Error ? error.message : "Export indisponible"); }
   }
-  return <main className="min-h-screen bg-[#0b0e13] p-6 text-[#e6edf6]">
-    <h1 className="text-2xl font-semibold">Synthèse du dossier synthétique</h1>
-    <p className="my-3">{snapshot.dossier.societe.raisonSociale} · {snapshot.dossier.id} · {snapshot.dossier.period?.startDate} au {snapshot.dossier.period?.closingDate}</p>
-    <p>Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats ci-dessous proviennent des feuilles exécutées dans l’atelier.</p>
-    <p className="my-4 text-sm"><a className="underline font-semibold" href="/dossier-cloture">Ouvrir le dossier professionnel — programme de travail, contrôle interne et clôture</a> · les feuilles de cycle ci-dessous ne forment pas un audit complet : travaux restants, pièces manquantes et contradictions ; aucune opinion générée.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/resultat-exceptionnel">Résultat exceptionnel · revue par événement</a> · <a className="underline" href="/participations">Participations · droits, distributions et valeur</a></p><p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/capitaux-propres/synthese">Ouvrir la Synthèse — Capitaux propres, feuille décisions et PV versionnés</a> · <a className="underline" href="/capitaux-propres">feuille /capitaux-propres</a> · procédure parallèle à /equity ; aucune conclusion juridique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/fiscal/synthese">Ouvrir la Synthèse fiscale — TVA par période déclarative, IS par exercice</a> · <a className="underline" href="/fiscal">feuille /fiscal</a> · moteurs fiscaux existants, aucune liquidation ni conformité déclarée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/stocks">Ouvrir la feuille Stocks — quantités comptées, mouvements intercalaires, passage inventaire → clôture</a> · stock propre distingué des stocks de tiers ; aucune présence physique certifiée, aucune dépréciation automatique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/provisions">Ouvrir le registre Provisions et engagements — ponts, estimation / écriture, événement / annexe</a> · événements avec ou sans écriture ; contenu confidentiel masqué par le serveur ; aucune issue juridique déduite.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/paie-personnel">Paie · journal, déclarations et paiements</a> · <a className="underline" href="/paie-personnel/conges">Congés · revue indépendante</a> · usage réel bloqué, accès RH à valider.</p>
-      <ModuleAvailability snapshot={snapshot} />
-    <div className="flex flex-wrap gap-5"><Link className="underline" href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className="underline" onClick={prepareExport}>Préparer l’export du dossier</button></div>
-    <p role="status">{message}</p>
-    {bundle && bundle.manifest.sourceSnapshotHash === snapshot.snapshotHash && <div className="my-4 flex gap-4"><button className="underline" onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button className="underline" onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button className="underline" onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}
+  const period = snapshot.dossier.period ? `${snapshot.dossier.period.startDate} → ${snapshot.dossier.period.closingDate}` : "Période indisponible";
+  return <main className="min-h-screen bg-[var(--pb-bg)] p-4 text-[var(--pb-text)] md:p-6">
+    <header className="mb-4">
+      <h1 className="text-2xl font-semibold">Synthèse du dossier synthétique</h1>
+      <p className="mt-1 text-[13px] text-[var(--pb-text-muted)]">Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats proviennent des feuilles exécutées dans le laboratoire.</p>
+    </header>
+    <DossierContextBar className="mb-4" dossier={{ name: snapshot.dossier.societe.raisonSociale, period, id: snapshot.dossier.id }} sources={sources} priority={priority} />
+    <CycleRegistryList rows={rows} synthetic className="mb-4" title="Cycles du scénario" />
+    <ModuleAvailability snapshot={snapshot} />
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2"><Link className={linkClass} href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className={linkClass} onClick={prepareExport}>Préparer l’export du dossier</button></div>
+    <p role="status" className="mt-2 text-[13px] text-[var(--pb-text-muted)]">{message}</p>
+    {bundle && bundle.manifest.sourceSnapshotHash === snapshot.snapshotHash && <div className="my-4 flex flex-wrap gap-x-4 gap-y-2"><button type="button" className={linkClass} onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button type="button" className={linkClass} onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className={linkClass} onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}
   </main>;
 }

@@ -3,9 +3,9 @@ import { expect, test } from "@playwright/test";
 for (const width of [390, 768, 1440]) test(`dossier synthétique, revue, rechargement et export — ${width}px`, async ({ page }) => {
   await page.setViewportSize({ width, height: 900 });
   await page.goto("/dashboard/tests");
-  const workshop = page.getByRole("region", { name: /Atelier des dix cycles/ });
+  const workshop = page.getByRole("region", { name: /Laboratoire de scénarios/ });
   await expect(workshop).toBeVisible();
-  await workshop.getByRole("button", { name: "Ouvrir un dossier synthétique dédié" }).click();
+  await workshop.getByRole("button", { name: "Nouveau scénario synthétique" }).click();
   await expect(workshop).toContainText("SYN-");
   await workshop.getByRole("combobox", { name: "Cycle", exact: true }).selectOption("clients");
   await workshop.getByRole("button", { name: "Exécuter ce cycle" }).click();
