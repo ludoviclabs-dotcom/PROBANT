@@ -1,12 +1,13 @@
 import { spawn } from "node:child_process";
-import { createWriteStream } from "node:fs";
+import { createWriteStream, existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 // Own one direct Next process. No npm shell, reused server, database or remote origin.
-const phase = process.env.PROBANT_C00_PHASE ?? "after";
+const phase = process.env.PROBANT_C00_PHASE ?? `run-${new Date().toISOString().replace(/\D/g, "")}`;
 if (!/^[a-z0-9-]+$/.test(phase)) throw new Error("Invalid evidence phase");
 const output = path.join("docs/recette/c00", phase);
+if (["browser.json", "exit.json"].some(name => existsSync(path.join(output, name)))) throw new Error("Evidence phase already recorded; choose a fresh phase");
 const origin = "http://127.0.0.1:3120";
 await mkdir(output, { recursive: true });
 let occupied = false;
@@ -32,7 +33,7 @@ try {
   const tests = process.argv.slice(2);
   if (!tests.length) throw new Error("Explicit test selection required");
   const runner = spawn(process.execPath, ["node_modules/@playwright/test/cli.js", "test", "--config", "playwright.c00.config.ts", ...tests], {
-    windowsHide: true, shell: false, stdio: "inherit", env: { ...process.env, PROBANT_C00_OWNED_SERVER: "true" },
+    windowsHide: true, shell: false, stdio: "inherit", env: { ...process.env, PROBANT_C00_PHASE: phase, PROBANT_C00_OWNED_SERVER: "true" },
   });
   const code = await new Promise((resolve, reject) => { runner.once("error", reject); runner.once("exit", resolve); });
   await writeFile(path.join(output, "exit.json"), JSON.stringify({ finishedAt: new Date().toISOString(), exitCode: code, selected: tests }, null, 2));
