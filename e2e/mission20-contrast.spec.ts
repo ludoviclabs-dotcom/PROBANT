@@ -18,9 +18,9 @@ test("Mission 20 — mesure du contraste sur huit pages historiques", async ({ p
     await page.evaluate(() => document.fonts.ready);
     await page.addScriptTag({ path: path.join(process.cwd(), "node_modules/axe-core/axe.min.js") });
     const violations = await page.evaluate(async () => {
-      const axe = (window as unknown as { axe: { run(c: unknown, o: unknown): Promise<{ violations: { id: string; impact: string; nodes: { target: string[] }[] }[] }> } }).axe;
+      const axe = (window as unknown as { axe: { run(c: unknown, o: unknown): Promise<{ violations: { id: string; impact: string; nodes: { target: string[]; failureSummary?: string; html: string }[] }[] }> } }).axe;
       const r = await axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] } });
-      return r.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target) }));
+      return r.violations.map(v => ({ id: v.id, impact: v.impact, targets: v.nodes.map(n => n.target), details: v.nodes.map(n => ({ target: n.target, html: n.html, failureSummary: n.failureSummary })) }));
     });
     const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
     measurements.push({ route, width, scrollWidth, violations });
