@@ -34,6 +34,12 @@ import type {
   CoveragePopulationStatus,
   EvidenceBlock,
   ExposureDimension,
+  EffectStage,
+  EffectTarget,
+  EffectDirection,
+  AmountStatus,
+  TaxEffectBlock,
+  NetEffectByTarget,
   Limitation,
   ReviewDimension,
   RiskDimension,
@@ -57,8 +63,6 @@ export const COVERAGE_SUBSTANTIAL_MIN = 0.95;
 export const CLOSED_REVIEW = new Set([
   "valide", "ecarte", "corrige", "confirmed", "dismissed", "corrected", "superseded",
 ]);
-/** Statuts valant validation d'un ajustement. */
-const VALIDATED_REVIEW = new Set(["valide", "corrige", "confirmed", "corrected"]);
 
 export interface SynthesisOptions {
   /** Horloge injectée — ISO 8601. Jamais de Date.now() dans le moteur. */
@@ -264,119 +268,161 @@ export function buildSynthesisSnapshot(
       "HEURISTIQUE historique 100·W/(W+52), conservée comme signal subordonné. N'est jamais le verdict.",
   });
 
-  /* ── 4. Exposure ───────────────────────────────────────────────────────── */
+  /* ── 4. Exposure (C05) ────────────────────────────────────────────────── */
   const { records, withoutEffect } = collectEffects(findings, input.dossier.fecFingerprint);
   const dedup = deduplicateEffects(records);
+  const recordOf = new Map(records.map((r) => [r.findingId, r]));
+  const DISMISSED_REVIEW = new Set(["ecarte", "dismissed", "superseded"]);
+  const CORRECTED_REVIEW = new Set(["corrige", "corrected"]);
+  const PROPOSED_REVIEW = new Set(["valide", "confirmed"]);
+  const signed = (cents: number, direction: EffectDirection) => (direction === "decrease" ? -cents : cents);
 
-  // Exposition revue : clusters dont TOUS les membres ont une revue close.
-  // Ventilation complémentaire du montant retenu de chaque cluster selon le
-  // statut de revue du constat RETENU : écarté / en attente. Ces agrégats
-  // alimentent le waterfall d'exposition — l'UI ne recalcule rien.
   const reviewedParts: number[] = [];
   const dismissedParts: number[] = [];
   const pendingParts: number[] = [];
-  const DISMISSED_REVIEW = new Set(["ecarte", "dismissed"]);
+  const stageMap = new Map<string, EffectStage>();
+  const stageOf = (target: EffectTarget, direction: EffectDirection): EffectStage => {
+    const key = `${target}|${direction}`;
+    let st = stageMap.get(key);
+    if (!st) {
+      st = { target, direction, initialCents: 0, pendingCents: 0, proposedCents: 0, correctedCents: 0, residualCents: 0, indeterminateClusterIds: [] };
+      stageMap.set(key, st);
+    }
+    return st;
+  };
+  /** Effets d'ajustement (proposés ou résiduels après correction partielle) soumis à l'incidence fiscale. */
+  const adjustments: { findingId: string; target: EffectTarget; signedCents: number; proposed: boolean }[] = [];
+
   for (const cluster of dedup.clusters) {
-    const allClosed = cluster.findingIds.every((id) =>
-      CLOSED_REVIEW.has(statusOf.get(id) ?? "en_attente"),
-    );
-    if (allClosed) reviewedParts.push(cluster.retainedCents);
-    // Le montant retenu du cluster suit le statut de son constat retenu
-    // (premier findingId du cluster trié = représentant max_magnitude n'est
-    // pas garanti premier ; on retrouve le retenu par son montant).
-    const retainedId =
-      cluster.findingIds.length === 1
-        ? cluster.findingIds[0]
-        : cluster.findingIds.find((id) => {
-            const r = records.find((x) => x.findingId === id);
-            return r?.effect.amountCents === cluster.retainedCents;
-          }) ?? cluster.findingIds[0];
-    const st = statusOf.get(retainedId) ?? "en_attente";
-    if (DISMISSED_REVIEW.has(st)) dismissedParts.push(cluster.retainedCents);
-    else if (!CLOSED_REVIEW.has(st)) pendingParts.push(cluster.retainedCents);
+    if (cluster.status !== "determined" || cluster.retainedFindingId === null) {
+      // Indéterminé ou en conflit : aucun montant n'alimente une étape ; le détail et les bornes restent dans le cluster.
+      const dirs = new Set(cluster.members.map((m) => m.direction));
+      for (const d of dirs) stageOf(cluster.target, d).indeterminateClusterIds.push(cluster.clusterId);
+      continue;
+    }
+    const r = recordOf.get(cluster.retainedFindingId)!;
+    const amount = cluster.retainedCents ?? 0;
+    const allClosed = cluster.findingIds.every((id) => CLOSED_REVIEW.has(statusOf.get(id) ?? "en_attente"));
+    if (allClosed) reviewedParts.push(amount);
+    const st = statusOf.get(r.findingId) ?? "en_attente";
+    if (DISMISSED_REVIEW.has(st)) {
+      dismissedParts.push(amount);
+      continue;
+    }
+    const stage = stageOf(cluster.target, r.effect.direction);
+    stage.initialCents += amount;
+    if (CORRECTED_REVIEW.has(st)) {
+      const corrected = r.effect.correction?.amountCents ?? amount;
+      stage.correctedCents += corrected;
+      const residual = amount - corrected;
+      stage.residualCents += residual;
+      if (residual > 0) adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(residual, r.effect.direction), proposed: false });
+    } else if (PROPOSED_REVIEW.has(st)) {
+      stage.proposedCents += amount;
+      adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(amount, r.effect.direction), proposed: true });
+    } else if (!CLOSED_REVIEW.has(st)) {
+      pendingParts.push(amount);
+      stage.pendingCents += amount;
+    }
   }
+  const stages = [...stageMap.values()].sort((a, b) => canonicalCompare(`${a.target}|${a.direction}`, `${b.target}|${b.direction}`));
 
-  // Ajustement validé : somme SIGNÉE des effets des constats validés
-  // (les doublons exacts écartés à l'étape 1 ne comptent pas deux fois).
-  const excludedIds = new Set(dedup.excluded.map((e) => e.id));
-  const validatedRecords = records.filter(
-    (r) => VALIDATED_REVIEW.has(statusOf.get(r.findingId) ?? "") && !excludedIds.has(r.findingId),
-  );
-  const validatedAdjustmentCents = sumCents(
-    validatedRecords.map((r) =>
-      r.effect.direction === "decrease" ? -r.effect.amountCents : r.effect.amountCents,
-    ),
-    "ajustement validé",
-  );
-
-  // Effet d'impôt : uniquement sur taux EXPLICITES. Un effet validé sans taux
-  // génère une limitation — jamais un taux implicite.
-  const withRate = validatedRecords.filter((r) => r.effect.taxRatePct !== undefined);
-  const withoutRate = validatedRecords.filter((r) => r.effect.taxRatePct === undefined);
-  const taxEffectCents = sumCents(
-    withRate.map((r) =>
-      applyRatePct(
-        r.effect.direction === "decrease" ? -r.effect.amountCents : r.effect.amountCents,
-        r.effect.taxRatePct as number,
-      ),
-    ),
-    "effet d'impôt",
-  );
+  // Incidence fiscale : taux explicite ET qualification fiscale. Un taux sans qualification ne valide aucun net ;
+  // une différence temporaire attend le moteur fiscal (C10) ; sans taux, inconnu.
+  const taxKnown: { findingId: string; target: EffectTarget; taxCents: number }[] = [];
+  const taxUnknown: { findingId: string; reason: string }[] = [];
+  for (const a of adjustments) {
+    const e = recordOf.get(a.findingId)!.effect;
+    const q = e.taxQualification;
+    if (q === "non_deductible" || q === "reclassification") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: 0 });
+    else if (q === "deductible" && e.taxRatePct !== undefined) taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: applyRatePct(a.signedCents, e.taxRatePct) });
+    else if (q === "temporary_difference") taxUnknown.push({ findingId: a.findingId, reason: "différence temporaire : incidence fiscale à calculer par le moteur fiscal (scénario avant/après), non disponible" });
+    else if (e.taxRatePct === undefined) taxUnknown.push({ findingId: a.findingId, reason: "taux d'impôt absent : incidence fiscale inconnue" });
+    else taxUnknown.push({ findingId: a.findingId, reason: "taux explicite sans qualification fiscale (déductibilité non établie) : aucun net validé" });
+  }
+  const taxStatusOf = (known: number, unknown: number): AmountStatus => (unknown === 0 ? "known" : known === 0 ? "unknown" : "partial");
+  const tax: TaxEffectBlock = {
+    status: adjustments.length === 0 ? "known" : taxStatusOf(taxKnown.length, taxUnknown.length),
+    knownCents: sumCents(taxKnown.map((t) => t.taxCents), "effet d'impôt connu"),
+    knownFindingIds: taxKnown.map((t) => t.findingId),
+    unknown: taxUnknown,
+  };
+  const targets = [...new Set(adjustments.map((a) => a.target))].sort(canonicalCompare);
+  const netByTarget: NetEffectByTarget[] = targets.map((target) => {
+    const mine = adjustments.filter((a) => a.target === target);
+    const knownIds = new Set(taxKnown.filter((t) => t.target === target).map((t) => t.findingId));
+    const unknownCount = mine.filter((a) => !knownIds.has(a.findingId)).length;
+    const taxStatus = taxStatusOf(knownIds.size, unknownCount);
+    const uncorrectedSignedCents = sumCents(mine.map((a) => a.signedCents), `anomalies non corrigées ${target}`);
+    const proposedSignedCents = sumCents(mine.filter((a) => a.proposed).map((a) => a.signedCents), `ajustement proposé ${target}`);
+    const knownTax = sumCents(taxKnown.filter((t) => t.target === target).map((t) => t.taxCents), `impôt connu ${target}`);
+    const knownSubset = sumCents(mine.filter((a) => knownIds.has(a.findingId)).map((a) => a.signedCents), `sous-ensemble connu ${target}`);
+    return {
+      target,
+      proposedSignedCents,
+      uncorrectedSignedCents,
+      taxStatus,
+      netAfterKnownTaxCents: taxStatus === "known" ? uncorrectedSignedCents - knownTax : null,
+      partialNetKnownSubsetCents: knownSubset - knownTax,
+    };
+  });
 
   const exposure: ExposureDimension = {
     grossDetectedExposureCents: dedup.grossCents,
-    deduplicatedExposureCents: dedup.deduplicatedCents,
+    exactRepeatsCents: dedup.exactRepeatsCents,
+    determinedExposureCents: dedup.determinedCents,
+    exposureBoundsCents: dedup.boundsCents,
+    aggregationStatus: dedup.status,
     reviewedExposureCents: sumCents(reviewedParts, "exposition revue"),
     dismissedExposureCents: sumCents(dismissedParts, "exposition écartée"),
     pendingReviewExposureCents: sumCents(pendingParts, "exposition en attente"),
-    validatedAdjustmentCents,
-    taxEffectCents,
-    netFinancialStatementEffectCents: validatedAdjustmentCents - taxEffectCents,
+    stages,
+    tax,
+    netByTarget,
+    taxIncidence: { provider: "none", method: "before_after_is_scenario", pendingFindingIds: taxUnknown.map((t) => t.findingId) },
     byCloison: dedup.byCloison,
     clusters: dedup.clusters,
     findingsWithoutEffect: withoutEffect,
     policy: AGGREGATION_POLICY,
   };
   trace.push({
-    metricId: "exposure.deduplicatedExposureCents",
-    formulaId: "exposure-dedup-pipeline",
+    metricId: "exposure.determinedExposureCents",
+    formulaId: "exposure-identity-pipeline",
     formulaVersion: AGGREGATION_POLICY.version,
     inputs: {
       effectsCollected: records.length,
       clusters: dedup.clusters.length,
       grossCents: dedup.grossCents,
+      exactRepeatsCents: dedup.exactRepeatsCents,
+      boundsCents: `${dedup.boundsCents.minCents}..${dedup.boundsCents.maxCents}`,
+      aggregationStatus: dedup.status,
     },
     excludedItems: [
-      ...withoutEffect.map((id) => ({
-        id,
-        reason: "aucun financialEffect explicite — l'écart mesuré n'est pas présumé être un impact comptable",
-      })),
+      ...withoutEffect.map((id) => ({ id, reason: "aucun financialEffect explicite — l'écart mesuré n'est pas présumé être un impact comptable" })),
       ...dedup.excluded,
+      ...dedup.clusters.filter((c) => c.status !== "determined").map((c) => ({ id: c.clusterId, reason: `${c.status} : ${c.reason ?? ""} (bornes ${c.boundsCents.minCents}..${c.boundsCents.maxCents}, constats ${c.findingIds.join(", ")})` })),
     ],
-    output: dedup.deduplicatedCents,
+    output: dedup.determinedCents,
     unit: "cents",
     rounding: "aucun (centimes entiers de bout en bout)",
     explanation:
-      "Somme des montants retenus par cluster après déduplication exacte puis agrégation max_magnitude ; clusters ambigus inclus de façon conservatrice et marqués review_required.",
+      "Somme des groupes DÉTERMINÉS : répétitions exactes comptées une fois ; même identité à contenus distincts retenue à sa dernière version démontrée, sinon conflit ; écritures partiellement communes sans allocation : indéterminé avec bornes. Aucun maximum n'est présenté comme une somme.",
   });
   trace.push({
-    metricId: "exposure.netFinancialStatementEffectCents",
-    formulaId: "net-effect",
-    formulaVersion: "1.0.0",
+    metricId: "exposure.netByTarget",
+    formulaId: "net-by-target",
+    formulaVersion: "2.0.0",
     inputs: {
-      validatedAdjustmentCents,
-      taxEffectCents,
-      validatedFindings: validatedRecords.map((r) => r.findingId),
+      adjustments: adjustments.map((a) => `${a.findingId}:${a.target}:${a.signedCents}:${a.proposed ? "proposé" : "résiduel"}`),
+      taxKnownFindings: taxKnown.map((t) => t.findingId),
+      taxStatus: tax.status,
     },
-    excludedItems: withoutRate.map((r) => ({
-      id: r.findingId,
-      reason: "effet validé sans taux d'impôt explicite — effet d'impôt non calculé",
-    })),
-    output: validatedAdjustmentCents - taxEffectCents,
+    excludedItems: taxUnknown.map((t) => ({ id: t.findingId, reason: t.reason })),
+    output: netByTarget.map((n) => `${n.target}: proposé ${n.proposedSignedCents}, non corrigé ${n.uncorrectedSignedCents}, net ${n.netAfterKnownTaxCents ?? "inconnu"} (${n.taxStatus})`).join(" ; ") || "aucun ajustement",
     unit: "cents",
     rounding: "effet d'impôt arrondi au centime par effet (applyRatePct)",
     explanation:
-      "Ajustement validé (somme signée : increase = +, decrease = −) diminué de l'effet d'impôt calculé sur les seuls taux explicites.",
+      "Par poste et par sens, jamais additionnés entre postes. Net après impôt seulement si chaque effet du poste a un taux explicite ET une qualification fiscale ; sinon net inconnu, avec un sous-total partiel nommé.",
   });
 
   /* ── 5. Review ─────────────────────────────────────────────────────────── */
@@ -505,13 +551,20 @@ export function buildSynthesisSnapshot(
     });
   }
   for (const cluster of dedup.clusters) {
-    if (cluster.ambiguous) {
+    if (cluster.status !== "determined") {
       limitations.push({
-        code: "source_review_required",
-        message: `Cluster d'exposition ambigu (${cluster.ambiguityReason}) : contribution conservatrice retenue, arbitrage humain requis.`,
+        code: "exposure_indeterminate",
+        message: `Groupe d'effets ${cluster.status === "conflict" ? "en conflit" : "à chevauchement"} (${cluster.reason}) : agrégation indéterminée, bornes ${cluster.boundsCents.minCents}..${cluster.boundsCents.maxCents} centimes, arbitrage humain requis.`,
         subjects: cluster.findingIds,
       });
     }
+  }
+  if (tax.unknown.length > 0) {
+    limitations.push({
+      code: "tax_incidence_unknown",
+      message: `Incidence fiscale inconnue pour ${tax.unknown.length} ajustement(s) : net après impôt non validé (${[...new Set(tax.unknown.map((t) => t.reason))].join(" ; ")}).`,
+      subjects: tax.unknown.map((t) => t.findingId),
+    });
   }
 
   /* ── Verdict — catégoriel, jamais un score ─────────────────────────────── */

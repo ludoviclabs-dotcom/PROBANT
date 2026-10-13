@@ -37,16 +37,16 @@ describe("aucune divergence graphique / snapshot", () => {
 
   it("waterfall : chaque étape égale le champ du snapshot correspondant", () => {
     const byId = Object.fromEntries(datasets.waterfall.steps.map((s) => [s.id, s.amountCents]));
-    expect(byId.gross).toBe(synthesis.exposure.grossDetectedExposureCents);
-    expect(byId.dedup).toBe(synthesis.exposure.deduplicatedExposureCents);
-    expect(byId.duplicates).toBe(
-      -(synthesis.exposure.grossDetectedExposureCents - synthesis.exposure.deduplicatedExposureCents),
-    );
-    expect(byId.dismissed).toBe(-synthesis.exposure.dismissedExposureCents);
-    expect(byId.pending).toBe(-synthesis.exposure.pendingReviewExposureCents);
-    expect(byId.validated).toBe(synthesis.exposure.validatedAdjustmentCents);
-    expect(byId.tax).toBe(-synthesis.exposure.taxEffectCents);
-    expect(byId.net).toBe(synthesis.exposure.netFinancialStatementEffectCents);
+    const e = synthesis.exposure;
+    const res = e.netByTarget.find((n) => n.target === "resultat");
+    expect(byId.gross).toBe(e.grossDetectedExposureCents);
+    expect(byId.repeats).toBe(-e.exactRepeatsCents);
+    expect(byId.determined).toBe(e.determinedExposureCents);
+    expect(byId.dismissed).toBe(-e.dismissedExposureCents);
+    expect(byId.pending).toBe(-e.pendingReviewExposureCents);
+    expect(byId["proposed-resultat"]).toBe(res?.proposedSignedCents ?? 0);
+    expect(byId.tax).toBe(e.tax.status === "unknown" && e.tax.unknown.length ? null : -e.tax.knownCents);
+    expect(byId.net).toBe(res ? res.netAfterKnownTaxCents : 0);
   });
 
   it("waterfall : dédupliqué = écartés + en attente + revus-validés (ventilation exhaustive)", () => {
@@ -54,7 +54,7 @@ describe("aucune divergence graphique / snapshot", () => {
     // Chaque cluster est écarté, en attente, ou clos-non-écarté : la
     // ventilation doit recouvrir exactement l'exposition dédupliquée.
     const closedNotDismissed =
-      e.deduplicatedExposureCents - e.dismissedExposureCents - e.pendingReviewExposureCents;
+      e.determinedExposureCents - e.dismissedExposureCents - e.pendingReviewExposureCents;
     expect(closedNotDismissed).toBeGreaterThanOrEqual(0);
   });
 

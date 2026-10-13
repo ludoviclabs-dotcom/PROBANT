@@ -22,7 +22,7 @@ describe("dossier propre", () => {
     expect(s.coverage.status).toBe("substantial");
     expect(s.risk.totalFindings).toBe(0);
     expect(s.exposure.grossDetectedExposureCents).toBe(0);
-    expect(s.exposure.deduplicatedExposureCents).toBe(0);
+    expect(s.exposure.determinedExposureCents).toBe(0);
     expect(s.review.pct).toBe(0);
     expect(s.verdict.status).toBe("reviewed"); // rien à revoir = revue close
     expect(s.snapshotHash).toMatch(/^[0-9a-f]{64}$/);
@@ -34,7 +34,7 @@ describe("dossier propre", () => {
     expect(ids).toContain("admissibility.status");
     expect(ids).toContain("coverage.status");
     expect(ids).toContain("risk.heuristicSeverityIndex");
-    expect(ids).toContain("exposure.deduplicatedExposureCents");
+    expect(ids).toContain("exposure.determinedExposureCents");
     expect(ids).toContain("review.pct");
     expect(ids).toContain("verdict.status");
     for (const t of s.calculationTrace) {
@@ -127,10 +127,11 @@ describe("doublons exacts", () => {
       }),
     );
     expect(s.exposure.grossDetectedExposureCents).toBe(500_000);
-    expect(s.exposure.deduplicatedExposureCents).toBe(250_000);
+    expect(s.exposure.exactRepeatsCents).toBe(250_000);
+    expect(s.exposure.determinedExposureCents).toBe(250_000);
     // Le doublon écarté est tracé, jamais supprimé en silence.
     const traceExposure = s.calculationTrace.find(
-      (t) => t.metricId === "exposure.deduplicatedExposureCents",
+      (t) => t.metricId === "exposure.determinedExposureCents",
     );
     expect(traceExposure?.excludedItems.some((e) => e.id === "f-2")).toBe(true);
   });
@@ -138,7 +139,7 @@ describe("doublons exacts", () => {
 
 /* ── 5. Constats qui se chevauchent ────────────────────────────────────────── */
 describe("chevauchement", () => {
-  it("deux effets partageant des écritures forment un cluster : max retenu", () => {
+  it("deux effets partageant des écritures (L10/L11 et L11/L12) : agrégation indéterminée, bornes et détail conservés", () => {
     const s = build(
       makeDossierSnapshot({
         findings: [
@@ -154,11 +155,14 @@ describe("chevauchement", () => {
         ],
       }),
     );
-    // Clés différentes (écritures différentes) mais chevauchement sur 11.
+    // Identités différentes (écritures différentes) mais chevauchement sur 11, sans allocation par ligne :
+    // ni 180 000 (max) ni 280 000 (somme) ne décrit l'effet unique.
     expect(s.exposure.clusters).toHaveLength(1);
-    expect(s.exposure.clusters[0].ambiguous).toBe(false);
+    expect(s.exposure.clusters[0]).toMatchObject({ status: "indeterminate", retainedCents: null, boundsCents: { minCents: 180_000, maxCents: 280_000 } });
     expect(s.exposure.grossDetectedExposureCents).toBe(280_000);
-    expect(s.exposure.deduplicatedExposureCents).toBe(180_000);
+    expect(s.exposure.determinedExposureCents).toBe(0);
+    expect(s.exposure.aggregationStatus).toBe("indeterminate");
+    expect(s.exposure.exposureBoundsCents).toEqual({ minCents: 180_000, maxCents: 280_000 });
   });
 });
 
@@ -181,13 +185,13 @@ describe("même compte, effets indépendants", () => {
       }),
     );
     expect(s.exposure.clusters).toHaveLength(2);
-    expect(s.exposure.deduplicatedExposureCents).toBe(170_000);
+    expect(s.exposure.determinedExposureCents).toBe(170_000);
   });
 });
 
 /* ── 7. Sens opposés ───────────────────────────────────────────────────────── */
 describe("sens opposés", () => {
-  it("jamais de compensation silencieuse : cluster ambigu + review_required", () => {
+  it("jamais de compensation silencieuse : sens opposés sur les mêmes écritures ⇒ indéterminé + limitation", () => {
     const s = build(
       makeDossierSnapshot({
         findings: [
@@ -204,13 +208,14 @@ describe("sens opposés", () => {
       }),
     );
     expect(s.exposure.clusters).toHaveLength(1);
-    expect(s.exposure.clusters[0].ambiguous).toBe(true);
-    // Contribution conservatrice (max), pas la somme nette (10 000).
-    expect(s.exposure.deduplicatedExposureCents).toBe(100_000);
+    expect(s.exposure.clusters[0]).toMatchObject({ status: "indeterminate", direction: "mixed", retainedCents: null });
+    // Ni compensation (10 000), ni maximum présenté comme une somme : indéterminé, bornes [100 000, 190 000].
+    expect(s.exposure.determinedExposureCents).toBe(0);
+    expect(s.exposure.clusters[0].boundsCents).toEqual({ minCents: 100_000, maxCents: 190_000 });
     expect(
       s.limitations.some(
         (l) =>
-          l.code === "source_review_required" &&
+          l.code === "exposure_indeterminate" &&
           l.subjects.includes("f-1") &&
           l.subjects.includes("f-2"),
       ),
@@ -234,7 +239,7 @@ describe("constat sans effet financier explicite", () => {
     expect(s.exposure.grossDetectedExposureCents).toBe(0);
     expect(s.exposure.findingsWithoutEffect).toEqual(["f-1"]);
     const trace = s.calculationTrace.find(
-      (t) => t.metricId === "exposure.deduplicatedExposureCents",
+      (t) => t.metricId === "exposure.determinedExposureCents",
     );
     expect(trace?.excludedItems).toEqual([
       expect.objectContaining({ id: "f-1", reason: expect.stringMatching(/financialEffect/) }),
@@ -272,9 +277,11 @@ describe("progression de revue", () => {
     expect(s.verdict.status).toBe("under_review");
     // Seul le cluster f-1 est clos.
     expect(s.exposure.reviewedExposureCents).toBe(100_000);
-    expect(s.exposure.validatedAdjustmentCents).toBe(100_000);
-    expect(s.exposure.taxEffectCents).toBe(25_000);
-    expect(s.exposure.netFinancialStatementEffectCents).toBe(75_000);
+    const res = s.exposure.netByTarget.find((n) => n.target === "resultat")!;
+    expect(res.proposedSignedCents).toBe(100_000);
+    // Taux explicite ET qualification déductible : impôt connu, net validé.
+    expect(s.exposure.tax).toMatchObject({ status: "known", knownCents: 25_000 });
+    expect(res.netAfterKnownTaxCents).toBe(75_000);
   });
 
   it("entièrement revu : verdict reviewed, expositions alignées", () => {
@@ -294,7 +301,7 @@ describe("progression de revue", () => {
     expect(s.verdict.status).toBe("reviewed");
     expect(s.exposure.reviewedExposureCents).toBe(150_000);
     // Écarté ≠ validé : seul f-1 contribue à l'ajustement.
-    expect(s.exposure.validatedAdjustmentCents).toBe(100_000);
+    expect(s.exposure.netByTarget.find((n) => n.target === "resultat")!.proposedSignedCents).toBe(100_000);
   });
 
   it("les événements de revue priment sur le statut porté par le constat", () => {
@@ -305,7 +312,7 @@ describe("progression de revue", () => {
       }),
     );
     expect(s.review.pct).toBe(100);
-    expect(s.exposure.validatedAdjustmentCents).toBe(150_000);
+    expect(s.exposure.netByTarget.find((n) => n.target === "resultat")!.proposedSignedCents).toBe(150_000);
   });
 });
 
@@ -388,14 +395,13 @@ describe("bornes de politiques", () => {
         financialEffect: makeEffect({ amountCents: 100_000, rootCause }),
         lignesSource: lignes,
       });
-    // Même montant, chevauchement sur l'écriture 5, causes distinctes ⇒
-    // ambigu, et le retenu est déterminé par la clé la plus petite — pas par
-    // l'ordre d'arrivée.
+    // Même montant, mêmes écritures, causes distinctes ⇒ identités distinctes en chevauchement :
+    // indéterminé, et le résultat ne dépend pas de l'ordre d'arrivée.
     const a = build(makeDossierSnapshot({ findings: [mk("f-1", [5], "aaa"), mk("f-2", [5], "bbb")] }));
     const b = build(makeDossierSnapshot({ findings: [mk("f-2", [5], "bbb"), mk("f-1", [5], "aaa")] }));
-    expect(a.exposure.deduplicatedExposureCents).toBe(100_000);
+    expect(a.exposure.determinedExposureCents).toBe(0);
+    expect(a.exposure.clusters[0]).toMatchObject({ status: "indeterminate", boundsCents: { minCents: 100_000, maxCents: 200_000 } });
     expect(a.snapshotHash).toBe(b.snapshotHash);
-    expect(a.exposure.clusters[0].ambiguous).toBe(true);
   });
 
   it("limitations : contrôles non exécutés et non conclusifs générés", () => {

@@ -20,6 +20,8 @@ const SEVERITY_LABELS: [string, string][] = [
   ["informatif", "informatif(s)"],
 ];
 
+const TARGET_LABELS: Record<string, string> = { resultat: "Résultat", bilan_actif: "Bilan — actif", bilan_passif: "Bilan — passif", capitaux_propres: "Capitaux propres", presentation: "Présentation" };
+
 const LIMITATION_LABEL: Record<Limitation["code"], string> = {
   limited_upload_comparison: "Comparaison limitée aux documents fournis",
   missing_document: "Document manquant",
@@ -30,6 +32,8 @@ const LIMITATION_LABEL: Record<Limitation["code"], string> = {
   coverage_unqualified: "Couverture non qualifiée",
   parser_warning: "Avertissement de parsing",
   source_review_required: "Source en revue requise",
+  exposure_indeterminate: "Exposition indéterminée",
+  tax_incidence_unknown: "Incidence fiscale inconnue",
   internal_threshold: "Seuil interne non opposable",
   unsupported_format: "Format non pris en charge",
 };
@@ -121,17 +125,30 @@ export function generateSynthesisNote(
   push(`| Agrégat | Montant |`);
   push(`|---|---|`);
   push(`| Exposition brute détectée | ${formatCents(s.exposure.grossDetectedExposureCents)} |`);
-  push(`| Exposition dédupliquée | ${formatCents(s.exposure.deduplicatedExposureCents)} |`);
+  push(`| Répétitions exactes (comptées une fois) | ${formatCents(s.exposure.exactRepeatsCents)} |`);
+  push(`| Exposition déterminée | ${formatCents(s.exposure.determinedExposureCents)}${s.exposure.aggregationStatus === "indeterminate" ? ` (bornes totales ${formatCents(s.exposure.exposureBoundsCents.minCents)} à ${formatCents(s.exposure.exposureBoundsCents.maxCents)})` : ""} |`);
   push(`| Exposition revue | ${formatCents(s.exposure.reviewedExposureCents)} |`);
-  push(`| Ajustement validé | ${formatCents(s.exposure.validatedAdjustmentCents)} |`);
-  push(`| Effet d'impôt | ${formatCents(s.exposure.taxEffectCents)} |`);
-  push(`| Effet net sur les états financiers | ${formatCents(s.exposure.netFinancialStatementEffectCents)} |`);
   push();
-  const ambiguous = s.exposure.clusters.filter((c) => c.ambiguous);
-  if (ambiguous.length > 0) {
+  push(`Effets par poste et par sens (jamais additionnés entre postes) :`);
+  push();
+  push(`| Poste | Sens | Initial | En attente | Proposé | Corrigé | Résiduel |`);
+  push(`|---|---|---|---|---|---|---|`);
+  for (const st of s.exposure.stages) {
+    push(`| ${TARGET_LABELS[st.target]} | ${st.direction === "increase" ? "augmentation" : "diminution"} | ${formatCents(st.initialCents)} | ${formatCents(st.pendingCents)} | ${formatCents(st.proposedCents)} | ${formatCents(st.correctedCents)} | ${formatCents(st.residualCents)}${st.indeterminateClusterIds.length ? ` (+ ${st.indeterminateClusterIds.length} groupe(s) indéterminé(s))` : ""} |`);
+  }
+  if (s.exposure.stages.length === 0) push(`| — | — | — | — | — | — | — |`);
+  push();
+  for (const n of s.exposure.netByTarget) {
     push(
-      `${ambiguous.length} cluster(s) d'effets ambigus (contribution conservatrice retenue, arbitrage humain requis) : ${ambiguous
-        .map((c) => c.findingIds.join(" / "))
+      `${TARGET_LABELS[n.target]} : ajustement proposé ${formatCents(n.proposedSignedCents)}, anomalies non corrigées ${formatCents(n.uncorrectedSignedCents)} ; incidence fiscale ${n.taxStatus === "known" ? "connue" : n.taxStatus === "partial" ? "partiellement connue" : "inconnue"} ; net après impôt ${n.netAfterKnownTaxCents === null ? `inconnu (sous-total partiel sur les seuls effets qualifiés : ${formatCents(n.partialNetKnownSubsetCents)})` : formatCents(n.netAfterKnownTaxCents)}.`,
+    );
+  }
+  if (s.exposure.netByTarget.length > 0) push();
+  const undetermined = s.exposure.clusters.filter((c) => c.status !== "determined");
+  if (undetermined.length > 0) {
+    push(
+      `${undetermined.length} groupe(s) d'effets non déterminés (détail conservé, arbitrage humain requis) : ${undetermined
+        .map((c) => `${c.findingIds.join(" / ")} — ${c.status === "conflict" ? "conflit" : "chevauchement"}, bornes ${formatCents(c.boundsCents.minCents)} à ${formatCents(c.boundsCents.maxCents)}`)
         .join(" ; ")}.`,
     );
     push();
