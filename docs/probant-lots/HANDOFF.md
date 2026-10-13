@@ -7,7 +7,7 @@
 - **Problème.** Le registre PCG (`data/pcg/requirements.yml`, 14/08/2026) écartait ANC 2024-07 « absent de la page consultée », laissait ANC 2026-03 et 2026-04 sans date d'effet, tandis que `exceptional-dossier.ts` codait en dur des dates plus récentes et la numérotation 513-5 / 531-5. `GUIDE_REFERENCE` annonçait une V1.1 de 138 pages dont le fichier est absent ; une V1.0 de 117 pages et un fichier de 120 pages circulent avec une autre pagination.
 - **Vue.** Un résolveur partagé (`lib/knowledge/french-gaap.ts`) : par texte, adoption / homologation / publication / effet / première période / anticipation / champ contractuel ; par période, statut de chaque texte et numérotation d'article par sujet. Quatre couches nommées et séparées (source officielle normative, commentaire doctrinal, méthode interne, pièce de dossier).
 - **Données.** PDF homologués de l'ANC lus le 13/10/2026 (empreintes SHA-256, pages), page officielle des règlements, annonce officielle d'effet de 2026-04 ; fichiers locaux du guide (empreintes, pieds de page).
-- **Interactions.** Aucune nouvelle interaction : `ExceptionalWorkspace` affiche l'article résolu ; `ModuleAvailability` liste les éditions du guide ; l'export du dossier embarque la résolution.
+- **Interactions.** Aucune nouvelle interaction : `ExceptionalWorkspace` affiche l'article résolu ; `ModuleAvailability` liste les éditions du guide ; l'export du dossier embarque le calendrier des textes.
 
 ## Changements
 
@@ -17,7 +17,7 @@
 
 **Moteur** — `lib/workpapers/exceptional-dossier.ts` : dates et numérotation lues dans le résolveur (`frenchGaapText`), porte inchangée, `textId` ajouté au résultat. `fiscal-rules.ts` inchangé (registre fiscal distinct) ; la comptabilisation de l'impôt (515-1 → 542-1) est résolue par le sujet `income_tax`.
 
-**Guide** — `lib/workpapers/availability.ts` : `GUIDE_EDITIONS` (V1.1 138 p. déclarée, fichier absent ; deux extraits locaux V1.1 ; V1.0 117 p. complète ; V1.0 120 p. signalée, introuvable), `GUIDE_REFERENCE.editionId` / `pagesVerified: false`. `components/probant/ModuleAvailability.tsx` : éditions listées, pages non vérifiées. `lib/workpapers/package.ts` : `frenchGaap` et `guide.editions` dans le manifeste.
+**Guide** — `lib/workpapers/availability.ts` : `GUIDE_EDITIONS` (V1.1 138 p. déclarée, fichier absent ; deux extraits locaux V1.1 ; V1.0 117 p. complète ; V1.0 120 p. signalée, introuvable), `GUIDE_REFERENCE.editionId` / `pagesVerified: false`. `components/probant/ModuleAvailability.tsx` : éditions listées, pages non vérifiées. `lib/workpapers/package.ts` : `frenchGaapTexts` (calendrier des textes, sans résolution d'applicabilité par défaut : option et profil ne sont connus que du pack de chaque feuille verrouillée) et `guide.editions` dans le manifeste.
 
 **Docs** — `docs/knowledge/REVIEW_REQUIRED.md` (R-08, R-09 résolus, index mis à jour), `docs/knowledge/COVERAGE_REPORT.md` (passage corrigé), `docs/mission-c04/REGISTRE_CORRECTIONS.md`, `docs/probant-lots/C04_PR.md`.
 
