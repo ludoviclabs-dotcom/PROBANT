@@ -222,18 +222,24 @@ preuve.
   bénéfices ; entrée en vigueur le lendemain de la publication au JO,
   applicable aux exercices en cours à cette date.
 
-**Explicitement écarté.** Un résumé de moteur de recherche attribuait à un
-règlement « ANC 2024-07 » une ligne obligatoire « autres fonds propres »
-applicable aux exercices ouverts à compter du 01/01/2026. **Ce règlement ne
-figure pas** sur la page officielle des règlements de l'ANC consultée le
-14/08/2026, qui liste pour 2024 le règlement 2024-02 (certificats d'économies
-d'énergie). L'information n'a pas été reprise ; elle est consignée en attente
-de vérification (`REVIEW_REQUIRED.md`, R-08).
+**Corrigé le 13/10/2026 (Mission C04).** La version du 14/08/2026 de ce rapport
+affirmait qu'un règlement « ANC 2024-07 » ne figurait pas sur la page
+officielle des règlements de l'ANC et écartait l'information. Le règlement
+ANC n° 2024-07 du 6 décembre 2024 (distinction dettes – autres fonds propres)
+existe : homologué par arrêté du 26/12/2025, JO du 27/12/2025, il figure sur la
+page officielle consultée le 13/10/2026 et son texte homologué a été lu
+(13 pages). Il s'applique aux exercices ouverts à compter du 01/01/2026 avec
+anticipation possible (art. 6). Une absence de résultat de consultation ne
+prouvait pas l'absence du texte ; la conduite correcte était « non vérifié, à
+lire ». Indexé dans `requirements.yml` (`anc-2024-07-autres-fonds-propres`).
 
-**Non vérifié :** les dates d'homologation et d'entrée en vigueur de ANC 2026-03
-et 2026-04. `effectiveFrom` vaut `null` plutôt qu'une date supposée. Pour
-2026-04, la *règle* d'entrée en vigueur est connue mais la *date* de publication
-au JO ne l'est pas — la règle ne suffit donc pas à calculer la date.
+**Vérifié le 13/10/2026 :** ANC 2026-03 et 2026-04 sont homologués par arrêté
+du 12/08/2026, JO du 03/09/2026. 2026-03 (art. 4) : exercices ouverts dès le
+01/01/2027, anticipation sur l'exercice en cours à la publication, champ
+contractuel (contrats de vente conclus ou renouvelés après l'entrée en
+vigueur) ; renumérotation 531-5 / 542-1 rattachée à cette version. 2026-04 :
+effet le 04/09/2026 et application aux exercices en cours selon l'annonce
+officielle de l'ANC. Détail et empreintes : `docs/mission-c04/REGISTRE_CORRECTIONS.md`.
 
 ---
 
