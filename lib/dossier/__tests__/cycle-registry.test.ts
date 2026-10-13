@@ -4,6 +4,9 @@ import { CYCLE_REGISTRY, priorityCycle, projectCycleRows, projectSourceState, so
 import { CL_CYCLES, CL_ENGINE_PROCEDURES } from "@/lib/workpapers/closing-contract";
 import { appendDemoEvent, createDemoRecord, syntheticBaseline } from "@/lib/workpapers/browser-demo";
 import { demoCycleSchema } from "@/lib/workpapers/demo-cycles";
+import { appendReviewDecisionToSnapshot } from "../snapshot-state";
+import { CLIENT_FRAME_TEMPLATE } from "@/lib/workpapers/clients-adapter";
+import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 
 describe("registre des cycles — projection C02 des manifestes existants", () => {
   it("couvre chaque cycle du contrat de clôture une seule fois, et chaque procédure outillée est rattachée à son cycle", () => {
@@ -27,6 +30,23 @@ describe("registre des cycles — projection C02 des manifestes existants", () =
     expect(sources.synthetic).toBe(false);
     expect(sources.fecFingerprint).toBe(snapshot.dossier.fecFingerprint);
     expect(sources.workpapers.planned).toBe(0);
+  });
+  it("un constat bloquant fermé par la chaîne de revue ne compte plus comme ouvert (même règle que le moteur)", () => {
+    const snapshot = buildDemoDossierSnapshot();
+    const before = projectCycleRows(snapshot);
+    const row = before.find(r => r.gaps.openBlocking > 0)!;
+    const blocking = snapshot.findings.find(f => row.entry.silos.includes(f.siloId) && f.severity === "bloquant")!;
+    const reviewed = appendReviewDecisionToSnapshot(snapshot, { id: "ev-1", findingId: blocking.id, actorId: "reviewer", actorRole: "reviewer", newStatus: "dismissed", comment: "Écarté après vérification", relatedEvidenceIds: [], createdAt: "2026-10-13T00:00:00.000Z" });
+    const after = projectCycleRows(reviewed).find(r => r.entry.id === row.entry.id)!;
+    expect(after.gaps.openBlocking).toBe(row.gaps.openBlocking - 1);
+  });
+  it("une feuille durable d'une procédure outillée (clients.frame) est rattachée à son cycle", () => {
+    const base = syntheticBaseline("SYN-durable");
+    const run: WorkpaperRun = { id: "frame-1", rootId: "frame-1", revision: 1, version: 2, schemaVersion: "1.0.0", scope: { organizationId: "SYNTHETIC-DEMO", dossierId: "SYN-durable", periodId: periodId(base.dossier.period!), mode: "demo" },
+      period: base.dossier.period!, template: CLIENT_FRAME_TEMPLATE, state: "awaiting_review", preparedBy: "preparer", importIds: [], evidence: [], findings: [], notes: [], events: [] };
+    const clients = projectCycleRows({ ...base, workpapers: { version: "1.0.0", runs: [run] } }).find(r => r.entry.id === "clients")!;
+    expect(clients.status).toBe("review");
+    expect(clients.runs.map(r => r.id)).toEqual(["frame-1"]);
   });
   it("dossier synthétique vide : aucun constat DEMO SA n'est repris, la prochaine action est un scénario", () => {
     const rows = projectCycleRows(syntheticBaseline("SYN-test"));

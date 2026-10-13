@@ -4,6 +4,8 @@ import type { WorkpaperState } from "@/lib/workpapers/model";
 import { CL_CYCLE_LABELS, CL_ENGINE_PROCEDURES, type ClosingCycle, type EngineProcedureId } from "@/lib/workpapers/closing-contract";
 import { MODULE_MANIFEST } from "@/lib/workpapers/availability";
 import { summarizeWorkpapers } from "@/lib/workpapers/mission-summary";
+import { statusAfterReviewEvents } from "@/lib/dossier/review";
+import { CLOSED_REVIEW } from "@/lib/synthesis/engine";
 
 /**
  * Registre des cycles — projection C02.
@@ -250,12 +252,14 @@ export function projectCycleRows(snapshot: DossierSnapshot, options: { synthetic
   const historical = synthetic ? [] : snapshot.findings;
   const hasHistorical = historical.length > 0;
   return CYCLE_REGISTRY.map(entry => {
-    const templates = new Set(entry.workshop.map(w => `demo.cycle.${w}`));
+    // Feuilles du laboratoire (`demo.cycle.*`) et feuilles durables des procédures outillées du cycle.
+    const templates = new Set<string>([...entry.workshop.map(w => `demo.cycle.${w}`), ...entry.procedures]);
     const runs = summary.rows
       .filter(r => templates.has(templateById.get(r.id) ?? ""))
       .map(r => ({ id: r.id, state: r.state, revision: r.revision, stale: r.stale, exceptions: r.presentation.exceptions, blocked: r.blocked }));
     const findings = findingsOf(historical, entry.silos);
-    const openBlocking = historical.filter(f => entry.silos.includes(f.siloId) && f.severity === "bloquant" && f.statutRevue === "en_attente").length;
+    // Même règle que le moteur de Synthèse : statut effectif après la chaîne d'événements de revue, jamais le seul statut d'origine.
+    const openBlocking = historical.filter(f => entry.silos.includes(f.siloId) && f.severity === "bloquant" && !CLOSED_REVIEW.has(statusAfterReviewEvents(f, snapshot.reviewEvents))).length;
     const gaps: CycleRowGaps = { exceptions: runs.length ? runs.reduce((n, r) => n + r.exceptions, 0) : null, findings, openBlocking };
 
     const lead = [...runs].sort((a, b) => STATE_RANK[b.state] - STATE_RANK[a.state] || b.revision - a.revision)[0];

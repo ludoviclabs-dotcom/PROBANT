@@ -503,7 +503,8 @@ export default function SynthesePage() {
 
       {/* ── Cycles du dossier : entrées générées depuis le registre ──────── */}
       <CycleRegistryList rows={cycleRows} className="mb-4" />
-      <details className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
+      {/* Ouvert dès qu'une feuille existe : les ancres de preuve `#wp-<id>` des lignes de cycle pointent dans ce volet. */}
+      <details open={cycleRows.some((r) => r.runs.length > 0) || undefined} className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
         <summary className="pbz-focusable cursor-pointer select-none px-4 py-3 text-[14px] font-semibold text-[var(--pb-text)]">Méthode · disponibilité et limites par module</summary>
         <div className="pb-panel-in border-t border-[var(--pb-border)] px-4 pb-2">
           <ModuleAvailability snapshot={snapshot} />
