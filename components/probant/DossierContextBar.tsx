@@ -42,7 +42,7 @@ export function DossierContextBar({ dossier, sources, priority, engineAction, cl
           <li>Feuilles : <span className="text-[var(--pb-text)]">{wp.executed}</span>/{wp.planned} exécutée{wp.executed > 1 ? "s" : ""} · {wp.locked} verrouillée{wp.locked > 1 ? "s" : ""} · {wp.blocked} bloquée{wp.blocked > 1 ? "s" : ""}</li>
         </ul>
       </section>
-      <section aria-label="Action prioritaire" style={{ borderLeftColor: "var(--pb-accent)" }} className={cn(cell, "border-l-[3px]")}>
+      <section aria-label="Action prioritaire" className={cn(cell, "border-l-[3px] border-l-[color:var(--pb-accent)]")}>
         <div className={eyebrow}>Action prioritaire</div>
         {priority ? (
           <>

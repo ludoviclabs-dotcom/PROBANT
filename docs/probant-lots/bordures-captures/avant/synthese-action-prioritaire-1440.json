@@ -1,0 +1,8 @@
+{
+ "phase": "avant",
+ "width": 1440,
+ "left": "rgb(91, 157, 255)",
+ "top": "rgb(36, 48, 68)",
+ "inline": "border-left-color: var(--pb-accent);",
+ "badgeColor": "rgb(36, 48, 68)"
+}

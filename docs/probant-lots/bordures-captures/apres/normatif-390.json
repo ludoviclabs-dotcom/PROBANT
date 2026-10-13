@@ -1,0 +1,52 @@
+{
+ "page": "normatif",
+ "path": "/normatif",
+ "width": 390,
+ "phase": "apres",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Contenu à valider",
+   "tokens": [
+    "border-[#eab308]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)"
+   ]
+  },
+  {
+   "tag": "div",
+   "text": "Caveat normatif. Les pourcentages de matérialité et les born",
+   "tokens": [
+    "border-[#eab308]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)"
+   ]
+  }
+ ],
+ "stillDefault": 0,
+ "axeSerious": {},
+ "scrollWidth": 390,
+ "clientWidth": 390
+}

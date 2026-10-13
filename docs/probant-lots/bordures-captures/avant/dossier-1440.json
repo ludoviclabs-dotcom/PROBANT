@@ -1,0 +1,1752 @@
+{
+ "page": "dossier",
+ "path": "/dashboard/dossier",
+ "width": 1440,
+ "phase": "avant",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Demo",
+   "tokens": [
+    "border-[#3b82f6]/50"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 260ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 340ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 420ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 500ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Paramètre interne",
+   "tokens": [
+    "border-[#075985]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 580ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 660ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 740ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 820ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 900ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 980ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Paramètre interne",
+   "tokens": [
+    "border-[#075985]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1060ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1140ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Paramètre interne",
+   "tokens": [
+    "border-[#075985]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1220ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1300ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1380ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Paramètre interne",
+   "tokens": [
+    "border-[#075985]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présomption d'audit",
+   "tokens": [
+    "border-[#4c1d95]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Obligatoire",
+   "tokens": [
+    "border-[#7f1d1d]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "✓ Sourcé",
+   "tokens": [
+    "border-[#22c55e]/40"
+   ],
+   "inlineStyle": "animation: 0.3s ease 1460ms 1 normal both running pbFadeIn;",
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  }
+ ],
+ "stillDefault": 87,
+ "axeSerious": {},
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}

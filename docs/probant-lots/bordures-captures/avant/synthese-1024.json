@@ -1,0 +1,572 @@
+{
+ "page": "synthese",
+ "path": "/dashboard/synthese",
+ "width": 1024,
+ "phase": "avant",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Demo",
+   "tokens": [
+    "border-[#3b82f6]/50"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Provisions et engagementsConstats historiques2 constat(s) DE",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Arbitrer 1 constat bloquant",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Clients et ventesConstats historiques8 constat(s) DEMO SA · ",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Cadrage Clients",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Achats et fournisseursConstats historiques6 constat(s) DEMO ",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille Achats et fournisseurs",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "TrésorerieConstats historiques4 constat(s) DEMO SA · revue p",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille Trésorerie",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "ImmobilisationsConstats historiques7 constat(s) DEMO SA · re",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille Immobilisations",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "StocksConstats historiques4 constat(s) DEMO SA · revue par c",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille Stocks",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Capitaux propresConstats historiques3 constat(s) DEMO SA · r",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille Capitaux propres",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "TVA et ISConstats historiques3 constat(s) DEMO SA · revue pa",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Feuille fiscale",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Paie et personnelConstats historiques3 constat(s) DEMO SA · ",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Paie · journal, déclarations et paiements",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Résultat exceptionnelConstats historiques1 constat(s) DEMO S",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Résultat exceptionnel · revue par événement",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Dettes financièresConstats historiques1 constat(s) DEMO SA ·",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Poursuivre la revue par cloison",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "ParticipationsSource requiseAucun constat historique : feuil",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Participations · droits, distributions et valeur",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Transversal et clôtureSource requiseAucun constat historique",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Ouvrir Dossier professionnel — programme de travail, contrôl",
+   "tokens": [
+    "border-[var(--pb-accent)]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "tr",
+   "text": "Systèmes d’informationHors périmètrePas de moteur ITGCContrô",
+   "tokens": [
+    "border-[var(--pb-border-soft)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "0px",
+    "0px",
+    "1px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  }
+ ],
+ "stillDefault": 28,
+ "axeSerious": {},
+ "scrollWidth": 1024,
+ "clientWidth": 1024
+}

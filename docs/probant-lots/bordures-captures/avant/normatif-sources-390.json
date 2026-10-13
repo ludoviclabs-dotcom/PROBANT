@@ -1,0 +1,32 @@
+{
+ "page": "normatif-sources",
+ "path": "/normatif/sources",
+ "width": 390,
+ "phase": "avant",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Contenu à valider",
+   "tokens": [
+    "border-[#eab308]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  }
+ ],
+ "stillDefault": 1,
+ "axeSerious": {},
+ "scrollWidth": 390,
+ "clientWidth": 390
+}

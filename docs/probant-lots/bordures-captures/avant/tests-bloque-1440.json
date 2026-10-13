@@ -1,0 +1,7 @@
+{
+ "phase": "avant",
+ "width": 1440,
+ "left": "rgb(245, 158, 11)",
+ "top": "color(srgb 0.960784 0.619608 0.0431373 / 0.5)",
+ "inline": "border-top-color: ; border-right-color: ; border-bottom-color: ; border-left-color: var(--pb-warn);"
+}

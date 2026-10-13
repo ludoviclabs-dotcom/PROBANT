@@ -1,3 +1,81 @@
+# Handoff — Lot transversal « bordures » : stratification de la règle `* { border-color }` (2026-10-13)
+
+**Base.** `main` `f846424` (fusion de la PR #75, Mission C03). Branche `claude/quizzical-boyd-13e46a`, worktree `quizzical-boyd-13e46a`. Correction globale différée par C02 (voir plus bas « Défaut global constaté, non corrigé ici »). Aucun push, aucun déploiement.
+
+## Cause
+
+`app/globals.css` posait `* { border-color: var(--pb-border) }` hors de toute `@layer` (présent depuis le MVP, `644e92f`). Avec Tailwind v4 (`@import "tailwindcss"`, 4.3.3), les utilitaires vivent dans `@layer utilities` ; en cascade CSS, toute déclaration non stratifiée l'emporte sur une déclaration stratifiée quelle que soit la spécificité. Toute classe `border-<couleur>` de l'application (`border-amber-500/40`, `border-[#eab308]/40`, `border-[var(--pb-accent)]`, `border-l-[color:var(--pb-accent)]`, …) était donc compilée puis silencieusement neutralisée ; seul un style inline fonctionnait, ce que C02 avait fait pour l'action prioritaire et la feuille bloquée.
+
+**Reproduction sur le build de production** (`next build` puis `next start`, Chromium Playwright, `getComputedStyle`) : CSS compilé de `main` → `*{border-color:var(--pb-border)}` après `:root`, hors `@layer`, utilitaires dans `@layer utilities` ; relevé « avant » ([bordures-captures/avant](bordures-captures/)) : sur 11 vues × 3 largeurs, **chaque** élément visible portant une classe de bordure colorée restait à `rgb(36, 48, 68)` (`--pb-border`) sur toutes ses faces (ex. Dossier & preuve : 87/87 à chaque largeur ; Cartographie des risques : 155/155 ; Synthèse : 28/28 ; Tests : 41/41). Les deux sondes C02 ne portaient leur couleur que par l'attribut `style` (`border-left-color: var(--pb-accent)` ; `border-left-color: var(--pb-warn)`).
+
+## Changements
+
+- `app/globals.css` : la règle est déplacée dans `@layer base { * { border-color: var(--pb-border); } }`, avec un commentaire expliquant pourquoi. Elle reste la valeur par défaut (elle suit le preflight Tailwind dans la même couche, donc l'emporte sur son `border: 0 solid`) et passe sous les utilitaires. CSS compilé vérifié : `…*{border-color:var(--pb-border)}}@layer components;@layer utilities{…`.
+- `components/probant/DossierContextBar.tsx` : « Action prioritaire » — `style={{ borderLeftColor }}` retiré, classe `border-l-[color:var(--pb-accent)]`.
+- `components/probant/CycleDemonstration.tsx` : feuille bloquée — `style={{ borderColor: color-mix(…), borderLeftColor }}` retiré, classes `border-[var(--pb-warn)]/50 border-l-[color:var(--pb-warn)]` (Tailwind compile l'opacité en `color-mix(in oklab, …)` ; l'ordre `border-color` puis `border-left-color` est vérifié dans le CSS compilé) ; message d'erreur — `style` retiré, classe `border-l-[color:var(--pb-warn)]` dans la branche `error`.
+- `e2e/bordures-stratifiees.spec.ts` (nouveau) : inventaire des bordures colorées par vue et largeur (couleurs calculées, dette axe serious/critical, largeur de défilement, captures courtes et longues), sondes C02 sans style inline, et garde-fou « aucune classe de bordure colorée encore ignorée » ; `BORDURES_PHASE=avant` rejoue le relevé sans assertion de preuve.
+
+Aucun autre composant modifié : les classes existantes se réactivent telles que leurs auteurs les ont écrites.
+
+## Recensement des bordures qui se réactivent
+
+Occurrences dans `app/` et `components/` (hors `border-[var(--pb-border)]`, 176 occurrences, visuellement sans effet), relevées par grep sur les jetons `border-[…]`, `border-amber`, `border-red`, `border-sky`, `border-current` et leurs variantes de face.
+
+| Jeton | Occ. | Où (principaux) | Effet visible après |
+|---|---|---|---|
+| `border-[var(--pb-border-strong)]` | 28 | boutons secondaires, champs, `FindingDrawer`, `RecentDossiers` | contour un ton plus clair (#324563) |
+| `border-[var(--pb-accent)]` et `/30 /40 /50 /60` | 36 | onglets actifs, étapes courantes, pastilles et boutons d'action (`CycleRegistryList`, `SimulationPanel`, `DocumentToolbar`, `RiskMappingView`, `normatif/*`) | accent indigo franc ou tamisé |
+| `border-[var(--pb-border-soft)]` | 14 | `CycleRiskPanel`, `RiskMatrixHeatmap`, lignes de `CycleRegistryList` | contour plus discret (#1c2635) |
+| `border-[#eab308]` et `/30 /40` | 9 | bandeaux d'avertissement normatif (`normatif/*`, `MaterialityPanel`, `DepotView`, `FindingDrawer`), gravité mineure | ambre tamisé sur fond `#292207` |
+| `border-amber-500/40 /50`, `border-amber-600` | 6 | `CycleRiskPanel` (« Fichier manquant »), `RiskMappingView`, conflit `ClientFramingWorkspace` | ambre tamisé |
+| `border-[#ef4444]` et `/30 /50`, `border-red-500(/60)` | 10 | gravité bloquante, erreurs de dépôt, validation des seuils (`CycleRiskPanel`), boutons de rejet | rouge sémantique |
+| `border-[#22c55e]` et `/30 /40` | 6 | « Sourcé », succès de dépôt, boutons d'acceptation | vert sémantique |
+| `border-[#3b82f6]` et `/30 /50` | 4 | pastille source du bandeau (`dashboard/layout`), gravité informative, bandeau `CloisonsViewLive` | bleu tamisé |
+| `border-[#7f1d1d]`, `border-[#4c1d95]`, `border-[#075985]` | 3 | `FamilyBadge` (Obligatoire / Présomption d'audit / Paramètre interne), rendu sur Dossier & preuve, Tests, Cloisons | contour sombre de la famille |
+| `border-sky-500/40`, `border-[#f97316]`, `border-[var(--pb-majeur)]/50`, `border-[var(--pb-ok)]/40`, `border-current`, `color-mix(…accent…)` | 6 | `CycleRiskPanel`, gravité majeure, `CycleRegistryList`, `ModeTabs`, `DepotView` | couleur du jeton |
+
+Les variantes `hover:`/`focus:` (`hover:border-[var(--pb-border-strong)]`, `focus:border-[var(--pb-accent)]`, `hover:border-[#22c55e]`, …) deviennent aussi effectives : survol et focus des champs et boutons changent désormais de contour.
+
+## Vérification aux largeurs 390 / 1024 / 1440 (build de production)
+
+Vues relevées : Synthèse, Tests, Cartographie des risques, Revue par cloison, Dépôt, Dossier & preuve, Fiscalité, Normatif (accueil, cycle achats-charges-externes, sources), Onboarding.
+
+| Contrôle | Résultat |
+|---|---|
+| Classe de bordure colorée encore ignorée (`stillDefault`) | 0 sur les 33 relevés (avant : 100 % des éléments relevés) |
+| Sonde « Action prioritaire » | `borderLeftColor` `rgb(91, 157, 255)` aux trois largeurs, attribut `style` absent (avant : même couleur, par style inline) |
+| Sonde « feuille bloquée » | `borderLeftColor` `rgb(245, 158, 11)`, faces latérales ambre à 50 % (`oklab(… / 0.5)`), `style` absent |
+| Pastille source du bandeau (`border-[#3b82f6]/50`) | bleu à 50 % (avant : `--pb-border`) |
+| Dette axe serious/critical (document entier) | identique avant / après sur chaque vue et largeur : 0 partout sauf `link-name` ×5 sur la page cycle normatif (préexistant, liens sans nom accessible, hors lot) ; aucune violation `color-contrast` ajoutée — les bordures ne portent pas de texte |
+| `e2e/accessibility.spec.ts` (dette serious gelée) | 8/8 |
+| `e2e/c02-finition.spec.ts` (dont `borderLeftColor` de la feuille bloquée) | 14/14 |
+| `e2e/c03-assertions.spec.ts`, `e2e/demo-journey.spec.ts` | 6/6, 4/4 |
+| `e2e/bordures-stratifiees.spec.ts` | 39/39 |
+| Débordement horizontal | nul partout sauf Onboarding à 390 px : 448 px avant comme après sous Windows, 454 px sous Linux CI (préexistant, hors lot, gelé dans le spec via `KNOWN_OVERFLOW`) |
+| Lint, typecheck, `next build` | OK |
+
+Lecture visuelle des captures longues (après, et « avant simulé » au même cadrage) : les couleurs réactivées sont toutes des jetons de la charte ou des couleurs sémantiques déjà portées par le texte ou le fond de l'élément (pastille « Fichier manquant » ambre sur ambre, « Obligatoire » rouge sombre sous texte rouge, « Sourcé » vert, boutons d'action de la Synthèse en accent indigo tamisé, zone de dépôt et étape courante de l'Onboarding en accent, encart « analysé dans PROBANT » du normatif en accent à 30 %). Aucune bordure ne vient d'une palette étrangère au graphite/indigo et aux accents sémantiques ; les contours `--pb-border-soft` de la matrice des risques deviennent légèrement plus discrets que `--pb-border`, ce qui est leur intention.
+
+**Non exécuté** : suite unitaire Vitest (aucun module TS/logique touché), recettes PostgreSQL, lecteur d'écran réel.
+
+## Captures
+
+[bordures-captures](bordures-captures/) : `avant/` (build de `main`, 900 px de haut), `apres/` (ce lot, courtes et longues), `avant-simule/` (règle réinjectée hors couche sur le build corrigé, captures longues), relevés JSON par vue et largeur, sondes C02. Lecture guidée dans son `README.md`. Poids : ≈ 20 Mo (66 captures longues pleine page) ; à élaguer si la revue le juge excessif.
+
+## Limites et points de vigilance
+
+- Les variantes `hover:`/`focus:` réactivées n'ont pas été capturées une à une ; elles n'introduisent que des jetons de la charte.
+- `ClientFramingWorkspace` (`border-amber-600`, état de conflit) et les boutons d'acceptation/rejet de `FindingPanel` / `FindingDrawer` (états sélectionnés) n'ont pas été mis dans leur état coloré pendant la recette : couleurs sémantiques attendues, non vues.
+- Les modules CSS (`equity.module.css`, `cash.module.css`) posent leurs `border-color` hors couche : inchangés, ils continuent de primer sur les utilitaires comme avant.
+- Une passe parallèle (trois workers) a mesuré `fiscalite-390` avant le rendu de la pastille du bandeau ; le relevé a été refait seul (README des captures). Le garde-fou `stillDefault = 0` n'est pas sensible à cette course (un élément non rendu n'est pas compté).
+
+## Dépendances du lot suivant
+
+- Les futurs lots peuvent utiliser `border-<couleur>` directement ; les styles inline de bordure ne sont plus nécessaires (il n'en reste aucun dans les composants C02).
+- `link-name` ×5 sur `/normatif/cycles/[slug]` et le débordement à 390 px de `/onboarding` sont à traiter par leur lot respectif.
+
+---
+
 # Handoff — Mission C04 : référentiel français et éditions du guide (2026-10-13)
 
 **Base.** `main` `f846424` (fusion de la PR #75, Mission C03). Branche locale `claude/c04-referentiel-editions`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Registre des corrections : [docs/mission-c04/REGISTRE_CORRECTIONS.md](../mission-c04/REGISTRE_CORRECTIONS.md). Aucun déploiement.

@@ -1,0 +1,32 @@
+{
+ "page": "normatif-sources",
+ "path": "/normatif/sources",
+ "width": 1440,
+ "phase": "apres",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Contenu à valider",
+   "tokens": [
+    "border-[#eab308]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)"
+   ]
+  }
+ ],
+ "stillDefault": 0,
+ "axeSerious": {},
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}
