@@ -1,3 +1,62 @@
+# Handoff — Mission C03 : assertions, tests suggérés et couverture (2026-10-13)
+
+**Base.** `main` `2c74e98` (fusion de la PR #73, Mission C02 ; contient C00 et C01). Branche locale `claude/c03-assertions-couverture`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Contrat de métriques : [docs/mission-c03/CONTRAT_METRIQUES.md](../mission-c03/CONTRAT_METRIQUES.md). Aucun déploiement.
+
+## Problème utilisateur, vue choisie, données, interactions
+
+- **Problème.** Dans `build-datasets.ts`, l'assertion d'un constat venait de `financialEffect` (les constats non chiffrés étaient « non qualifiés ») ; dans la page Tests, la procédure venait du seul `siloId` (toute créance Clients → compte 418) ; la couverture affichait « Substantielle » avec 0/0 écritures et 24/24 contrôles, le dénominateur des contrôles étant le nombre de règles ayant produit un constat.
+- **Vue.** Matrice des constats cloison × assertions NEP 500 §09 (13 assertions, trois catégories, relues sur h2a-france.org le 13/10/2026), distincte d'une « Couverture des travaux » (procédures réalisées, pièces, versions) ; couverture de l'analyse par population qualifiée, sans ratio sans dénominateur ; page Tests avec régime et période, puis une réponse par constat (objectif, assertions, population, source, étapes ou « Procédure à définir »).
+- **Données.** Règle et objectif du constat, effet financier explicite s'il existe, comptes, silo, lignes source, source normative portée par la règle ; `CalculationContext` qualifié (`entriesPopulation`, `controlsDenominatorBasis`) ; feuilles de travail du snapshot.
+- **Interactions.** Composants existants ; sélecteur de régime sur la page Tests (ne modifie que les références) ; lien vers l'outil de la procédure lorsqu'il existe.
+
+## Changements
+
+**Assertions** — `lib/audit/assertions.ts` (nouveau). `resolveAssertions(finding)` : conformité du fichier (R-HL-*) → aucune assertion ; règle connue (`RULE_ASSERTIONS`, `RECONCILIATION_ASSERTIONS` pour `R-RAPPRO-<qualification>`) → assertions NEP 500 avec objectif et justification ; signaux analytiques et seuils internes (`SIGNAL_RULES`, écart `a_justifier`) → non résolue ; effet financier explicite (règle inconnue) → traduction de l'ancien vocabulaire ; sinon non résolue. Source NEP 500 §09 enregistrée (`NEP_500_SOURCE` : titre, organisme, URL, section, arrêté, date de lecture).
+
+**Procédures** — `lib/audit/procedures.ts` (nouveau). `resolveProcedure(finding)` : titre, objectif, assertions, population (silo, comptes, lignes source), source du constat (jamais réécrite), étapes, ce qui reste au professionnel, références H2A, outil de l'application. Créance litigieuse → revue de recouvrabilité (compte 491, NEP 501 §07-08) ; produit non facturé → rattachement (compte 418) ; date FEC invalide → localiser, corriger à la source, revalider ; règle inconnue → « Procédure à définir » sans étape inventée. `regimeReferences` : audit (NEP 330, NEP 500) / examen limité (NEP 2410 §08, §17-18, tests de détail non requis) / non renseigné, avec rappel de l'exercice.
+
+**Couverture** — `lib/canonical-model/dossier.ts` (`entriesPopulation`, `controlsDenominatorBasis`), `lib/synthesis/types.ts` (`CoveragePopulation`, statut `unqualified`, limite `coverage_unqualified`), `lib/synthesis/engine.ts` : une population par ligne (manquante, connue vide, non applicable, non qualifiée, non traitée, partielle, traitée) ; ratio seulement avec dénominateur dénombré ou déclaré ; `unqualified` dès qu'une population est manquante ou non qualifiée ; verdict « Couverture non qualifiée » (statut `insufficient_coverage`) ; trace avec `excludedItems`. Producteurs : démonstration → `missing` + `findings_only` (DEMO SA passe de « Substantielle » à « Non qualifiée ») ; dépôt FEC → `counted` ou `known_empty` + `catalog` (le service et le worker d'ingestion fournissent déjà le catalogue) ; dépôt historique de documents par cycle → `not_applicable` (écritures, sans FEC) + `declared` (contrôles), couverture « partielle » car limitée aux documents déposés. `lib/synthesis/note.ts` : libellés.
+
+**Vues** — `lib/visualization/build-datasets.ts` : `coverage` par population (état, réalisé, dénominateur, ratio ou —, base) ; `riskHeatmap` devient la matrice des constats NEP 500 §09 (colonnes « Non résolue » et « Conformité du fichier » seulement si nécessaire, un constat compte dans chacune de ses assertions, source NEP citée) ; nouveau `workCoverage` (une ligne par feuille : assertions visées, état, travail exécuté / non concluant / bloqué, pièces, version, revue ; vide = « non établie ») ; élément de décision « Couverture » et prochaine action adaptés. `components/synthesis/WorkCoverageTable.tsx` (nouveau) ; `CoverageStackedBar` n'affiche ni ratio ni barre sans dénominateur qualifié ; Synthèse : la couverture des travaux suit le niveau décision et la matrice occupe toute la largeur du niveau analyse (jusqu'à 13 colonnes d'assertions, illisibles dans une carte de 372 px à 1440). `components/synthesis/tokens.ts` : `faint` aligné sur `--pb-text-faint` (#9aabc3, relevé par C00) ; l'ancien #5c6b82 donnait 3,2:1 sur les cartes (44 nœuds en défaut axe color-contrast dès que le contenu sous la ligne de flottaison est évalué). `RiskHeatmap` : au-delà de 50 % d'intensité, la cellule passe en texte sombre sur ≥ 78 % d'accent (le texte clair tombait à 3,3:1 sur les cellules les plus denses, 13 et 12 constats). `app/dashboard/tests/page.tsx` : régime et période, réponse par constat ; liens soulignés en permanence (axe « link-in-text-block », WCAG 1.4.1 : un lien dans un bloc de texte ne se distingue pas par la seule couleur).
+
+## Routes et interactions visibles
+
+- `/dashboard/synthese` : décision « Couverture : Non qualifiée » (DEMO SA), carte « Couverture de l'analyse » par population, « Couverture des travaux » (non établie sans feuille), « Matrice des constats · cloison × assertion (NEP 500 §09) ».
+- `/dashboard/tests` : « Régime de la mission et période » (sélecteur, références H2A), « Réponse proposée par constat » avec `data-procedure-status`.
+
+## Tests exécutés (local, 2026-10-13, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `lib/audit/__tests__/resolvers.test.ts` | 11 (assertions : qualitatif sans impact, deux constats Clients, conformité du fichier, signal interne, effet financier ; procédures : recouvrabilité ≠ 418, date FEC, à définir, population/source, références H2A, régimes) |
+| `lib/synthesis/__tests__/coverage-populations.test.ts` | 10 (manquante, connue vide, non applicable, partielle, non qualifiée, DEMO SA, source absente ; travaux : aucun, non concluant/exécuté, bloqué) |
+| Suites synthèse, visualisation, audit (`--pool=forks`) | 190 réussis / 190 (9 fichiers : synthèse, visualisation, audit, dépôt historique de rapprochement, composants Capitaux propres et Clients) |
+| Suite unitaire complète | 1 578 réussis / 1 579, 147 fichiers (287 s) ; l'échec est un délai de 5 s dépassé dans `lib/workpapers/__tests__/fixed-asset-runtime.test.ts` (chaîne FA-1004, hors lot), 10/10 réussis rejoué seul ; une première passe concurrente au build avait aussi fait tomber deux tests de composants sur le même délai, 190/190 rejoués à froid |
+| Typecheck, lint | OK |
+| Build de production | OK (`next build`, 0 erreur) |
+| `e2e/c03-assertions.spec.ts` (390 / 1024 / 1440, axe strict sur le contenu, viewport déplié à 8000 px pour qu'axe évalue aussi le contenu hors de la ligne de flottaison du conteneur défilant) | 6 réussis / 6 (Synthèse et Tests × 3 largeurs, 24 captures) |
+| Parcours existants (`demo-journey`, `accessibility`, `c01-context`, `c02-finition`) | 37 réussis / 37 sur le build final (`c02-finition` 14, `accessibility` 8, `demo-journey` 4, `c01-context` 11) ; `demo-journey` attend désormais l'hydratation de la Synthèse avant de compter les boutons (le HTML serveur est le squelette : le compte à 0 était une course, pas un bouton factice) |
+
+**Non exécuté localement** : recettes PostgreSQL (CI). Lecteur d'écran réel : NON VÉRIFIÉ.
+
+## Captures
+
+[c03-captures](c03-captures/) : Synthèse et Tests à 1440, 1024 et 390 px (vue au chargement, puis captures d'éléments : couverture de l'analyse, couverture des travaux, matrice des constats, créance litigieuse, procédure à définir), plus la page Tests en régime examen limité. Lecture guidée dans son `README.md`.
+
+## Limites et maturité
+
+- Les correspondances règle → assertions et règle → procédure sont des choix de méthode interne, justifiés dans le code et le contrat ; elles ne sont pas des normes. Les règles non listées restent « non résolue » / « à définir ».
+- Le régime de la mission n'est pas porté par le dossier : il est choisi à l'écran et ne modifie que les références. La NEP 2410 lue concerne les comptes intermédiaires ; la norme d'examen limité des comptes annuels par un expert-comptable n'a pas été lue.
+- La « procédure non applicable motivée » vit dans le programme de clôture (Mission 19) et n'est pas projetée dans la couverture des travaux de la Synthèse.
+- Les dates d'application des textes à l'exercice ne sont pas lues sur les pages H2A : la page Tests le rappelle.
+
+## Dépendances du lot suivant
+
+- C05 : les effets et doublons restent ceux du moteur ; la matrice ne dépend plus du montant.
+- C14 : projeter l'applicabilité motivée et les conclusions du programme de clôture dans la couverture des travaux.
+
+---
+
 # Handoff — Mission C02 : finition de Synthèse, Tests et du laboratoire de scénarios (2026-10-13)
 
 **Base.** PR [#73](https://github.com/ludoviclabs-dotcom/PROBANT/pull/73), branche `claude/dashboard-socle-commun-0b7995`, ouverte sur `main` `ab8f991` puis **fusionnée avec `main` `97b298f`** (PR #74 : lots C00 et C01 de Codex) dans le commit de fusion `cb83680`. Descriptif de PR : [C02_PR.md](C02_PR.md). Aucun déploiement.

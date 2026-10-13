@@ -98,6 +98,8 @@ test.describe("parcours DEMO", () => {
 
   test("aucun bouton factice : chaque bouton visible porte un nom accessible", async ({ page }) => {
     await page.goto("/dashboard/synthese");
+    // La Synthèse sert un squelette avant l’hydratation : on compte une fois la vue rendue.
+    await expect(page.getByRole("button", { name: "Générer la note de synthèse" })).toBeVisible();
     const buttons = page.getByRole("button");
     const count = await buttons.count();
     expect(count).toBeGreaterThan(0);

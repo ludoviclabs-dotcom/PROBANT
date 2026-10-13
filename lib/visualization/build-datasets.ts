@@ -16,6 +16,11 @@ import { CLOISONS } from "@/lib/canonical-model/taxonomy";
 import type { Societe } from "@/lib/canonical-model";
 import { formatCents } from "@/lib/synthesis/money";
 import type { SynthesisSnapshot } from "@/lib/synthesis/types";
+import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
+import { resolveAssertions } from "@/lib/audit/assertions";
+import { NEP_500_SOURCE } from "@/lib/audit/assertions";
+import { CL_ASSERTIONS, assertionLabel } from "@/lib/workpapers/closing-contract";
+import { summarizeWorkpapers } from "@/lib/workpapers/mission-summary";
 import type {
   DecisionItem,
   SynthesisDatasets,
@@ -30,7 +35,11 @@ export interface BuildInputs {
   /** Constats du dossier — pour les axes que le snapshot n'agrège pas (assertions). */
   findings: Finding[];
   admissibilityFindings: Finding[];
+  /** Snapshot complet — pour la couverture des travaux (feuilles, pièces, versions). Optionnel. */
+  dossier?: DossierSnapshot;
 }
+
+const WORK_STATE_LABEL: Record<string, string> = { draft: "Brouillon", ready: "Prêt", executed: "Exécuté", awaiting_review: "En revue", changes_requested: "Correction demandée", approved: "Travail approuvé", locked: "Verrouillé", superseded: "Remplacé", blocked: "Bloqué", failed: "Échec" };
 
 const SEVERITIES: Severity[] = ["bloquant", "majeur", "mineur", "informatif"];
 const SEVERITY_LABEL: Record<Severity, string> = {
@@ -75,7 +84,9 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
   /* ── Niveau décision ─────────────────────────────────────────────────── */
   const nextAction: Record<typeof s.verdict.status, string> = {
     rejected: "Corriger les alertes bloquantes d'admissibilité, puis redéposer le fichier.",
-    insufficient_coverage: "Compléter la couverture (écritures / contrôles) avant toute conclusion.",
+    insufficient_coverage: s.coverage.status === "unqualified"
+      ? "Qualifier les populations (dénombrer les écritures, déclarer le catalogue de contrôles) avant toute conclusion ; l'avancement des contrôles historiques n'est pas une couverture."
+      : "Compléter la couverture (écritures / contrôles) avant toute conclusion.",
     blocking_open: "Traiter les alertes bloquantes ouvertes dans la revue par cloison.",
     under_review: "Poursuivre l'arbitrage des constats dans la revue par cloison.",
     reviewed: "Générer la note de synthèse et constituer le dossier de preuve.",
@@ -116,9 +127,11 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
       id: "couverture",
       label: "Couverture",
       value:
-        s.coverage.status === "substantial" ? "Substantielle" : s.coverage.status === "partial" ? "Partielle" : "Nulle",
+        s.coverage.status === "substantial" ? "Substantielle" : s.coverage.status === "partial" ? "Partielle" : s.coverage.status === "unqualified" ? "Non qualifiée" : "Nulle",
       tone: s.coverage.status === "substantial" ? "positive" : s.coverage.status === "partial" ? "warning" : "critical",
-      detail: `contrôles conclus ${s.coverage.controlsConcluded}/${s.coverage.controlsEligible}`,
+      detail: s.coverage.status === "unqualified"
+        ? "aucun dénominateur qualifié"
+        : s.coverage.populations.filter((p) => p.ratio !== null).map((p) => `${p.label.toLowerCase()} ${p.numerator}/${p.denominator}`).join(" · "),
     },
     {
       id: "revue",
@@ -202,81 +215,115 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
     sourceRefs: ["LPF art. A.47 A-1", "data/fec/fields.yml (référentiel vérifié)"],
   };
 
-  /* ── Couverture ──────────────────────────────────────────────────────── */
+  /* ── Couverture (C03 : une ligne par population qualifiée séparément) ─── */
+  const POPULATION_STATUS_LABEL: Record<string, string> = {
+    missing: "Population manquante", known_empty: "Population connue vide", not_applicable: "Non applicable",
+    unqualified: "Dénominateur non qualifié", untreated: "Non traitée", partial: "Partiellement traitée", complete: "Traitée",
+  };
   const coverage: VisualizationDataset = {
     id: "coverage",
     title: "Couverture de l'analyse",
-    summary: `Couverture ${decisionItems[2].value.toLowerCase()}. Écritures analysées : ${s.coverage.entriesAnalysed} sur ${s.coverage.entriesTotal}. Contrôles conclus : ${s.coverage.controlsConcluded} sur ${s.coverage.controlsEligible}, dont ${s.coverage.controlsNotConcluded} sans conclusion.`,
+    summary: `Couverture ${decisionItems[2].value.toLowerCase()}. ${s.coverage.populations.map((p) => `${p.label} : ${POPULATION_STATUS_LABEL[p.status].toLowerCase()}${p.ratio !== null ? ` (${p.numerator} sur ${p.denominator}, ${Math.round(p.ratio * 100)} %)` : ` — ${p.basis}`}`).join(". ")}. Contrôles sans conclusion : ${s.coverage.controlsNotConcluded}.`,
     columns: [
-      { key: "dimension", label: "Dimension" },
+      { key: "dimension", label: "Population" },
+      { key: "statut", label: "État" },
       { key: "fait", label: "Réalisé", align: "right" },
-      { key: "total", label: "Éligible", align: "right" },
+      { key: "total", label: "Dénominateur", align: "right" },
       { key: "ratio", label: "Ratio", unit: "%", align: "right" },
+      { key: "base", label: "Base du dénominateur" },
     ],
-    rows: [
-      {
-        id: "entries",
-        cells: {
-          dimension: "Écritures analysées",
-          fait: s.coverage.entriesAnalysed,
-          total: s.coverage.entriesTotal,
-          ratio: Math.round(s.coverage.entriesRatio * 100),
-        },
+    rows: s.coverage.populations.map((p) => ({
+      id: p.id,
+      cells: {
+        dimension: p.label,
+        statut: POPULATION_STATUS_LABEL[p.status],
+        fait: p.numerator,
+        total: p.denominator,
+        ratio: p.ratio === null ? null : Math.round(p.ratio * 100),
+        base: p.basis,
       },
-      {
-        id: "controls",
-        cells: {
-          dimension: "Contrôles conclus",
-          fait: s.coverage.controlsConcluded,
-          total: s.coverage.controlsEligible,
-          ratio: Math.round(s.coverage.controlsRatio * 100),
-        },
-        emphasis: s.coverage.controlsNotConcluded > 0 ? "warning" : undefined,
-      },
-    ],
+      emphasis: p.status === "missing" || p.status === "unqualified" ? "critical" : p.status === "partial" || p.status === "untreated" || (p.id === "controls" && s.coverage.controlsNotConcluded > 0) ? "warning" : p.status === "complete" ? "positive" : "muted",
+    })),
     sourceMetricIds: ["coverage.status"],
     methodology:
-      "Le statut retient le plus faible des deux ratios (écritures, contrôles) : substantiel à partir de 95 %, partiel au-dessus de zéro, nul sinon.",
+      "Chaque population est qualifiée séparément : un ratio n'existe qu'avec un dénominateur dénombré (parseur) ou déclaré (catalogue de contrôles). Une population manquante n'est pas vide ; des contrôles comptés depuis les constats ne forment pas un dénominateur. Le statut retient le plus faible des ratios qualifiés : substantiel à partir de 95 % sans population manquante ni non qualifiée, partiel au-dessus de zéro, nul sinon, non qualifié sans dénominateur.",
   };
 
-  /* ── Heatmap cloison × assertion ─────────────────────────────────────── */
-  const ASSERTION_LABEL: Record<string, string> = {
-    existence: "Existence", exhaustivite: "Exhaustivité", exactitude: "Exactitude",
-    evaluation: "Évaluation", droits_obligations: "Droits et obligations",
-    presentation: "Présentation", rattachement: "Rattachement",
+  /* ── Couverture des travaux (C03 : procédures réalisées, pièces, versions) ─ */
+  const workRuns = new Map([...(inputs.dossier?.workpapers?.runs ?? []), ...(inputs.dossier?.workpaperProjection?.lockedRuns ?? [])].map((r) => [r.id, r] as const));
+  const workRows: VisualizationRow[] = inputs.dossier ? summarizeWorkpapers(inputs.dossier).rows.map((r) => {
+    const run = workRuns.get(r.id);
+    const declared = run?.template.assertions.map((a) => `${a.label} (${a.validation})`) ?? [];
+    const inconclusive = r.presentation.incomplete > 0 || r.presentation.contractOutdated;
+    const travail = r.blocked ? "Bloqué : procédure non exécutée" : inconclusive ? "Non concluant sur une partie" : r.executed ? (r.presentation.exceptions ? "Exécuté · exceptions démontrées" : "Exécuté · aucune exception sur les éléments testés") : "Non exécuté";
+    return {
+      id: r.id,
+      cells: {
+        procedure: r.label,
+        assertions: declared.length ? declared.join(" ; ") : "Aucune assertion déclarée par la feuille",
+        etat: `${WORK_STATE_LABEL[r.state] ?? r.state}${r.stale ? " · périmé" : ""}`,
+        travail,
+        pieces: run?.evidence.length ?? 0,
+        version: `r${r.revision} v${run?.version ?? "?"}`,
+        revue: r.presentation.review,
+      },
+      emphasis: r.blocked ? "critical" : inconclusive || r.stale ? "warning" : r.state === "locked" ? "positive" : undefined,
+    };
+  }) : [];
+  const workCoverage: VisualizationDataset = {
+    id: "work-coverage",
+    title: "Couverture des travaux",
+    summary: workRows.length
+      ? `${workRows.length} procédure(s) réalisée(s) dans ce dossier : ${workRows.map((r) => `${r.cells.procedure} — ${r.cells.travail}, ${r.cells.pieces} pièce(s), ${r.cells.version}`).join(" ; ")}. Une assertion peut être visée par plusieurs travaux ; aucune assertion sans travail n'est réputée couverte.`
+      : "Aucune procédure réalisée dans ce dossier : couverture des travaux non établie. Aucune cellule n'est réputée couverte sans travail, pièce et version.",
+    columns: [
+      { key: "procedure", label: "Procédure" },
+      { key: "assertions", label: "Assertions visées" },
+      { key: "etat", label: "État" },
+      { key: "travail", label: "Travail" },
+      { key: "pieces", label: "Pièces", align: "right" },
+      { key: "version", label: "Version" },
+      { key: "revue", label: "Revue" },
+    ],
+    rows: workRows,
+    sourceMetricIds: [],
+    methodology:
+      "Lecture seule des feuilles de travail du dossier (état, résultat, pièces rattachées, révision et version). Distincte de la matrice des constats : un constat n'est pas un travail, et un travail bloqué ou non concluant ne couvre pas l'assertion qu'il vise.",
   };
-  const assertionsPresent = [
-    ...new Set(
-      findings.map((f) => f.financialEffect?.assertion ?? "non_qualifiee"),
-    ),
-  ].sort();
+
+  /* ── Matrice des constats cloison × assertion NEP 500 §09 (C03) ────────── */
+  // L'assertion vient du résolveur (règle, puis effet financier), jamais du seul montant. Un constat
+  // peut porter plusieurs assertions : il compte dans chacune. Non résolu et conformité du fichier
+  // restent hors des colonnes d'assertion.
+  const resolved = findings.map((f) => ({ f, r: resolveAssertions(f) }));
+  const assertionsPresent = CL_ASSERTIONS.filter((a) => resolved.some(({ r }) => r.assertions.includes(a)));
+  const unresolvedCount = resolved.filter(({ r }) => r.basis === "unresolved").length;
+  const conformityCount = resolved.filter(({ r }) => r.basis === "file_conformity").length;
   const heatmapRows: VisualizationRow[] = [];
   const cloisonsPresent = [...new Set(findings.map((f) => f.cloison))].sort();
   for (const clo of cloisonsPresent) {
+    const inCloison = resolved.filter(({ f }) => f.cloison === clo);
     const cells: Record<string, string | number> = { cloison: cloisonLabel(clo) };
-    for (const a of assertionsPresent) {
-      cells[a] = findings.filter(
-        (f) => f.cloison === clo && (f.financialEffect?.assertion ?? "non_qualifiee") === a,
-      ).length;
-    }
+    for (const a of assertionsPresent) cells[a] = inCloison.filter(({ r }) => r.assertions.includes(a)).length;
+    if (unresolvedCount) cells.non_resolue = inCloison.filter(({ r }) => r.basis === "unresolved").length;
+    if (conformityCount) cells.conformite = inCloison.filter(({ r }) => r.basis === "file_conformity").length;
     heatmapRows.push({ id: clo, cells });
   }
   const riskHeatmap: VisualizationDataset = {
     id: "risk-heatmap",
-    title: "Concentration cloison × assertion",
-    summary: `${s.risk.totalFindings} constats répartis sur ${cloisonsPresent.length} cloison(s) et ${assertionsPresent.length} colonne(s) d'assertion. Les constats sans effet financier explicite figurent en colonne « non qualifiée ».`,
+    title: "Matrice des constats · cloison × assertion (NEP 500 §09)",
+    summary: `${s.risk.totalFindings} constats répartis sur ${cloisonsPresent.length} cloison(s) et ${assertionsPresent.length} assertion(s) NEP 500 §09 ; ${unresolvedCount} constat(s) à l'assertion non résolue, ${conformityCount} contrôle(s) de conformité du fichier hors assertions. Un constat portant plusieurs assertions compte dans chacune ; une cellule vide signifie « aucun constat », pas « assertion couverte ».`,
     columns: [
       { key: "cloison", label: "Cloison" },
-      ...assertionsPresent.map((a) => ({
-        key: a,
-        label: ASSERTION_LABEL[a] ?? "Non qualifiée",
-        align: "right" as const,
-      })),
+      ...assertionsPresent.map((a) => ({ key: a, label: assertionLabel(a), align: "right" as const })),
+      ...(unresolvedCount ? [{ key: "non_resolue", label: "Non résolue", align: "right" as const }] : []),
+      ...(conformityCount ? [{ key: "conformite", label: "Conformité du fichier (hors assertions)", align: "right" as const }] : []),
     ],
     rows: heatmapRows,
     sourceMetricIds: ["risk.heuristicSeverityIndex"],
     methodology:
-      "Comptes de constats par cloison et par assertion d'audit (portée par l'effet financier explicite du constat). « Non qualifiée » = constat sans effet financier explicite : son assertion n'est pas présumée.",
+      "Assertions de la NEP 500 §09 (flux, soldes, annexe), résolues par la règle du constat puis, à défaut, par l'effet financier explicite ; indépendantes du montant. Les signaux analytiques et seuils internes restent « non résolus » ; les contrôles d'admissibilité du FEC ne portent aucune assertion. Matrice de constats, pas de couverture : voir « Couverture des travaux ».",
+    sourceRefs: [`${NEP_500_SOURCE.title}, ${NEP_500_SOURCE.section} — ${NEP_500_SOURCE.organisme}, ${NEP_500_SOURCE.url} (lu le ${NEP_500_SOURCE.consultedOn})`],
   };
 
   /* ── Waterfall d'exposition ──────────────────────────────────────────── */
@@ -449,6 +496,7 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
     admissibility,
     fecQuality,
     coverage,
+    workCoverage,
     riskHeatmap,
     waterfall,
     review,

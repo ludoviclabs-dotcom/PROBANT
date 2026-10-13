@@ -11,7 +11,8 @@ export const T = {
   accent: "#5b9dff",
   text: "#e6edf6",
   muted: "#8a99af",
-  faint: "#5c6b82",
+  // C03 : aligné sur --pb-text-faint (#9aabc3, relevé par C00) ; #5c6b82 donnait 3,2:1 sur les surfaces des cartes (axe color-contrast, WCAG 1.4.3).
+  faint: "#9aabc3",
   border: "#1c2430",
   borderStrong: "#324563",
   surface: "#0b0e13",

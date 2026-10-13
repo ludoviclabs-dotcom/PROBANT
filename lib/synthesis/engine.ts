@@ -30,6 +30,8 @@ import type {
   AdmissibilityDimension,
   CalculationTraceEntry,
   CoverageDimension,
+  CoveragePopulation,
+  CoveragePopulationStatus,
   EvidenceBlock,
   ExposureDimension,
   Limitation,
@@ -123,23 +125,43 @@ export function buildSynthesisSnapshot(
   });
 
   /* ── 2. Coverage ───────────────────────────────────────────────────────── */
+  // C03 — chaque population est qualifiée séparément ; un ratio exige un dénominateur qualifié.
+  // L'avancement des contrôles compté depuis les constats n'établit aucune couverture.
   const entriesRatio =
     ctx.entriesTotal > 0 ? round4(ctx.entriesAnalysed / ctx.entriesTotal) : 0;
   const controlsRatio =
     ctx.controlsEligible > 0 ? round4(ctx.controlsConcluded / ctx.controlsEligible) : 0;
-  // Le ratio directeur est le plus faible des deux : on ne couvre pas mieux
-  // que sa pire dimension.
-  const governingRatio = Math.min(
-    ctx.entriesTotal > 0 ? entriesRatio : controlsRatio,
-    ctx.controlsEligible > 0 ? controlsRatio : entriesRatio,
-  );
+  const entriesPopulation = ctx.entriesPopulation ?? (ctx.entriesTotal > 0 ? "counted" : "missing");
+  const controlsBasis = ctx.controlsDenominatorBasis ?? (ctx.controlsEligible > 0 ? "declared" : "missing");
+  const treated = (num: number, den: number): CoveragePopulationStatus => (num >= den ? "complete" : num > 0 ? "partial" : "untreated");
+  const populations: CoveragePopulation[] = [
+    entriesPopulation === "counted"
+      ? { id: "entries", label: "Écritures analysées", unit: "écritures", status: treated(ctx.entriesAnalysed, ctx.entriesTotal), numerator: ctx.entriesAnalysed, denominator: ctx.entriesTotal, ratio: entriesRatio, basis: "dénombrement du parseur" }
+      : { id: "entries", label: "Écritures analysées", unit: "écritures", status: entriesPopulation, numerator: ctx.entriesAnalysed, denominator: null, ratio: null,
+          basis: entriesPopulation === "missing" ? "population non dénombrée : aucun ratio" : entriesPopulation === "known_empty" ? "fichier lu, zéro écriture : rien à couvrir" : "sans objet pour ce dossier" },
+    controlsBasis === "catalog" || controlsBasis === "declared"
+      ? { id: "controls", label: "Contrôles conclus", unit: "contrôles", status: treated(ctx.controlsConcluded, ctx.controlsEligible), numerator: ctx.controlsConcluded, denominator: ctx.controlsEligible, ratio: controlsRatio, basis: controlsBasis === "catalog" ? "catalogue des règles du moteur" : "dénominateur déclaré par le producteur" }
+      : { id: "controls", label: "Contrôles conclus", unit: "contrôles", status: controlsBasis === "findings_only" ? "unqualified" : "missing", numerator: ctx.controlsConcluded, denominator: null, ratio: null,
+          basis: controlsBasis === "findings_only" ? "contrôles comptés depuis les constats : dénominateur non qualifié, avancement historique seulement" : "aucun dénominateur de contrôles" },
+  ];
+  const qualified = populations.filter((p) => p.ratio !== null);
+  const disqualifying = populations.some((p) => p.status === "missing" || p.status === "unqualified");
+  // Le ratio directeur est le plus faible des populations qualifiées : on ne couvre pas mieux que sa pire dimension.
+  const governingRatio = qualified.length ? Math.min(...qualified.map((p) => p.ratio as number)) : 0;
   const coverage: CoverageDimension = {
+    // Une population manquante ou au dénominateur non qualifié rend la couverture non qualifiée :
+    // on ne qualifie pas de « partielle » une population que l'on n'a pas dénombrée.
     status:
-      governingRatio >= COVERAGE_SUBSTANTIAL_MIN && !ctx.limitedToUploadedDocuments
-        ? "substantial"
-        : governingRatio > 0
-          ? "partial"
-          : "none",
+      disqualifying
+        ? "unqualified"
+        : qualified.length === 0
+          ? "none"
+          : governingRatio >= COVERAGE_SUBSTANTIAL_MIN && !ctx.limitedToUploadedDocuments
+            ? "substantial"
+            : governingRatio > 0
+              ? "partial"
+              : "none",
+    populations,
     entriesTotal: ctx.entriesTotal,
     entriesAnalysed: ctx.entriesAnalysed,
     controlsEligible: ctx.controlsEligible,
@@ -160,14 +182,16 @@ export function buildSynthesisSnapshot(
       controlsEligible: ctx.controlsEligible,
       controlsConcluded: ctx.controlsConcluded,
       governingRatio,
+      entriesPopulation,
+      controlsDenominatorBasis: controlsBasis,
       limitedToUploadedDocuments: ctx.limitedToUploadedDocuments ? "yes" : "no",
       substantialMin: COVERAGE_SUBSTANTIAL_MIN,
     },
-    excludedItems: [],
+    excludedItems: populations.filter((p) => p.ratio === null).map((p) => ({ id: p.id, reason: p.basis })),
     output: coverage.status,
     unit: "status",
     rounding: "ratios arrondis à 4 décimales",
-    explanation: `min(ratio écritures, ratio contrôles conclus) ; substantial si ≥ ${COVERAGE_SUBSTANTIAL_MIN}, partial si > 0, none sinon. Un dépôt historique reste limité aux documents fournis.`,
+    explanation: `unqualified dès qu'une population est manquante ou au dénominateur non qualifié ; sinon min des ratios des populations qualifiées (dénominateur dénombré ou déclaré) : substantial si ≥ ${COVERAGE_SUBSTANTIAL_MIN}, partial si > 0, none si 0. Un dépôt historique reste limité aux documents fournis.`,
   });
 
   // Statut de revue de chaque constat (dernier événement, sinon statut porté
@@ -432,7 +456,14 @@ export function buildSynthesisSnapshot(
       subjects: [],
     });
   }
-  if (coverage.status !== "substantial") {
+  if (coverage.status === "unqualified" || disqualifying) {
+    limitations.push({
+      code: "coverage_unqualified",
+      message: `Couverture non qualifiée : ${populations.filter((p) => p.status === "missing" || p.status === "unqualified").map((p) => `${p.label.toLowerCase()} — ${p.basis}`).join(" ; ")}. Aucun ratio n'est présenté sans dénominateur qualifié.`,
+      subjects: populations.filter((p) => p.status === "missing" || p.status === "unqualified").map((p) => p.id),
+    });
+  }
+  if (coverage.status !== "substantial" && coverage.status !== "unqualified") {
     limitations.push({
       code: "partial_coverage",
       message:
@@ -559,6 +590,14 @@ function buildVerdict(
       status: "rejected",
       headline: "Dossier non admissible",
       detail: `${blocking.length} alerte(s) bloquante(s) d'admissibilité : aucune analyse financière ne peut être présentée comme fiable tant qu'elles ne sont pas levées.`,
+    };
+  }
+  if (coverage.status === "unqualified") {
+    return {
+      status: "insufficient_coverage",
+      headline: "Couverture non qualifiée",
+      detail:
+        "Aucun dénominateur qualifié : les écritures ne sont pas dénombrées ou les contrôles sont comptés depuis les constats. L'avancement des contrôles historiques n'établit pas une couverture d'écritures ni d'audit ; aucun verdict d'exploitabilité n'est prononcé.",
     };
   }
   if (coverage.status === "none") {

@@ -15,6 +15,7 @@ import { DecisionHeader } from "@/components/synthesis/DecisionHeader";
 import { AdmissibilityCard } from "@/components/synthesis/AdmissibilityCard";
 import { DataQualityMatrix } from "@/components/synthesis/DataQualityMatrix";
 import { CoverageStackedBar } from "@/components/synthesis/CoverageStackedBar";
+import { WorkCoverageTable } from "@/components/synthesis/WorkCoverageTable";
 import { RiskHeatmap } from "@/components/synthesis/RiskHeatmap";
 import { ExposureWaterfall } from "@/components/synthesis/ExposureWaterfall";
 import { ReviewProgressBar } from "@/components/synthesis/ReviewProgressBar";
@@ -393,8 +394,9 @@ export default function SynthesePage() {
         societe: d.societe,
         findings,
         admissibilityFindings: snapshot.admissibilityFindings,
+        dossier: snapshot,
       }),
-    [synthesis, d.societe, findings, snapshot.admissibilityFindings],
+    [synthesis, d.societe, findings, snapshot],
   );
 
   // ── Registre des cycles (projection C02, lib/dossier/cycle-registry) ───
@@ -523,6 +525,11 @@ export default function SynthesePage() {
         <AdmissibilityCard dataset={datasets.admissibility} />
       </div>
 
+      {/* ── Couverture des travaux (C03) : procédures réalisées, pièces, versions — distincte de la matrice des constats ── */}
+      <div style={{ marginBottom: 14 }}>
+        <WorkCoverageTable dataset={datasets.workCoverage} />
+      </div>
+
       {/* Limites — toujours visibles, jamais repliées */}
       <section
         aria-label="Limites de l'analyse"
@@ -548,8 +555,11 @@ export default function SynthesePage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(320px,1fr))", gap: 14, marginBottom: 22 }}>
         <DataQualityMatrix dataset={datasets.fecQuality} />
         <ExposureWaterfall dataset={datasets.waterfall} />
-        <RiskHeatmap dataset={datasets.riskHeatmap} />
         <FindingConcentrationChart dataset={datasets.concentration} />
+        {/* C03 : la matrice cloison × assertion (jusqu'à 13 assertions NEP 500 §09) occupe toute la largeur. */}
+        <div style={{ gridColumn: "1 / -1", minWidth: 0 }}>
+          <RiskHeatmap dataset={datasets.riskHeatmap} />
+        </div>
       </div>
 
       {/* ══ NIVEAU 3 — EXPLORATION (replié par défaut) ════════════════ */}

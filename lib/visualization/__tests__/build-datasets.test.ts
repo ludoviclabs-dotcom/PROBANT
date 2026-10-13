@@ -6,6 +6,7 @@
 
 import { describe, expect, it } from "vitest";
 import { buildDemoDossierSnapshot } from "@/lib/dossier/snapshot-builder";
+import { resolveAssertions } from "@/lib/audit/assertions";
 import { buildSynthesisSnapshot } from "@/lib/synthesis/engine";
 import { formatCents } from "@/lib/synthesis/money";
 import { buildSynthesisDatasets } from "@/lib/visualization/build-datasets";
@@ -57,7 +58,7 @@ describe("aucune divergence graphique / snapshot", () => {
     expect(closedNotDismissed).toBeGreaterThanOrEqual(0);
   });
 
-  it("heatmap : la somme des cellules égale le nombre total de constats", () => {
+  it("matrice : chaque constat compte une fois par assertion résolue, ou une fois en « non résolue » / « conformité »", () => {
     const total = datasets.riskHeatmap.rows.reduce(
       (sum, row) =>
         sum +
@@ -66,7 +67,14 @@ describe("aucune divergence graphique / snapshot", () => {
           .reduce((s, c) => s + Number(row.cells[c.key] ?? 0), 0),
       0,
     );
-    expect(total).toBe(synthesis.risk.totalFindings);
+    const expected = demo.findings.reduce((n, f) => n + Math.max(1, resolveAssertions(f).assertions.length), 0);
+    expect(total).toBe(expected);
+    expect(total).toBeGreaterThanOrEqual(synthesis.risk.totalFindings);
+    // L'assertion ne dépend pas du montant : un constat qualitatif sans effet financier est résolu par sa règle.
+    const titres = demo.findings.find((f) => f.ruleId === "R-PCG-TITRES")!;
+    expect(titres.financialEffect).toBeUndefined();
+    expect(resolveAssertions(titres)).toMatchObject({ basis: "rule", assertions: ["solde_evaluation"] });
+    expect(datasets.riskHeatmap.columns.some((c) => c.key === "solde_evaluation")).toBe(true);
   });
 
   it("concentration : gravités et exposition par cloison égalent le snapshot", () => {
@@ -87,10 +95,17 @@ describe("aucune divergence graphique / snapshot", () => {
     expect(byId.internal).toBe(synthesis.risk.byFamily.internal);
   });
 
-  it("couverture : ratios issus du snapshot, pas recalculés depuis les findings", () => {
-    const entries = datasets.coverage.rows.find((r) => r.id === "entries");
-    expect(entries?.cells.fait).toBe(synthesis.coverage.entriesAnalysed);
-    expect(entries?.cells.ratio).toBe(Math.round(synthesis.coverage.entriesRatio * 100));
+  it("couverture : une ligne par population ; ratio issu du snapshot, absent sans dénominateur qualifié", () => {
+    for (const p of synthesis.coverage.populations) {
+      const row = datasets.coverage.rows.find((r) => r.id === p.id)!;
+      expect(row.cells.fait).toBe(p.numerator);
+      expect(row.cells.total).toBe(p.denominator);
+      expect(row.cells.ratio).toBe(p.ratio === null ? null : Math.round(p.ratio * 100));
+    }
+    // DEMO SA : écritures non dénombrées et contrôles comptés depuis les constats → aucun ratio, couverture non qualifiée.
+    expect(synthesis.coverage.status).toBe("unqualified");
+    expect(datasets.coverage.rows.map((r) => r.cells.statut)).toEqual(["Population manquante", "Dénominateur non qualifié"]);
+    expect(datasets.decision.items.find((i) => i.id === "couverture")?.value).toBe("Non qualifiée");
   });
 
   it("revue : ventilation par statut identique au snapshot", () => {

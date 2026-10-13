@@ -58,6 +58,10 @@ function defaultContext(
   return {
     entriesTotal,
     entriesAnalysed: entriesTotal,
+    // C03 — sans dénombrement, la population d'écritures est « manquante », pas vide ; les contrôles
+    // comptés depuis les constats ne forment pas un dénominateur qualifié.
+    entriesPopulation: entriesTotal > 0 ? "counted" : "missing",
+    controlsDenominatorBasis: "findings_only",
     controlsEligible: concludedControls,
     controlsExecuted: concludedControls,
     controlsConcluded: concludedControls,
@@ -171,6 +175,9 @@ export function buildSnapshotFromFecDepot(input: FecDepotSnapshotInput): Dossier
     reviewEvents: [],
     calculationContext: {
       ...defaultContext(findings, input.totalEntryCount ?? input.entries.length),
+      // C03 — un fichier lu à zéro ligne est « connu vide » ; un dénominateur fourni par le pipeline est qualifié.
+      entriesPopulation: (input.totalEntryCount ?? input.entries.length) > 0 ? "counted" : "known_empty",
+      controlsDenominatorBasis: input.controlsEligible !== undefined ? "catalog" : "findings_only",
       controlsEligible:
         input.controlsEligible ??
         new Set(findings.map((finding) => finding.ruleId)).size,
@@ -235,6 +242,10 @@ function uploadCalculationContext(current: DossierSnapshot, runs: UploadExecutio
     controlsExecuted: baseline.controlsExecuted + executed,
     controlsConcluded: baseline.controlsConcluded + concluded,
     controlsNotConcluded: baseline.controlsNotConcluded + active.length - concluded,
+    // C03 : le dénominateur est déclaré par le producteur (dépôts actifs, plus les règles du socle s'il existe) ;
+    // sans FEC, la population d'écritures n'est pas applicable à une comparaison de documents.
+    controlsDenominatorBasis: "declared",
+    entriesPopulation: baseline.entriesPopulation ?? (baseline.entriesTotal > 0 ? "counted" : "not_applicable"),
     cycleIdsCovered: [],
     limitedToUploadedDocuments: true,
     notes: [...baseline.notes, "Les dépôts comparent les documents fournis ; ils ne démontrent pas la couverture d’un cycle ni son exhaustivité."],
@@ -283,7 +294,9 @@ export function addRapprochementToSnapshot(
     societe: { raisonSociale: input.qualification.entity.trim() || "Entité non qualifiée", siren: startsFromDemo ? "non-detecte" : current.dossier.societe.siren, exercice: period?.closingDate.slice(0, 4) ?? "inconnue", dateCloture: period?.closingDate.replaceAll("-", "") ?? "" },
     period, silos,
   };
-  const baseline = startsFromDemo ? { entriesTotal: 0, entriesAnalysed: 0, controlsEligible: 0, controlsExecuted: 0, controlsConcluded: 0, controlsNotConcluded: 0, notes: [] } : uploadBaseline(current);
+  const baseline: CalculationContext = startsFromDemo
+    ? { entriesTotal: 0, entriesAnalysed: 0, entriesPopulation: "not_applicable", controlsEligible: 0, controlsExecuted: 0, controlsConcluded: 0, controlsNotConcluded: 0, controlsDenominatorBasis: "declared", notes: [] }
+    : uploadBaseline(current);
   const next: DossierSnapshot = {
     ...current, dossier, uploadExecutions, uploadBaselineContext: baseline,
     sourceDocuments: [...(startsFromDemo ? [] : current.sourceDocuments), ...documents.map((doc): SourceDocumentSummary => ({ ...doc, dossierId, documentType: "cycle_document", parserVersion: doc.parserVersion ?? "rapprochement-tabular-2.0.0", location: { provider: "session", key: `browser/${doc.id}` }, createdAt: generatedAt }))],

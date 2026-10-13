@@ -27,6 +27,7 @@ const LIMITATION_LABEL: Record<Limitation["code"], string> = {
   control_not_run: "Contrôle non exécuté",
   control_inconclusive: "Contrôle non conclusif",
   partial_coverage: "Couverture partielle",
+  coverage_unqualified: "Couverture non qualifiée",
   parser_warning: "Avertissement de parsing",
   source_review_required: "Source en revue requise",
   internal_threshold: "Seuil interne non opposable",
@@ -84,7 +85,9 @@ export function generateSynthesisNote(
     `Écritures analysées : ${s.coverage.entriesAnalysed}/${s.coverage.entriesTotal} (ratio ${s.coverage.entriesRatio}). Contrôles conclus : ${s.coverage.controlsConcluded}/${s.coverage.controlsEligible} (ratio ${s.coverage.controlsRatio}).`,
   );
   push(
-    s.coverage.status === "substantial"
+    s.coverage.status === "unqualified"
+      ? "Couverture non qualifiée : aucun dénominateur qualifié (écritures non dénombrées ou contrôles comptés depuis les constats) ; aucun ratio n'est présenté."
+      : s.coverage.status === "substantial"
       ? `Couverture substantielle.`
       : s.coverage.status === "partial"
         ? `**Couverture partielle** : les conclusions ne portent que sur la part analysée.`

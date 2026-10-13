@@ -90,6 +90,8 @@ export interface SynthesisDatasets {
   admissibility: VisualizationDataset;
   fecQuality: VisualizationDataset;
   coverage: VisualizationDataset;
+  /** C03 — procédures réalisées, pièces et versions ; distinct de la matrice des constats. */
+  workCoverage: VisualizationDataset;
   riskHeatmap: VisualizationDataset;
   waterfall: VisualizationDataset & { steps: WaterfallStep[] };
   review: VisualizationDataset;
