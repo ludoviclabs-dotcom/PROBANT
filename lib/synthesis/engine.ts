@@ -51,7 +51,8 @@ export const SYNTHESIS_POLICY_VERSION = "1.1.0";
 export const COVERAGE_SUBSTANTIAL_MIN = 0.95;
 
 /** Statuts de revue considérés comme clos (alignés sur lib/dossier/review). */
-const CLOSED_REVIEW = new Set([
+/** Statuts de revue qui ferment un constat (partagé avec le registre des cycles). */
+export const CLOSED_REVIEW = new Set([
   "valide", "ecarte", "corrige", "confirmed", "dismissed", "corrected", "superseded",
 ]);
 /** Statuts valant validation d'un ajustement. */

@@ -10,7 +10,11 @@ import type { ClientsSalesDraft, ClientsSalesFacts, ClientsFramingReference } fr
 import { ClientReceivablesPanel } from "./ClientReceivablesPanel";
 import { ClientsSalesImportForm } from "./ClientsSalesImportForm";
 import { WorkpaperPanel } from "./WorkpaperPanel";
-type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
+import { sameDraft, saveStateLabel, type SaveStatus } from "@/lib/workpapers/draft-state";
+type SaveState = SaveStatus;
+/** Valeurs initiales du formulaire d'import : la base de comparaison du brouillon (C02, M20-UI-03). */
+const DEFAULT_COLUMNS = { key: "id", amount: "amount", date: "date", account: "account", party: "party", sheet: "" };
+const DEFAULT_FORMAT = { delimiter: ";", decimal: ".", dateFormat: "ISO", sign: "1" };
 type View = {
     actorId: string;
     permissions: string[];
@@ -39,7 +43,6 @@ function draftSummary(draft: ClientsSalesDraft | null) {
     return draft ? <><p>Fenêtre : {draft.window.startDate} → {draft.window.endDate} · {draft.window.coverage}</p><p>{draft.allocations.map(a => `${a.paymentId} → ${a.invoiceId} : ${a.amount.amount} EUR (${a.status === "validated" ? "validation demandée" : "proposition"})`).join(" ; ") || "Aucune allocation"}</p><p>{draft.estimates.map(e => `${e.invoiceId} : base ${e.base.amount}, estimation ${e.amount.amount} EUR, méthode ${e.method?.id ?? "absente"} ; ${e.rationale}`).join(" ; ") || "Aucune estimation"}</p><p>{draft.confirmations.map(c => `${c.invoiceIds.join(", ")} : ${c.response?.origin ?? "réponse absente"} ; ${c.reconciliation.status}`).join(" ; ") || "Aucune confirmation"}</p></> : <p>Aucun travail Clients sauvegardé</p>;
 }
 const initialPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
-const saveLabels: Record<SaveState, string> = { idle: "Modifications non sauvegardées", saving: "Sauvegarde en cours…", saved: "Sauvegardée — accusé serveur reçu", failed: "Échec de sauvegarde", conflict: "Conflit de modification" };
 function failureMessage(code?: string) {
     const labels: Record<string, string> = {
         CLIENTS_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette.",
@@ -83,6 +86,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const [view, setView] = useState<View | null>(null), [activeId, setActiveId] = useState("");
     const [conclusion, setConclusion] = useState(""), [comment, setComment] = useState(""), [review, setReview] = useState("");
     const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
+    const [loadedPeriod, setLoadedPeriod] = useState(initialPeriodValue), [, touch] = useState(0);
     const [conflict, setConflict] = useState<{
         current: WorkpaperRun;
         expectedVersion: number;
@@ -90,8 +94,8 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const [draftOverride, setDraftOverride] = useState<{id:string;draft:ClientsSalesDraft|null}|null>(null);
     const salesDraftRef = useRef<ClientsSalesDraft|null>(null);
     const [file, setFile] = useState<File | null>(null), [type, setType] = useState<keyof typeof sourceLabels>("clients_general");
-    const [columns, setColumns] = useState({ key: "id", amount: "amount", date: "date", account: "account", party: "party", sheet: "" });
-    const [format, setFormat] = useState({ delimiter: ";", decimal: ".", dateFormat: "ISO", sign: "1" });
+    const [columns, setColumns] = useState(DEFAULT_COLUMNS);
+    const [format, setFormat] = useState(DEFAULT_FORMAT);
     const [exactVersion] = useState(!!requested?.id && requested.version !== undefined);
     const [resolvedNoteId, setResolvedNoteId] = useState<string | null>(null);
     const [sheetFilter, setSheetFilter] = useState<MissionFilter>(requested?.filter ?? "all");
@@ -109,6 +113,10 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const current = run ? view?.sourcesCurrent[run.id] !== false : true;
     const editable = !!run && ["draft", "executed"].includes(run.state) && canPrepare && run.preparedBy === view?.actorId;
     const saving = status === "saving";
+    // Base hydratée du brouillon : ce que le serveur a renvoyé. « Non sauvegardée » seulement si la saisie en diffère.
+    const baseline = useMemo(() => ({ period: run?.period ?? loadedPeriod, conclusion: run?.conclusion ?? "", comment: "", review: "", sales: serverSalesDraft, file: null as File | null, columns: DEFAULT_COLUMNS, format: DEFAULT_FORMAT }), [run, loadedPeriod, serverSalesDraft]);
+    const isDirty = !!view && !sameDraft({ period, conclusion, comment, review, sales: salesDraftRef.current ?? panelDraft, file, columns, format }, baseline);
+    const readOnly = exactVersion || (!!run && ["locked", "superseded"].includes(run.state));
     const endpoint = (imports = false) => "/api/workpapers/clients" + (imports ? "/imports" : "") + "?dossierId=" + encodeURIComponent(dossierId) + "&periodId=" + encodeURIComponent(requested?.periodId || periodId(period));
     async function session() {
         const response = await fetch("/api/auth/session", { cache: "no-store" });
@@ -129,6 +137,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
             if (!keepDraft)
                 setConclusion(selected.conclusion ?? "");
         }
+        setLoadedPeriod(selected?.period ?? period);
     }
     async function load() {
         setLoading(true);
@@ -162,6 +171,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
                 csrf.current = identity.csrfToken; setView(data);
                 const selected = data.runs.find((r: WorkpaperRun) => r.id === requested.id) ?? data.runs.filter((r:WorkpaperRun) => r.template.id === (requested.procedure ?? "clients.frame")).at(-1) ?? data.runs.find((r:WorkpaperRun) => r.template.id === "clients.frame") ?? data.runs.at(-1);
                 if (selected) { setActiveId(selected.id); setPeriod(selected.period); setConclusion(selected.conclusion ?? ""); }
+                setLoadedPeriod(p => selected?.period ?? p);
             } catch (e) { if (active) setError(e instanceof Error ? e.message : "Chargement impossible"); }
             finally { if (active) setLoading(false); }
         })();
@@ -230,7 +240,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
             return;
         void mutate({ command, id: run.id, expectedVersion: run.version, ...fields });
     }
-    function dirty() { setStatus("idle"); setConflict(null); pending.current = null; }
+    function dirty() { setStatus("idle"); setConflict(null); pending.current = null; touch(t => t + 1); }
     const controlClass = "rounded border border-[var(--pb-border)] bg-transparent p-2";
     return <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-6 [overflow-wrap:anywhere]">
     <header><p className="text-sm">Recette jetable · identité serveur</p><h1 className="text-2xl font-semibold">{isSales ? "Clients et ventes" : "Cadrage Clients"}</h1>
@@ -241,7 +251,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
       {(["startDate", "closingDate", "asOfDate"] as const).map((key, i) => <label key={key}>{["Début", "Clôture", "Date de revue"][i]}<input type="date" className={controlClass} value={period[key]} required disabled={saving || loading} onChange={e => { setPeriod(p => ({ ...p, [key]: e.target.value })); setView(null); dirty(); }}/></label>)}
       <button className={controlClass} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le cadrage"}</button>
     </form></details>
-    <p role="status" aria-live="polite">{saveLabels[status]}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
+    <p role="status" aria-live="polite">{!view ? "Aucune feuille chargée" : saveStateLabel({ status, dirty: isDirty, readOnly })}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
     {error && <p role="alert">{error}</p>}
     {status === "failed" && pending.current && <button className={controlClass} onClick={() => { const p = pending.current!; void mutate(p.body, p.imports, p.key); }}>Réessayer la même commande</button>}
     {conflict && <section role="alert" className="space-y-3 rounded-xl border border-amber-600 p-4">

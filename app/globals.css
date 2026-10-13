@@ -556,6 +556,42 @@ body[data-pb-guide] [data-tour-anno] {
 }
 
 /*
+  ══════════════════════════════════════════════════════════════════
+  C02 — transitions d'état et de panneau (Synthèse, Tests, laboratoire)
+  Durées 120–220 ms, interrompables ; neutralisées par la règle
+  prefers-reduced-motion ci-dessous. Aucun mouvement nécessaire à la
+  compréhension : le contenu est accessible immédiatement.
+  ══════════════════════════════════════════════════════════════════
+*/
+@keyframes pbPanelIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0);    }
+}
+.pb-panel-in {
+  animation: pbPanelIn 180ms ease-out both;
+}
+.pb-details > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 150ms ease;
+}
+.pb-details > summary::-webkit-details-marker { display: none; }
+.pb-details > summary::before {
+  content: "";
+  width: 0.4rem;
+  height: 0.4rem;
+  border-right: 1.5px solid var(--pb-text-muted);
+  border-bottom: 1.5px solid var(--pb-text-muted);
+  transform: rotate(-45deg);
+  transition: transform 150ms ease;
+  flex-shrink: 0;
+}
+.pb-details[open] > summary::before { transform: rotate(45deg); }
+.pb-details > summary:hover { background-color: var(--pb-surface-2); }
+
+/*
   Respect du choix utilisateur : animations complètes par défaut,
   mais neutralisées si l'OS demande la réduction de mouvement.
 */

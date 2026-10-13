@@ -26,6 +26,9 @@ import { EvidenceFlow } from "@/components/evidence/EvidenceFlow";
 import { EvidenceExportToolbar } from "@/components/evidence/EvidenceExportToolbar";
 import { ReviewEventPanel } from "@/components/evidence/ReviewEventPanel";
 import { ModuleAvailability } from "@/components/probant/ModuleAvailability";
+import { CycleRegistryList } from "@/components/probant/CycleRegistryList";
+import { DossierContextBar } from "@/components/probant/DossierContextBar";
+import { priorityCycle, projectCycleRows, projectSourceState, sortCycleRows } from "@/lib/dossier/cycle-registry";
 import { SyntheticSummary } from "@/components/probant/SyntheticSummary";
 import { focusStyle } from "@/components/synthesis/tokens";
 
@@ -394,6 +397,12 @@ export default function SynthesePage() {
     [synthesis, d.societe, findings, snapshot.admissibilityFindings],
   );
 
+  // ── Registre des cycles (projection C02, lib/dossier/cycle-registry) ───
+  const cycleRows = useMemo(() => sortCycleRows(projectCycleRows(snapshot)), [snapshot]);
+  const sourceState = useMemo(() => projectSourceState(snapshot), [snapshot]);
+  const priority = useMemo(() => priorityCycle(cycleRows), [cycleRows]);
+  const engineAction = datasets.decision.items.find((i) => i.id === "prochaine-action")?.value ?? null;
+
   const downloadNote = useCallback(() => {
     const note = generateSynthesisNote(synthesis, d.societe);
     const blob = new Blob([note], { type: "text/markdown;charset=utf-8" });
@@ -481,11 +490,30 @@ export default function SynthesePage() {
         </div>
       </header>
 
-      <CapabilityAccess />
-      <ModuleAvailability snapshot={snapshot} />
+      {/* ── Dossier, état des sources, action prioritaire — avant tout accès secondaire ── */}
+      <DossierContextBar
+        className="mb-4"
+        dossier={{ name: d.societe.raisonSociale, period: `Exercice ${d.societe.exercice}${d.period ? ` · ${d.period.startDate} → ${d.period.closingDate}` : ""}`, id: d.id }}
+        sources={sourceState}
+        priority={priority}
+        engineAction={engineAction}
+      />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}
       <DecisionHeader decision={datasets.decision} onDownloadNote={downloadNote} />
+
+      {/* ── Cycles du dossier : entrées générées depuis le registre ──────── */}
+      <CycleRegistryList rows={cycleRows} className="mb-4" />
+      {/* Ouvert par défaut : capacités C01, travaux de l'atelier et ancres de preuve `#wp-<id>` des lignes de cycle. */}
+      <details open className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
+        <summary className="pbz-focusable cursor-pointer select-none px-4 py-3 text-[14px] font-semibold text-[var(--pb-text)]">Méthode · capacités, disponibilité et limites par module</summary>
+        <div className="pb-panel-in border-t border-[var(--pb-border)] px-4 pb-2">
+          {/* Registre de capacités C01 : implémentation, configuration locale et travail lu par mode. */}
+          <CapabilityAccess />
+          <ModuleAvailability snapshot={snapshot} />
+        </div>
+      </details>
+
       <EvidenceExportToolbar synthesis={synthesis} />
       <ReviewEventPanel />
 

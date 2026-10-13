@@ -32,9 +32,10 @@ export default function TestsPage() {
   const cibles = snapshot.findings.filter(
     (f) => f.family !== "internal" && f.severity !== "informatif",
   );
+  const synthetic = snapshot.dossier.organizationId === "SYNTHETIC-DEMO";
 
   return (
-    <div className="p-6">
+    <div className="p-4 md:p-6">
       <PageHeader
         title="Tests complémentaires"
         subtitle="Lorsqu'un constat laisse penser à une anomalie significative, des procédures supplémentaires sont requises (ISA 330 / ISRE 2400). Voici les tests suggérés par constat."
@@ -42,21 +43,30 @@ export default function TestsPage() {
 
       <CycleDemonstration />
 
-      <div className="space-y-3">
+      <section aria-labelledby="tests-list-title" className="space-y-3">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <h2 id="tests-list-title" className="text-[15px] font-semibold text-[var(--pb-text)]">Tests suggérés par constat</h2>
+          <p className="tnum text-[12px] text-[var(--pb-text-muted)]">{cibles.length} constat{cibles.length > 1 ? "s" : ""} · familles droit dur et présomption, gravité informative exclue</p>
+        </div>
+        {cibles.length === 0 && (
+          <p className="rounded-xl border border-dashed border-[var(--pb-border)] px-4 py-6 text-center text-[13px] text-[var(--pb-text-muted)]">
+            {synthetic ? "Aucun constat historique dans ce scénario : les tests viennent des feuilles exécutées dans le laboratoire." : "Aucun constat ne requiert de test complémentaire dans ce dossier."}
+          </p>
+        )}
         {cibles.map((f) => {
           const procs = PROCEDURES[f.siloId] ?? [
             "Documenter le constat et obtenir les éléments probants associés.",
           ];
           return (
-            <div
+            <article
               key={f.id}
-              className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4"
+              className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 transition-colors hover:border-[var(--pb-border-strong)]"
             >
               <div className="flex flex-wrap items-center gap-2">
-                <FlaskConical className="h-4 w-4 text-[var(--pb-accent)]" />
-                <span className="text-sm font-semibold text-[var(--pb-text)]">
+                <FlaskConical aria-hidden="true" className="h-4 w-4 shrink-0 text-[var(--pb-accent)]" />
+                <h3 className="min-w-0 text-sm font-semibold text-[var(--pb-text)]">
                   {f.titre}
-                </span>
+                </h3>
                 <SeverityBadge severity={f.severity} className="ml-1" />
                 <FamilyBadge family={f.family} />
               </div>
@@ -66,15 +76,15 @@ export default function TestsPage() {
                     key={i}
                     className="flex items-start gap-2 text-[13px] text-[var(--pb-text-muted)]"
                   >
-                    <ListChecks className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--pb-accent)]" />
+                    <ListChecks aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-[var(--pb-accent)]" />
                     {p}
                   </li>
                 ))}
               </ul>
-            </div>
+            </article>
           );
         })}
-      </div>
+      </section>
     </div>
   );
 }

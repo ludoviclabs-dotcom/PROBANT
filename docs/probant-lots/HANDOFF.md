@@ -1,3 +1,89 @@
+# Handoff — Mission C02 : finition de Synthèse, Tests et du laboratoire de scénarios (2026-10-13)
+
+**Base.** PR [#73](https://github.com/ludoviclabs-dotcom/PROBANT/pull/73), branche `claude/dashboard-socle-commun-0b7995`, ouverte sur `main` `ab8f991` puis **fusionnée avec `main` `97b298f`** (PR #74 : lots C00 et C01 de Codex) dans le commit de fusion `cb83680`. Descriptif de PR : [C02_PR.md](C02_PR.md). Aucun déploiement.
+
+**Raccordement au registre C01 (après fusion).** C01 livre le registre unique `lib/capabilities/registry.ts` (14 périmètres : 13 cycles du journal + Dettes financières, 15 procédures, 10 exercices d'atelier, routes, sources, exclusions, modes), le contexte de navigation canonique (`DossierContextLink`, `navigationContext`) et le panneau `CapabilityAccess`. Ce lot s'y raccorde :
+- `lib/dossier/cycle-registry.ts` ne redéclare plus les cycles : `CYCLE_REGISTRY` est projeté depuis `CAPABILITY_REGISTRY` (cycles, procédures, scénarios, routes, sources, exclusions, capacité par mode) ; le module n'ajoute que la présentation (étendue en une phrase, silos des constats historiques, libellés d'accès, limites héritées des anciens paragraphes) et la projection d'un dossier (état, écarts, prochaine action) ;
+- tous les liens des composants C02 (`CycleRegistryList`, `DossierContextBar`, laboratoire, synthèse de scénario) passent par `DossierContextLink` : dossier, entité, exercice, référentiel et mode sont transmis (CTX-01 résolu par C01) ;
+- `CapabilityAccess` (implémentation, configuration locale lue par `/api/dossier-capabilities`, travail observé) est conservé dans le volet « Méthode · capacités, disponibilité et limites par module », ouvert par défaut, sous la liste des cycles ; la synthèse de scénario lui transmet explicitement son contexte ;
+- la capacité « local persistant » reste affichée « configurée — activation requise » dans la ligne de cycle ; l'activation réelle est celle que lit le panneau de capacités (C07).
+
+## Problème utilisateur, vue choisie, données, interactions
+
+- **Problème.** La Synthèse empilait onze paragraphes de liens et limites avant le verdict ; la page Tests ouvrait sur un bandeau `bg-amber-50` hors thème mêlant entrée dans l'atelier, reprise et méthode ; une feuille Clients chargée sans saisie annonçait « Modifications non sauvegardées » (M20-UI-03).
+- **Vue.** Dossier, état des sources et action prioritaire en tête ; décision du moteur ; liste continue des cycles (état, étendue, écarts, prochaine action) avec détail dans la ligne ; méthode et disponibilité dans un volet replié. Lanceur compact « Laboratoire de scénarios » dans le thème, Nouveau / Reprendre, volet « Mode et sauvegarde ».
+- **Données.** Snapshot actif (constats historiques par silo, admissibilité, empreinte FEC, documents), résumé des feuilles (`summarizeWorkpapers`), résultats des scénarios du laboratoire, verdict et prochaine action du moteur de Synthèse. Rien n'est recalculé dans React ; aucune somme de montants entre catégories.
+- **Interactions.** Ligne de cycle dépliable (`aria-expanded`), lien d'action vers la feuille, la revue par cloison, la source requise ou la preuve verrouillée (`#wp-<id>`) ; volet du laboratoire au clavier (focus dans le volet, Échap rend le focus) ; identifiant complet copiable.
+
+## Changements
+
+**Registre et projection** — `lib/dossier/cycle-registry.ts` (nouveau).
+- 13 entrées = `CL_CYCLES`. Chaque scénario du laboratoire est rattaché à un seul cycle (le cut-off, servi par la chaîne Achats, reste sous « Achats et fournisseurs » ; « Transversal » garde le lien `/cutoff`).
+- `projectCycleRows` : état (`locked`, `review`, `executed`, `blocked`, `stale`, `findings`, `available`, `source_required`, `absent`), détail, écarts (exceptions des contrôles et constats par gravité, jamais additionnés), prochaine action typée (`proof`, `work`, `review`, `source`, `open`, `declare`). `sortCycleRows` met d'abord ce qui demande une action ; `priorityCycle` donne l'action prioritaire ; `projectSourceState` lit l'origine des données.
+- Les textes de limite reprennent mot pour mot ceux des anciens paragraphes.
+
+**Synthèse** — `app/dashboard/synthese/page.tsx`, `components/probant/DossierContextBar.tsx` (nouveau), `components/probant/CycleRegistryList.tsx` (nouveau), `components/probant/SyntheticSummary.tsx`.
+- Les paragraphes d'accès (lignes 483–493) sont supprimés. Ordre : en-tête → bandeau dossier / sources / action prioritaire → décision → cycles → volet « Méthode · disponibilité et limites par module » (l'ancien `ModuleAvailability`, inchangé) → exports, revue, analyse, exploration.
+- Table des cycles en `table-layout: fixed`, chiffres tabulaires (`tnum`), écarts alignés à droite, colonnes explicites ; à 390 px elle défile dans son cadre (`position: relative`, `role="region"` focusable), jamais la page.
+- La Synthèse d'un scénario utilise les mêmes composants ; `ModuleAvailability` y reste visible (c'est la preuve des feuilles).
+- `components/synthesis/DecisionHeader.tsx` : le détail des six éléments de décision passe de `--pb-text-faint` à `--pb-text-muted` (seules violations « serious » restantes dans le contenu de la vue).
+
+**Tests et laboratoire** — `app/dashboard/tests/page.tsx`, `components/probant/CycleDemonstration.tsx` (réécrit, même export, même mécanique de journal vérifié / rejeu / exports).
+- Lanceur : icône, titre, ligne d'état (« Aucun scénario ouvert » ou identifiant court + `n/10 cycles exécutés · k bloqués`), actions `Nouveau` (nom accessible « Nouveau scénario synthétique »), `Reprendre` (nom accessible avec l'identifiant), `Remise à zéro explicite`, `Mode et sauvegarde` (`aria-expanded` / `aria-controls`).
+- Volet `#cycle-demo-info` (`role="region"`, `tabIndex=-1`) : mode, sauvegarde, dossier actif, identifiant complet en `<code>` + « Copier l'identifiant » (retour `role="status"`, refus du presse-papiers expliqué), période. Focus déplacé dans le volet à l'ouverture ; Échap le ferme et rend le focus au bouton.
+- L'ambre n'habille que le message de blocage (`--pb-warn`, bordure gauche 3 px) et les refus (`data-tone="error"`, préfixe « Blocage · »).
+- Liste des tests : en-tête de section, compteur, état vide explicite (scénario sans constat historique).
+
+**État de sauvegarde (M20-UI-03)** — `lib/workpapers/draft-state.ts` (nouveau) : `sameDraft` (égalité structurelle, ordre des clés et `undefined` ignorés, `File` par nom et taille) et `saveStateLabel` (`idle` + propre → « Aucune modification en attente » ; lecture seule → « Lecture seule · aucune saisie » ; `saving` / `saved` / `failed` / `conflict` prioritaires).
+- `ClientFramingWorkspace` : base = période, conclusion, commentaire, note de revue, brouillon ventes serveur, fichier, colonnes et format d'import ; `dirty()` ne fait plus que marquer la saisie. Sans feuille chargée : « Aucune feuille chargée ». Version exacte ou verrouillée : lecture seule.
+- `EquityWorkspace` (historique `/equity`) et `PayablesWorkspace` : brouillon comparé à `draftOf(run)` / `unstamp(run)` ; le message « base serveur actualisée » après conflit est conservé.
+- Les feuilles récentes (cash, immobilisations, fiscal, stocks, provisions, capitaux propres) comparaient déjà leur brouillon : inchangées.
+
+**Mouvement** — `app/globals.css` : `pbPanelIn` (180 ms), `.pb-details` (chevron tourné, 150 ms). La règle `prefers-reduced-motion` globale les ramène à 0,001 ms.
+
+## Routes et interactions visibles
+
+- `/dashboard/synthese` : bandeau, décision, « Cycles du dossier » (ligne dépliable), « Méthode · disponibilité et limites par module ».
+- `/dashboard/tests` : « Laboratoire de scénarios », volet « Mode et sauvegarde », tests suggérés par constat.
+- Synthèse d'un scénario (`SYN-*`) : « Cycles du scénario », action prioritaire vers la source requise ou la preuve `#wp-<id>`.
+- Parcours bref, du dossier à la preuve : Synthèse → action prioritaire « Fournir la source requise » (feuille bloquée) ou « Arbitrer n constats bloquants » → `/dashboard/cloisons` ; scénario : Tests → Exécuter → Soumettre → Approuver → Verrouiller → Synthèse → « Consulter la preuve verrouillée » → `#wp-<id>` dans les feuilles de travail.
+
+## Tests exécutés (local, 2026-10-13, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| Tests unitaires (`--pool=forks`, projet `unit`) | 1 529 réussis / 141 fichiers, dont 5 (`cycle-registry.test.ts`), 5 (`draft-state.test.ts`) et 5 (`clients-save-state.test.tsx`) nouveaux |
+| Typecheck | OK |
+| Lint | 0 erreur sur les fichiers du lot (avertissements préexistants hors lot inchangés) |
+| Build de production | OK |
+| `e2e/c02-finition.spec.ts` | 14/14 : 3 largeurs × (Synthèse dossier courant, Tests vide + volet, scénario repris + feuille bloquée + synthèse du scénario) ; erreur de reprise, chargement, identifiant long, programme long (10 scénarios), mouvement réduit. Débordement global nul partout ; axe « serious / critical » = 0 sur le contenu des vues |
+| `e2e/phase-de.spec.ts`, `e2e/workpaper-results.spec.ts`, `e2e/demo-journey.spec.ts`, `e2e/accessibility.spec.ts` | 25/25 (3 + 10 + 4 + 8) ; la dette « serious » gelée de la Synthèse n'est pas aggravée |
+| Après fusion avec `main` (C00 + C01) : `c02-finition`, `c01-context`, `phase-de`, `workpaper-results`, `demo-journey`, `accessibility` sur le build fusionné | 50/50 ; captures `apres/` régénérées sur ce build |
+
+**Non exécuté localement** : les recettes PostgreSQL (`*.integration.test.ts`) — pas de base jetable sur ce poste ; elles tournent en CI. Un lecteur d'écran réel n'a pas été utilisé : NON VÉRIFIÉ.
+
+## Captures
+
+Avant / après dans [c02-captures](c02-captures/README.md) : 1440, 1024 et 390 px ; vide, dossier courant, scénario repris, feuille bloquée, erreur de reprise, chargement, identifiant long, programme long, réduction des animations.
+
+L'inspection a fait corriger : la table des cycles trop étroite à 1024 px (largeurs de colonnes fixées) puis un chevauchement des compteurs d'écarts sur l'étendue (éléments insécables sans point de coupure, corrigé) ; le contraste des détails de décision ; les bordures sémantiques (ambre du blocage, accent de l'action prioritaire) écrasées par la règle globale `* { border-color }` non stratifiée, posées en style inline ; le ton d'erreur des refus du laboratoire.
+
+## Limites et maturité
+
+- Capacité persistante affichée « configurée » dans la ligne de cycle sans vérification d'activation ; l'activation réelle est lue par le panneau de capacités C01 (C07).
+- Le chrome partagé (Sidebar, bandeau, lanceur de visite) garde la dette de contraste `--pb-text-faint` gelée par `accessibility.spec.ts` ; le contrôle strict de ce lot porte sur le contenu de `<main>`.
+- **Défaut global constaté, non corrigé ici** : `app/globals.css` pose `* { border-color: var(--pb-border) }` hors de toute `@layer`. Une règle non stratifiée l'emporte sur les utilitaires Tailwind (stratifiés), si bien que toute classe `border-<couleur>` de l'application est silencieusement ignorée. Ce lot pose ses couleurs de bordure sémantiques en style inline (`borderLeftColor`) ; la correction globale (mettre la règle dans `@layer base`) relève d'un lot de finition transversal (C15) car elle réactive des couleurs de bordure partout.
+- `ModuleAvailability` et `WorkpaperPanel` ne sont pas restylés : ils vivent dans le volet « Méthode » et la preuve.
+- Le laboratoire reste une démonstration locale (journal dans le navigateur, sept jours, contrôle d'intégrité) ; aucune feuille n'est une opinion.
+
+## Dépendances du lot suivant
+
+- C01 (livré, fusionné) : si le registre reçoit un jour l'étendue et les silos par cycle, retirer `PRESENTATION` de `cycle-registry.ts`.
+- C03 : les « tests suggérés par constat » restent choisis par `siloId` (MET-01).
+- C07 : qualifier la capacité « local persistant » depuis l'activation réelle.
+
+---
+
 # Handoff — Mission 19 : dossier professionnel, contrôle interne et clôture (2026-10-10)
 
 **Base.** `origin/main` `b9daf1b` : Missions 15, 16, 17 et 18 fusionnées. C'est aussi le dernier déploiement Production rapporté par GitHub à Vercel (état « success », 10/10/2026 01:46 UTC). Ce SHA a été lu par l'API GitHub des déploiements, pas en visitant le site.

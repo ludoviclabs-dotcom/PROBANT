@@ -112,7 +112,7 @@ export function DecisionHeader({
               {item.value}
             </dd>
             {item.detail && (
-              <dd style={{ margin: "3px 0 0", fontSize: FONT.meta, color: T.faint }}>{item.detail}</dd>
+              <dd style={{ margin: "3px 0 0", fontSize: FONT.meta, color: T.muted }}>{item.detail}</dd>
             )}
           </div>
         ))}
