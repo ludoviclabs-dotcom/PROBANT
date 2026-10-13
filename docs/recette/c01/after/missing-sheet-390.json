@@ -1,9 +1,0 @@
-{
-  "observedAt": "2026-10-13T13:19:57.414Z",
-  "browser": "151.0.7922.34",
-  "method": "compiled local Next / existing WorkpaperService fixtures / HTTP interception / reduced motion / stable fonts and network / axe WCAG AA",
-  "url": "http://127.0.0.1:3100/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=33333333-3333-4333-8333-333333333333&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2025&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2025-01-01&exerciseEnd=2025-12-31&procedurePeriod=exercise&procedureStart=2025-01-01&procedureEnd=2025-12-31&reviewDate=2026-02-01&periodId=period-c86f0bc6201b297aa9f432b26230406b542c3664e99684056379645984e00c8f",
-  "viewport": 390,
-  "scrollWidth": 390,
-  "violations": []
-}

@@ -1,9 +1,0 @@
-{
-  "observedAt": "2026-10-13T13:20:00.756Z",
-  "browser": "151.0.7922.34",
-  "method": "compiled local Next / existing WorkpaperService fixtures / HTTP interception / reduced motion / stable fonts and network / axe WCAG AA",
-  "url": "http://127.0.0.1:3100/stocks?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
-  "viewport": 390,
-  "scrollWidth": 390,
-  "violations": []
-}
