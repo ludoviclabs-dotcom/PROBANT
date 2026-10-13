@@ -15,13 +15,15 @@ export function CoverageStackedBar({ dataset }: { dataset: VisualizationDataset 
     <ChartCard dataset={dataset} eyebrow="Niveau décision">
       <div role="img" aria-label={dataset.summary} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {dataset.rows.map((row) => {
-          const ratio = Number(row.cells.ratio ?? 0);
+          // C03 — sans dénominateur qualifié, aucun ratio n'est affiché ni dessiné : l'état de la population le remplace.
+          const qualified = row.cells.ratio !== null && row.cells.ratio !== undefined;
+          const ratio = qualified ? Number(row.cells.ratio) : 0;
           return (
             <div key={row.id}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, marginBottom: 5, flexWrap: "wrap" }}>
                 <span style={{ fontSize: FONT.body, color: T.text }}>{row.cells.dimension}</span>
-                <span style={{ fontSize: FONT.table, fontWeight: 700, color: T.text, fontFamily: "monospace" }}>
-                  {row.cells.fait}/{row.cells.total} · {ratio} %
+                <span style={{ fontSize: FONT.table, fontWeight: 700, color: qualified ? T.text : T.warning, fontFamily: "monospace" }}>
+                  {qualified ? `${row.cells.fait}/${row.cells.total} · ${ratio} %` : `${row.cells.statut} · ${row.cells.fait} réalisé(s), dénominateur —`}
                 </span>
               </div>
               <div
@@ -32,11 +34,12 @@ export function CoverageStackedBar({ dataset }: { dataset: VisualizationDataset 
                   style={{
                     height: "100%",
                     width: `${Math.min(100, Math.max(0, ratio))}%`,
-                    background: ratio >= 95 ? T.positive : ratio > 0 ? T.warning : T.critical,
+                    background: !qualified ? "transparent" : ratio >= 95 ? T.positive : ratio > 0 ? T.warning : T.critical,
                     transition: "width .4s ease",
                   }}
                 />
               </div>
+              {!qualified && <p style={{ margin: "4px 0 0", fontSize: FONT.meta, color: T.muted }}>{row.cells.base}</p>}
             </div>
           );
         })}

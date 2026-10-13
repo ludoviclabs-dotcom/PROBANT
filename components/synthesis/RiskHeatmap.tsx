@@ -65,6 +65,10 @@ export function RiskHeatmap({ dataset }: { dataset: VisualizationDataset }) {
               {valueColumns.map((c) => {
                 const n = Number(row.cells[c.key] ?? 0);
                 const inten = n / maxCell;
+                // C03 — contraste (WCAG 1.4.3, axe color-contrast) : jusqu'à 60 % d'accent, le texte clair tient ≥ 4,5:1 ;
+                // au-delà, le fond devient trop clair pour lui (3,3:1 à 80 %) et la cellule passe en texte sombre sur ≥ 78 % d'accent.
+                const dense = inten > 0.5;
+                const mixPct = dense ? 78 + (inten - 0.5) * 44 : 15 + inten * 90;
                 const label = `${row.cells.cloison} × ${c.label} : ${n} constat${n > 1 ? "s" : ""}`;
                 return (
                   <div
@@ -81,9 +85,9 @@ export function RiskHeatmap({ dataset }: { dataset: VisualizationDataset }) {
                       borderRadius: 7,
                       border: `1px solid ${T.border}`,
                       background: n
-                        ? `color-mix(in srgb, ${T.accent} ${(15 + inten * 65).toFixed(0)}%, transparent)`
+                        ? `color-mix(in srgb, ${T.accent} ${mixPct.toFixed(0)}%, transparent)`
                         : T.surface,
-                      color: n ? T.text : "#3a4761",
+                      color: n ? (dense ? T.surface : T.text) : "#3a4761",
                       fontSize: FONT.table,
                       fontWeight: 700,
                       display: "flex",

@@ -46,10 +46,35 @@ export interface AdmissibilityDimension {
   alertFindingIds: string[];
 }
 
-export type CoverageStatus = "none" | "partial" | "substantial";
+/** `unqualified` : aucun dénominateur qualifié — ni ratio, ni « nulle » présumée. */
+export type CoverageStatus = "none" | "partial" | "substantial" | "unqualified";
+
+/**
+ * État d'une population de couverture (C03). `missing` : non dénombrée ; `known_empty` :
+ * dénombrée à zéro ; `not_applicable` ; `unqualified` : dénominateur non qualifié (compté
+ * depuis les constats) ; `untreated` / `partial` / `complete` : dénombrée et traitée à 0 %,
+ * entre 0 et 100 %, ou à 100 %.
+ */
+export type CoveragePopulationStatus = "missing" | "known_empty" | "not_applicable" | "unqualified" | "untreated" | "partial" | "complete";
+
+export interface CoveragePopulation {
+  id: "entries" | "controls";
+  label: string;
+  unit: string;
+  status: CoveragePopulationStatus;
+  numerator: number;
+  /** Dénominateur qualifié, sinon null : aucun ratio n'est calculé sans dénominateur. */
+  denominator: number | null;
+  /** Ratio à 4 décimales, null sans dénominateur qualifié. */
+  ratio: number | null;
+  /** Origine du dénominateur ou motif de l'absence de ratio. */
+  basis: string;
+}
 
 export interface CoverageDimension {
   status: CoverageStatus;
+  /** Populations qualifiées séparément : un ratio exige un dénominateur qualifié (C03). */
+  populations: CoveragePopulation[];
   entriesTotal: number;
   entriesAnalysed: number;
   controlsEligible: number;
@@ -146,6 +171,7 @@ export type LimitationCode =
   | "control_not_run"
   | "control_inconclusive"
   | "partial_coverage"
+  | "coverage_unqualified"
   | "parser_warning"
   | "source_review_required"
   | "internal_threshold"

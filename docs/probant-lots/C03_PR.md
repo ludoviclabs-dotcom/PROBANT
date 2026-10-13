@@ -1,0 +1,15 @@
+# Mission C03 — descriptif de PR prêt à examiner
+
+Titre : Assertions NEP 500, procédures par objectif et couverture par population qualifiée (C03)
+
+L'assertion d'un constat était lue dans son effet financier (les constats non chiffrés devenaient « non qualifiés »), la procédure complémentaire était choisie par silo (toute créance Clients recevait le test du compte 418) et la couverture se disait « substantielle » avec 0/0 écritures et 24/24 contrôles, le dénominateur étant le nombre de règles ayant produit un constat.
+
+Deux résolveurs purs remplacent ces raccourcis. `lib/audit/assertions.ts` résout les assertions de la NEP 500 §09 (13 assertions, trois catégories, relues sur h2a-france.org le 13/10/2026, vocabulaire du contrat de clôture) par la règle du constat, puis par l'effet financier explicite ; conformité du fichier et signaux analytiques restent hors des colonnes d'assertion. `lib/audit/procedures.ts` propose une réponse par constat (objectif, assertions, population, source, étapes, références H2A) : créance litigieuse → revue de recouvrabilité documentée, produit non facturé → rattachement, date FEC invalide → localisation, correction à la source, revalidation ; règle inconnue → « Procédure à définir ». La page Tests affiche le régime (audit NEP 330/500, examen limité NEP 2410 §08, §17-18) et l'exercice sans les confondre.
+
+La couverture qualifie chaque population séparément (`entriesPopulation`, `controlsDenominatorBasis`) : manquante, connue vide, non applicable, non qualifiée, non traitée, partielle, traitée. Un ratio exige un dénominateur dénombré ou déclaré ; toute population manquante ou non qualifiée rend la couverture « non qualifiée » (verdict « Couverture non qualifiée », limite tracée). DEMO SA passe ainsi de « Substantielle » à « Non qualifiée » ; les dépôts FEC gardent leurs ratios, le pipeline fournissant déjà le catalogue des règles ; le dépôt historique de documents par cycle déclare ses populations (écritures non applicables sans FEC, dénominateur de contrôles déclaré) et reste « partiel ». La Synthèse sépare la matrice des constats (cloison × assertion, un constat par assertion portée) de la couverture des travaux (feuilles réalisées, pièces, versions ; « non établie » sans travail).
+
+Validation : résolveurs et populations testés par cas (constat qualitatif sans impact, deux constats Clients d'objectifs différents, source absente, population vide/manquante/non applicable/partielle, travail non concluant ou bloqué), typecheck, lint, recette Playwright sur le build de production à 390/1024/1440 avec axe strict sur le contenu. Contrat de métriques et correspondances : `docs/mission-c03/CONTRAT_METRIQUES.md`.
+
+Limites : correspondances règle → assertion/procédure = méthode interne justifiée, pas une norme ; régime non porté par le dossier (choisi à l'écran) ; NEP 2410 lue pour les comptes intermédiaires ; procédure non applicable motivée non projetée depuis le programme de clôture ; recette PostgreSQL non exécutée localement. Aucun déploiement.
+
+La PR cible `main`. Aucun merge ni déploiement réalisés.

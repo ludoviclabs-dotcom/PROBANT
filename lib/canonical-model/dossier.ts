@@ -121,6 +121,19 @@ export interface ReviewEvent {
 
 export interface CalculationContext {
   limitedToUploadedDocuments?: boolean;
+  /**
+   * C03 — qualification de la population d'écritures : `counted` (dénombrée par le parseur),
+   * `missing` (aucun dénombrement : ni zéro ni inconnu assimilé), `known_empty` (fichier lu,
+   * zéro ligne), `not_applicable`. Absent = `counted` si `entriesTotal` > 0, sinon `missing`.
+   */
+  entriesPopulation?: "counted" | "missing" | "known_empty" | "not_applicable";
+  /**
+   * C03 — origine du dénominateur des contrôles : `catalog` (règles du moteur), `declared`
+   * (fourni par le producteur), `findings_only` (nombre de règles ayant produit un constat :
+   * dénominateur non qualifié, aucun ratio n'en découle). Absent = `declared` si
+   * `controlsEligible` > 0, sinon `missing`.
+   */
+  controlsDenominatorBasis?: "catalog" | "declared" | "findings_only";
   entriesTotal: number;
   entriesAnalysed: number;
   controlsEligible: number;
