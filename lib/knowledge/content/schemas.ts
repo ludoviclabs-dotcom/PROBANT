@@ -60,6 +60,9 @@ export const SourceRefSchema = z.object({
   paragraphReference: z.string().optional(),
   /** Date de consultation (AAAA-MM-JJ). Obligatoire pour fonder `verified`. */
   retrievedAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  /** C04 — empreinte SHA-256 et pagination du fichier lu, lorsqu'il a été lu. */
+  sha256: z.string().regex(/^[0-9a-f]{64}$/u).optional(),
+  pages: z.number().int().positive().optional(),
   note: z.string().optional(),
 });
 export type SourceRef = z.infer<typeof SourceRefSchema>;
@@ -359,6 +362,18 @@ export const PcgRequirementSchema = z.object({
   regulation: z.string().min(1),
   effectiveFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).nullable(),
   effectiveTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).nullable(),
+  /** C04 — datation distincte : adoption par le Collège, arrêté d'homologation, publication au JO. */
+  adoptionDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  homologationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  publicationDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/u).optional(),
+  /** Première période applicable, telle qu'énoncée par l'article d'application. */
+  firstMandatoryPeriod: z.string().optional(),
+  /** Anticipation admise, telle qu'énoncée (ou « aucune »). */
+  anticipation: z.string().optional(),
+  /** Champ contractuel énoncé par le texte, s'il existe. */
+  contractualScope: z.string().optional(),
+  /** Numérotation établie par ce texte, rattachée à sa version. */
+  numbering: z.record(z.string(), z.string()).optional(),
   affectedCycles: z.array(z.string()),
   status: KnowledgeStatusSchema,
   sources: z.array(SourceRefSchema).min(1),

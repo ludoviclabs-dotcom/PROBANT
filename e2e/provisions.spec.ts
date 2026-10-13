@@ -9,6 +9,9 @@ import { pvScope } from "../lib/workpapers/__tests__/provision-fixtures";
  * mutations go through the server code and the engine, but this is not a persistence, OIDC or PostgreSQL recipe (see provision-durable.integration.test.ts).
  */
 async function axe(page: Page) {
+  // La chronologie entre par un fondu échelonné (caseIn) : axe lit la couleur composée pendant l'animation et signale un
+  // contraste insuffisant transitoire. On attend la fin des animations en cours avant de juger le contraste final.
+  await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished.catch(() => undefined))));
   await page.addScriptTag({ path: path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js") });
   const violations = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run: (c: unknown, o: unknown) => Promise<{ violations: { id: string; impact: string | null; nodes: { target: string[] }[] }[] }> } }).axe;
