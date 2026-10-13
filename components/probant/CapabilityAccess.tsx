@@ -1,12 +1,18 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CAPABILITY_REGISTRY, MODE_LABELS } from "@/lib/capabilities/registry";
-import { useActiveDossier } from "@/lib/dossier/client";
-import { navigationContext, withDossierContext } from "@/lib/dossier/navigation-context";
+import { useOptionalActiveDossier } from "@/lib/dossier/client";
+import { navigationContext, withDossierContext, type DossierNavigationContext } from "@/lib/dossier/navigation-context";
 import type { CapabilityReadModel } from "@/lib/capabilities/read-model";
 
-export function CapabilityAccess() {
-  const active = useActiveDossier(), c = navigationContext(active.snapshot, active.context);
+export function CapabilityAccess({ context }: { context?: DossierNavigationContext }) {
+  const active = useOptionalActiveDossier();
+  const selected = context ?? (active ? navigationContext(active.snapshot, active.context) : null);
+  if (!selected) return <p role="status">Choisissez un dossier pour consulter ses capacités ; travaux non vérifiés.</p>;
+  return <DossierCapabilityAccess context={selected} />;
+}
+
+function DossierCapabilityAccess({ context: c }: { context: DossierNavigationContext }) {
   const [read, setRead] = useState<CapabilityReadModel | null>(null), [status, setStatus] = useState("Lecture des capacités…");
   const dossierId = c.dossierId, periodId = c.procedurePeriod?.id, mode = c.mode;
   useEffect(() => {

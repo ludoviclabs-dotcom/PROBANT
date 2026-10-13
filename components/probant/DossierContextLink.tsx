@@ -8,7 +8,7 @@ import { contextParams, navigationContext, parseNavigationContext, withDossierCo
 export function useDossierHref() {
   const active = useOptionalActiveDossier(), params = useSearchParams();
   let context = null;
-  try { context = active ? navigationContext(active.snapshot, active.context) : parseNavigationContext(new URLSearchParams(params.toString())); } catch { /* Invalid contexts are displayed by the route boundary. */ }
+  try { context = active ? navigationContext(active.snapshot, active.context) : parseNavigationContext(new URLSearchParams(params?.toString() ?? "")); } catch { /* Invalid contexts are displayed by the route boundary. */ }
   const key = context ? contextParams(context).toString() : "";
   return useCallback((href: string) => withDossierContext(href, key ? parseNavigationContext(new URLSearchParams(key)) : null), [key]);
 }

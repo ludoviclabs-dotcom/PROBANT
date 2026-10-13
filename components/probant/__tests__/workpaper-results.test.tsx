@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render } from "@testing-library/react";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { cleanup, render, waitFor } from "@testing-library/react";
+import { afterEach, beforeAll, beforeEach, expect, it, vi } from "vitest";
 import { createDemoSession } from "@/lib/workpapers/demo-session";
 import { demoCycleSchema } from "@/lib/workpapers/demo-cycles";
 import { TARGET_CONTROL } from "@/lib/workpapers/demo-assessment";
@@ -9,9 +9,11 @@ import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { WorkpaperPanel } from "../WorkpaperPanel";
 import { SyntheticSummary } from "../SyntheticSummary";
 import { OUTCOME_LABELS } from "@/lib/workpapers/result-contract";
+import { capabilityReadModel } from "@/lib/capabilities/read-model";
 
 beforeAll(() => { globalThis.IS_REACT_ACT_ENVIRONMENT = true; });
-afterEach(cleanup);
+beforeEach(() => { vi.stubGlobal("fetch", vi.fn(async () => Response.json(capabilityReadModel({})))); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 for (const cycle of demoCycleSchema.options) for (const scenario of ["nominal", "exception", "invalid", "missing"] as const) it(`${cycle}/${scenario} : écran, Synthèse et export gardent le même sens`, async () => {
   const s = await createDemoSession(`SYN-screen-${cycle}`, { cycle, scenario: scenario === "missing" ? "nominal" : scenario, missingEvidence: scenario === "missing", methodAvailable: true });
   const run = s.initial;
@@ -31,6 +33,12 @@ for (const cycle of demoCycleSchema.options) for (const scenario of ["nominal", 
   expect(panel.container.querySelector(`[data-control-id="${TARGET_CONTROL[cycle].id}"] a`)?.getAttribute("href")).toMatch(/^\/dashboard\//);
   cleanup();
   const summary = render(<SyntheticSummary snapshot={snapshot} />);
+  await waitFor(() => expect(summary.container.textContent).toContain("Travaux persistants non lus"));
+  const cycleLink = summary.container.querySelector('a[href^="/clients-framing/synthesis"]');
+  const context = new URL(cycleLink!.getAttribute("href")!, "http://local").searchParams;
+  expect(context.get("dossierId")).toBe(snapshot.dossier.id);
+  expect(context.get("organizationId")).toBe("SYNTHETIC-DEMO");
+  expect(context.get("dossierMode")).toBe("scenario");
   expect(summary.container.querySelector(`[data-control-id="${TARGET_CONTROL[cycle].id}"]`)?.textContent).toContain(OUTCOME_LABELS[expected]);
   expect(bundle.markdown).toContain(OUTCOME_LABELS[expected]);
   expect(summary.container.textContent).toContain(`${exported.summary.executed} exécutées`);
