@@ -1,8 +1,9 @@
 "use client";
+import { CapabilityAccess } from "@/components/probant/CapabilityAccess";
 
 import { useMemo, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { LEGACY_EXPOSURE_WEIGHTS } from "@/lib/dossier";
 import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 import { buildSynthesisSnapshot, generateSynthesisNote } from "@/lib/synthesis";
@@ -480,17 +481,7 @@ export default function SynthesePage() {
         </div>
       </header>
 
-      <p className="my-4 text-sm"><a className="underline font-semibold" href="/dossier-cloture">Ouvrir le dossier professionnel — programme de travail, contrôle interne et clôture</a> · les feuilles de cycle ci-dessous ne forment pas un audit complet : travaux restants, pièces manquantes et contradictions ; aucune opinion générée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/resultat-exceptionnel">Résultat exceptionnel · revue par événement</a> · <a className="underline" href="/participations">Participations · droits, distributions et valeur</a> · <a className="underline" href="/equity/synthesis">Capitaux propres · décisions et mouvements</a></p>
-<p className="my-4 text-sm"><a className="underline" href="/payables/synthesis">Synthèse Achats et fournisseurs</a> · <a className="underline" href="/cutoff">Cut-off transversal ventes / achats</a></p>
-      <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/capitaux-propres/synthese">Ouvrir la Synthèse — Capitaux propres, feuille décisions et PV versionnés</a> · <a className="underline" href="/capitaux-propres">feuille /capitaux-propres</a> · procédure parallèle à /equity ; aucune conclusion juridique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/fiscal/synthese">Ouvrir la Synthèse fiscale — TVA par période déclarative, IS par exercice</a> · <a className="underline" href="/fiscal">feuille /fiscal</a> · moteurs fiscaux existants, aucune liquidation ni conformité déclarée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/stocks">Ouvrir la feuille Stocks — quantités comptées, mouvements intercalaires, passage inventaire → clôture</a> · stock propre distingué des stocks de tiers ; aucune présence physique certifiée, aucune dépréciation automatique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/provisions">Ouvrir le registre Provisions et engagements — ponts, estimation / écriture, événement / annexe</a> · événements avec ou sans écriture ; contenu confidentiel masqué par le serveur ; aucune issue juridique déduite.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/paie-personnel">Paie · journal, déclarations et paiements</a> · <a className="underline" href="/paie-personnel/conges">Congés · revue indépendante</a> · usage réel bloqué, accès RH à valider.</p>
+      <CapabilityAccess />
       <ModuleAvailability snapshot={snapshot} />
 
       {/* ══ NIVEAU 1 — DÉCISION ═══════════════════════════════════════ */}

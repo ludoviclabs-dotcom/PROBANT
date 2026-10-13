@@ -1,8 +1,9 @@
-
 "use client";
 
+
+
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { CheckCircle2, Info, LayoutGrid, FileText } from "lucide-react";
 import type { CloisonId, FecEntry, Finding } from "@/lib/canonical-model";
 import { CLOISONS, buildFecDocument, siloById } from "@/lib/canonical-model";

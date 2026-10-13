@@ -1,4 +1,6 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { assertionLabel, CL_REACH, CL_REACH_LABELS, CL_RESULT_LABELS, CL_RESULTS, CL_STEP_LABELS, CL_PIECE_KIND_LABELS, isControl, stepsFor, type ResolvedCitation } from "@/lib/workpapers/closing-contract";
 import type { ProcedureView } from "@/lib/workpapers/closing-evaluate";
@@ -25,7 +27,7 @@ export function readCitations(form: FormData, name: string) {
 export function Cites({ list, download }: { list: ResolvedCitation[]; download?: (id: string) => string }) {
   if (!list.length) return <p className={cl.small}>Aucune pièce citée.</p>;
   return <ul className={cl.cites}>{list.map((c, i) => <li key={c.pieceVersionId + i}>
-    {download ? <a href={download(c.pieceVersionId)}>{citationText(c)}</a> : citationText(c)} <span className={cl.small}>· {CL_PIECE_KIND_LABELS[c.kind]}</span> <span className={cl.hash} title={"SHA-256 " + c.sha256}>{c.sha256.slice(0, 12)}…</span>
+    {download ? <DossierContextAnchor href={download(c.pieceVersionId)}>{citationText(c)}</DossierContextAnchor> : citationText(c)} <span className={cl.small}>· {CL_PIECE_KIND_LABELS[c.kind]}</span> <span className={cl.hash} title={"SHA-256 " + c.sha256}>{c.sha256.slice(0, 12)}…</span>
   </li>)}</ul>;
 }
 
@@ -53,13 +55,13 @@ export const ProcedurePanel = forwardRef<ProcedurePanelHandle, { view: ClosingVi
         {p.applicability && !p.applicability.applicable ? <li className={cl.node} data-tone="muted"><h3>Non applicable — motif</h3><p>{p.applicability.reason}</p>
           <p className={cl.who}>Déclaré par {p.applicability.by} le {stampFr(p.applicability.at)}</p><Cites list={p.applicability.citations} download={download}/></li> : null}
         {p.engine ? <li className={cl.node} data-tone={TONE[p.status]}><h3>Feuille de cycle observée</h3>
-          {best ? <><p><a href={p.engine.route}>{p.engine.label}</a> · {STATE_LABELS[best.state] ?? best.state} · r{best.revision} v{best.version}</p>
+          {best ? <><p><DossierContextAnchor href={p.engine.route}>{p.engine.label}</DossierContextAnchor> · {STATE_LABELS[best.state] ?? best.state} · r{best.revision} v{best.version}</p>
             <p className={cl.who}>Préparée par {best.preparedBy}{best.approval ? " · revue par " + best.approval.actorId + " le " + stampFr(best.approval.at) : " · non revue"}</p>
             <p className={cl.small}>{best.populationSize !== null ? best.populationSize + " éléments de population · " : "Population non figée · "}{best.sourceCount} source{best.sourceCount > 1 ? "s" : ""} figée{best.sourceCount > 1 ? "s" : ""}{best.openBlockingNotes ? " · " + best.openBlockingNotes + " point(s) bloquant(s) ouvert(s)" : ""}</p>
             <p className={cl.hash}>empreinte de contenu {best.contentHash.slice(0, 16)}…</p>
             {p.engine.all.length > 1 ? <p className={cl.small}>Autres feuilles : {p.engine.all.slice(1).map(o => o.runId + " (" + (STATE_LABELS[o.state] ?? o.state) + ")").join(", ")}</p> : null}
             <p className={cl.small}>Le dossier observe cette feuille ; il ne la recalcule pas, ne la revoit pas et ne la verrouille pas.</p></>
-            : <p>Aucune feuille « {p.engine.label} » pour cet exercice. <a href={p.engine.route}>Ouvrir le cycle</a></p>}</li> : null}
+            : <p>Aucune feuille « {p.engine.label} » pour cet exercice. <DossierContextAnchor href={p.engine.route}>Ouvrir le cycle</DossierContextAnchor></p>}</li> : null}
         {manual ? <li className={cl.node} data-tone={!pop ? "open" : pop.status === "absent" ? "danger" : "ok"}><h3>Population — sur quoi</h3>
           {!pop ? <p>Non définie.</p> : pop.status === "absent" ? <p><strong>Population absente :</strong> {pop.reason}</p>
             : <><p>{pop.description} · {pop.size !== null ? pop.size + " élément" + (pop.size > 1 ? "s" : "") : "taille non déclarée"}</p><Cites list={pop.citations} download={download}/></>}

@@ -1,3 +1,4 @@
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import { OUTCOME_LABELS, resultPresentation } from "@/lib/workpapers/result-contract";
 
@@ -14,8 +15,8 @@ export function WorkpaperResult({ run }: { run: WorkpaperRun }) {
       <p><span className="inline-block rounded border px-2 py-1">{OUTCOME_LABELS[c.outcome]}</span> · {c.execution === "completed" ? "Exécuté" : c.execution === "blocked" ? "Bloqué" : "Non exécuté"} · Disponibilité : {c.availability === "available" ? "disponible" : "bloquée"}</p>
       <p>{c.reason}</p>
       <p>Incertitude : {c.uncertainty}</p>
-      <p>Prochaine action : {c.nextAction} <a className="underline" href={c.sourceHref}>Voir la source requise</a></p>
-      <details><summary className="cursor-pointer">Prérequis du sous-contrôle</summary><ul>{c.prerequisites.map((p) => <li key={p.id}>{p.label} : {p.status === "met" ? "satisfait" : "manquant"} · <a href={p.sourceHref} className="underline">Source requise</a></li>)}</ul></details>
+      <p>Prochaine action : {c.nextAction} <DossierContextAnchor className="underline" href={c.sourceHref}>Voir la source requise</DossierContextAnchor></p>
+      <details><summary className="cursor-pointer">Prérequis du sous-contrôle</summary><ul>{c.prerequisites.map((p) => <li key={p.id}>{p.label} : {p.status === "met" ? "satisfait" : "manquant"} · <DossierContextAnchor href={p.sourceHref} className="underline">Source requise</DossierContextAnchor></li>)}</ul></details>
     </li>)}</ul></>}
   </div>;
 }

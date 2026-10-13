@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { FiscalMapping, FiscalTabularType } from "@/lib/workpapers/fiscal-sources";
@@ -56,7 +57,7 @@ export function FiscalImportPanel({ view, period, periodId, busy, canPrepare, do
         {current.map(h => { const b = batches.find(x => x.id === h.import_id); const history = view.versions[h.document_type] ?? []; return b && <p key={h.document_type} className={styles.muted}>
           {t === "fx_vat_return" || t === "fx_cit_return" ? keyLabel(h.document_type) + " · " : ""}{b.document.fileName} · {plural(b.rowCount ?? b.rows.length, "ligne")} · approuvée par {b.approval?.actorId} le {dateFr(b.approval!.at.slice(0, 10))}
           {history.length > 1 && <> · <strong>{plural(history.length - 1, "version remplacée", "versions remplacées")} conservée{history.length > 2 ? "s" : ""}</strong> ({history.filter(v => !v.current).map(v => v.fileName + " · " + v.sha256.slice(0, 10)).join(" ; ")})</>}
-          {canDownload && <> · <a href={download(b.document.id)}>original</a></>}</p>; })}
+          {canDownload && <> · <DossierContextAnchor href={download(b.document.id)}>original</DossierContextAnchor></>}</p>; })}
         {unapproved.map(pending)}
       </li>;
     })}</ul>

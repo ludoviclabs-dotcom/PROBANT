@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ProvisionMapping } from "@/lib/workpapers/provision-sources";
@@ -67,7 +68,7 @@ export function ProvisionImportPanel({ view, period, periodId, busy, canPrepare,
         {current && <p className={styles.muted}>{current.document.fileName} · {plural(current.rowCount ?? current.rows.length, "ligne")}{current.maskedRows ? " · " + plural(current.maskedRows, "ligne confidentielle retirée", "lignes confidentielles retirées") + " de l’affichage" : ""} · approuvée par {current.approval?.actorId} le {dateFr(current.approval!.at.slice(0, 10))}
           {t === "pv_movements" ? " · journal couvrant l’exercice entier" : ""}
           {history.length > 1 && <> · <strong>{plural(history.length - 1, "version remplacée", "versions remplacées")} conservée{history.length > 2 ? "s" : ""}</strong> ({history.filter(v => !v.current).map(v => v.fileName + " · " + v.sha256.slice(0, 10)).join(" ; ")})</>}
-          {canDownload && (version?.confidential && !view.confidentialAccess ? " · original confidentiel (habilitation requise)" : <> · <a href={download(current.document.id)}>original</a></>)}</p>}
+          {canDownload && (version?.confidential && !view.confidentialAccess ? " · original confidentiel (habilitation requise)" : <> · <DossierContextAnchor href={download(current.document.id)}>original</DossierContextAnchor></>)}</p>}
         {batches.filter(b => !b.approval).map(b => <div key={b.id} className={styles.sourceBox}>
           <p><strong>Aperçu à approuver</strong> · {b.document.fileName} · {plural(b.rowCount ?? b.rows.length, "ligne")} · {b.report.acceptedRows} acceptée(s) · {b.report.rejectedRows} rejetée(s)</p>
           {(b.report.warnings.length > 0 || b.report.blocking.length > 0) && <p className={styles.notice} data-tone={b.report.blocking.length ? "danger" : undefined}>{[...b.report.blocking.map(x => "Bloquant : " + x), ...b.report.warnings].join(" · ")}</p>}

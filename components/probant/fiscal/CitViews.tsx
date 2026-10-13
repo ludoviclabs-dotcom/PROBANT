@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import type { CitResult } from "@/lib/workpapers/fiscal-cit-contract";
 import { CIT_BASIS_LABELS, CIT_CATEGORY_LABELS, CIT_TREATMENT_LABELS } from "@/lib/workpapers/fiscal-labels";
 import { Chip } from "./FiscalTests";
@@ -55,7 +56,7 @@ export function AdjustmentsView({ result, selection, onSelect }: { result: CitRe
     <ul className={styles.list}>{result.adjustments.map(a => <li key={a.id} className={selection?.kind === "adjustment" && selection.id === a.id ? fx.selectedRow : undefined}>
       <div className={styles.kv}><button type="button" className={fx.linkButton} onClick={() => onSelect(a.id)}>{a.id} — {a.label}</button><span>{CIT_CATEGORY_LABELS[a.category]} · {a.direction === "reintegration" ? "réintégration" : "déduction"}</span>
         <span className={styles.money}>{cents(a.amountCents)}</span><span className={fx.chip} data-tone={a.treatment === "proposed_correction" ? "warn" : "info"}>{CIT_TREATMENT_LABELS[a.treatment]}</span>{a.inEngine && <span className={fx.chip} data-tone="warn">Intégré au calcul</span>}</div>
-      <p className={styles.muted}>Pièce : {a.citation.fileName}{a.citation.row ? " · ligne " + a.citation.row : ""} · {a.authorId} · {a.legalSource ? <>{a.legalSource.url ? <a href={a.legalSource.url} target="_blank" rel="noreferrer noopener">{a.legalSource.title}</a> : a.legalSource.title} ({a.legalSource.locator}) — {COVERAGE_LABELS[a.legalSource.coverage]}</> : "source du registre non citée"}</p>
+      <p className={styles.muted}>Pièce : {a.citation.fileName}{a.citation.row ? " · ligne " + a.citation.row : ""} · {a.authorId} · {a.legalSource ? <>{a.legalSource.url ? <DossierContextAnchor href={a.legalSource.url} target="_blank" rel="noreferrer noopener">{a.legalSource.title}</DossierContextAnchor> : a.legalSource.title} ({a.legalSource.locator}) — {COVERAGE_LABELS[a.legalSource.coverage]}</> : "source du registre non citée"}</p>
     </li>)}</ul>}
   </section>;
 }

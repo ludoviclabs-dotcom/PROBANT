@@ -7,13 +7,15 @@
  * `hero` (page d'accueil).
  */
 
+import { useDossierHref } from "./DossierContextLink";
 import { useRouter } from "next/navigation";
 import { PlayCircle } from "lucide-react";
 import { TOUR_STEPS } from "@/lib/demo/tour";
 
 export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "hero" }) {
   const router = useRouter();
-  const start = () => router.push(`${TOUR_STEPS[0].route}?guide=1&etape=0`);
+  const contextual = useDossierHref();
+  const start = () => router.push(contextual(`${TOUR_STEPS[0].route}?guide=1&etape=0`));
 
   if (variant === "hero") {
     return (

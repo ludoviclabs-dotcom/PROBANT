@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { BookOpen, ExternalLink, History, Info, RotateCcw, X } from "lucide-react";
 import type { Finding, Severity } from "@/lib/canonical-model";
 import { SEVERITY_LABEL } from "@/lib/canonical-model";

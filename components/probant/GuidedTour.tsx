@@ -27,6 +27,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useDossierHref } from "./DossierContextLink";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Pause,
@@ -251,6 +252,7 @@ type StepPhase = "seek" | "cursor" | "spot";
 
 function GuidedTourInner() {
   const router = useRouter();
+  const contextual = useDossierHref();
   const pathname = usePathname();
   const sp = useSearchParams();
   const reducedMotion = usePrefersReducedMotion();
@@ -303,29 +305,29 @@ function GuidedTourInner() {
   const goTo = useCallback(
     (i: number) => {
       const c = Math.max(0, Math.min(TOUR_STEPS.length - 1, i));
-      router.replace(hrefFor(c), { scroll: false });
+      router.replace(contextual(hrefFor(c)), { scroll: false });
     },
-    [router],
+    [router, contextual],
   );
   const goToRef = useRef(goTo);
   useEffect(() => void (goToRef.current = goTo), [goTo]);
 
   const quit = useCallback(() => {
     setPaused(false);
-    router.replace(pathname, { scroll: false });
-  }, [router, pathname]);
+    router.replace(contextual(pathname), { scroll: false });
+  }, [router, pathname, contextual]);
 
   /** CTA du verdict : quitte la visite et ouvre le dépôt pour un vrai FEC. */
   const importMyFec = useCallback(() => {
     setPaused(false);
-    router.push("/dashboard/depot");
-  }, [router]);
+    router.push(contextual("/dashboard/depot"));
+  }, [router, contextual]);
 
   // — Synchronise la route avec l'étape courante (navigation auto entre pages).
   useEffect(() => {
     if (!active) return;
-    if (pathname !== step.route) router.replace(hrefFor(stepIndex), { scroll: false });
-  }, [active, pathname, step.route, stepIndex, router]);
+    if (pathname !== step.route) router.replace(contextual(hrefFor(stepIndex)), { scroll: false });
+  }, [active, pathname, step.route, stepIndex, router, contextual]);
 
   // — Scan line à l'entrée des pages denses (risques, cloisons) pendant la visite.
   const prevPathRef = useRef<string | null>(null);

@@ -1,23 +1,13 @@
+import { CAPABILITY_REGISTRY, WORKSHOPS } from "@/lib/capabilities/registry";
 export type Availability = "disponible" | "démonstration" | "source requise" | "désactivé" | "non implémenté";
 export const AVAILABILITY_LABELS: Availability[] = ["disponible", "démonstration", "source requise", "désactivé", "non implémenté"];
-export const MODULE_MANIFEST_VERSION = "2.0.0";
+export const MODULE_MANIFEST_VERSION = "3.0.0";
+/** Workshop-only compatibility view. Persistent capabilities are described independently in the same registry. */
 export const MODULE_MANIFEST: { id: string; label: string; status: Availability; maturity: string; mode: "synthetic" | "none"; limitation: string; production: false }[] = [
-  { id: "documentation", label: "Documentation pédagogique locale", status: "disponible", maturity: "Référence non normative", mode: "none", limitation: "Guide V1.1 référencé dans le code ; fichier source non vérifié pendant ce lot", production: false },
-  ...([
-    ["cash", "Cash", "Pont bancaire technique", "Identité bancaire et apurement nécessitent des sources de mission"],
-    ["cutoff", "Cut-off", "Analyse de fait générateur", "Date de facture seule insuffisante ; jugement humain sur le fait générateur"],
-    ["fournisseurs", "Fournisseurs/RPNE", "Recherche de passifs non enregistrés", "Paiements ultérieurs non exhaustifs ; population et allocations à documenter"],
-    ["clients", "Clients", "Cadrage et encaissements", "L’ancienneté seule ne prouve pas une dépréciation"],
-    ["immobilisations", "Immobilisations", "Mouvements et recalcul", "Durées, valeur résiduelle et mises en service exigent une méthode validée"],
-    ["capitaux", "Capitaux propres", "Mouvements et décisions", "PV et événements sans écriture requièrent une lecture humaine"],
-    ["achats", "Achats", "Sélection et rapprochement", "Une sélection d’écritures ne prouve pas l’exhaustivité des charges absentes"],
-    ["conges", "Congés payés", "Comparaison de droits", "Unités, périodes et bases de charges doivent être comparables"],
-    ["participations", "Participations", "Droits et valeur", "Classement et modèle de valeur exigent des sources approuvées"],
-    ["is", "IS", "Pont et gates fiscaux", "Millésime 2024 non couvert par le moteur : impôt dû bloqué ; sources 2026 à revoir"],
-  ] as const).map(([id, label, maturity, limitation]) => ({ id: `cycle-${id}`, label, status: "démonstration" as const, maturity, mode: "synthetic" as const, limitation, production: false as const })),
-  { id: "methods", label: "Méthodes applicables et PBC", status: "source requise", maturity: "À obtenir", mode: "none", limitation: "Validation métier, périmètre, dates et pièces de la mission à obtenir", production: false },
-  { id: "real", label: "Nouveaux parcours réels des feuilles de travail", status: "désactivé", maturity: "Non livré", mode: "none", limitation: "Adaptateur durable et autorisation OIDC non raccordés à cet atelier", production: false },
-  { id: "outside", label: "Stocks, ITGC, paie complète, DCF complet", status: "non implémenté", maturity: "Hors périmètre", mode: "none", limitation: "Les fiches historiques ne prouvent pas une implémentation", production: false },
+  { id: "documentation", label: "Documentation pédagogique locale", status: "disponible", maturity: "Référence non normative", mode: "none", limitation: "Guide référencé ; fichier source non vérifié", production: false },
+  ...WORKSHOPS.map(w => ({ id: `cycle-${w.id}`, label: w.label, status: "démonstration" as const, maturity: w.maturity, mode: "synthetic" as const, limitation: w.limitation, production: false as const })),
+  ...CAPABILITY_REGISTRY.filter(c => !c.modes.scenario.implemented).map(c => ({ id: `outside-${c.id}`, label: c.label + " · atelier", status: "non implémenté" as const, maturity: "Absent de cet atelier", mode: "none" as const, limitation: c.modes.local_persistent.scope + " ; " + c.exclusions.join(" ; "), production: false as const })),
+  { id: "methods", label: "Méthodes et sources de mission", status: "source requise", maturity: "À documenter", mode: "none", limitation: "Dates, périmètre, méthodes et pièces propres au dossier requis", production: false },
 ];
 export const GUIDE_REFERENCE = { document: "Guide de formation Audit.pdf", version: "V1.1", pages: 138, date: "2026-09-21", pack: "PROBANT v1.1 — 2026-09-22", sha256: "3948f9e633d05fbb5a44ddc039a3d8fa9409b2de9071d0bc99e137ebaeba5e1f", authority: "pédagogique, non normative" };
 export const CYCLE_LEARNING: Record<string, { pages: string; objective: string; risk: string; notProven: string }> = {
