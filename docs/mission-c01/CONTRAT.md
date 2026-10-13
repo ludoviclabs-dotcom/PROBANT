@@ -34,6 +34,8 @@ Sur les parcours avec contexte canonique, les champs techniques d’identité du
 
 Le provider du dashboard attend la résolution du dossier. Un dossier demandé absent, ou un exercice/référentiel incompatible avec le snapshot lu, affiche une erreur ; DEMO SA n’est plus rendu comme substitut pendant cette résolution.
 
+La résolution dépend uniquement des clés canoniques et des alias d’identité historiques. Modifier un filtre de vue (impôt, statut, preuve) conserve les composants montés et leur état ; cela ne sélectionne pas un nouveau dossier. Les changements d’exercice, de référentiel ou de période restent des changements de contexte, et les clés de contexte dupliquées restent invalides. Une Synthèse synthétique transmet explicitement le contexte du snapshot qu’elle affiche au registre de capacités, même sans provider de dashboard.
+
 ## Absence de feuille et atelier
 
 Une entrée historique ou scénario vers un parcours persistant indique qu’aucune feuille persistante n’est rattachée à ces constats. Elle explique les sources et exclusions du cycle, propose la préparation explicite à partir des pièces locales et un accès distinct à l’atelier. Aucun résultat ni copie de DEMO SA n’est créé.

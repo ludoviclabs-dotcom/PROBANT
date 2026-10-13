@@ -13,6 +13,14 @@ export interface DossierNavigationContext extends DossierContext {
 }
 export const NAVIGATION_CONTEXT_VERSION = "1";
 export const CONTEXT_KEYS = ["context", "organizationId", "dossierId", "entity", "siren", "exercise", "exerciseStart", "exerciseEnd", "reference", "dossierMode", "procedurePeriod", "procedureStart", "procedureEnd", "reviewDate", "periodId"] as const;
+/** Only scope changes resolve a dossier again; view filters must preserve mounted work. */
+export function dossierResolutionKey(params: URLSearchParams): string {
+  const scope = new URLSearchParams();
+  for (const key of [...CONTEXT_KEYS, "dossier", "organization", "scenario"]) {
+    for (const value of params.getAll(key)) scope.append(key, value);
+  }
+  return scope.toString();
+}
 export function navigationContext(snapshot: DossierSnapshot, context: DossierContext): DossierNavigationContext {
   const d = snapshot.dossier, p = d.period;
   const close = d.societe.dateCloture.replace(/^(\d{4})(\d{2})(\d{2})$/, "$1-$2-$3");

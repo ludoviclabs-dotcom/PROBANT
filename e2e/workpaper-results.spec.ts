@@ -69,7 +69,14 @@ for (const cycle of demoCycleSchema.options) test(`contrat de résultat ${cycle}
   await workshop.getByLabel("Pièce manquante").check();
   await workshop.getByRole("button", { name: "Corriger les paramètres et réexécuter" }).click();
   await expect(target).toContainText("Pièce requise absente");
-  await expect(target.getByRole("link", { name: "Voir la source requise", exact: true })).toHaveAttribute("href", cycle === "is" ? "/dashboard/fiscalite" : "/dashboard/depot");
+  const sourceLink = target.getByRole("link", { name: "Voir la source requise", exact: true });
+  const sourceUrl = new URL((await sourceLink.getAttribute("href"))!, page.url());
+  expect(sourceUrl.pathname).toBe(cycle === "is" ? "/dashboard/fiscalite" : "/dashboard/depot");
+  const selected = new URL(page.url()).searchParams;
+  expect(selected.get("context")).toBe("1");
+  for (const key of ["context", "organizationId", "dossierId", "exercise", "reference", "dossierMode", "periodId"]) {
+    expect(sourceUrl.searchParams.get(key), `source link preserves ${key}`).toBe(selected.get(key));
+  }
   await expect(workshop.getByRole("button", { name: "Verrouiller", exact: true })).toBeDisabled();
   await workshop.getByLabel("Pièce manquante").uncheck();
   await workshop.getByRole("button", { name: "Corriger les paramètres et réexécuter" }).click();

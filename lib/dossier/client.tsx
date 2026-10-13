@@ -11,7 +11,7 @@ import React, {
   useRef,
   type ReactNode,
 } from "react";
-import { navigationContext, parseNavigationContext } from "./navigation-context";
+import { dossierResolutionKey, navigationContext, parseNavigationContext } from "./navigation-context";
 import { useSearchParams } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/auth/csrf-client";
 import type { DossierContext, DossierSnapshot } from "./types";
@@ -64,7 +64,7 @@ export function ActiveDossierProvider({
   routeContext?: DossierContext | null;
 }) {
   const searchParams = useSearchParams();
-  const routeKey = searchParams.toString();
+  const routeKey = dossierResolutionKey(new URLSearchParams(searchParams?.toString() ?? ""));
   const [resolvedRoute, setResolvedRoute] = useState<string | null>(null);
   const [resolutionError, setResolutionError] = useState("");
   const [state, setState] = useState(() => ({
