@@ -69,7 +69,7 @@ interface PageInventory {
   clientWidth: number;
 }
 
-async function inventory(page: Page): Promise<Omit<PageInventory, "page" | "path" | "width" | "phase" | "axeSerious">> {
+async function inventory(page: Page): Promise<Pick<PageInventory, "elements" | "stillDefault">> {
   return page.evaluate((PB_BORDER) => {
     // Jetons de couleur de bordure : valeur arbitraire (#hex, var(--pb-*) autre que --pb-border, color-mix)
     // ou palette Tailwind (amber, red, sky), au repos seulement (ni hover: ni focus:).
