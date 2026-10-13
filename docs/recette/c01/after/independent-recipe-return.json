@@ -1,0 +1,9 @@
+{
+  "observedAt": "2026-10-13T13:20:24.453Z",
+  "browser": "151.0.7922.34",
+  "method": "compiled local Next / existing WorkpaperService fixtures / HTTP interception / reduced motion / stable fonts and network / axe WCAG AA",
+  "url": "http://127.0.0.1:3100/dashboard/synthese",
+  "viewport": 1440,
+  "scrollWidth": 1440,
+  "violations": []
+}

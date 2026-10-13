@@ -1,11 +1,12 @@
 # Handoff — Mission C02 : finition de Synthèse, Tests et du laboratoire de scénarios (2026-10-13)
 
-**Base.** `main` `ab8f991` (fusion de la Mission 19). C'est aussi la base du diagnostic du 12/10/2026 (`PROBANT-PROMPTS-CONSOLIDATION-2026-10-12.md`). Travail local dans le worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/dashboard-socle-commun-0b7995`. **Non poussé, aucune PR distante, aucun déploiement.** Descriptif de PR prêt : [C02_PR.md](C02_PR.md).
+**Base.** PR [#73](https://github.com/ludoviclabs-dotcom/PROBANT/pull/73), branche `claude/dashboard-socle-commun-0b7995`, ouverte sur `main` `ab8f991` puis **fusionnée avec `main` `97b298f`** (PR #74 : lots C00 et C01 de Codex) dans le commit de fusion `cb83680`. Descriptif de PR : [C02_PR.md](C02_PR.md). Aucun déploiement.
 
-**Dépendances constatées, pas simulées.** Ni C00 (correctifs M20) ni C01 (contexte de dossier canonique, registre de capacités unique) ne sont livrés sur cette base : aucune branche locale ou distante ne les porte. Ce lot réalise les travaux indépendants et documente ce qui attend C01 :
-- le registre de cycles de ce lot est une **projection** (`lib/dossier/cycle-registry.ts`) des manifestes existants, en lecture seule, qui cite sa source champ par champ : `CL_ENGINE_PROCEDURES` et `CL_CYCLE_LABELS` (closing-contract), `demoCycleSchema` (demo-cycles), `MODULE_MANIFEST` (availability), silos de la taxonomie. C01 doit l'absorber ; aucun autre composant ne redéclare ces entrées ;
-- les liens générés ne transmettent pas encore un contexte dossier / exercice canonique (CTX-01, C01) ;
-- la capacité « local persistant » est déclarée « configurée — activation requise » pour les chaînes durables existantes, sans vérifier leur activation (C07).
+**Raccordement au registre C01 (après fusion).** C01 livre le registre unique `lib/capabilities/registry.ts` (14 périmètres : 13 cycles du journal + Dettes financières, 15 procédures, 10 exercices d'atelier, routes, sources, exclusions, modes), le contexte de navigation canonique (`DossierContextLink`, `navigationContext`) et le panneau `CapabilityAccess`. Ce lot s'y raccorde :
+- `lib/dossier/cycle-registry.ts` ne redéclare plus les cycles : `CYCLE_REGISTRY` est projeté depuis `CAPABILITY_REGISTRY` (cycles, procédures, scénarios, routes, sources, exclusions, capacité par mode) ; le module n'ajoute que la présentation (étendue en une phrase, silos des constats historiques, libellés d'accès, limites héritées des anciens paragraphes) et la projection d'un dossier (état, écarts, prochaine action) ;
+- tous les liens des composants C02 (`CycleRegistryList`, `DossierContextBar`, laboratoire, synthèse de scénario) passent par `DossierContextLink` : dossier, entité, exercice, référentiel et mode sont transmis (CTX-01 résolu par C01) ;
+- `CapabilityAccess` (implémentation, configuration locale lue par `/api/dossier-capabilities`, travail observé) est conservé dans le volet « Méthode · capacités, disponibilité et limites par module », ouvert par défaut, sous la liste des cycles ; la synthèse de scénario lui transmet explicitement son contexte ;
+- la capacité « local persistant » reste affichée « configurée — activation requise » dans la ligne de cycle ; l'activation réelle est celle que lit le panneau de capacités (C07).
 
 ## Problème utilisateur, vue choisie, données, interactions
 
@@ -57,6 +58,7 @@
 | Build de production | OK |
 | `e2e/c02-finition.spec.ts` | 14/14 : 3 largeurs × (Synthèse dossier courant, Tests vide + volet, scénario repris + feuille bloquée + synthèse du scénario) ; erreur de reprise, chargement, identifiant long, programme long (10 scénarios), mouvement réduit. Débordement global nul partout ; axe « serious / critical » = 0 sur le contenu des vues |
 | `e2e/phase-de.spec.ts`, `e2e/workpaper-results.spec.ts`, `e2e/demo-journey.spec.ts`, `e2e/accessibility.spec.ts` | 25/25 (3 + 10 + 4 + 8) ; la dette « serious » gelée de la Synthèse n'est pas aggravée |
+| Après fusion avec `main` (C00 + C01) : `c02-finition`, `c01-context`, `phase-de`, `workpaper-results`, `demo-journey`, `accessibility` sur le build fusionné | 50/50 ; captures `apres/` régénérées sur ce build |
 
 **Non exécuté localement** : les recettes PostgreSQL (`*.integration.test.ts`) — pas de base jetable sur ce poste ; elles tournent en CI. Un lecteur d'écran réel n'a pas été utilisé : NON VÉRIFIÉ.
 
@@ -68,7 +70,7 @@ L'inspection a fait corriger : la table des cycles trop étroite à 1024 px (lar
 
 ## Limites et maturité
 
-- Registre C02 en attendant C01 ; contexte dossier / exercice non transmis dans les liens ; capacité persistante non vérifiée.
+- Capacité persistante affichée « configurée » dans la ligne de cycle sans vérification d'activation ; l'activation réelle est lue par le panneau de capacités C01 (C07).
 - Le chrome partagé (Sidebar, bandeau, lanceur de visite) garde la dette de contraste `--pb-text-faint` gelée par `accessibility.spec.ts` ; le contrôle strict de ce lot porte sur le contenu de `<main>`.
 - **Défaut global constaté, non corrigé ici** : `app/globals.css` pose `* { border-color: var(--pb-border) }` hors de toute `@layer`. Une règle non stratifiée l'emporte sur les utilitaires Tailwind (stratifiés), si bien que toute classe `border-<couleur>` de l'application est silencieusement ignorée. Ce lot pose ses couleurs de bordure sémantiques en style inline (`borderLeftColor`) ; la correction globale (mettre la règle dans `@layer base`) relève d'un lot de finition transversal (C15) car elle réactive des couleurs de bordure partout.
 - `ModuleAvailability` et `WorkpaperPanel` ne sont pas restylés : ils vivent dans le volet « Méthode » et la preuve.
@@ -76,7 +78,7 @@ L'inspection a fait corriger : la table des cycles trop étroite à 1024 px (lar
 
 ## Dépendances du lot suivant
 
-- C01 : absorber `CYCLE_REGISTRY` (routes, procédures, scénarios, silos, capacités), transmettre dossier / exercice dans `sheet` / `synthesis` / `secondary`, remplacer `MODULE_MANIFEST` comme source des limites.
+- C01 (livré, fusionné) : si le registre reçoit un jour l'étendue et les silos par cycle, retirer `PRESENTATION` de `cycle-registry.ts`.
 - C03 : les « tests suggérés par constat » restent choisis par `siloId` (MET-01).
 - C07 : qualifier la capacité « local persistant » depuis l'activation réelle.
 
