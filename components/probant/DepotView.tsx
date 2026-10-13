@@ -2,7 +2,7 @@
 
 import { Suspense, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import {
   FileText,
   FileSpreadsheet,

@@ -1,0 +1,8 @@
+{
+  "startedAt": "2026-10-13T00:13:32.379Z",
+  "processId": 25196,
+  "origin": "http://127.0.0.1:3121",
+  "node": "v24.14.0",
+  "buildId": "963COrvH0kv-dMW6Iqwkv",
+  "method": "direct owned Next process, fixed loopback origin, no reused server"
+}

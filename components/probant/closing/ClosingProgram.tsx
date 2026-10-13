@@ -1,4 +1,6 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+
 import { useState } from "react";
 import { assertionLabel, CL_ASSERTION_GROUPS, CL_ASSERTION_LABELS, CL_ASSERTIONS, CL_CYCLE_LABELS, CL_CYCLES, CL_ENGINE_PROCEDURES, CL_NATURE_LABELS, CL_NATURES, CL_RISK_LEVEL_LABELS, CL_RISK_LEVELS, CL_STEP_LABELS, type ClosingAssertion } from "@/lib/workpapers/closing-contract";
 import { STATUS_LABELS, type PairView, type ProcedureStatus, type ProcedureView, type RiskView } from "@/lib/workpapers/closing-evaluate";
@@ -48,7 +50,7 @@ function ProcedureRow({ p, lit, selected, onOpen }: { p: ProcedureView; lit: boo
   return <tr data-lit={lit} aria-selected={selected}>
     <td><span className={cl.statusText}><span className={cl.station} data-tone={TONE[p.status]} aria-hidden="true"/>{p.statusLabel}</span></td>
     <td><button type="button" className={cl.link} onClick={e => onOpen(p.procedureId, e.currentTarget)} aria-label={"Ouvrir la fiche " + p.procedureId + " · " + p.label}>{p.procedureId} · {p.label}</button></td>
-    <td>{p.natureLabel}{p.engine ? <><br/><a href={p.engine.route} className={cl.small}>Feuille « {p.engine.label} »</a></> : null}</td>
+    <td>{p.natureLabel}{p.engine ? <><br/><DossierContextAnchor href={p.engine.route} className={cl.small}>Feuille « {p.engine.label} »</DossierContextAnchor></> : null}</td>
     <td><ul className={cl.chips}>{p.assertions.map(a => <li key={a} className={cl.chip}>{assertionLabel(a)}</li>)}</ul></td>
     <td>{p.owner}</td>
     <td>{p.engine ? (p.engine.best ? <span>v{p.engine.best.version} · r{p.engine.best.revision}{p.engine.best.populationSize !== null ? " · " + p.engine.best.populationSize + " éléments" : ""}</span> : <span className={cl.small}>aucune feuille</span>)

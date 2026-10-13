@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { formatCents, PV_MASKED, PV_MOVEMENT_LABELS, PV_PIECE_LABELS, PV_RUBRIC_LABELS, PV_STATE_LABELS, PV_STATUS_KIND, PV_TREATMENT_LABELS, PV_TYPE_LABELS, type ProvisionEventResult, type ProvisionResult } from "@/lib/workpapers/provision-contract";
 import { KindBadge, Lock } from "./ProvisionRegister";
@@ -84,7 +85,7 @@ export const ProvisionEventPanel = forwardRef<ProvisionPanelHandle, Props>(funct
     <h3>Pièces</h3>
     {e.pieces.length ? <ul className={pv.pieces}>{e.pieces.map(p => <li key={p.rowId}><span>{PV_PIECE_LABELS[p.kind]} {p.key}{p.confidential && <> <span className={pv.lock}><Lock/>confidentielle</span></>}</span>
       <small>{p.label ?? (p.confidential ? "Libellé masqué selon vos droits" : "—")} · {dateFr(p.date)} · {p.fileName}{p.row ? " ligne " + p.row : ""} · version {p.documentVersionId.slice(7, 19)}</small>
-      {canDownload && (restricted(p.documentVersionId) ? <small>Original réservé à une habilitation confidentielle</small> : <a href={download(p.documentVersionId)}>Télécharger la liste de pièces figée</a>)}</li>)}</ul> : <p className={styles.muted}>Aucune pièce citable rattachée.</p>}
+      {canDownload && (restricted(p.documentVersionId) ? <small>Original réservé à une habilitation confidentielle</small> : <DossierContextAnchor href={download(p.documentVersionId)}>Télécharger la liste de pièces figée</DossierContextAnchor>)}</li>)}</ul> : <p className={styles.muted}>Aucune pièce citable rattachée.</p>}
     <p className={styles.muted}>Statut : {PV_STATUS_KIND[e.status] === "ok" ? "comparaisons documentées concordantes" : "voir les points relevés"}. Une revue documentée ne vaut ni opinion sur les comptes ni conclusion juridique.</p>
   </aside>;
 });

@@ -1,0 +1,21 @@
+{
+  "inspectedAtUtc": "2026-10-12 22:21:45 UTC",
+  "mode": "read-only",
+  "github": {
+    "url": "https://api.github.com/repos/ludoviclabs-dotcom/PROBANT/branches/main",
+    "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466"
+  },
+  "vercel": {
+    "requestedAlias": "probant.vercel.app",
+    "id": "dpl_DeA6RJ2H6c4hwq3cir2eumrXqdy1",
+    "readyState": "READY",
+    "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466",
+    "branch": "main",
+    "aliases": [
+      "probant.vercel.app",
+      "probant-ludovics-projects-159c139c.vercel.app",
+      "probant-git-main-ludovics-projects-159c139c.vercel.app"
+    ]
+  },
+  "mutationsPerformed": false
+}

@@ -1,6 +1,7 @@
+import { readStoreHeads } from "@/lib/capabilities/store-readers";
 import { sql, type SQL } from "drizzle-orm";
 import type { WorkpaperRun, WorkpaperScope } from "./model";
-import { CL_FAMILIES, type CycleFamily } from "./closing-contract";
+import { type CycleFamily } from "./closing-contract";
 import type { ClosingEvent } from "./closing-journal";
 
 /**
@@ -28,8 +29,6 @@ function where(scope: WorkpaperScope) {
   if (scope.mode !== "real") throw new Error("CL_REAL_SCOPE_REQUIRED");
   return sql`organization_id = ${scope.organizationId} AND dossier_id = ${scope.dossierId} AND period_id = ${scope.periodId}`;
 }
-/** Cycle tables are named from a closed list, never from a request. */
-const FAMILY_TABLES: Record<CycleFamily, { heads: SQL; versions: SQL }> = Object.fromEntries(CL_FAMILIES.map(f => [f, { heads: sql.raw(f + "_workpaper_heads"), versions: sql.raw(f + "_workpaper_versions") }])) as never;
 
 class PostgresClosingTx implements ClosingTx {
   constructor(private readonly tx: ClosingSql) {}
@@ -67,16 +66,7 @@ class PostgresClosingTx implements ClosingTx {
     await this.tx.execute(sql`INSERT INTO cl_command_receipts (organization_id,dossier_id,period_id,actor_id,idempotency_key,request_hash,response)
       VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${actorId},${key},${requestHash},${JSON.stringify(response)}::jsonb)`);
   }
-  async cycleRuns(scope: WorkpaperScope) {
-    const out: { family: CycleFamily; run: WorkpaperRun }[] = [];
-    for (const family of CL_FAMILIES) {
-      const t = FAMILY_TABLES[family];
-      const data = await rows<{ run: WorkpaperRun }>(this.tx, sql`SELECT v.run FROM ${t.versions} v JOIN ${t.heads} h USING (organization_id,dossier_id,period_id,id,version)
-        WHERE v.organization_id=${scope.organizationId} AND v.dossier_id=${scope.dossierId} AND v.period_id=${scope.periodId} ORDER BY v.id`);
-      out.push(...data.map(r => ({ family, run: r.run })));
-    }
-    return out;
-  }
+  async cycleRuns(scope: WorkpaperScope) { return readStoreHeads(this.tx, scope); }
 }
 export class PostgresClosingDatabase implements ClosingDatabase {
   constructor(private readonly db: ClosingSqlDatabase) {}

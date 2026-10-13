@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
@@ -20,8 +22,8 @@ const emptyPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate
 export interface StockRequested { periodId: string; id?: string; version?: number; item?: string; filters: StockFilters; tab?: Tab }
 const resultOf = (run: WorkpaperRun | null): StockResult | null => run?.result?.execution === "completed" && run.template.id === "stocks.count" ? run.result.result as StockResult : null;
 
-export function StockWorkspace({ initialDossierId = "", requested }: { initialDossierId?: string; requested?: StockRequested }) {
-  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(emptyPeriod);
+export function StockWorkspace({ initialDossierId = "", initialPeriodValue = emptyPeriod, requested }: { initialDossierId?: string; initialPeriodValue?: AccountingPeriod; requested?: StockRequested }) {
+  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(initialPeriodValue);
   const [view, setView] = useState<StockView | null>(null), [activeId, setActiveId] = useState("");
   const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [conflict, setConflict] = useState<{ current: WorkpaperRun; expectedVersion: number } | null>(null);
@@ -111,11 +113,11 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
   const kindTotals = result ? KIND_ORDER.map(k => [k, result.units.filter(u => ST_STATUS_KIND[u.status] === k).length] as [Kind, number]) : [];
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><a href="/immobilisations">Procédures de mission · Immobilisations</a><a href="/fiscal">Procédures de mission · Fiscalité</a><span aria-current="page">Procédures de mission · Stocks</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/immobilisations">Procédures de mission · Immobilisations</DossierContextAnchor><DossierContextAnchor href="/fiscal">Procédures de mission · Fiscalité</DossierContextAnchor><span aria-current="page">Procédures de mission · Stocks</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Stocks et inventaires</h1>
       <p className={styles.muted}>Du comptage physique à la quantité de clôture, référence par référence, site par site, lot par lot. Le stock propre est distingué des stocks de tiers, consignations, transits et en-cours. L’outil ne certifie jamais la présence physique et ne déprécie rien automatiquement.</p></div></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
-      <label>Dossier<input value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d’exercice", "Clôture", "Date de revue"][i]}<input type="date" value={period[k]} required={!requested?.periodId} disabled={saving || loading || !!requested?.periodId} onChange={e => { setPeriod(p => ({ ...p, [k]: e.target.value })); setView(null); }}/></label>)}
       <button className={styles.primary} disabled={saving || loading}>{loading ? "Chargement…" : "Charger la feuille"}</button>
     </form>
@@ -127,7 +129,7 @@ export function StockWorkspace({ initialDossierId = "", requested }: { initialDo
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{SAVE_LABELS[status]}</span>
     </div>
     {loading && !view && <p role="status" className={styles.muted}>Lecture de l’état serveur…</p>}
-    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <a href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</a></>}</p>}
+    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <DossierContextAnchor href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</DossierContextAnchor></>}</p>}
     {conflict && <div role="alert" className={styles.notice} data-tone="danger"><p>Conflit : la feuille est passée en version {conflict.current.version} (attendue {conflict.expectedVersion}). Aucune donnée n’a été écrasée.</p><button type="button" onClick={() => { setConflict(null); void refresh(conflict.current.id); }}>Recharger la version serveur</button></div>}
     {exactVersion && <p className={styles.notice} data-tone="info">Consultation de la version {requested?.version} : lecture seule.</p>}
     {view && <>

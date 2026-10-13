@@ -11,6 +11,7 @@ import React, {
   useRef,
   type ReactNode,
 } from "react";
+import { dossierResolutionKey, navigationContext, parseNavigationContext } from "./navigation-context";
 import { useSearchParams } from "next/navigation";
 import { fetchWithCsrf } from "@/lib/auth/csrf-client";
 import type { DossierContext, DossierSnapshot } from "./types";
@@ -63,7 +64,9 @@ export function ActiveDossierProvider({
   routeContext?: DossierContext | null;
 }) {
   const searchParams = useSearchParams();
-  const routeKey = searchParams.toString();
+  const routeKey = dossierResolutionKey(new URLSearchParams(searchParams?.toString() ?? ""));
+  const [resolvedRoute, setResolvedRoute] = useState<string | null>(null);
+  const [resolutionError, setResolutionError] = useState("");
   const [state, setState] = useState(() => ({
     context: DEMO_DOSSIER_CONTEXT,
     snapshot: buildDemoDossierSnapshot(),
@@ -91,7 +94,17 @@ export function ActiveDossierProvider({
     const explicit = routeContext === undefined
       ? routeContextFromParams(new URLSearchParams(routeKey))
       : routeContext;
-    void queue.current.run(async () => publish(await service.resolve(explicit)));
+    let active = true;
+    void queue.current.run(async () => {
+      try {
+        const expected = parseNavigationContext(new URLSearchParams(routeKey));
+        const next = explicit ? await service.select(explicit) : await service.resolve();
+        const actual = navigationContext(next.snapshot, next.context);
+        if (expected && (expected.exercise.label !== actual.exercise.label || expected.reference !== actual.reference || (expected.exercise.startDate && expected.exercise.startDate !== actual.exercise.startDate) || (expected.exercise.closingDate && expected.exercise.closingDate !== actual.exercise.closingDate))) throw new Error("Le dossier sélectionné ne correspond pas à l’exercice ou au référentiel du lien. Choisissez le dossier correspondant ; aucune version n’a été mélangée.");
+        if (active) { publish(next); setResolutionError(""); setResolvedRoute(routeKey); }
+      } catch (e) { if (active) { setResolutionError(e instanceof Error ? e.message : "Dossier indisponible."); setResolvedRoute(routeKey); } }
+    });
+    return () => { active = false; };
   }, [routeContext, routeKey, service, publish]);
 
   const saveSnapshot = useCallback(
@@ -155,6 +168,9 @@ export function ActiveDossierProvider({
     publish({ context: before.context, snapshot: next });
   }), [service, publish]);
 
+  if (resolvedRoute !== routeKey) return <p role="status" className="p-6">Lecture du dossier sélectionné…</p>;
+  if (resolutionError) return <main className="p-6"><h1>Dossier indisponible</h1><p role="alert">{resolutionError}</p><a className="underline" href="/dashboard/dossier">Choisir un dossier disponible</a></main>;
+
   return (
     <ActiveDossierContext.Provider
       value={{
@@ -183,3 +199,5 @@ export function useActiveDossierSnapshot(): DossierSnapshot {
   return useActiveDossier().snapshot;
 }
 
+
+export function useOptionalActiveDossier() { return useContext(ActiveDossierContext); }

@@ -1,7 +1,9 @@
 "use client";
+import { CapabilityAccess } from "./CapabilityAccess";
 import { useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
+import { navigationContext } from "@/lib/dossier/navigation-context";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { periodId } from "@/lib/workpapers/model";
 import { ModuleAvailability } from "./ModuleAvailability";
@@ -24,17 +26,9 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
   }
   return <main className="min-h-screen bg-[#0b0e13] p-6 text-[#e6edf6]">
     <h1 className="text-2xl font-semibold">Synthèse du dossier synthétique</h1>
-    <p className="my-3">{snapshot.dossier.societe.raisonSociale} · {snapshot.dossier.id} · {snapshot.dossier.period?.startDate} au {snapshot.dossier.period?.closingDate}</p>
+    <p className="my-3">{snapshot.dossier.societe.raisonSociale} · exercice {snapshot.dossier.societe.exercice} · {snapshot.dossier.period?.startDate} au {snapshot.dossier.period?.closingDate}</p>
     <p>Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats ci-dessous proviennent des feuilles exécutées dans l’atelier.</p>
-    <p className="my-4 text-sm"><a className="underline font-semibold" href="/dossier-cloture">Ouvrir le dossier professionnel — programme de travail, contrôle interne et clôture</a> · les feuilles de cycle ci-dessous ne forment pas un audit complet : travaux restants, pièces manquantes et contradictions ; aucune opinion générée.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/clients-framing/synthesis">Ouvrir la Synthèse des procédures de mission — cadrage Clients</a> · Sources distinctes des constats historiques DEMO SA et de l’atelier synthétique.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/tresorerie/synthese">Ouvrir la Synthèse des procédures de mission — Trésorerie (pont bancaire et apurement)</a> · <a className="underline" href="/tresorerie">feuille Trésorerie</a> · Caisse et VMP non couvertes.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/resultat-exceptionnel">Résultat exceptionnel · revue par événement</a> · <a className="underline" href="/participations">Participations · droits, distributions et valeur</a></p><p className="my-4 text-sm"><a className="underline" href="/immobilisations/synthese">Ouvrir la Synthèse des procédures de mission — Immobilisations (mouvements, cadrage et recalcul documenté)</a> · <a className="underline" href="/immobilisations">feuille Immobilisations</a> · Existence physique et valeur non couvertes.</p>
-    <p className="my-4 text-sm"><a className="underline" href="/capitaux-propres/synthese">Ouvrir la Synthèse — Capitaux propres, feuille décisions et PV versionnés</a> · <a className="underline" href="/capitaux-propres">feuille /capitaux-propres</a> · procédure parallèle à /equity ; aucune conclusion juridique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/fiscal/synthese">Ouvrir la Synthèse fiscale — TVA par période déclarative, IS par exercice</a> · <a className="underline" href="/fiscal">feuille /fiscal</a> · moteurs fiscaux existants, aucune liquidation ni conformité déclarée.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/stocks">Ouvrir la feuille Stocks — quantités comptées, mouvements intercalaires, passage inventaire → clôture</a> · stock propre distingué des stocks de tiers ; aucune présence physique certifiée, aucune dépréciation automatique.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/provisions">Ouvrir le registre Provisions et engagements — ponts, estimation / écriture, événement / annexe</a> · événements avec ou sans écriture ; contenu confidentiel masqué par le serveur ; aucune issue juridique déduite.</p>
-      <p className="my-4 text-sm"><a className="underline" href="/paie-personnel">Paie · journal, déclarations et paiements</a> · <a className="underline" href="/paie-personnel/conges">Congés · revue indépendante</a> · usage réel bloqué, accès RH à valider.</p>
+    <CapabilityAccess context={navigationContext(snapshot, { organizationId: snapshot.dossier.organizationId ?? "SYNTHETIC-DEMO", dossierId: snapshot.dossier.id })} />
       <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap gap-5"><Link className="underline" href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className="underline" onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status">{message}</p>

@@ -1,0 +1,913 @@
+{
+  "config": {
+    "argv": [
+      "C:\\Program Files\\nodejs\\node.exe",
+      "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\node_modules\\@playwright\\test\\cli.js",
+      "test",
+      "--config",
+      "playwright.c01.config.ts",
+      "e2e/c01-context.spec.ts",
+      "e2e/c00-layout.spec.ts",
+      "e2e/mission20-contrast.spec.ts",
+      "e2e/mission20-design.spec.ts"
+    ],
+    "configFile": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\playwright.c01.config.ts",
+    "rootDir": "C:/Users/Ludo/.codex/.chatgpt-projects/g-p-6a828022d430819192fae3b954f27559/mission-c01/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": true,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "C:/Users/Ludo/.codex/.chatgpt-projects/g-p-6a828022d430819192fae3b954f27559/mission-c01/docs/recette/c01/release/artifacts",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chrome",
+        "name": "chrome",
+        "testDir": "C:/Users/Ludo/.codex/.chatgpt-projects/g-p-6a828022d430819192fae3b954f27559/mission-c01/e2e",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 60000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "docs/recette/c01/release/browser.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.62.1",
+    "workers": 1,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "c00-layout.spec.ts",
+      "file": "c00-layout.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "C00 Clients — version verrouillée et identifiants sources à 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2556,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:13:38.402Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Clients-—-v-b2a07-dentifiants-sources-à-390px-chrome\\attachments\\clients-390-3cf1b629b501b3ab582dd90dbd6b1d4418f6e835.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-47a29e71a60b3e66cb75",
+          "file": "c00-layout.spec.ts",
+          "line": 37,
+          "column": 7
+        },
+        {
+          "title": "C00 Programme — 128 procédures et défilement interne à 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 16585,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:13:42.303Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "programme-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-12cb9--défilement-interne-à-390px-chrome\\attachments\\programme-390-895e5028de23b17c48da0b1b0c665ec184efb673.json"
+                    },
+                    {
+                      "name": "programme-detail-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-12cb9--défilement-interne-à-390px-chrome\\attachments\\programme-detail-390-d1a96d6a6e52e5e97f2114a5ce7191a052c70973.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-e4ed40bba7ac98af4d98",
+          "file": "c00-layout.spec.ts",
+          "line": 65,
+          "column": 7
+        },
+        {
+          "title": "C00 Clients — version verrouillée et identifiants sources à 1024px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1876,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:13:58.917Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Clients-—-v-0c579-entifiants-sources-à-1024px-chrome\\attachments\\clients-1024-dc11de03cd6ef89e973125c9ad3dc8ceae83ef7b.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-73fd0081198c3af4ea73",
+          "file": "c00-layout.spec.ts",
+          "line": 37,
+          "column": 7
+        },
+        {
+          "title": "C00 Programme — 128 procédures et défilement interne à 1024px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17119,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:00.807Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "programme-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-3bd92-défilement-interne-à-1024px-chrome\\attachments\\programme-1024-80d0962de1e926c0831debeb21693ec65f8a49fc.json"
+                    },
+                    {
+                      "name": "programme-detail-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-3bd92-défilement-interne-à-1024px-chrome\\attachments\\programme-detail-1024-68a8c65a0bcd6fcd6463db1cdfa51df89eb8365c.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-c298b63e4ff6ac36d967",
+          "file": "c00-layout.spec.ts",
+          "line": 65,
+          "column": 7
+        },
+        {
+          "title": "C00 Clients — version verrouillée et identifiants sources à 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1872,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:17.945Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Clients-—-v-c6972-entifiants-sources-à-1440px-chrome\\attachments\\clients-1440-22994b3aa3ff4b5603dad4f1b4408f17e9f1a426.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-bed1af7e525bc216aa13",
+          "file": "c00-layout.spec.ts",
+          "line": 37,
+          "column": 7
+        },
+        {
+          "title": "C00 Programme — 128 procédures et défilement interne à 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 17809,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:19.835Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "programme-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-c9f56-défilement-interne-à-1440px-chrome\\attachments\\programme-1440-a752661d675f0f25463e646d834b5f0ad7c8aa67.json"
+                    },
+                    {
+                      "name": "programme-detail-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c00-layout-C00-Programme-—-c9f56-défilement-interne-à-1440px-chrome\\attachments\\programme-detail-1440-1b9c3610fe225c7dea20feb5bbacf9cc3b0d55ee.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "5c63eac7071c11b3a5e7-adabde5a0d383c37164f",
+          "file": "c00-layout.spec.ts",
+          "line": 65,
+          "column": 7
+        }
+      ]
+    },
+    {
+      "title": "c01-context.spec.ts",
+      "file": "c01-context.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "C01 Synthèse → Clients → preuve → retour, sans ressaisie, 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4548,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:37.781Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-proof-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-6fa3f-retour-sans-ressaisie-390px-chrome\\attachments\\clients-proof-390-42a21f2c57ae40f932861b79613923b72fa0fadf.json"
+                    },
+                    {
+                      "name": "returned-synthesis-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-6fa3f-retour-sans-ressaisie-390px-chrome\\attachments\\returned-synthesis-390-43e0e80a9f25bfaf87b09e330f0b5ce4f18a9964.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-539809b345b61369fc26",
+          "file": "c01-context.spec.ts",
+          "line": 67,
+          "column": 7
+        },
+        {
+          "title": "C01 changement d’exercice et feuille absente, 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2311,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:42.368Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "missing-sheet-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-changement-27838-ce-et-feuille-absente-390px-chrome\\attachments\\missing-sheet-390-f29715bd6f4106fa14e819c346157b15e0f2bfb8.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-95e0871e737c093c2cc3",
+          "file": "c01-context.spec.ts",
+          "line": 84,
+          "column": 7
+        },
+        {
+          "title": "C01 Stocks et atelier historiques qualifiés, 390px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3617,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:44.696Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "historical-stocks-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--34191-historiques-qualifiés-390px-chrome\\attachments\\historical-stocks-390-8d85dfa97f15c727d49e0457bf9bd69413a88ecf.json"
+                    },
+                    {
+                      "name": "workshop-scope-390",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--34191-historiques-qualifiés-390px-chrome\\attachments\\workshop-scope-390-42e160cef018079cef89000219c6b07f5f4666aa.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-75e11a85b8d0ccb5a9df",
+          "file": "c01-context.spec.ts",
+          "line": 105,
+          "column": 7
+        },
+        {
+          "title": "C01 Synthèse → Clients → preuve → retour, sans ressaisie, 1024px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4768,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:48.330Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-proof-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-e6dce-etour-sans-ressaisie-1024px-chrome\\attachments\\clients-proof-1024-d7897271d8302b2f8238eecc6b557ae439e82990.json"
+                    },
+                    {
+                      "name": "returned-synthesis-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-e6dce-etour-sans-ressaisie-1024px-chrome\\attachments\\returned-synthesis-1024-864e4f3fafb61fb4622477a35102c0ea82f6b0c0.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-806666783b02cd0de5ff",
+          "file": "c01-context.spec.ts",
+          "line": 67,
+          "column": 7
+        },
+        {
+          "title": "C01 changement d’exercice et feuille absente, 1024px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2269,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:53.113Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "missing-sheet-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-changement-10aec-e-et-feuille-absente-1024px-chrome\\attachments\\missing-sheet-1024-44574343129a92e5126d91b54156c4defea19b78.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-e87e6dd3e63cbe612ac1",
+          "file": "c01-context.spec.ts",
+          "line": 84,
+          "column": 7
+        },
+        {
+          "title": "C01 Stocks et atelier historiques qualifiés, 1024px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3826,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:55.396Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "historical-stocks-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--ad52b-istoriques-qualifiés-1024px-chrome\\attachments\\historical-stocks-1024-f2573bdd71f72884d8df7238e56cea13aa9cfdc9.json"
+                    },
+                    {
+                      "name": "workshop-scope-1024",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--ad52b-istoriques-qualifiés-1024px-chrome\\attachments\\workshop-scope-1024-e23b84c3001aee99a8393bcb926b6264fc62aa30.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-ae77db4fed8b271a4e64",
+          "file": "c01-context.spec.ts",
+          "line": 105,
+          "column": 7
+        },
+        {
+          "title": "C01 Synthèse → Clients → preuve → retour, sans ressaisie, 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4630,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:14:59.238Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "clients-proof-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-990b6-etour-sans-ressaisie-1440px-chrome\\attachments\\clients-proof-1440-2cf0069c65c42b09d7a4e43d1eb38e917b3f9946.json"
+                    },
+                    {
+                      "name": "returned-synthesis-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Synthèse-→-990b6-etour-sans-ressaisie-1440px-chrome\\attachments\\returned-synthesis-1440-bdb72353035a95a43b316c0e31065dacae1bd122.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-727b9a1c378d06b37483",
+          "file": "c01-context.spec.ts",
+          "line": 67,
+          "column": 7
+        },
+        {
+          "title": "C01 changement d’exercice et feuille absente, 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2151,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:03.882Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "missing-sheet-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-changement-5a8fd-e-et-feuille-absente-1440px-chrome\\attachments\\missing-sheet-1440-5dbbf17f7d4f08d67fcf35f5277dbf2bb6705cb6.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-3b9f8f1a31e1ddb79a83",
+          "file": "c01-context.spec.ts",
+          "line": 84,
+          "column": 7
+        },
+        {
+          "title": "C01 Stocks et atelier historiques qualifiés, 1440px",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3951,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:06.047Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "historical-stocks-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--5eef4-istoriques-qualifiés-1440px-chrome\\attachments\\historical-stocks-1440-e4868ebd83d76690f08febd2a4344fd567a2eeec.json"
+                    },
+                    {
+                      "name": "workshop-scope-1440",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-Stocks-et--5eef4-istoriques-qualifiés-1440px-chrome\\attachments\\workshop-scope-1440-c4e8307391cc7f9d4fbdbfeed9a47afbc3c41529.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-b8994fbc731e4f74b1be",
+          "file": "c01-context.spec.ts",
+          "line": 105,
+          "column": 7
+        },
+        {
+          "title": "C01 dossier absent ou exercice incompatible : aucun repli sur DEMO SA",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2525,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:10.013Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "mismatched-exercise",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-dossier-ab-70b8d-ble-aucun-repli-sur-DEMO-SA-chrome\\attachments\\mismatched-exercise-51099e8581e771df6984cc6b232f30b24cde08ce.json"
+                    },
+                    {
+                      "name": "missing-dossier",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-dossier-ab-70b8d-ble-aucun-repli-sur-DEMO-SA-chrome\\attachments\\missing-dossier-ad3eb571028d65b0a50ffb0a2b667f64f0d859ad.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-b6d6e6897812e227bb59",
+          "file": "c01-context.spec.ts",
+          "line": 120,
+          "column": 5
+        },
+        {
+          "title": "C01 recette indépendante identifiée et retour au dossier sélectionné",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 60000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2939,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:12.554Z",
+                  "annotations": [],
+                  "attachments": [
+                    {
+                      "name": "independent-recipe-return",
+                      "contentType": "application/json",
+                      "path": "C:\\Users\\Ludo\\.codex\\.chatgpt-projects\\g-p-6a828022d430819192fae3b954f27559\\mission-c01\\docs\\recette\\c01\\release\\artifacts\\c01-context-C01-recette-in-2a661-tour-au-dossier-sélectionné-chrome\\attachments\\independent-recipe-return-13cd04fab91f993b99217b447c0311e9fe06902d.json"
+                    }
+                  ]
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "af07fdb52a37e49def65-074528e33b95a13daecc",
+          "file": "c01-context.spec.ts",
+          "line": 133,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "mission20-contrast.spec.ts",
+      "file": "mission20-contrast.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Mission 20 — mesure du contraste sur huit pages historiques",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 120000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 35492,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:15.514Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "1f5ce06af585ac8f23cb-082426059fdba3125c8b",
+          "file": "mission20-contrast.spec.ts",
+          "line": 7,
+          "column": 5
+        }
+      ]
+    },
+    {
+      "title": "mission20-design.spec.ts",
+      "file": "mission20-design.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "Mission 20 — table longue 128 procédures dont 127 applicables, chargement retardé, documents manquants, erreur serveur et récupération",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chrome",
+              "projectName": "chrome",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 12085,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-13T00:15:51.025Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9412c9fc0b213311e07d-e9ef9664f7cc67bdaf73",
+          "file": "mission20-design.spec.ts",
+          "line": 9,
+          "column": 5
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-13T00:13:33.830Z",
+    "duration": 149665.027,
+    "expected": 19,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

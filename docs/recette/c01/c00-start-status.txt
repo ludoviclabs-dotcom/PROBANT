@@ -1,0 +1,13 @@
+?? docs/recette/c00/after-final/
+?? docs/recette/c00/after/
+?? docs/recette/c00/before-complete-sources/
+?? docs/recette/c00/before-final/
+?? docs/recette/c00/before/
+?? docs/recette/c00/contrast-investigation/
+?? docs/recette/c00/evidence-manifest.json
+?? docs/recette/c00/git-connectivity-final.log
+?? docs/recette/c00/git-connectivity-repaired.log
+?? docs/recette/c00/git-connectivity.log
+?? docs/recette/c00/m20-selected.diff
+?? docs/recette/c00/m20-start-status.bin
+?? docs/recette/c00/remote-inspection.json

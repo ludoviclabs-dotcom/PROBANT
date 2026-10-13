@@ -126,7 +126,7 @@ export function LibrarySection({
   return (
     <section style={{ marginTop: 40, display: "flex", flexWrap: "wrap", gap: 32, alignItems: "flex-start" }}>
       <div className="rf-index" style={{ flex: "1 1 240px", maxWidth: 300, position: "sticky", top: 24 }}>
-        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".09em", color: "#5c6b82" }}>
+        <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: ".09em", color: "var(--pb-text-faint)" }}>
           Index des thèmes
         </div>
         <div className="rf-index-list" style={{ marginTop: 12, display: "flex", flexDirection: "column" }}>

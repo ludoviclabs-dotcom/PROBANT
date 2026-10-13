@@ -1,8 +1,9 @@
-
 "use client";
 
+
+
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { Plus, ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { type DossierContext, type DossierSnapshot } from "@/lib/dossier";

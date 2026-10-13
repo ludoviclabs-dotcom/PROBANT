@@ -1,3 +1,4 @@
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 /**
  * /dashboard/fiscalite — cockpit fiscalité (TAX-08).
  *
@@ -43,7 +44,7 @@ export default async function FiscalitePage({
     <>
       {/* The cockpit stays a demonstration surface; the real-dossier VAT sheets live in the mission procedures (Mission 13). */}
       <nav aria-label="Feuilles de travail fiscales" style={{ background: "#0b1220", color: "#e6edf6", padding: "10px 24px", fontSize: 13, borderBottom: "1px solid #243044" }}>
-        Cockpit de démonstration (dossier synthétique). Pour un dossier réel en recette : <a href="/fiscal" style={{ color: "#9cbcff", textDecoration: "underline" }}>feuilles de travail TVA par période</a> · <a href="/fiscal/synthese" style={{ color: "#9cbcff", textDecoration: "underline" }}>Synthèse fiscale</a>.
+        Cockpit de démonstration (dossier synthétique). Pour un dossier réel en recette : <DossierContextAnchor href="/fiscal" style={{ color: "#9cbcff", textDecoration: "underline" }}>feuilles de travail TVA par période</DossierContextAnchor> · <DossierContextAnchor href="/fiscal/synthese" style={{ color: "#9cbcff", textDecoration: "underline" }}>Synthèse fiscale</DossierContextAnchor>.
       </nav>
       <TaxCockpitWorkspace
         bundles={bundles}

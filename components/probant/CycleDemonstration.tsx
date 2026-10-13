@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { useActiveDossier } from "@/lib/dossier/client";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { appendDemoEvent, createDemoRecord, DEMO_STORAGE_PREFIX, latestDemoParameters, replayDemo, syntheticBaseline, verifyDemoRecord, type DemoEvent, type DemoRecord } from "@/lib/workpapers/browser-demo";

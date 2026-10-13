@@ -1,0 +1,9 @@
+{
+  "startedAt": "2026-10-13T00:10:37.590Z",
+  "pid": 5220,
+  "node": "v24.14.0",
+  "staticWorkerInput": {
+    "CIRCLE_NODE_TOTAL": "2"
+  },
+  "method": "owned direct Next build, sequential verification"
+}

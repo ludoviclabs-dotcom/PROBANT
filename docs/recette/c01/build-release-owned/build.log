@@ -1,0 +1,165 @@
+   ▲ Next.js 15.5.27
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 33.2s
+   Linting and checking validity of types ...
+
+./app/page.tsx
+37:9  Warning: 'streams' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/probant/CloisonsWorkspace.tsx
+4:10  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/tax-cockpit/__tests__/components.test.tsx
+33:3  Warning: Unused eslint-disable directive (no problems were reported from 'no-var').
+
+./components/viewer/DocumentToolbar.tsx
+4:34  Warning: 'Severity' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/viewer/StatementLayout.tsx
+3:10  Warning: 'AlertTriangle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/ingestion/tax-document-provider.ts
+46:18  Warning: '_request' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/rules-engine/runner.ts
+57:20  Warning: '_key' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/180) ...
+   Generating static pages (45/180) 
+   Generating static pages (90/180) 
+   Generating static pages (135/180) 
+ ✓ Generating static pages (180/180)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                Size  First Load JS
+┌ ○ /                                                   4.88 kB         180 kB
+├ ○ /_not-found                                           999 B         104 kB
+├ ƒ /api/adjustments                                      297 B         104 kB
+├ ƒ /api/adjustments/[id]                                 297 B         104 kB
+├ ƒ /api/adjustments/history                              297 B         104 kB
+├ ƒ /api/adjustments/reset                                297 B         104 kB
+├ ƒ /api/analytics/events                                 297 B         104 kB
+├ ƒ /api/auth/callback                                    297 B         104 kB
+├ ƒ /api/auth/login                                       297 B         104 kB
+├ ƒ /api/auth/logout                                      297 B         104 kB
+├ ƒ /api/auth/session                                     297 B         104 kB
+├ ƒ /api/depot                                            297 B         104 kB
+├ ƒ /api/dossier-capabilities                             297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/ingestion-jobs/[jobId]      297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/ledger                      297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/review-events               297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/snapshot                    297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/uploads                     297 B         104 kB
+├ ƒ /api/dossiers/[dossierId]/uploads/[jobId]/complete    297 B         104 kB
+├ ƒ /api/export                                           297 B         104 kB
+├ ƒ /api/ingestions                                       297 B         104 kB
+├ ƒ /api/ingestions/[id]                                  297 B         104 kB
+├ ƒ /api/ingestions/[id]/process                          297 B         104 kB
+├ ƒ /api/normatif/export                                  297 B         104 kB
+├ ƒ /api/normatif/search                                  297 B         104 kB
+├ ƒ /api/normatif/validate                                297 B         104 kB
+├ ƒ /api/rum                                              297 B         104 kB
+├ ƒ /api/security/csp-report                              297 B         104 kB
+├ ƒ /api/workpapers                                       297 B         104 kB
+├ ƒ /api/workpapers/capitaux-propres                      297 B         104 kB
+├ ƒ /api/workpapers/capitaux-propres/export               297 B         104 kB
+├ ƒ /api/workpapers/capitaux-propres/imports              297 B         104 kB
+├ ƒ /api/workpapers/cash                                  297 B         104 kB
+├ ƒ /api/workpapers/cash/export                           297 B         104 kB
+├ ƒ /api/workpapers/cash/imports                          297 B         104 kB
+├ ƒ /api/workpapers/clients                               297 B         104 kB
+├ ƒ /api/workpapers/clients/export                        297 B         104 kB
+├ ƒ /api/workpapers/clients/imports                       297 B         104 kB
+├ ƒ /api/workpapers/closing                               297 B         104 kB
+├ ƒ /api/workpapers/closing/pieces                        297 B         104 kB
+├ ƒ /api/workpapers/equity                                297 B         104 kB
+├ ƒ /api/workpapers/equity/demo                           297 B         104 kB
+├ ƒ /api/workpapers/equity/export                         297 B         104 kB
+├ ƒ /api/workpapers/equity/imports                        297 B         104 kB
+├ ƒ /api/workpapers/fiscal                                297 B         104 kB
+├ ƒ /api/workpapers/fiscal/export                         297 B         104 kB
+├ ƒ /api/workpapers/fiscal/imports                        297 B         104 kB
+├ ƒ /api/workpapers/immobilisations                       297 B         104 kB
+├ ƒ /api/workpapers/immobilisations/export                297 B         104 kB
+├ ƒ /api/workpapers/immobilisations/imports               297 B         104 kB
+├ ƒ /api/workpapers/paie                                  297 B         104 kB
+├ ƒ /api/workpapers/paie/demo                             297 B         104 kB
+├ ƒ /api/workpapers/paie/demo/imports                     297 B         104 kB
+├ ƒ /api/workpapers/participations                        297 B         104 kB
+├ ƒ /api/workpapers/participations/demo                   297 B         104 kB
+├ ƒ /api/workpapers/participations/export                 297 B         104 kB
+├ ƒ /api/workpapers/participations/imports                297 B         104 kB
+├ ƒ /api/workpapers/payables                              297 B         104 kB
+├ ƒ /api/workpapers/payables/export                       297 B         104 kB
+├ ƒ /api/workpapers/payables/imports                      297 B         104 kB
+├ ƒ /api/workpapers/provisions                            297 B         104 kB
+├ ƒ /api/workpapers/provisions/imports                    297 B         104 kB
+├ ƒ /api/workpapers/resultat-exceptionnel                 297 B         104 kB
+├ ƒ /api/workpapers/resultat-exceptionnel/demo            297 B         104 kB
+├ ƒ /api/workpapers/resultat-exceptionnel/export          297 B         104 kB
+├ ƒ /api/workpapers/resultat-exceptionnel/imports         297 B         104 kB
+├ ƒ /api/workpapers/stocks                                297 B         104 kB
+├ ƒ /api/workpapers/stocks/imports                        297 B         104 kB
+├ ƒ /capitaux-propres                                     22 kB         209 kB
+├ ƒ /capitaux-propres/synthese                          5.39 kB         192 kB
+├ ƒ /clients-framing                                    16.4 kB         206 kB
+├ ƒ /clients-framing/synthesis                          9.22 kB         191 kB
+├ ƒ /cutoff                                               150 B         207 kB
+├ ƒ /dashboard/cloisons                                 19.4 kB         198 kB
+├ ○ /dashboard/depot                                    2.14 kB         200 kB
+├ ○ /dashboard/dossier                                  3.39 kB         178 kB
+├ ƒ /dashboard/fiscalite                                31.2 kB         220 kB
+├ ○ /dashboard/referentiel                              7.71 kB         111 kB
+├ ○ /dashboard/risques                                  43.3 kB         222 kB
+├ ○ /dashboard/synthese                                 36.8 kB         216 kB
+├ ○ /dashboard/tests                                    44.2 kB         287 kB
+├ ƒ /dossier-cloture                                    26.9 kB         208 kB
+├ ƒ /equity                                               137 B         189 kB
+├ ƒ /equity/synthesis                                     137 B         189 kB
+├ ƒ /fiscal                                             21.1 kB         205 kB
+├ ƒ /fiscal/synthese                                     6.4 kB         190 kB
+├ ○ /icon.svg                                               0 B            0 B
+├ ƒ /immobilisations                                    20.3 kB         206 kB
+├ ƒ /immobilisations/synthese                           5.25 kB         191 kB
+├ ○ /normatif                                           11.3 kB         118 kB
+├ ƒ /normatif/cycles                                      166 B         107 kB
+├ ● /normatif/cycles/[slug]                               172 B         107 kB
+├   ├ /normatif/cycles/autres-creances-cca
+├   ├ /normatif/cycles/creances-clients
+├   ├ /normatif/cycles/stocks-en-cours
+├   └ [+32 more paths]
+├ ○ /normatif/export                                      297 B         104 kB
+├ ○ /normatif/methodologie                                297 B         104 kB
+├ ○ /normatif/sources                                     172 B         107 kB
+├ ● /normatif/sources/[slug]                              172 B         107 kB
+├   ├ /normatif/sources/afa-sapin2
+├   ├ /normatif/sources/anc-reglementation
+├   ├ /normatif/sources/anc-flux-tresorerie
+├   └ [+85 more paths]
+├ ○ /onboarding                                         4.76 kB         203 kB
+├ ○ /paie-personnel                                       138 B         183 kB
+├ ○ /paie-personnel/conges                                138 B         183 kB
+├ ƒ /participations                                     14.2 kB         190 kB
+├ ƒ /payables                                             190 B         202 kB
+├ ƒ /payables/synthesis                                   151 B         207 kB
+├ ƒ /provisions                                         24.1 kB         209 kB
+├ ƒ /resultat-exceptionnel                              13.9 kB         187 kB
+├ ƒ /stocks                                             24.4 kB         206 kB
+├ ƒ /tresorerie                                         20.7 kB         203 kB
+└ ƒ /tresorerie/synthese                                5.15 kB         188 kB
++ First Load JS shared by all                            103 kB
+  ├ chunks/50414155-8846f3e3acfaf1dd.js                 54.2 kB
+  ├ chunks/6352-19bb61b3a62edfd7.js                     46.7 kB
+  └ other shared chunks (total)                         2.47 kB
+
+
+ƒ Middleware                                              35 kB
+
+○  (Static)   prerendered as static content
+●  (SSG)      prerendered as static HTML (uses generateStaticParams)
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -60,12 +60,24 @@ function globSync(pattern, options) {
       throw error;
     }
   }
-  const directories = directoryGlob(pattern, {
+  const absolute = path.isAbsolute(pattern);
+  let globPattern = normalizeDirectory(pattern);
+  const globOptions = {
     onlyDirectories: true,
     expandDirectories: false,
-    absolute: path.isAbsolute(pattern),
-  });
-  return [...new Set(directories.map(normalizeDirectory))];
+    absolute,
+  };
+  // On Windows, tinyglobby cannot match drive-qualified patterns or relative
+  // patterns escaping cwd. Resolve those segments, use the volume as cwd,
+  // then restore the caller's requested absolute/relative result shape.
+  if (process.platform === 'win32') {
+    const resolved = path.resolve(globPattern), volume = path.parse(resolved).root;
+    globPattern = path.relative(volume, resolved).replace(/\\/g, '/');
+    globOptions.cwd = volume;
+    globOptions.absolute = true;
+  }
+  const directories = directoryGlob(globPattern, globOptions);
+  return [...new Set(directories.map(directory => normalizeDirectory(process.platform === 'win32' && !absolute ? path.relative(process.cwd(), directory) : directory)))];
 }
 
 module.exports = { globSync };

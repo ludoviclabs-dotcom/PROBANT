@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useState } from "react";
 import { fixedAssetSheetHref, type FixedAssetMissionFilter, type FixedAssetMissionSnapshot } from "@/lib/workpapers/fixed-asset-mission";
 import { FA_UNCERTAINTY_CODES } from "@/lib/workpapers/fixed-asset-review";
@@ -42,13 +44,13 @@ export function FixedAssetMissionSynthesis({ initialDossierId = "", initialPerio
   }
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/tests">Atelier synthétique</a><a href="/clients-framing/synthesis">Procédures de mission · Clients</a><a href="/tresorerie/synthese">Procédures de mission · Trésorerie</a><span aria-current="page">Procédures de mission · Immobilisations</span><a href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres (PV versionnés)</a></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing/synthesis">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie/synthese">Procédures de mission · Trésorerie</DossierContextAnchor><span aria-current="page">Procédures de mission · Immobilisations</span><DossierContextAnchor href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres (PV versionnés)</DossierContextAnchor></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse Immobilisations</h1><p className={styles.muted}>Programme fermé : ponts des mouvements, cadrage registre → GL, pièces et recalcul documenté. Les compteurs viennent du programme, jamais du nombre d’anomalies.</p></div>
-      <a href={m ? fixedAssetSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all") : "/immobilisations"}>Ouvrir la feuille Immobilisations</a></header>
+      <DossierContextAnchor href={m ? fixedAssetSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all") : "/immobilisations"}>Ouvrir la feuille Immobilisations</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>
-      <label>Dossier<input required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>
       <label>Période<input required value={period} onChange={e => setPeriod(e.target.value)} placeholder="Identifiant de période de la feuille"/></label>
-      <button className={styles.primary} disabled={loading}>Charger la mission</button><a href={"/api/auth/login?returnTo=" + encodeURIComponent("/immobilisations/synthese?" + new URLSearchParams(scope))}>Se connecter</a>
+      <button className={styles.primary} disabled={loading}>Charger la mission</button><DossierContextAnchor href={"/api/auth/login?returnTo=" + encodeURIComponent("/immobilisations/synthese?" + new URLSearchParams(scope))}>Se connecter</DossierContextAnchor>
     </form>
     {loading && <p role="status">Lecture de l’état serveur…</p>}{error && <p role="alert" className={styles.notice} data-tone="danger">{error}</p>}
     {m && p && <>
@@ -72,13 +74,13 @@ export function FixedAssetMissionSynthesis({ initialDossierId = "", initialPerio
             <details><summary>Historique des versions et décisions</summary><ul className={styles.list}>{m.versionIndex.map(v => <li key={v.id + ":" + v.version}>r{v.revision} v{v.version} · {v.state} · {v.actorId}{v.approval ? " · " + v.approval.actorId + " : " + v.approval.note : ""}<code>{v.contentHash}</code></li>)}</ul></details>
           </section>
           {assets && <section className={styles.card} aria-labelledby="fa-synth-exceptions"><h2 id="fa-synth-exceptions">Exceptions et incertitudes conservées après revue</h2><ul className={styles.list}>{assets.exceptions.filter(e => filter === "all" || (filter === "exceptions" && !FA_UNCERTAINTY_CODES.includes(e.code)) || (filter === "evidence" && FA_UNCERTAINTY_CODES.includes(e.code))).map(e => <li key={e.id}><div className={styles.kv}><strong>{e.label}</strong><span>{e.unitId ?? "Compte " + e.targetId}{e.table ? " · " + TABLE_LABELS[e.table] : ""}</span><span className={styles.money}>{knownLabel(e.amount)}</span></div><p>{e.message}</p>
-            {p.runId && p.version && <a href={fixedAssetSheetHref(m.scope, { id: p.runId, version: p.version }, "exceptions", { unitId: e.unitId, table: e.table })}>Ouvrir la feuille sur cet actif (v{p.version})</a>}</li>)}
+            {p.runId && p.version && <DossierContextAnchor href={fixedAssetSheetHref(m.scope, { id: p.runId, version: p.version }, "exceptions", { unitId: e.unitId, table: e.table })}>Ouvrir la feuille sur cet actif (v{p.version})</DossierContextAnchor>}</li>)}
             {!assets.exceptions.length && <li>Aucune exception : cela ne démontre ni l’existence physique ni la valeur.</li>}</ul></section>}
         </div>
         <aside className={styles.detail} aria-label="File de travail et pièces">
           <h2>File de travail</h2><p className={styles.muted}>Priorité aux travaux périmés et aux blocages.</p>
-          {queue.length ? <ol className={styles.list}>{queue.map(q => <li key={q.id}><a href={q.href}>{q.label}</a><p className={styles.muted}>{q.detail}</p></li>)}</ol> : <p>Aucune action dans ce filtre.</p>}
-          <h2>Index des pièces</h2><ul className={styles.list}>{m.sources.map(s => <li key={s.id}><strong>{s.label}</strong><p className={styles.muted}>{s.fileName ?? (s.required ? "Pièce requise absente" : "Pièce conditionnelle absente")} · {s.available ? (s.current ? "courante" : "périmée") : "absente"} · binaire absent du paquet</p>{s.available && view.permissions.includes("download") && <a href={"/api/workpapers/immobilisations?" + new URLSearchParams({ dossierId: m.scope.dossierId, periodId: m.scope.periodId, operation: "download", id: s.id })}>Télécharger l’original</a>}</li>)}</ul>
+          {queue.length ? <ol className={styles.list}>{queue.map(q => <li key={q.id}><DossierContextAnchor href={q.href}>{q.label}</DossierContextAnchor><p className={styles.muted}>{q.detail}</p></li>)}</ol> : <p>Aucune action dans ce filtre.</p>}
+          <h2>Index des pièces</h2><ul className={styles.list}>{m.sources.map(s => <li key={s.id}><strong>{s.label}</strong><p className={styles.muted}>{s.fileName ?? (s.required ? "Pièce requise absente" : "Pièce conditionnelle absente")} · {s.available ? (s.current ? "courante" : "périmée") : "absente"} · binaire absent du paquet</p>{s.available && view.permissions.includes("download") && <DossierContextAnchor href={"/api/workpapers/immobilisations?" + new URLSearchParams({ dossierId: m.scope.dossierId, periodId: m.scope.periodId, operation: "download", id: s.id })}>Télécharger l’original</DossierContextAnchor>}</li>)}</ul>
         </aside>
       </div>
       <section className={styles.card} aria-labelledby="fa-export-title"><h2 id="fa-export-title">Export de cet état serveur</h2><p className={styles.muted}>Résumé, programme, population, ponts par actif et par famille, cadrage, pièces, méthodes, recalcul, décisions et index des pièces. Originaux téléchargeables séparément.</p>
