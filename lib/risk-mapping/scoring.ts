@@ -59,9 +59,18 @@ function clamp(n: number, lo: number, hi: number): number {
   return n;
 }
 
-/** Incidence chiffrée d'un constat en EUR (0 si l'unité n'est pas EUR). */
-function findingInc(f: Finding): number {
-  return f.mesure.unite === "EUR" ? Math.abs(f.mesure.constate - f.mesure.seuil) : 0;
+/**
+ * Incidence chiffrée d'un constat (C05) : UNIQUEMENT son effet financier explicite, en euros.
+ * Un écart |constaté − seuil| en EUR n'est pas un impact comptable : il reste un signal,
+ * sans incidence monétaire inférée (`isEurSignalWithoutEffect`).
+ */
+export function explicitEffectEur(f: Finding): number {
+  return f.financialEffect ? f.financialEffect.amountCents / 100 : 0;
+}
+
+/** Signal mesuré en EUR sans effet explicite : influe sur la priorité qualitative, effet comptable inconnu. */
+export function isEurSignalWithoutEffect(f: Finding): boolean {
+  return !f.financialEffect && f.mesure.unite === "EUR" && f.mesure.constate !== f.mesure.seuil;
 }
 
 /**
@@ -79,11 +88,13 @@ function fauxPositifFiabilite(f: Finding): number {
 }
 
 /**
- * Gravité (100 % auto). `0.6·gSeverity + 0.4·gIncidence`.
+ * Gravité (100 % auto). `0.55·gSeverity + 0.35·gIncidence + 0.10·gSignal`.
  *   gSeverity  = 100·ΣWSEV / (ΣWSEV + K_SEV)
- *   gIncidence = 100·clamp(Σ|constate−seuil| / significativité, 0, 3) / 3
+ *   gIncidence = 100·clamp(Σ effets explicites (EUR) / significativité, 0, 3) / 3
+ *   gSignal    = 100·n / (n + K_DENS), n = signaux EUR sans effet explicite (priorité
+ *                qualitative seulement : aucun montant n'en est inféré)
  * Sans base de matérialité, la composante incidence est neutralisée et un
- * driver le signale (aucune base inventée).
+ * driver le signale (aucune base inventée). Indice interne, jamais une probabilité calibrée.
  */
 export function scoreGravite(
   findings: Finding[],
@@ -108,19 +119,30 @@ export function scoreGravite(
   }
 
   let gIncidence = 0;
+  const eurSignals = findings.filter(isEurSignalWithoutEffect);
+  const gSignal = eurSignals.length > 0 ? (100 * eurSignals.length) / (eurSignals.length + K_DENS) : 0;
+  if (eurSignals.length > 0) {
+    drivers.push({
+      label: "Signaux EUR sans effet explicite (incidence comptable inconnue)",
+      detail:
+        `${eurSignals.length} constat(s) mesuré(s) en euros sans effet financier explicite : ` +
+        "l'écart au seuil n'est pas un impact comptable ; priorité qualitative seulement, aucun montant inféré.",
+      findingIds: eurSignals.map((f) => f.id),
+    });
+  }
   if (materiality && materiality.significativite > 0) {
-    const incFindings = findings.filter((f) => findingInc(f) > 0);
-    const incidence = incFindings.reduce((acc, f) => acc + findingInc(f), 0);
+    const incFindings = findings.filter((f) => explicitEffectEur(f) > 0);
+    const incidence = incFindings.reduce((acc, f) => acc + explicitEffectEur(f), 0);
     const ratio = clamp(incidence / materiality.significativite, 0, 3);
     gIncidence = (100 * ratio) / 3;
     if (incFindings.length > 0) {
       drivers.push({
-        label: "Incidence chiffrée vs seuil de signification",
+        label: "Effets financiers explicites vs seuil de signification",
         detail:
-          `Σ écarts ${Math.round(incidence).toLocaleString("fr-FR")} € ` +
+          `Σ effets explicites ${Math.round(incidence).toLocaleString("fr-FR")} € ` +
           `contre seuil ${materiality.significativite.toLocaleString("fr-FR")} € ` +
           `(${materiality.source}) — ${(ratio * 100).toFixed(0)} % du seuil ` +
-          `(plafonné à 300 %).`,
+          `(plafonné à 300 %). Même projection d'effets que la Synthèse.`,
         findingIds: incFindings.map((f) => f.id),
       });
     }
@@ -134,7 +156,7 @@ export function scoreGravite(
     });
   }
 
-  const auto = clamp(0.6 * gSeverity + 0.4 * gIncidence, 0, 100);
+  const auto = clamp(0.55 * gSeverity + 0.35 * gIncidence + 0.1 * gSignal, 0, 100);
   return {
     axis: "gravite",
     auto,

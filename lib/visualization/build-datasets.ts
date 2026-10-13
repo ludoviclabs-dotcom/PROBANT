@@ -140,13 +140,20 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
       tone: s.review.pct === 100 ? "positive" : s.review.pct > 0 ? "neutral" : "warning",
       detail: `${s.review.reviewedCount}/${s.review.totalCount} constats arbitrés`,
     },
-    {
-      id: "exposition-validee",
-      label: "Exposition validée",
-      value: formatCents(s.exposure.validatedAdjustmentCents),
-      tone: s.exposure.validatedAdjustmentCents === 0 ? "neutral" : "warning",
-      detail: `effet net ${formatCents(s.exposure.netFinancialStatementEffectCents)}`,
-    },
+    (() => {
+      const res = s.exposure.netByTarget.find((n) => n.target === "resultat");
+      const others = s.exposure.netByTarget.filter((n) => n.target !== "resultat");
+      const proposed = res?.proposedSignedCents ?? 0;
+      return {
+        id: "exposition-validee",
+        label: "Ajustement proposé (résultat)",
+        value: res ? formatCents(proposed) : "aucun",
+        tone: (proposed === 0 && others.length === 0 ? "neutral" : "warning") as "neutral" | "warning",
+        detail: res
+          ? `net après impôt ${res.netAfterKnownTaxCents === null ? `inconnu (${res.taxStatus === "partial" ? "incidence fiscale partiellement connue" : "incidence fiscale inconnue"})` : formatCents(res.netAfterKnownTaxCents)}${others.length ? ` · ${others.length} autre(s) poste(s) ajusté(s), non additionné(s)` : ""}`
+          : s.exposure.aggregationStatus === "indeterminate" ? "exposition indéterminée : groupes à arbitrer" : "aucun ajustement proposé sur le résultat",
+      };
+    })(),
     {
       id: "prochaine-action",
       label: "Prochaine action",
@@ -328,21 +335,30 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
 
   /* ── Waterfall d'exposition ──────────────────────────────────────────── */
   const e = s.exposure;
-  const duplicatesCents = e.grossDetectedExposureCents - e.deduplicatedExposureCents;
+  const undetermined = e.clusters.filter((c) => c.status !== "determined");
+  const undeterminedCents = e.exposureBoundsCents.maxCents - e.determinedExposureCents;
+  const resultNet = e.netByTarget.find((n) => n.target === "resultat");
+  const otherTargets = e.netByTarget.filter((n) => n.target !== "resultat");
   const steps: WaterfallStep[] = [
     { id: "gross", label: "Exposition brute détectée", amountCents: e.grossDetectedExposureCents, kind: "start" },
-    { id: "duplicates", label: "Doublons et chevauchements", amountCents: -duplicatesCents, kind: "delta", note: "politique max_magnitude par cluster" },
-    { id: "dedup", label: "Exposition dédupliquée", amountCents: e.deduplicatedExposureCents, kind: "subtotal" },
+    { id: "repeats", label: "Répétitions exactes (comptées une fois)", amountCents: -e.exactRepeatsCents, kind: "delta", note: "même identité économique et même contenu" },
+    ...(e.supersededVersionsCents
+      ? [{ id: "superseded", label: "Versions d'évaluation remplacées", amountCents: -e.supersededVersionsCents, kind: "delta" as const, note: "succession de versions démontrée : seule la dernière version compte" }]
+      : []),
+    ...(undetermined.length
+      ? [{ id: "undetermined", label: `Groupes indéterminés (${undetermined.length}) hors agrégat`, amountCents: -undeterminedCents, kind: "delta" as const, note: `conflits ou chevauchements sans allocation : bornes totales ${formatCents(e.exposureBoundsCents.minCents)} à ${formatCents(e.exposureBoundsCents.maxCents)}, détail conservé` }]
+      : []),
+    { id: "determined", label: "Exposition déterminée", amountCents: e.determinedExposureCents, kind: "subtotal" },
     { id: "dismissed", label: "Constats écartés en revue", amountCents: -e.dismissedExposureCents, kind: "delta" },
     { id: "pending", label: "En attente d'arbitrage", amountCents: -e.pendingReviewExposureCents, kind: "delta", note: "ni confirmé ni écarté — hors ajustement à ce stade" },
-    { id: "validated", label: "Ajustements confirmés (signés)", amountCents: e.validatedAdjustmentCents, kind: "subtotal", note: "somme signée : augmentation +, diminution −" },
-    { id: "tax", label: "Effet d'impôt (taux explicites)", amountCents: -e.taxEffectCents, kind: "delta" },
-    { id: "net", label: "Effet net sur les états financiers", amountCents: e.netFinancialStatementEffectCents, kind: "total" },
+    { id: "proposed-resultat", label: "Ajustement proposé — résultat (signé)", amountCents: resultNet?.proposedSignedCents ?? 0, kind: "subtotal", note: otherTargets.length ? `${otherTargets.map((n) => `${n.target} ${formatCents(n.proposedSignedCents)}`).join(", ")} : autres postes, non additionnés` : "augmentation +, diminution − ; aucun autre poste ajusté" },
+    { id: "tax", label: `Effet d'impôt — résultat (${resultNet ? (resultNet.taxStatus === "known" ? "connu" : resultNet.taxStatus === "partial" ? "partiellement connu" : "inconnu") : "aucun ajustement"})`, amountCents: resultNet && resultNet.taxStatus === "unknown" ? null : -(resultNet?.taxKnownCents ?? 0), kind: "delta", note: resultNet && resultNet.taxStatus !== "known" ? "au moins un ajustement du résultat sans incidence fiscale établie (taux ou qualification absents)" : "taux explicite et qualification fiscale pour chaque effet du résultat" },
+    { id: "net", label: "Effet net sur le résultat après impôt", amountCents: resultNet ? resultNet.netAfterKnownTaxCents : 0, kind: "total", note: resultNet && resultNet.netAfterKnownTaxCents === null ? `inconnu ; sous-total partiel sur les seuls effets qualifiés : ${formatCents(resultNet.partialNetKnownSubsetCents)}` : undefined },
   ];
   const waterfall: SynthesisDatasets["waterfall"] = {
     id: "exposure-waterfall",
     title: "De l'exposition brute à l'effet net",
-    summary: `Exposition brute ${formatCents(e.grossDetectedExposureCents)}, dédupliquée ${formatCents(e.deduplicatedExposureCents)} (doublons ${formatCents(duplicatesCents)}), écartée ${formatCents(e.dismissedExposureCents)}, en attente ${formatCents(e.pendingReviewExposureCents)}. Ajustements confirmés ${formatCents(e.validatedAdjustmentCents)}, effet d'impôt ${formatCents(e.taxEffectCents)}, effet net ${formatCents(e.netFinancialStatementEffectCents)}. ${e.findingsWithoutEffect.length} constat(s) sans effet financier explicite sont hors de ce graphique.`,
+    summary: `Exposition brute ${formatCents(e.grossDetectedExposureCents)}, répétitions exactes ${formatCents(e.exactRepeatsCents)}, déterminée ${formatCents(e.determinedExposureCents)}${e.aggregationStatus === "indeterminate" ? ` (bornes totales ${formatCents(e.exposureBoundsCents.minCents)} à ${formatCents(e.exposureBoundsCents.maxCents)}, ${undetermined.length} groupe(s) à arbitrer)` : ""}, écartée ${formatCents(e.dismissedExposureCents)}, en attente ${formatCents(e.pendingReviewExposureCents)}. Ajustement proposé sur le résultat ${formatCents(resultNet?.proposedSignedCents ?? 0)}, effet d'impôt sur le résultat ${resultNet ? (resultNet.taxStatus === "known" ? formatCents(resultNet.taxKnownCents) : resultNet.taxStatus === "partial" ? "partiellement connu" : "inconnu") : "sans objet"}, net après impôt ${resultNet && resultNet.netAfterKnownTaxCents !== null ? formatCents(resultNet.netAfterKnownTaxCents) : "inconnu"}. ${e.findingsWithoutEffect.length} constat(s) sans effet financier explicite sont hors de ce graphique.`,
     columns: [
       { key: "etape", label: "Étape" },
       { key: "montant", label: "Montant", unit: "€", align: "right" },
@@ -350,16 +366,16 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
     ],
     rows: steps.map((st) => ({
       id: st.id,
-      cells: { etape: st.label, montant: formatCents(st.amountCents), note: st.note ?? "" },
+      cells: { etape: st.label, montant: st.amountCents === null ? "inconnu" : formatCents(st.amountCents), note: st.note ?? "" },
       emphasis: st.kind === "total" ? "positive" : st.kind === "subtotal" ? "muted" : undefined,
     })),
     steps,
     sourceMetricIds: [
-      "exposure.deduplicatedExposureCents",
-      "exposure.netFinancialStatementEffectCents",
+      "exposure.determinedExposureCents",
+      "exposure.netByTarget",
     ],
     methodology:
-      "Montants en centimes entiers issus du moteur de Synthèse. Seuls les constats portant un effet financier explicite contribuent ; la déduplication suit la politique max_magnitude (clusters ambigus inclus de façon conservatrice et marqués revue requise).",
+      "Montants en centimes entiers issus du moteur de Synthèse. Seuls les constats portant un effet financier explicite contribuent. Répétitions exactes comptées une fois ; même identité à contenus distincts retenue à sa dernière version démontrée, sinon conflit ; écritures partiellement communes sans allocation : indéterminé avec bornes, hors agrégat. Le net n'est établi que si chaque effet porte un taux explicite et une qualification fiscale ; sinon il est inconnu et un sous-total partiel est nommé. Les postes ne sont jamais additionnés entre eux.",
   };
 
   /* ── Revue ───────────────────────────────────────────────────────────── */
@@ -400,7 +416,7 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
         },
         emphasis: (row?.bloquant ?? 0) > 0 ? "critical" : undefined,
       })),
-    sourceMetricIds: ["risk.heuristicSeverityIndex", "exposure.deduplicatedExposureCents"],
+    sourceMetricIds: ["risk.heuristicSeverityIndex", "exposure.determinedExposureCents"],
   };
 
   /* ── Limitations ─────────────────────────────────────────────────────── */

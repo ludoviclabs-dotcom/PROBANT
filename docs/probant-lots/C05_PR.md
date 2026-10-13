@@ -1,0 +1,17 @@
+# Mission C05 — descriptif de PR prêt à examiner
+
+Titre : Effets financiers unifiés — incidence sans montant inféré, identité et versions, agrégation indéterminée, net fiscal inconnu sans qualification (C05)
+
+La cartographie des risques inférait encore une incidence monétaire `abs(constaté − seuil)` pour tout constat mesuré en euros, alors que la Synthèse ne retenait que les effets explicites : deux écrans racontaient deux histoires financières. La déduplication de la Synthèse reposait sur une clé sans montant (100 et 120 sous la même identité devenaient un doublon, le premier conservé), agrégeait les chevauchements par un maximum présenté comme un agrégat, et calculait un effet net en soustrayant un impôt partiel d'un ajustement complet, même sans taux.
+
+Ce lot supprime l'incidence inférée (`lib/risk-mapping/scoring.ts`, `aggregate.ts`) : la gravité ne prend en compte que les effets explicites, et un signal EUR sans effet n'influe que qualitativement, son effet comptable restant inconnu. Il introduit dans `lib/synthesis/exposure.ts` trois objets distincts, identité économique, version d'évaluation et empreinte de contenu : une répétition exacte compte une fois si ses décisions de revue concordent, sinon c'est un conflit explicite ; des contenus distincts sous la même identité sont une succession démontrée de versions (prédécesseur direct, dernière retenue, montants remplacés tracés) ou un conflit indéterminé ; des écritures partiellement communes sans allocation donnent une agrégation indéterminée avec bornes et détail conservé ; des sens opposés ne se compensent jamais. Le moteur sépare par poste et par sens l'exposition initiale, l'ajustement proposé, la correction comptabilisée et l'anomalie résiduelle ; un statut corrigé n'alimente plus les anomalies non corrigées ; les postes ne sont jamais additionnés entre eux. L'incidence fiscale exige un taux explicite et une qualification fiscale ; sinon impôt et net sont inconnus, avec un sous-total partiel nommé, et une interface réservée au moteur fiscal (C10) liste les effets en attente d'un calcul avant/après.
+
+Les vues et exports lisent ces mêmes champs : élément de décision « Ajustement proposé (résultat) », waterfall avec étapes « répétitions exactes », « versions remplacées », « groupes indéterminés », impôt du poste résultat connu / partiel / inconnu et net inconnu affiché comme tel, note de synthèse par poste et sens, manifeste d'export.
+
+Validation : recette indépendante (`lib/synthesis/__tests__/effects-c05.test.ts`) — signal 100 000 / seuil 50 000 sans effet, doublon exact, deux montants divergents avec et sans succession, chevauchement L1/L2 et L2/L3 et chaîne à trois, sens opposés, +1 000 avec fiscalité inconnue, taux sans qualification, impôt partiel, correction totale et partielle, invariance à l'ordre d'entrée, absence de double comptage, mêmes résultats dans les vues et l'export ; suites synthèse, visualisation, risques et composants ; typecheck, lint ; parcours Playwright existants sur le build de production. Contrat : `docs/mission-c05/CONTRAT_EFFETS.md`.
+
+Limites : l'allocation d'un montant par ligne d'écriture n'est pas modélisée (les chevauchements restent indéterminés tant qu'elle manque) ; la différence temporaire attend le moteur fiscal (C10) ; les poids de la gravité restent des heuristiques internes documentées ; recette PostgreSQL non exécutée localement. Aucun déploiement.
+
+La PR cible `main`. Aucun merge ni déploiement réalisés.
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)

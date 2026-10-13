@@ -171,6 +171,26 @@ export interface SeuilApplique {
   depasse: boolean;
 }
 
+/**
+ * Qualification fiscale d'un ajustement (C05). Un taux seul ne qualifie pas la
+ * déductibilité : sans qualification, l'incidence fiscale reste inconnue.
+ */
+export type TaxQualification =
+  | "deductible"
+  | "non_deductible"
+  | "temporary_difference"
+  | "reclassification"
+  | "unknown";
+
+/** Correction comptabilisée pour un effet (C05) : totale ou partielle, en centimes ≥ 0. */
+export interface EffectCorrection {
+  amountCents: number;
+  /** Période ou date de comptabilisation de la correction. */
+  bookedPeriod?: string;
+  /** Référence de la pièce ou de l'écriture de correction. */
+  evidenceRef?: string;
+}
+
 /** Effet financier explicite d'un constat, en centimes entiers. */
 export interface FinancialEffect {
   amountCents: number;
@@ -193,6 +213,20 @@ export interface FinancialEffect {
   period: string;
   basis: "measured" | "estimated";
   taxRatePct?: number;
+  /**
+   * C05 — identité économique explicite (sinon dérivée : document, écritures,
+   * période, poste, assertion, cause, sens). Deux effets de même identité
+   * décrivent le même sous-jacent ; leurs contenus peuvent différer.
+   */
+  economicIdentity?: string;
+  /** C05 — version d'évaluation du même sous-jacent (1, 2, …). */
+  evaluationVersion?: number;
+  /** C05 — constat dont cette évaluation est la version suivante (succession démontrée). */
+  supersedesFindingId?: string;
+  /** C05 — qualification fiscale ; requise avec le taux pour un net validé. */
+  taxQualification?: TaxQualification;
+  /** C05 — correction comptabilisée (totale ou partielle). */
+  correction?: EffectCorrection;
 }
 
 /** Une grandeur chiffrée constatée vs son seuil de référence. */

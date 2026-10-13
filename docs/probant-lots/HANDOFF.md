@@ -1,3 +1,53 @@
+# Handoff — Mission C05 : incidence du risque, effets et doublons (2026-10-14)
+
+**Base.** `main` `3b02468`. Branche locale `claude/c05-effets-doublons`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Contrat : [docs/mission-c05/CONTRAT_EFFETS.md](../mission-c05/CONTRAT_EFFETS.md). Aucun déploiement.
+
+## Problème utilisateur, vue choisie, données, interactions
+
+- **Problème.** `lib/risk-mapping/scoring.ts` et `aggregate.ts` inféraient une incidence `abs(constaté − seuil)` en EUR ; `lib/synthesis/exposure.ts` dédupliquait sur une clé sans montant (premier représentant conservé), agrégeait les chevauchements par un maximum, et `engine.ts` calculait un net en soustrayant un impôt partiel d'un ajustement complet, même sans taux.
+- **Vue.** Une projection commune des effets explicites, lue par la Synthèse, la cartographie des risques, les vues et les exports : identité économique, version d'évaluation, empreinte de contenu ; groupes déterminés / en conflit / indéterminés avec bornes ; étapes par poste et par sens (initial, en attente, proposé, corrigé, résiduel) ; impôt et net connus, partiels ou inconnus.
+- **Données.** `financialEffect` enrichi de champs optionnels (`economicIdentity`, `evaluationVersion`, `supersedesFindingId`, `taxQualification`, `correction`) ; statuts de revue bruts (`corrected` distinct de `confirmed`).
+- **Interactions.** Aucune nouvelle interaction : l'élément de décision, le waterfall et la note changent de contenu ; une étape inconnue s'affiche « inconnu » sans barre.
+
+## Changements
+
+**Risques** — `scoring.ts` : `explicitEffectEur` et `isEurSignalWithoutEffect` remplacent `findingInc` ; gravité = 0,55·masse + 0,35·effets explicites / seuil + 0,10·signaux EUR (qualitatif, aucun montant) ; drivers renommés. `aggregate.ts` : total page = effets explicites dédupliqués par constat ; `eurSignalsWithoutEffect` listés. Indices internes, jamais des probabilités calibrées.
+
+**Exposition** — `lib/synthesis/exposure.ts` (politique v2.0.0, `SYNTHESIS_POLICY_VERSION` aligné) : répétitions exactes comptées une fois si leurs décisions de revue concordent, sinon conflit explicite ; même identité à contenus distincts → dernière version démontrée (prédécesseur direct exigé, montants remplacés tracés dans `supersededVersionsCents`) ou conflit ; chevauchement partiel sans allocation → indéterminé avec bornes `[plus grand membre, somme]` ; sens opposés → aucune compensation. `engine.ts` : `stages[]` par poste × sens, `tax` (connu / partiel / inconnu), `netByTarget` (net `null` sans taux ET qualification, sous-total partiel nommé), `taxIncidence` (interface C10), limitations `exposure_indeterminate` et `tax_incidence_unknown`. `types.ts` : `ExposureDimension`, `ExposureClusterView` (statut, bornes, membres et rôles), `AggregationPolicy` refondus. `lib/canonical-model/finding.ts` : `TaxQualification`, `EffectCorrection`, champs C05.
+
+**Vues et exports** — `build-datasets.ts` : « Ajustement proposé (résultat) » (net ou inconnu, autres postes non additionnés) ; waterfall avec répétitions exactes, versions remplacées, groupes indéterminés hors agrégat, impôt du poste résultat connu / partiel / inconnu, net sur le résultat après impôt (étape `null` = inconnu). `lib/visualization/types.ts` : `WaterfallStep.amountCents: number | null`. `ExposureWaterfall.tsx` : « inconnu » sans barre. `note.ts` : §5 par poste et sens, nets par poste, groupes non déterminés ; libellés des deux nouvelles limitations.
+
+## Routes et interactions visibles
+
+- `/dashboard/synthese` : élément « Ajustement proposé (résultat) », waterfall « De l'exposition brute à l'effet net », limites « Exposition indéterminée » / « Incidence fiscale inconnue », note de synthèse §5.
+- `/dashboard/risques` : drivers de gravité « Effets financiers explicites vs seuil » et « Signaux EUR sans effet explicite ».
+
+## Tests exécutés (local, 2026-10-14, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `lib/synthesis/__tests__/effects-c05.test.ts` (recette indépendante) | 23 (dont 4 issus de la revue Codex : branches de versions, chaîne à trois, décisions de revue divergentes, impôt limité au résultat) : signal 100 000 / 50 000 sans effet ; doublon exact ; 100 / 120 avec et sans succession ; L1/L2 + L2/L3 et chaîne à trois ; sens opposés ; postes et sens séparés ; +1 000 fiscalité inconnue ; taux sans qualification ; impôt partiel ; non déductible ; correction totale, partielle, sans détail ; invariance à l'ordre ; double comptage ; vues et export |
+| Suites synthèse, visualisation, risques, composants | 148 réussis / 148 (9 fichiers) |
+| Suite unitaire complète | 1 607 réussis / 1 612, 149 fichiers ; les 5 échecs sont des délais de 5 s dépassés hors lot (PV Capitaux propres, clavier Trésorerie, HTTP démo, estimation Provisions) ; 29 / 30 rejoués seuls, le dernier (Provisions, 9 s) ne tient le délai que seul dans son fichier ; la CI fait foi |
+| Typecheck, lint | OK (7 avertissements préexistants hors lot) |
+| Parcours Playwright sur le build de production | non rejoués localement : le contrôle « E2E Playwright · axe » de la CI fait foi |
+
+**Non exécuté localement** : recettes PostgreSQL (CI).
+
+## Limites et maturité
+
+- L'allocation d'un montant par ligne d'écriture n'est pas modélisée : les chevauchements partiels restent indéterminés tant qu'elle manque ; les bornes et le détail sont conservés pour l'arbitrage.
+- Différence temporaire et incidence fiscale incrémentale avant/après relèvent du moteur fiscal (C10) : `taxIncidence.pendingFindingIds` les expose, `provider: "none"` tant qu'il n'existe pas.
+- Les poids de gravité (0,55 / 0,35 / 0,10) et les constantes de saturation restent des heuristiques internes documentées, non opposables.
+- Les effets de démonstration (`lib/demo/dataset.ts`) portent un taux mais pas de qualification fiscale : leur net reste inconnu tant qu'une qualification n'est pas saisie (comportement voulu, aucun taux de démonstration promu en règle).
+
+## Dépendances du lot suivant
+
+- C10 : brancher `taxIncidence` sur le scénario d'IS avant/après et qualifier les effets.
+- Producteurs d'effets (rapprochement, feuilles de cycle) : renseigner `economicIdentity`, `evaluationVersion` / `supersedesFindingId` et `correction` pour bénéficier des versions et des corrections partielles.
+
+---
+
 # Handoff — Lot transversal « bordures » : stratification de la règle `* { border-color }` (2026-10-13)
 
 **Base.** `main` `f846424` (fusion de la PR #75, Mission C03). Branche `claude/quizzical-boyd-13e46a`, worktree `quizzical-boyd-13e46a`. Correction globale différée par C02 (voir plus bas « Défaut global constaté, non corrigé ici »). Aucun push, aucun déploiement.

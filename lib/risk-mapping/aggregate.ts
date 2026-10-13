@@ -6,9 +6,10 @@
  * du dossier : distribution par bande de criticité, cycles les plus critiques,
  * moyennes de composite par famille.
  *
- * L'incidence chiffrée en EUR est dédupliquée par `finding.id` au niveau page :
- * un même constat rattaché à plusieurs cycles ne compte qu'une fois dans le
- * total d'incidence global (pas de double comptage).
+ * L'incidence chiffrée en EUR (C05 : effets financiers EXPLICITES seulement, jamais un
+ * écart au seuil) est dédupliquée par `finding.id` au niveau page : un même constat
+ * rattaché à plusieurs cycles ne compte qu'une fois (pas de double comptage). Les signaux
+ * EUR sans effet sont comptés à part, sans montant.
  *
  * Fonctions PURES : aucun import React ni `fs`, aucun `Date.now()`.
  */
@@ -18,12 +19,7 @@ import type { AuditCycle, CycleFamily } from "@/lib/audit-cycles/types";
 import type { MaterialityThresholds } from "@/lib/audit/materiality";
 import type { CriticityBand, CycleRiskScore, RiskAdjustmentMap } from "./types";
 import { attachFindingsToCycles } from "./attach";
-import { scoreCycle } from "./scoring";
-
-/** Incidence chiffrée d'un constat en EUR (0 si l'unité n'est pas EUR). */
-function findingInc(f: Finding): number {
-  return f.mesure.unite === "EUR" ? Math.abs(f.mesure.constate - f.mesure.seuil) : 0;
-}
+import { explicitEffectEur, isEurSignalWithoutEffect, scoreCycle } from "./scoring";
 
 /** Distribution du nombre de cycles par bande de criticité. */
 export type BandDistribution = Record<CriticityBand, number>;
@@ -49,8 +45,10 @@ export interface RiskPageAggregates {
   evaluatedCycleCount: number;
   /** Nombre de cycles « non évalués » (ni constat ni standard obligatoire). */
   unevaluatedCycleCount: number;
-  /** Somme des incidences EUR, dédupliquée par `finding.id`. */
+  /** Somme des effets financiers EXPLICITES (EUR), dédupliquée par `finding.id` — jamais un écart au seuil. */
   totalIncidenceEur: number;
+  /** Signaux EUR sans effet explicite : priorité qualitative, incidence comptable inconnue. */
+  eurSignalsWithoutEffect: string[];
   /** Constats rattachés à aucun cycle (jamais perdus). */
   unattachedFindings: Finding[];
 }
@@ -137,10 +135,12 @@ export function buildPageAggregates(
   // plusieurs cycles ne compte qu'une fois dans le total page.
   const seen = new Set<string>();
   let totalIncidenceEur = 0;
+  const eurSignalsWithoutEffect: string[] = [];
   for (const f of findings) {
     if (seen.has(f.id)) continue;
     seen.add(f.id);
-    totalIncidenceEur += findingInc(f);
+    totalIncidenceEur += explicitEffectEur(f);
+    if (isEurSignalWithoutEffect(f)) eurSignalsWithoutEffect.push(f.id);
   }
 
   return {
@@ -150,6 +150,7 @@ export function buildPageAggregates(
     evaluatedCycleCount: scores.filter((s) => s.findingCount > 0).length,
     unevaluatedCycleCount: distribution.non_évalué,
     totalIncidenceEur,
+    eurSignalsWithoutEffect,
     unattachedFindings: unattached,
   };
 }

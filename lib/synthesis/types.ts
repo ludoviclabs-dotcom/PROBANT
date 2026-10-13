@@ -115,42 +115,127 @@ export interface RiskDimension {
 export interface AggregationPolicy {
   policyId: string;
   version: string;
-  /** Règle appliquée à un cluster cohérent : montant maximal retenu. */
-  coherentClusterRule: "max_magnitude";
-  /** Règle appliquée à un cluster ambigu : conservateur + revue requise. */
-  ambiguousClusterRule: "max_magnitude_and_review_required";
+  /** Répétition exacte (même identité économique ET même empreinte de contenu) : comptée une fois. */
+  exactRepeatRule: "count_once";
+  /** Même identité, contenus distincts : succession de versions démontrée (dernière retenue) ou conflit (indéterminé). */
+  sameIdentityDistinctContentRule: "version_chain_or_conflict";
+  /** Identités distinctes à lignes partiellement communes sans allocation : agrégation indéterminée, bornes et détail conservés. */
+  overlapRule: "indeterminate_with_bounds";
+  /** Sens opposés dans un même groupe : aucune compensation, indéterminé. */
+  oppositeDirectionsRule: "no_netting_indeterminate";
+}
+
+export type EffectTarget = "resultat" | "bilan_actif" | "bilan_passif" | "capitaux_propres" | "presentation";
+export type EffectDirection = "increase" | "decrease";
+export type ClusterStatus = "determined" | "conflict" | "indeterminate";
+export type MemberRole = "retained" | "exact_repeat" | "superseded" | "conflicting" | "overlapping";
+
+export interface ExposureClusterMember {
+  findingId: string;
+  identity: string;
+  contentFingerprint: string;
+  amountCents: number;
+  direction: EffectDirection;
+  evaluationVersion: number | null;
+  role: MemberRole;
 }
 
 export interface ExposureClusterView {
   clusterId: string;
   findingIds: string[];
-  effectKeys: string[];
-  retainedCents: number;
-  ambiguous: boolean;
-  ambiguityReason?: string;
+  identities: string[];
+  target: EffectTarget;
+  direction: EffectDirection | "mixed";
+  status: ClusterStatus;
+  /** Montant retenu lorsque l'agrégation est déterminée ; null sinon (jamais un maximum présenté comme une somme). */
+  retainedCents: number | null;
+  /** Bornes de l'effet du groupe : au moins le plus grand membre, au plus la somme des membres (sans compensation). */
+  boundsCents: { minCents: number; maxCents: number };
+  /** Constat dont le statut de revue gouverne le groupe (représentant retenu), ou null si indéterminé. */
+  retainedFindingId: string | null;
+  reason?: string;
+  members: ExposureClusterMember[];
+}
+
+export type AmountStatus = "known" | "partial" | "unknown";
+
+/** Étapes de l'effet pour un poste et un sens : initial détecté, proposé, corrigé, résiduel. */
+export interface EffectStage {
+  target: EffectTarget;
+  direction: EffectDirection;
+  /** Exposition initiale déterminée (hors constats écartés). */
+  initialCents: number;
+  /** Encore en attente d'arbitrage. */
+  pendingCents: number;
+  /** Ajustement proposé : validé, non encore comptabilisé. */
+  proposedCents: number;
+  /** Correction comptabilisée (totale ou partielle). */
+  correctedCents: number;
+  /** Anomalie résiduelle après correction partielle (jamais alimentée par la part corrigée). */
+  residualCents: number;
+  /** Groupes de ce poste/sens dont l'agrégation est indéterminée (conflit ou chevauchement). */
+  indeterminateClusterIds: string[];
+}
+
+export interface TaxEffectBlock {
+  status: AmountStatus;
+  /** Effet d'impôt connu : taux explicite ET qualification fiscale déductible (ou non déductible : 0). */
+  knownCents: number;
+  knownFindingIds: string[];
+  /** Effets d'ajustement dont l'incidence fiscale est inconnue, avec le motif. */
+  unknown: { findingId: string; reason: string }[];
+}
+
+export interface NetEffectByTarget {
+  target: EffectTarget;
+  /** Ajustement proposé signé (augmentation +, diminution −), non comptabilisé. */
+  proposedSignedCents: number;
+  /** Anomalies non corrigées signées : proposé + résiduel après correction partielle. */
+  uncorrectedSignedCents: number;
+  taxStatus: AmountStatus;
+  /** Effet d'impôt connu du poste (sous-ensemble des effets qualifiés). */
+  taxKnownCents: number;
+  /** Net après impôt connu : null si l'incidence fiscale est inconnue pour au moins un effet du poste. */
+  netAfterKnownTaxCents: number | null;
+  /** Sous-total partiel, nommé comme tel : net des seuls effets à incidence fiscale connue. */
+  partialNetKnownSubsetCents: number;
+}
+
+/** Interface réservée à C10 : incidence fiscale incrémentale avant/après par scénario d'IS. */
+export interface TaxIncidenceInterface {
+  provider: "none" | "c10_is_engine";
+  method: "before_after_is_scenario";
+  /** Effets d'ajustement en attente d'une incidence calculée par le moteur fiscal. */
+  pendingFindingIds: string[];
 }
 
 export interface ExposureDimension {
-  /** Somme brute des effets explicites détectés (avant déduplication). */
+  /** Somme brute des effets explicites détectés (avant toute déduplication). */
   grossDetectedExposureCents: number;
-  /** Après déduplication exacte + agrégation par cluster. */
-  deduplicatedExposureCents: number;
-  /** Part de l'exposition dédupliquée dont la revue humaine est close. */
+  /** Montant des répétitions exactes écartées (même identité et même contenu). */
+  exactRepeatsCents: number;
+  /** Montant des versions d'évaluation remplacées par une version ultérieure démontrée. */
+  supersededVersionsCents: number;
+  /** Exposition dédupliquée DÉTERMINÉE : somme des groupes déterminés seulement. */
+  determinedExposureCents: number;
+  /** Bornes de l'exposition totale incluant les groupes indéterminés. */
+  exposureBoundsCents: { minCents: number; maxCents: number };
+  aggregationStatus: "determined" | "indeterminate";
+  /** Part déterminée dont la revue humaine est close. */
   reviewedExposureCents: number;
-  /** Part de l'exposition dédupliquée portée par des constats ÉCARTÉS. */
+  /** Part déterminée portée par des constats ÉCARTÉS. */
   dismissedExposureCents: number;
-  /** Part de l'exposition dédupliquée encore EN ATTENTE de revue. */
+  /** Part déterminée encore EN ATTENTE de revue. */
   pendingReviewExposureCents: number;
-  /** Somme signée des effets des constats VALIDÉS (ajustement proposé). */
-  validatedAdjustmentCents: number;
-  /** Effet d'impôt sur l'ajustement validé (taux explicites uniquement). */
-  taxEffectCents: number;
-  /** Effet net sur les états financiers : ajustement validé − effet d'impôt. */
-  netFinancialStatementEffectCents: number;
-  /** Exposition dédupliquée ventilée par cloison. */
+  /** Effets par poste et par sens, par étape ; jamais additionnés entre postes. */
+  stages: EffectStage[];
+  tax: TaxEffectBlock;
+  netByTarget: NetEffectByTarget[];
+  taxIncidence: TaxIncidenceInterface;
+  /** Exposition déterminée ventilée par cloison. */
   byCloison: Partial<Record<CloisonId, number>>;
   clusters: ExposureClusterView[];
-  /** Constats SANS effet financier explicite — exclus, jamais présumés. */
+  /** Constats SANS effet financier explicite — exclus, jamais présumés. Les signaux EUR y restent. */
   findingsWithoutEffect: string[];
   policy: AggregationPolicy;
 }
@@ -174,6 +259,8 @@ export type LimitationCode =
   | "coverage_unqualified"
   | "parser_warning"
   | "source_review_required"
+  | "exposure_indeterminate"
+  | "tax_incidence_unknown"
   | "internal_threshold"
   | "unsupported_format";
 

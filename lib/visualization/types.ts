@@ -56,8 +56,8 @@ export interface VisualizationDataset {
 export interface WaterfallStep {
   id: string;
   label: string;
-  /** Montant en CENTIMES (signe = sens de l'étape) — jamais recalculé. */
-  amountCents: number;
+  /** Montant en CENTIMES (signe = sens de l'étape) — jamais recalculé ; null = inconnu (l'étape le dit). */
+  amountCents: number | null;
   kind: "start" | "delta" | "subtotal" | "total";
   note?: string;
 }

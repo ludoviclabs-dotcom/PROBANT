@@ -16,13 +16,14 @@ import { FONT, T } from "./tokens";
 
 export function ExposureWaterfall({ dataset }: { dataset: SynthesisDatasets["waterfall"] }) {
   const steps = dataset.steps;
-  const maxAbs = Math.max(1, ...steps.map((s) => Math.abs(s.amountCents)));
+  const maxAbs = Math.max(1, ...steps.map((s) => Math.abs(s.amountCents ?? 0)));
 
   return (
     <ChartCard dataset={dataset} eyebrow="Exposition">
       <div role="img" aria-label={dataset.summary} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {steps.map((step) => {
-          const width = (Math.abs(step.amountCents) / maxAbs) * 100;
+          const unknown = step.amountCents === null;
+          const width = unknown ? 0 : (Math.abs(step.amountCents as number) / maxAbs) * 100;
           const isTotalLike = step.kind === "subtotal" || step.kind === "total" || step.kind === "start";
           const color =
             step.kind === "total"
@@ -31,7 +32,7 @@ export function ExposureWaterfall({ dataset }: { dataset: SynthesisDatasets["wat
                 ? T.accent
                 : step.kind === "subtotal"
                   ? T.violet
-                  : step.amountCents < 0
+                  : (step.amountCents ?? 0) < 0
                     ? T.orange
                     : T.warning;
           return (
@@ -44,19 +45,19 @@ export function ExposureWaterfall({ dataset }: { dataset: SynthesisDatasets["wat
                     color: isTotalLike ? T.text : T.muted,
                   }}
                 >
-                  {step.kind === "delta" ? (step.amountCents <= 0 ? "− " : "+ ") : ""}
+                  {step.kind === "delta" && !unknown ? ((step.amountCents as number) <= 0 ? "− " : "+ ") : ""}
                   {step.label}
                 </span>
                 <span
                   style={{
                     fontSize: FONT.table,
                     fontWeight: isTotalLike ? 700 : 500,
-                    color,
+                    color: unknown ? T.warning : color,
                     fontFamily: "monospace",
                     whiteSpace: "nowrap",
                   }}
                 >
-                  {formatCents(step.amountCents)}
+                  {unknown ? "inconnu" : formatCents(step.amountCents as number)}
                 </span>
               </div>
               <div style={{ height: isTotalLike ? 13 : 9, borderRadius: 5, background: T.surface3, overflow: "hidden", border: `1px solid ${T.border}` }}>

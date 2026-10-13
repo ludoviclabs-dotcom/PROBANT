@@ -24,6 +24,7 @@ export function makeEffect(over: Partial<FinancialEffect> = {}): FinancialEffect
     rootCause: "cutoff",
     period: "2024",
     basis: "measured",
+    taxQualification: "deductible",
     ...over,
   };
 }

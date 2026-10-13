@@ -65,7 +65,7 @@ describe("rendu — chaque composant affiche les chiffres du snapshot", () => {
 
   it("ExposureWaterfall : effet net affiché tel que le snapshot le porte", () => {
     render(<ExposureWaterfall dataset={datasets.waterfall} />);
-    expect(screen.getAllByText(/Effet net sur les états financiers/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.getAllByText(/Effet net sur le résultat après impôt/).length).toBeGreaterThanOrEqual(1);
   });
 
   it("chaque graphique porte son alternative tabulaire", () => {
