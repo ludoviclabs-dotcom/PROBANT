@@ -76,6 +76,56 @@ Lecture visuelle des captures longues (après, et « avant simulé » au même c
 
 ---
 
+# Handoff — Mission C04 : référentiel français et éditions du guide (2026-10-13)
+
+**Base.** `main` `f846424` (fusion de la PR #75, Mission C03). Branche locale `claude/c04-referentiel-editions`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Registre des corrections : [docs/mission-c04/REGISTRE_CORRECTIONS.md](../mission-c04/REGISTRE_CORRECTIONS.md). Aucun déploiement.
+
+## Problème utilisateur, vue choisie, données, interactions
+
+- **Problème.** Le registre PCG (`data/pcg/requirements.yml`, 14/08/2026) écartait ANC 2024-07 « absent de la page consultée », laissait ANC 2026-03 et 2026-04 sans date d'effet, tandis que `exceptional-dossier.ts` codait en dur des dates plus récentes et la numérotation 513-5 / 531-5. `GUIDE_REFERENCE` annonçait une V1.1 de 138 pages dont le fichier est absent ; une V1.0 de 117 pages et un fichier de 120 pages circulent avec une autre pagination.
+- **Vue.** Un résolveur partagé (`lib/knowledge/french-gaap.ts`) : par texte, adoption / homologation / publication / effet / première période / anticipation / champ contractuel ; par période, statut de chaque texte et numérotation d'article par sujet. Quatre couches nommées et séparées (source officielle normative, commentaire doctrinal, méthode interne, pièce de dossier).
+- **Données.** PDF homologués de l'ANC lus le 13/10/2026 (empreintes SHA-256, pages), page officielle des règlements, annonce officielle d'effet de 2026-04 ; fichiers locaux du guide (empreintes, pieds de page).
+- **Interactions.** Aucune nouvelle interaction : `ExceptionalWorkspace` affiche l'article résolu ; `ModuleAvailability` liste les éditions du guide ; l'export du dossier embarque le calendrier des textes.
+
+## Changements
+
+**Résolveur** — `lib/knowledge/french-gaap.ts` (nouveau) : `FRENCH_GAAP_TEXTS` (PCG 2024, ANC 2022-06, ANC 2024-07, PCG consolidé 2026, ANC 2026-03, ANC 2026-04), `resolveFrenchGaap({ startDate, closingDate, profile, anticipated })`, `applicableArticle(topic, …)`. Statuts : `mandatory`, `anticipation_elected`, `anticipation_available` (option non déclarée : texte non appliqué), `not_yet_applicable`, `superseded`, `out_of_scope_sector`, `unknown`. Une période est jugée à sa date d'ouverture ; la pièce d'adoption de l'option reste vérifiée par le moteur.
+
+**Registre et données** — `data/pcg/requirements.yml` : en-tête corrigé (ANC 2024-07 réintégré avec l'explication de l'erreur de méthode ; renumérotation rattachée à la version), cinq exigences `verified` avec `adoptionDate`, `homologationDate`, `publicationDate`, `firstMandatoryPeriod`, `anticipation`, `contractualScope`, `numbering` (champs ajoutés à `PcgRequirementSchema`, `sha256` et `pages` ajoutés à `SourceRefSchema`). `lib/knowledge/registry.ts` : versions 2026-03 / 2026-04 `effective` (homologation 12/08/2026, JO 03/09/2026), source et version `anc-2024-07` ajoutées, exigences `*-pending` remplacées par `*-application`.
+
+**Moteur** — `lib/workpapers/exceptional-dossier.ts` : dates et numérotation lues dans le résolveur (`frenchGaapText`), porte inchangée, `textId` ajouté au résultat. `fiscal-rules.ts` inchangé (registre fiscal distinct) ; la comptabilisation de l'impôt (515-1 → 542-1) est résolue par le sujet `income_tax`.
+
+**Guide** — `lib/workpapers/availability.ts` : `GUIDE_EDITIONS` (V1.1 138 p. déclarée, fichier absent ; deux extraits locaux V1.1 ; V1.0 117 p. complète ; V1.0 120 p. signalée, introuvable), `GUIDE_REFERENCE.editionId` / `pagesVerified: false`. `components/probant/ModuleAvailability.tsx` : éditions listées, pages non vérifiées. `lib/workpapers/package.ts` : `frenchGaapTexts` (calendrier des textes, sans résolution d'applicabilité par défaut : option et profil ne sont connus que du pack de chaque feuille verrouillée) et `guide.editions` dans le manifeste.
+
+**Docs** — `docs/knowledge/REVIEW_REQUIRED.md` (R-08, R-09 résolus, index mis à jour), `docs/knowledge/COVERAGE_REPORT.md` (passage corrigé), `docs/mission-c04/REGISTRE_CORRECTIONS.md`, `docs/probant-lots/C04_PR.md`.
+
+## Tests exécutés (local, 2026-10-13, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `lib/knowledge/__tests__/french-gaap.test.ts` | 14 (bornes 2024/2025, 2025/2026, 2026/2027 ; 2026-04 clos avant / ouvert après le 04/09/2026 ; option absente, hors fenêtre, texte sans anticipation ; secteur ; période invalide ; empreintes) |
+| Suites `lib/knowledge`, `exceptional.test.ts`, `components/probant` | 192 réussis / 192 (18 fichiers) |
+| Suite unitaire complète | 1 593 réussis / 1 593, 148 fichiers, à froid |
+| Typecheck, lint | OK (7 avertissements préexistants hors lot) |
+| Vue `ModuleAvailability` (Synthèse) à 390 / 1440 | vérifiée en navigateur sur le serveur de développement : texte des éditions rendu dans le volet Méthode ; l'empreinte SHA-256 ne débordait plus après ajout d'`overflow-wrap: anywhere` au paragraphe (273/273 px à 375 px, document sans débordement global) |
+
+**Non exécuté localement** : recettes PostgreSQL (CI). Build de production et Playwright : non rejoués (aucune route ni interaction nouvelle ; texte d'une carte modifié, vérifié en navigateur).
+
+## Limites et maturité
+
+- Aucune règle de classement (2024-07) ni de comptabilisation des produits (2026-03) n'est implémentée : seules dates, numérotation et applicabilité sont résolues.
+- Recueil PCG 2024 non relu : la fenêtre d'ouverture 2024 du pack historique reste une méthode interne (Mission 17), déclarée comme telle.
+- Arrêté du 12/08/2026 sur Légifrance non lu (403) : dates fondées sur les en-têtes des textes publiés par l'ANC. Entrée en vigueur de 2026-03 non énoncée par le texte : le champ contractuel n'est pas daté.
+- Pagination de la V1.1 non vérifiable sans le fichier complet ; les extraits locaux n'ont pas de numéros de page d'origine.
+- Le régime sectoriel reste hors périmètre (statut explicite, aucune numérotation).
+
+## Dépendances du lot suivant
+
+- C09 (capitaux propres / dettes) : consommer `applicableArticle("other_equity", …)` pour dater la présentation dettes / autres fonds propres.
+- C05 : effets et doublons indépendants de ce lot.
+
+---
+
 # Handoff — Mission C03 : assertions, tests suggérés et couverture (2026-10-13)
 
 **Base.** `main` `2c74e98` (fusion de la PR #73, Mission C02 ; contient C00 et C01). Branche locale `claude/c03-assertions-couverture`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Contrat de métriques : [docs/mission-c03/CONTRAT_METRIQUES.md](../mission-c03/CONTRAT_METRIQUES.md). Aucun déploiement.

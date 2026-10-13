@@ -1,30 +1,43 @@
-# Plan comptable général — version consolidée et amendements datés.
+# Plan comptable général — version consolidée et règlements datés.
 #
-# ─── VÉRIFIÉ le 14/08/2026 sur le site de l'ANC ───────────────────────────────
+# ─── VÉRIFIÉ le 14/08/2026 sur le site de l'ANC, CORRIGÉ le 13/10/2026 (Mission C04) ──────────
 #
 # Version consolidée indexée : PCG au 1er janvier 2026 (règlement ANC 2014-03
-# modifié), publiée par l'ANC.
-# https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
+# modifié), publiée par l'ANC. Deux fichiers PDF coexistent à deux URL de l'ANC
+# pour la même version consolidée (183 pages chacun) : empreintes ci-dessous.
 #
-# Règlements 2026 modifiant le règlement ANC 2014-03, relevés sur la page
-# officielle des règlements de l'ANC :
-#   - ANC 2026-03, adopté le 06/03/2026 — comptabilisation des produits des
-#     ventes ;
-#   - ANC 2026-04, adopté le 06/05/2026 — modalités de comptabilisation de
-#     l'impôt sur les bénéfices et des contributions qui s'y rattachent ;
-#     entrée en vigueur le lendemain de la publication au Journal officiel,
-#     applicable aux exercices en cours à cette date.
+# Chaque règlement distingue désormais : adoption par le Collège, homologation
+# par arrêté, publication au Journal officiel, première période applicable,
+# anticipation admise et champ contractuel lorsqu'il existe. Ces dates sont
+# lues dans l'en-tête et l'article d'application des PDF officiels de l'ANC,
+# pas dans un résumé. Une version récente n'est jamais appliquée à un exercice
+# ouvert avant sa première période applicable : le résolveur partagé
+# `lib/knowledge/french-gaap.ts` juge chaque période à sa date d'ouverture.
 #
-# ─── EXPLICITEMENT NON RETENU ────────────────────────────────────────────────
+# ─── CORRECTION DU 13/10/2026 : ANC 2024-07 ───────────────────────────────────
 #
-# Un résumé de moteur de recherche attribuait au règlement « ANC 2024-07 » une
-# ligne obligatoire « autres fonds propres » applicable aux exercices ouverts à
-# compter du 01/01/2026. Ce règlement NE FIGURE PAS sur la page officielle des
-# règlements de l'ANC consultée le 14/08/2026, qui liste pour 2024 le règlement
-# 2024-02 (certificats d'économies d'énergie). L'information n'est donc pas
-# reprise ici : elle est consignée en attente de vérification dans
-# docs/knowledge/REVIEW_REQUIRED.md. Recopier un résumé de recherche dans un
-# référentiel normatif est exactement le risque que ce PR doit écarter.
+# La version du 14/08/2026 de ce fichier affirmait que le règlement ANC 2024-07
+# « NE FIGURE PAS » sur la page officielle des règlements de l'ANC, et écartait
+# l'information. C'était une erreur de méthode : l'absence d'un texte dans une
+# consultation ou une recherche ne démontre pas l'absence du texte. La page
+# consultée listait alors les règlements homologués ; le règlement 2024-07,
+# adopté le 06/12/2024, n'a été homologué que par arrêté du 26/12/2025 (JO du
+# 27/12/2025) et figure aujourd'hui sur cette page. Le texte homologué (PDF de
+# l'ANC, 13 pages) a été lu le 13/10/2026 : il crée le chapitre I bis « Autres
+# fonds propres » (art. 314-1 à 316-1), remplace le tableau du passif de
+# l'art. 821-1 (« Total des autres fonds propres (II) ») et s'applique aux
+# exercices ouverts à compter du 01/01/2026, avec anticipation possible sur
+# l'exercice en cours à sa publication (art. 6). Le PCG consolidé au 01/01/2026
+# intègre d'ailleurs ce chapitre I bis. Aucune règle de classement n'est tirée
+# ici du texte : seule son existence et son applicabilité sont enregistrées.
+#
+# ─── RENUMÉROTATION 513-5 / 531-5 ─────────────────────────────────────────────
+#
+# Le résultat exceptionnel est défini à l'art. 513-5 (créé par ANC 2022-06,
+# présent dans le PCG consolidé au 01/01/2026) et à l'art. 531-5 (ANC 2026-03,
+# chapitre I du titre V remplacé). Les deux numéros sont exacts pour des
+# versions différentes : la numérotation est rattachée à la version applicable,
+# sans remplacement global.
 #
 # ─── PORTÉE ──────────────────────────────────────────────────────────────────
 #
@@ -40,74 +53,215 @@ sources:
   - sourceId: anc-reglementation
     kind: primary
     url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
-    retrievedAt: "2026-08-14"
-    note: Liste officielle des règlements de l'ANC.
+    retrievedAt: "2026-10-13"
+    note: Liste officielle des règlements de l'ANC ; liste notamment ANC 2024-07, 2026-03 et 2026-04 au 13/10/2026.
   - sourceId: pcg
     kind: primary
     url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
-    retrievedAt: "2026-08-14"
-    note: Version consolidée du PCG au 1er janvier 2026.
+    retrievedAt: "2026-10-13"
+    sha256: b9e7a732cea2f16d46df6d34b0dd8fa3e75e2791d0a2c1ff06204bdb3ff2766e
+    pages: 183
+    note: Version consolidée du PCG au 1er janvier 2026, fichier du 17/02/2026 (métadonnées PDF).
+  - sourceId: pcg-recueil-2026
+    kind: primary
+    url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/recueil/2026/PCG--1er-janvier-2026.pdf
+    retrievedAt: "2026-10-13"
+    sha256: 55c824b25472fb4f9e8aaafd8b88112805d95f12615f5d00bf373231e806fc1e
+    pages: 183
+    note: Même version consolidée, fichier regénéré le 20/04/2026 (source S1 du rapport du 12/10/2026) ; articles identiques sur 513-5, 515-1 et le chapitre I bis.
 
 requirements:
   - id: pcg-consolide-2026
     reference: Règlement ANC n° 2014-03 — version consolidée au 01/01/2026
     title: Plan comptable général consolidé au 1er janvier 2026
     summary: >
-      Version consolidée du règlement 2014-03 publiée par l'ANC et applicable
-      au 1er janvier 2026. Sert de version de référence du plan de comptes et
-      des règles de comptabilisation en comptes sociaux.
+      Version consolidée du règlement 2014-03 publiée par l'ANC. Elle intègre
+      les règlements ANC 2022-06 (art. 513-5, résultat exceptionnel) et
+      ANC 2024-07 (chapitre I bis « Autres fonds propres ») ; elle ne porte
+      ni la renumérotation d'ANC 2026-03 ni la rédaction 2026-04 de
+      l'art. 515-1. Édition de lecture pour les exercices ouverts à compter du
+      1er janvier 2026 ; un exercice 2024 ou 2025 se lit dans l'édition ou le
+      règlement applicable à sa date d'ouverture.
     regulation: ANC 2014-03
     effectiveFrom: "2026-01-01"
     effectiveTo: null
+    firstMandatoryPeriod: Édition de lecture (méthode interne) pour les exercices ouverts à compter du 01/01/2026.
+    anticipation: Sans objet (édition consolidée).
+    numbering:
+      exceptional_result: "513-5"
+      income_tax: "515-1"
+      other_equity: "314-1 à 316-1"
     affectedCycles: []
     status: verified
     sources:
       - sourceId: pcg
         kind: primary
         url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/PCG_janvier2026/PCG--1er-janvier-2026.pdf
-        retrievedAt: "2026-08-14"
+        retrievedAt: "2026-10-13"
+        sha256: b9e7a732cea2f16d46df6d34b0dd8fa3e75e2791d0a2c1ff06204bdb3ff2766e
+        pages: 183
+        paragraphReference: "Art. 513-5 ; art. 515-1 ; chapitre I bis (art. 314-1 à 316-1) ; art. 821-1"
+      - sourceId: pcg-recueil-2026
+        kind: primary
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/recueil/2026/PCG--1er-janvier-2026.pdf
+        retrievedAt: "2026-10-13"
+        sha256: 55c824b25472fb4f9e8aaafd8b88112805d95f12615f5d00bf373231e806fc1e
+        pages: 183
+
+  - id: anc-2022-06-resultat-exceptionnel
+    reference: Règlement ANC n° 2022-06 du 4 novembre 2022
+    title: Modification du PCG — résultat exceptionnel (art. 513-5) et modèles de comptes
+    summary: >
+      Règlement créant l'article 513-5 (définition du résultat exceptionnel :
+      produits et charges directement liés à un événement majeur et inhabituel)
+      et modifiant les modèles de bilan et de compte de résultat.
+    regulation: ANC 2022-06
+    adoptionDate: "2022-11-04"
+    homologationDate: "2023-12-26"
+    publicationDate: "2023-12-30"
+    effectiveFrom: "2025-01-01"
+    effectiveTo: null
+    firstMandatoryPeriod: Comptes afférents aux exercices ouverts à compter du 1er janvier 2025 (art. 27).
+    anticipation: Admise à compter de la date de publication au Journal officiel (art. 27).
+    numbering:
+      exceptional_result: "513-5"
+    affectedCycles: [exceptionnel-cutoff]
+    status: verified
+    sources:
+      - sourceId: anc-2022-06
+        kind: primary
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2022/R2022_06/R2022_06.pdf
+        retrievedAt: "2026-10-13"
+        sha256: aeaa05cfd26ab4aa032ab7f7bb5bf8c5bb3578e197a9a3c89a5ab4610c07ca1b
+        pages: 106
+        paragraphReference: "En-tête d'homologation ; art. 513-5 ; art. 27"
+
+  - id: anc-2024-07-autres-fonds-propres
+    reference: Règlement ANC n° 2024-07 du 6 décembre 2024
+    title: Distinction dettes – autres fonds propres (chapitre I bis, tableau du passif)
+    summary: >
+      Règlement relatif à la distinction dettes – autres fonds propres,
+      modifiant divers règlements de l'ANC dont le règlement 2014-03 : création
+      du chapitre I bis « Autres fonds propres » (art. 314-1 composition,
+      315-1 fonds non remboursables, 316-1 avances conditionnées), remplacement
+      du tableau du passif de l'art. 821-1 avec la ligne « Total des autres
+      fonds propres (II) », comptes 167x. Enregistré pour son existence et son
+      applicabilité ; aucune règle de classement n'en est tirée ici.
+    regulation: ANC 2024-07
+    adoptionDate: "2024-12-06"
+    homologationDate: "2025-12-26"
+    publicationDate: "2025-12-27"
+    effectiveFrom: "2026-01-01"
+    effectiveTo: null
+    firstMandatoryPeriod: >
+      Comptes afférents aux exercices ouverts à compter du 1er janvier 2026
+      (art. 6-1). Par exception, art. 4, 1° et 2° (comptes consolidés,
+      règlement ANC 2020-01) : exercices ouverts à compter du 1er janvier 2025
+      (art. 6-2) — hors comptes sociaux.
+    anticipation: Admise, à compter de la date de publication au Journal officiel, aux exercices en cours à cette date (art. 6-1).
+    numbering:
+      other_equity: "314-1 à 316-1"
+    affectedCycles: [capitaux-propres, dettes-financieres-emprunts]
+    status: verified
+    sources:
+      - sourceId: anc-2024-07
+        kind: primary
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2024/R2024-07/REGLT_2024_07_web.pdf
+        retrievedAt: "2026-10-13"
+        sha256: 19288fed0e942ee89c03e0e2fde129245ddab5af65e6b1bc90b7d615353fe4c6
+        pages: 13
+        paragraphReference: "En-tête d'homologation ; art. 1er ; art. 6"
+      - sourceId: anc-reglementation
+        kind: primary
+        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+        retrievedAt: "2026-10-13"
+        note: Listé sur la page officielle des règlements au 13/10/2026 (« Règlement ANC N° 2024-07 du 6 décembre 2024 »).
+    note: >
+      Corrige la mention du 14/08/2026 qui écartait ce règlement faute de le
+      trouver sur la page consultée : une absence de résultat ne prouvait pas
+      l'absence du texte (voir l'en-tête de ce fichier).
 
   - id: anc-2026-03-produits-ventes
-    reference: Règlement ANC n° 2026-03
-    title: Modification du PCG — comptabilisation des produits des ventes
+    reference: Règlement ANC n° 2026-03 du 6 mars 2026
+    title: Modification de divers règlements — produits des ventes, contrats à long terme, renumérotation du titre V (art. 531-5, 542-1)
     summary: >
-      Règlement adopté par le collège de l'ANC le 6 mars 2026, modifiant le
-      règlement 2014-03 sur la comptabilisation des produits des ventes.
+      Règlement adopté par le Collège de l'ANC le 6 mars 2026, homologué par
+      arrêté du 12 août 2026 publié au Journal officiel du 3 septembre 2026.
+      Il remplace le chapitre I du titre V du PCG (charges, produits, produits
+      des ventes 522-1 à 522-12, contrats à long terme 523-1 à 523-7, résultat
+      531-1 à 531-5, impôts 541-1 à 542-2) et renumérote notamment le résultat
+      exceptionnel en 531-5 et l'impôt sur les bénéfices en 542-1.
     regulation: ANC 2026-03
-    effectiveFrom: null
+    adoptionDate: "2026-03-06"
+    homologationDate: "2026-08-12"
+    publicationDate: "2026-09-03"
+    effectiveFrom: "2027-01-01"
     effectiveTo: null
-    affectedCycles: [chiffre-affaires-ifrs15, cutoff-separation-exercices]
-    status: review_required
+    firstMandatoryPeriod: Comptes afférents aux exercices ouverts à compter du 1er janvier 2027 (art. 4).
+    anticipation: Admise sur l'exercice en cours à la date de publication au Journal officiel (art. 4).
+    contractualScope: Contrats de vente conclus ou renouvelés postérieurement à l'entrée en vigueur du règlement (art. 4, al. 2) ; date d'entrée en vigueur non énoncée par le texte.
+    numbering:
+      exceptional_result: "531-5"
+      income_tax: "542-1"
+      revenue: "521-1 à 523-7"
+    affectedCycles: [chiffre-affaires-ifrs15, cutoff-separation-exercices, exceptionnel-cutoff, resultat-fiscal-is]
+    status: verified
     sources:
-      - sourceId: anc-reglementation
+      - sourceId: anc-2026-03
         kind: primary
-        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
-        retrievedAt: "2026-08-14"
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2026/2026%20homologu%C3%A9/2026_03-JO.pdf
+        retrievedAt: "2026-10-13"
+        sha256: 59330e81ee5ab37c59fc919778130e61e6b18f2eaf87898b4984f02d5e8e0bd2
+        pages: 10
+        paragraphReference: "En-tête d'homologation ; art. 1er, 3° ; art. 4"
+      - sourceId: legifrance-arrete-2026-08-12
+        kind: primary
+        url: https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054791025
+        note: >
+          Arrêté du 12 août 2026 : page Légifrance inaccessible le 13/10/2026
+          (réponse 403, protection anti-robot) ; non lue. Les dates sont celles
+          de l'en-tête du texte homologué publié par l'ANC.
     note: >
-      Adoption vérifiée ; date d'homologation par arrêté et date d'entrée en
-      vigueur NON établies lors de la consultation. `effectiveFrom` reste null
-      plutôt que de porter une date supposée.
+      Les règles de comptabilisation des produits ne sont pas implémentées ;
+      seules les dates et la numérotation sont résolues.
 
   - id: anc-2026-04-impot-benefices
-    reference: Règlement ANC n° 2026-04
+    reference: Règlement ANC n° 2026-04 du 4 mai 2026
     title: >
       Modification du PCG — modalités de comptabilisation de l'impôt sur les
-      bénéfices et des contributions rattachées
+      bénéfices et des contributions rattachées (art. 515-1)
     summary: >
-      Règlement adopté par le collège de l'ANC le 6 mai 2026. Entrée en vigueur
-      le lendemain de sa publication au Journal officiel, avec application aux
-      exercices en cours à cette date.
+      Règlement adopté par le Collège de l'ANC le 6 mai 2026 (titre daté du
+      4 mai 2026), homologué par arrêté du 12 août 2026 publié au Journal
+      officiel du 3 septembre 2026. L'art. 515-1 est remplacé (impôt
+      comptabilisé sur l'exercice au titre duquel l'entreprise en est
+      redevable ; taux en vigueur à la date de clôture) et l'art. 515-1-1 est
+      abrogé. Le texte ne porte pas d'article d'application : l'annonce
+      officielle de l'ANC précise l'entrée en vigueur le lendemain de la
+      publication au Journal officiel et l'application aux exercices en cours
+      à cette date.
     regulation: ANC 2026-04
-    effectiveFrom: null
+    adoptionDate: "2026-05-06"
+    homologationDate: "2026-08-12"
+    publicationDate: "2026-09-03"
+    effectiveFrom: "2026-09-04"
     effectiveTo: null
+    firstMandatoryPeriod: Exercices en cours au 4 septembre 2026 (lendemain de la publication au JO) et exercices ouverts ensuite — annonce officielle de l'ANC.
+    anticipation: Aucune disposition d'anticipation.
+    numbering:
+      income_tax: "515-1 (542-1 à compter d'ANC 2026-03)"
     affectedCycles: [resultat-fiscal-is]
-    status: review_required
+    status: verified
     sources:
-      - sourceId: anc-reglementation
+      - sourceId: anc-2026-04
         kind: primary
-        url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
-        retrievedAt: "2026-08-14"
-    note: >
-      La RÈGLE d'entrée en vigueur est vérifiée (lendemain de la publication au
-      JO, exercices en cours) mais la DATE de publication ne l'est pas :
-      `effectiveFrom` ne peut donc pas être calculé ici.
+        url: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2026/2026%20homologu%C3%A9/REGLT_2026_04_JO-SITE.pdf
+        retrievedAt: "2026-10-13"
+        sha256: c81fb2e9b41232e18d59703bd54cdb3f35dc3cea250df26890979f4d344a5b0f
+        pages: 2
+        paragraphReference: "En-tête d'homologation ; art. 1er ; art. 2"
+      - sourceId: anc-2026-04-page
+        kind: primary
+        url: https://www.anc.gouv.fr/reglement-anc-ndeg-2026-04-du-4-mai-2026
+        retrievedAt: "2026-10-13"
+        note: Annonce officielle d'effet (entrée en vigueur le lendemain de la publication au JO ; exercices en cours à cette date) et date d'adoption du 6 mai 2026.

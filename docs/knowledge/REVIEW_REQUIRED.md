@@ -16,8 +16,8 @@ applicable.
 
 | Identifiant | Champs ou relation | Motif | Statut |
 | --- | --- | --- | --- |
-| `anc-2026-03:adopted-2026-03-06` | `homologationDate`, `effectiveFrom` | La page ANC emploie un libelle « Journal Officiel », mais le PDF consulte porte encore « En cours d'homologation ». Aucune date d'effet n'est inferee. | `pending_endorsement` |
-| `anc-2026-04:adopted-2026-05-04` | `homologationDate`, `effectiveFrom` | Le PDF ANC porte encore « En cours d'homologation ». | `pending_endorsement` |
+| `anc-2026-03:adopted-2026-03-06` | `homologationDate`, `effectiveFrom` | **Résolu le 13/10/2026 (C04)** : texte homologué lu (arrêté du 12/08/2026, JO du 03/09/2026 ; art. 4 : exercices ouverts dès le 01/01/2027, anticipation sur l'exercice en cours à la publication). | `effective` |
+| `anc-2026-04:adopted-2026-05-04` | `homologationDate`, `effectiveFrom` | **Résolu le 13/10/2026 (C04)** : texte homologué lu (arrêté du 12/08/2026, JO du 03/09/2026) ; effet le 04/09/2026 et application aux exercices en cours selon l'annonce officielle de l'ANC. | `effective` |
 | `ifrs-required-2026:required-2026` | adoption UE norme par norme | Le volume Required 2026 etablit le statut IASB, pas l'adoption UE individuelle de chaque texte. | `review_required` |
 | `ifrs-19:issued-2024-05-09` | `euEndorsementDate`, `euEffectiveFrom` | Le rapport EFRAG mis a jour le 23 juillet 2026 indique une adoption attendue au T3/T4 2026. | `pending` |
 | Crosswalks `nep-*-isa-*` | equivalence de contenu paragraphe par paragraphe | L'ACPR confirme seulement le role de correspondance et la primaute des NEP; les equivalences detaillees restent a valider. | `review_required` |
@@ -54,16 +54,16 @@ ne permet jamais de faire passer une exigence a `mandatory`.
 
 Versions ou statuts d'adoption a revoir :
 
-- `anc-2026-03:adopted-2026-03-06`
-- `anc-2026-04:adopted-2026-05-04`
+- ~~`anc-2026-03:adopted-2026-03-06`~~ (résolu le 13/10/2026, C04)
+- ~~`anc-2026-04:adopted-2026-05-04`~~ (résolu le 13/10/2026, C04)
 - `ifrs-required-2026:required-2026`
 - `ifrs-19:issued-2024-05-09`
 
 Exigences bloquees en revue :
 
 - `ifrs-19-eu-pending`
-- `anc-2026-03-pending`
-- `anc-2026-04-pending`
+- ~~`anc-2026-03-pending`~~ → `anc-2026-03-application` (vérifié, C04)
+- ~~`anc-2026-04-pending`~~ → `anc-2026-04-application` (vérifié, C04)
 
 Crosswalks non promus en correspondances normatives :
 
@@ -174,7 +174,30 @@ Crosswalks non promus en correspondances normatives :
 - **Effet de bord** : tant que `iasbEffectiveDate` est `null`, le contrôle K-003
   refuse de présenter la norme comme applicable — comportement volontaire.
 
-### R-08 · Règlement « ANC 2024-07 » — existence non confirmée
+### R-08 · Règlement « ANC 2024-07 » — RÉSOLU le 13/10/2026 (Mission C04)
+
+- **Correction** : le règlement ANC n° 2024-07 du 6 décembre 2024 (distinction
+  dettes – autres fonds propres) **existe**. Il a été homologué par arrêté du
+  26 décembre 2025 publié au JO du 27 décembre 2025, et figure sur la page
+  officielle des règlements de l'ANC consultée le 13/10/2026. Le texte
+  homologué (PDF de l'ANC, 13 pages, SHA-256 `19288fed…52c6`) a été lu : il crée
+  le chapitre I bis « Autres fonds propres » (art. 314-1 à 316-1), remplace le
+  tableau du passif (art. 821-1) et s'applique aux exercices ouverts à compter
+  du 01/01/2026, avec anticipation sur l'exercice en cours à sa publication
+  (art. 6). Indexé dans `data/pcg/requirements.yml`
+  (`anc-2024-07-autres-fonds-propres`) et dans le registre
+  (`anc-2024-07:adopted-2024-12-06`).
+- **Pourquoi l'exclusion était fautive** : le 14/08/2026, le texte n'était pas
+  encore homologué (homologation du 26/12/2025 — il s'agit d'un texte adopté
+  fin 2024 et homologué fin 2025 ; la consultation d'août 2026 n'a pas relevé
+  son entrée) et la page consultée ne le montrait pas. Une absence de résultat
+  de recherche ou de consultation ne démontre jamais l'absence d'un texte :
+  seule la lecture de la source officielle (texte ou liste de l'ANC) tranche.
+  La bonne conduite était « non vérifié, à lire », pas « n'existe pas ».
+- **Ce qui reste hors périmètre** : aucune règle de classement dettes / autres
+  fonds propres n'est tirée du texte ; seule son applicabilité est résolue.
+
+Constat d'origine (conservé pour mémoire) :
 
 - **Où** : `data/pcg/requirements.yml` (information **non reprise**)
 - **Constat** : un résumé de moteur de recherche attribue à un règlement
@@ -189,7 +212,20 @@ Crosswalks non promus en correspondances normatives :
 - **Pourquoi c'est important** : c'est le cas type de l'information plausible
   qui aurait été recopiée sans contrôle.
 
-### R-09 · Dates d'entrée en vigueur des règlements ANC 2026-03 et 2026-04
+### R-09 · Dates d'entrée en vigueur des règlements ANC 2026-03 et 2026-04 — RÉSOLU le 13/10/2026 (Mission C04)
+
+- **Lu dans les textes homologués (PDF ANC)** : les deux règlements sont
+  homologués par arrêté du 12 août 2026 publié au JO du 3 septembre 2026.
+  ANC 2026-03, art. 4 : exercices ouverts à compter du 01/01/2027, anticipation
+  sur l'exercice en cours à la publication, contrats de vente conclus ou
+  renouvelés après l'entrée en vigueur. ANC 2026-04 : pas d'article
+  d'application ; l'annonce officielle de l'ANC fixe l'entrée en vigueur au
+  lendemain de la publication (04/09/2026) avec application aux exercices en
+  cours à cette date. L'arrêté lui-même sur Légifrance n'a pas pu être lu
+  (réponse 403) : les dates proviennent des en-têtes des textes publiés par
+  l'ANC.
+
+Constat d'origine (conservé pour mémoire) :
 
 - **Où** : `data/pcg/requirements.yml`, `effectiveFrom: null`
 - **Vérifié** : dates d'**adoption** (06/03/2026 et 06/05/2026) et, pour

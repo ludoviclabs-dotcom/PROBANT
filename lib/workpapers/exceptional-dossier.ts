@@ -6,6 +6,9 @@ import { assertScope, frozen, moneySchema, type EvidenceLink, type WorkpaperScop
 import type { ImportBatch, ImportMapping } from './imports';
 import { assertExceptionalContext } from './cycle-context';
 import { dateSchema } from './cycle-review';
+import { frenchGaapText, type FrenchGaapTextId } from '@/lib/knowledge/french-gaap';
+/** Version déclarée par le pack officiel → texte du résolveur partagé (C04). Les dates ne sont plus codées ici. */
+const RULE_TEXT: Record<'PCG-2024' | 'ANC-2022-06' | 'ANC-2026-03', FrenchGaapTextId> = { 'PCG-2024': 'pcg-2024', 'ANC-2022-06': 'anc-2022-06', 'ANC-2026-03': 'anc-2026-03' };
 export const EXCEPTIONAL_TYPES = ['exceptional_ledger', 'exceptional_events', 'exceptional_support', 'exceptional_rules', 'exceptional_annex'] as const;
 export const EXCEPTIONAL_LABELS: Record<string, string> = { exceptional_ledger: 'GL complet', exceptional_events: 'Registre des événements', exceptional_support: 'Pièces client', exceptional_rules: 'Pack officiel versionné', exceptional_annex: 'Annexe et comparatif' };
 const text = z.string().trim().min(1).max(4000), ref = z.string().min(1).max(200);
@@ -107,17 +110,22 @@ export function exceptionalRuleGate(rule: ExceptionalFact | null, facts: Excepti
         issues.push('Version hors période d’ouverture');
     if (d.consultedOn > period.asOfDate || d.documentDate > period.asOfDate)
         issues.push('Source ou consultation postérieure à la revue');
-    if (d.version === 'PCG-2024' && (period.startDate < '2024-01-01' || period.startDate >= '2025-01-01' || d.anticipation))
+    const text = frenchGaapText(RULE_TEXT[d.version]);
+    const edition = text.firstMandatory.kind === 'consolidated_edition' ? text.firstMandatory : null;
+    if (edition && (period.startDate < edition.from || (edition.to !== null && period.startDate > edition.to) || d.anticipation))
         issues.push('Pack historique 2024 incompatible');
-    const publication = d.version === 'ANC-2026-03' ? '2026-09-03' : '2023-12-30', mandatory = d.version === 'ANC-2026-03' ? '2027-01-01' : '2025-01-01';
-    if (d.version !== 'PCG-2024' && period.startDate < mandatory) {
+    const publication = text.anticipation.from ?? text.publicationDate ?? '', mandatory = text.firstMandatory.kind === 'periods_opened_from' ? text.firstMandatory.date : null;
+    if (mandatory !== null && period.startDate < mandatory) {
         const adoption = facts.find(f => f.type === 'exceptional_support' && f.rowId === d.adoptionRowId && f.details.purpose === 'anticipation_adoption');
-        if (!d.anticipation || !adoption || adoption.date < publication || adoption.date > period.asOfDate || period.closingDate < publication || d.version === 'ANC-2026-03' && period.startDate > publication)
+        // Option explicite + pièce d'adoption postérieure à la publication et antérieure à la revue ; l'exercice doit être en cours à la
+        // publication (règlement 2026-03, art. 4 : exercice en cours seulement) ou clos après elle (règlement 2022-06, art. 27).
+        if (!d.anticipation || !adoption || adoption.date < publication || adoption.date > period.asOfDate || period.closingDate < publication || text.anticipation.scope === 'period_in_progress_at_publication' && period.startDate > publication)
             issues.push('Option d’anticipation et pièce d’adoption requises');
     }
-    if (d.version === 'ANC-2022-06' && period.startDate >= '2027-01-01')
+    const successor = frenchGaapText('anc-2026-03');
+    if (d.version === 'ANC-2022-06' && successor.firstMandatory.kind === 'periods_opened_from' && period.startDate >= successor.firstMandatory.date)
         issues.push('Modifications 2027 à établir');
-    return { established: issues.length === 0, issues, version: d.version, article: d.version === 'PCG-2024' ? '946-67 / 947-77 (PCG au 01/01/2024)' : d.version === 'ANC-2022-06' ? '513-5 (ANC 2022-06)' : '531-5 (ANC 2026-03)' };
+    return { established: issues.length === 0, issues, version: d.version, article: text.numbering.exceptional_result ?? null, textId: text.id };
 }
 function bindings(draft: ExceptionalDraft, facts: ExceptionalFact[]) {
     const get = (id: string | null, type: ExceptionalFact['type']) => {
