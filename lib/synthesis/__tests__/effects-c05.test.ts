@@ -70,6 +70,38 @@ describe("identité, versions, empreinte", () => {
     expect(trace.excludedItems).toContainEqual(expect.objectContaining({ id: "f-v1", reason: expect.stringMatching(/version d'évaluation remplacée par f-v2/) }));
   });
 
+  it("branches de versions (v2 → v1 et v3 → v1) : pas de prédécesseur direct, conflit", () => {
+    const s = build([
+      same("f-v1", { financialEffect: makeEffect({ amountCents: 10_000, evaluationVersion: 1 }) }),
+      same("f-v2", { financialEffect: makeEffect({ amountCents: 12_000, evaluationVersion: 2, supersedesFindingId: "f-v1" }) }),
+      same("f-v3", { financialEffect: makeEffect({ amountCents: 15_000, evaluationVersion: 3, supersedesFindingId: "f-v1" }) }),
+    ]);
+    expect(s.exposure.clusters[0].status).toBe("conflict");
+    expect(s.exposure.supersededVersionsCents).toBe(0);
+  });
+
+  it("chaîne v1 → v2 → v3 : les versions remplacées sont tracées et affichées", () => {
+    const s = build([
+      same("f-v1", { financialEffect: makeEffect({ amountCents: 10_000, evaluationVersion: 1 }) }),
+      same("f-v2", { financialEffect: makeEffect({ amountCents: 12_000, evaluationVersion: 2, supersedesFindingId: "f-v1" }) }),
+      same("f-v3", { financialEffect: makeEffect({ amountCents: 15_000, evaluationVersion: 3, supersedesFindingId: "f-v2" }) }),
+    ]);
+    expect(s.exposure.determinedExposureCents).toBe(15_000);
+    expect(s.exposure.supersededVersionsCents).toBe(22_000);
+    expect(s.exposure.grossDetectedExposureCents).toBe(37_000);
+  });
+
+  it("répétitions exactes aux décisions de revue divergentes : conflit explicite, jamais départagé par l'ordre des identifiants", () => {
+    const a = build([same("f-a", { statutRevue: "valide" }), same("f-b", { statutRevue: "ecarte", ruleId: "R-OTHER" })]);
+    const b = build([same("f-a", { statutRevue: "ecarte" }), same("f-b", { statutRevue: "valide", ruleId: "R-OTHER" })]);
+    for (const s of [a, b]) {
+      expect(s.exposure.clusters[0].status).toBe("conflict");
+      expect(s.exposure.clusters[0].reason).toMatch(/décisions de revue divergentes/);
+      expect(s.exposure.determinedExposureCents).toBe(0);
+      expect(s.exposure.netByTarget).toEqual([]);
+    }
+  });
+
   it("une version déclarée sans chaînage vers l'ancienne n'est pas une succession : conflit", () => {
     const s = build([
       same("f-v1", { financialEffect: makeEffect({ amountCents: 10_000, evaluationVersion: 1 }) }),
@@ -149,6 +181,19 @@ describe("fiscalité : net inconnu sans taux et qualification", () => {
     expect(s.exposure.tax).toMatchObject({ status: "partial", knownCents: 25_000 });
   });
 
+  it("impôt du waterfall limité au poste résultat : un ajustement qualifié sur le passif n'entre pas dans l'étape impôt du résultat", () => {
+    const snapshot = makeDossierSnapshot({ findings: [
+      makeFinding("r", { statutRevue: "valide", financialEffect: makeEffect({ amountCents: 100_000, taxRatePct: 25, taxQualification: "deductible", target: "resultat" }), lignesSource: [1] }),
+      makeFinding("p", { statutRevue: "valide", financialEffect: makeEffect({ amountCents: 100_000, taxRatePct: 25, taxQualification: "deductible", target: "bilan_passif" }), lignesSource: [2] }),
+    ] });
+    const synthesis = buildSynthesisSnapshot(snapshot, { clock: CLOCK });
+    expect(synthesis.exposure.tax.knownCents).toBe(50_000);
+    const datasets = buildSynthesisDatasets({ synthesis, societe: { raisonSociale: "T", siren: "000000000", exercice: "2024", dateCloture: "20241231" }, findings: snapshot.findings, admissibilityFindings: snapshot.admissibilityFindings, dossier: snapshot });
+    const byId = Object.fromEntries(datasets.waterfall.steps.map((st) => [st.id, st.amountCents]));
+    expect(byId.tax).toBe(-25_000);
+    expect(byId.net).toBe(75_000);
+  });
+
   it("non déductible : impôt connu égal à zéro, net validé", () => {
     const s = build([makeFinding("n", { statutRevue: "valide", financialEffect: makeEffect({ amountCents: 100_000, taxQualification: "non_deductible" }), lignesSource: [1] })]);
     expect(resultNet(s)!.netAfterKnownTaxCents).toBe(100_000);
@@ -184,7 +229,8 @@ describe("correction comptabilisée", () => {
 describe("invariance, double comptage, cohérence des vues", () => {
   const findings = [
     makeFinding("f-1", { statutRevue: "valide", financialEffect: makeEffect({ amountCents: 10_000, taxRatePct: 25, taxQualification: "deductible" }), lignesSource: [1] }),
-    makeFinding("f-2", { financialEffect: makeEffect({ amountCents: 10_000, taxRatePct: 25, taxQualification: "deductible" }), lignesSource: [1], ruleId: "R-DUP" }),
+    // Répétition exacte de f-1 par une autre règle, avec la MÊME décision de revue (sinon : conflit explicite).
+    makeFinding("f-2", { statutRevue: "valide", financialEffect: makeEffect({ amountCents: 10_000, taxRatePct: 25, taxQualification: "deductible" }), lignesSource: [1], ruleId: "R-DUP" }),
     makeFinding("f-3", { financialEffect: makeEffect({ amountCents: 5_000, rootCause: "x" }), lignesSource: [2, 3] }),
     makeFinding("f-4", { financialEffect: makeEffect({ amountCents: 7_000, rootCause: "y" }), lignesSource: [3, 4] }),
     makeFinding("f-5", { mesure: { constate: 100_000, seuil: 50_000, unite: "EUR", libelle: "signal" } }),

@@ -193,6 +193,8 @@ export interface NetEffectByTarget {
   /** Anomalies non corrigées signées : proposé + résiduel après correction partielle. */
   uncorrectedSignedCents: number;
   taxStatus: AmountStatus;
+  /** Effet d'impôt connu du poste (sous-ensemble des effets qualifiés). */
+  taxKnownCents: number;
   /** Net après impôt connu : null si l'incidence fiscale est inconnue pour au moins un effet du poste. */
   netAfterKnownTaxCents: number | null;
   /** Sous-total partiel, nommé comme tel : net des seuls effets à incidence fiscale connue. */
@@ -212,6 +214,8 @@ export interface ExposureDimension {
   grossDetectedExposureCents: number;
   /** Montant des répétitions exactes écartées (même identité et même contenu). */
   exactRepeatsCents: number;
+  /** Montant des versions d'évaluation remplacées par une version ultérieure démontrée. */
+  supersededVersionsCents: number;
   /** Exposition dédupliquée DÉTERMINÉE : somme des groupes déterminés seulement. */
   determinedExposureCents: number;
   /** Bornes de l'exposition totale incluant les groupes indéterminés. */

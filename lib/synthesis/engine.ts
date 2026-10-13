@@ -49,7 +49,7 @@ import type {
 
 export const SYNTHESIS_SCHEMA_VERSION = "1.0.0";
 export const SYNTHESIS_ENGINE_VERSION = "1.1.0";
-export const SYNTHESIS_POLICY_VERSION = "1.1.0";
+export const SYNTHESIS_POLICY_VERSION = "2.0.0";
 
 /**
  * Seuils de la politique de couverture. Bornes exactes documentées :
@@ -269,7 +269,7 @@ export function buildSynthesisSnapshot(
   });
 
   /* ── 4. Exposure (C05) ────────────────────────────────────────────────── */
-  const { records, withoutEffect } = collectEffects(findings, input.dossier.fecFingerprint);
+  const { records, withoutEffect } = collectEffects(findings, input.dossier.fecFingerprint, statusOf);
   const dedup = deduplicateEffects(records);
   const recordOf = new Map(records.map((r) => [r.findingId, r]));
   const DISMISSED_REVIEW = new Set(["ecarte", "dismissed", "superseded"]);
@@ -362,6 +362,7 @@ export function buildSynthesisSnapshot(
       proposedSignedCents,
       uncorrectedSignedCents,
       taxStatus,
+      taxKnownCents: knownTax,
       netAfterKnownTaxCents: taxStatus === "known" ? uncorrectedSignedCents - knownTax : null,
       partialNetKnownSubsetCents: knownSubset - knownTax,
     };
@@ -370,6 +371,7 @@ export function buildSynthesisSnapshot(
   const exposure: ExposureDimension = {
     grossDetectedExposureCents: dedup.grossCents,
     exactRepeatsCents: dedup.exactRepeatsCents,
+    supersededVersionsCents: dedup.supersededVersionsCents,
     determinedExposureCents: dedup.determinedCents,
     exposureBoundsCents: dedup.boundsCents,
     aggregationStatus: dedup.status,
@@ -394,6 +396,7 @@ export function buildSynthesisSnapshot(
       clusters: dedup.clusters.length,
       grossCents: dedup.grossCents,
       exactRepeatsCents: dedup.exactRepeatsCents,
+      supersededVersionsCents: dedup.supersededVersionsCents,
       boundsCents: `${dedup.boundsCents.minCents}..${dedup.boundsCents.maxCents}`,
       aggregationStatus: dedup.status,
     },

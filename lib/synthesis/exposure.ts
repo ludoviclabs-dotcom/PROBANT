@@ -56,6 +56,8 @@ export interface EffectRecord {
   /** Identifiants d'écritures/pièces, triés, dédupliqués. */
   entryIds: string[];
   effect: FinancialEffect;
+  /** Statut de revue du constat porteur (dernier événement, sinon statut porté) ; sert à réconcilier les répétitions exactes. */
+  reviewStatus: string;
   /** Identité économique. */
   identity: string;
   /** Empreinte de contenu. */
@@ -87,6 +89,7 @@ export function contentFingerprint(record: Pick<EffectRecord, "sourceDocument" |
 export function collectEffects(
   findings: Finding[],
   sourceDocument: string,
+  statusOf?: ReadonlyMap<string, string>,
 ): { records: EffectRecord[]; withoutEffect: string[] } {
   const records: EffectRecord[] = [];
   const withoutEffect: string[] = [];
@@ -107,7 +110,7 @@ export function collectEffects(
       }
     }
     const entryIds = [...new Set(f.lignesSource.map((l) => String(l)))].sort();
-    const base = { findingId: f.id, cloison: f.cloison, sourceDocument, entryIds, effect: f.financialEffect };
+    const base = { findingId: f.id, cloison: f.cloison, sourceDocument, entryIds, effect: f.financialEffect, reviewStatus: statusOf?.get(f.id) ?? f.statutRevue ?? "en_attente" };
     records.push({ ...base, identity: economicIdentity(base), contentFingerprint: contentFingerprint(base) });
   }
 
@@ -143,6 +146,8 @@ interface IdentityNode {
 export interface DeduplicationResult {
   grossCents: number;
   exactRepeatsCents: number;
+  /** Montant des versions d'évaluation remplacées par une version ultérieure démontrée. */
+  supersededVersionsCents: number;
   determinedCents: number;
   boundsCents: { minCents: number; maxCents: number };
   status: "determined" | "indeterminate";
@@ -165,8 +170,9 @@ const member = (r: EffectRecord, role: ExposureClusterMember["role"]): ExposureC
 
 /**
  * Succession de versions démontrée : chaque contenu, sauf le premier, désigne par
- * `supersedesFindingId` un constat du même groupe de version strictement inférieure
- * (ou non versionnée). Retourne la chaîne ordonnée, ou null si la succession n'est pas démontrée.
+ * `supersedesFindingId` son PRÉDÉCESSEUR DIRECT dans l'ordre des versions (strictement
+ * croissantes). Deux branches issues d'une même version (v2 → v1 et v3 → v1) ne sont pas
+ * ordonnées entre elles : la succession n'est pas démontrée, c'est un conflit.
  */
 function versionChain(contents: EffectRecord[]): EffectRecord[] | null {
   const ids = new Set(contents.map((c) => c.findingId));
@@ -178,9 +184,7 @@ function versionChain(contents: EffectRecord[]): EffectRecord[] | null {
     const cur = sorted[i], prev = sorted[i - 1];
     const vCur = cur.effect.evaluationVersion ?? 0, vPrev = prev.effect.evaluationVersion ?? 0;
     const target = cur.effect.supersedesFindingId;
-    if (!target || !ids.has(target) || vCur <= vPrev) return null;
-    const superseded = contents.find((c) => c.findingId === target)!;
-    if ((superseded.effect.evaluationVersion ?? 0) >= vCur) return null;
+    if (!target || !ids.has(target) || vCur <= vPrev || target !== prev.findingId) return null;
   }
   return sorted;
 }
@@ -196,6 +200,7 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     byIdentity.set(r.identity, [...(byIdentity.get(r.identity) ?? []), r]);
   }
   let exactRepeatsCents = 0;
+  let supersededVersionsCents = 0;
   const nodes: IdentityNode[] = [];
 
   for (const [identity, group] of [...byIdentity.entries()].sort(([a], [b]) => canonicalCompare(a, b))) {
@@ -203,12 +208,17 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     for (const r of group) byFingerprint.set(r.contentFingerprint, [...(byFingerprint.get(r.contentFingerprint) ?? []), r]);
     const contents: EffectRecord[] = [];
     const members: ExposureClusterMember[] = [];
+    let reviewConflict: string | undefined;
     for (const [, same] of [...byFingerprint.entries()].sort(([a], [b]) => canonicalCompare(a, b))) {
       const [first, ...repeats] = same;
       contents.push(first);
+      // Répétitions exactes : comptées une fois SI leurs décisions de revue concordent. Des décisions divergentes
+      // (ex. l'une confirmée, l'autre écartée) ne sont jamais départagées par l'ordre des identifiants : conflit explicite.
+      const statuses = new Set(same.map((r) => r.reviewStatus));
+      if (statuses.size > 1) reviewConflict = `répétitions exactes (${same.map((r) => r.findingId).join(", ")}) aux décisions de revue divergentes (${[...statuses].sort().join(" / ")}) : conflit à arbitrer, aucune décision retenue par défaut`;
       for (const dup of repeats) {
         exactRepeatsCents += dup.effect.amountCents;
-        excluded.push({ id: dup.findingId, reason: `répétition exacte de ${first.findingId} (même identité économique et même contenu) : comptée une fois` });
+        excluded.push({ id: dup.findingId, reason: statuses.size > 1 ? `répétition exacte de ${first.findingId} : montant compté une fois, décision de revue en conflit` : `répétition exacte de ${first.findingId} (même identité économique et même contenu) : comptée une fois` });
         members.push(member(dup, "exact_repeat"));
       }
     }
@@ -221,6 +231,12 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
       period: sample.effect.period,
     };
     // ── Étape 2 : contenus distincts sous la même identité ───────────────────
+    if (reviewConflict) {
+      for (const c of contents) members.push(member(c, "conflicting"));
+      const amounts = contents.map((c) => c.effect.amountCents);
+      nodes.push({ ...base, direction: new Set(contents.map((c) => c.effect.direction)).size > 1 ? "mixed" : sample.effect.direction, retained: null, minCents: Math.min(...amounts), maxCents: Math.max(...amounts), members: members.map((m) => (m.role === "exact_repeat" ? { ...m, role: "conflicting" as const } : m)), conflictReason: reviewConflict });
+      continue;
+    }
     if (contents.length === 1) {
       members.push(member(sample, "retained"));
       nodes.push({ ...base, direction: sample.effect.direction, retained: sample, minCents: sample.effect.amountCents, maxCents: sample.effect.amountCents, members });
@@ -230,6 +246,7 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     if (chain) {
       const latest = chain[chain.length - 1];
       for (const old of chain.slice(0, -1)) {
+        supersededVersionsCents += old.effect.amountCents;
         excluded.push({ id: old.findingId, reason: `version d'évaluation remplacée par ${latest.findingId} (succession démontrée)` });
         members.push(member(old, "superseded"));
       }
@@ -258,7 +275,7 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
   const find = (x: string): string => { const p = parent.get(x) ?? x; if (p === x) return x; const root = find(p); parent.set(x, root); return root; };
   const union = (a: string, b: string) => { const ra = find(a), rb = find(b); if (ra !== rb) parent.set(ra < rb ? rb : ra, ra < rb ? ra : rb); };
   for (const n of nodes) parent.set(n.identity, n.identity);
-  const asRecord = (n: IdentityNode): EffectRecord => ({ findingId: "", cloison: "resultat", sourceDocument: n.sourceDocument, entryIds: n.entryIds, effect: { amountCents: 0, direction: "increase", target: n.target, assertion: "exactitude", rootCause: "", period: n.period, basis: "measured" }, identity: n.identity, contentFingerprint: "" });
+  const asRecord = (n: IdentityNode): EffectRecord => ({ findingId: "", cloison: "resultat", reviewStatus: "", sourceDocument: n.sourceDocument, entryIds: n.entryIds, effect: { amountCents: 0, direction: "increase", target: n.target, assertion: "exactitude", rootCause: "", period: n.period, basis: "measured" }, identity: n.identity, contentFingerprint: "" });
   for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) if (overlaps(asRecord(nodes[i]), asRecord(nodes[j]))) union(nodes[i].identity, nodes[j].identity);
 
   const components = new Map<string, IdentityNode[]>();
@@ -311,6 +328,7 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
   return {
     grossCents,
     exactRepeatsCents,
+    supersededVersionsCents,
     determinedCents,
     boundsCents: { minCents: sumCents(minParts, "borne basse"), maxCents: sumCents(maxParts, "borne haute") },
     status: clusters.every((c) => c.status === "determined") ? "determined" : "indeterminate",

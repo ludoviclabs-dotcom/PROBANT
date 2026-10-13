@@ -45,7 +45,8 @@ describe("aucune divergence graphique / snapshot", () => {
     expect(byId.dismissed).toBe(-e.dismissedExposureCents);
     expect(byId.pending).toBe(-e.pendingReviewExposureCents);
     expect(byId["proposed-resultat"]).toBe(res?.proposedSignedCents ?? 0);
-    expect(byId.tax).toBe(e.tax.status === "unknown" && e.tax.unknown.length ? null : -e.tax.knownCents);
+    expect(byId.tax).toBe(res && res.taxStatus === "unknown" ? null : -(res?.taxKnownCents ?? 0));
+    expect(byId.superseded ?? -e.supersededVersionsCents).toBe(-e.supersededVersionsCents);
     expect(byId.net).toBe(res ? res.netAfterKnownTaxCents : 0);
   });
 

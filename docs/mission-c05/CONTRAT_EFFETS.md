@@ -24,8 +24,9 @@ Règles (politique `probant-exposure-aggregation` v2.0.0) :
 
 | Cas | Traitement | Sortie |
 |---|---|---|
-| Même identité, même empreinte | répétition exacte : comptée une fois | membre `exact_repeat`, montant dans `exactRepeatsCents`, motif tracé |
-| Même identité, contenus distincts, chaîne de versions démontrée (chaque version désigne la précédente, versions strictement croissantes) | dernière version retenue | membres `superseded` + `retained`, motif tracé |
+| Même identité, même empreinte, mêmes décisions de revue | répétition exacte : comptée une fois | membre `exact_repeat`, montant dans `exactRepeatsCents`, motif tracé |
+| Même identité, même empreinte, décisions de revue divergentes (ex. confirmée / écartée) | **conflit** : aucune décision n'est retenue par l'ordre des identifiants | cluster `conflict`, motif « décisions de revue divergentes », limitation (revue Codex PR #78) |
+| Même identité, contenus distincts, chaîne de versions démontrée (chaque version désigne son **prédécesseur direct**, versions strictement croissantes ; deux branches issues d'une même version ne sont pas ordonnées) | dernière version retenue | membres `superseded` + `retained`, montant remplacé dans `supersededVersionsCents`, motif tracé |
 | Même identité, contenus distincts, sans succession démontrée (ex. 100 et 120) | **conflit** : agrégation indéterminée | cluster `conflict`, `retainedCents: null`, bornes `[min, max]`, limitation `exposure_indeterminate` |
 | Identités distinctes, même poste/période/document, écritures partiellement communes (L1/L2 et L2/L3), sans allocation par ligne | **indéterminé** : ni le maximum ni la somme ne décrit l'effet unique | cluster `indeterminate`, bornes `[plus grand membre, somme]`, détail conservé |
 | Sens opposés dans un même groupe | aucune compensation | cluster `indeterminate`, direction `mixed`, bornes sans netting |
@@ -64,7 +65,7 @@ Un statut `corrected` n'alimente jamais une vue d'anomalies non corrigées : `un
 | Vue | Lecture |
 |---|---|
 | Élément de décision « Ajustement proposé (résultat) » | proposé signé sur le résultat ; net après impôt ou « inconnu » ; autres postes comptés, non additionnés |
-| Waterfall « De l'exposition brute à l'effet net » | brut → répétitions exactes → groupes indéterminés (hors agrégat, bornes) → déterminé → écartés → en attente → proposé (résultat) → impôt (connu / partiel / inconnu, étape `null` si inconnu) → net sur le résultat après impôt (ou inconnu, sous-total partiel en note) |
+| Waterfall « De l'exposition brute à l'effet net » | brut → répétitions exactes → versions remplacées → groupes indéterminés (hors agrégat, bornes) → déterminé → écartés → en attente → proposé (résultat) → impôt **du poste résultat** (connu / partiel / inconnu, étape `null` si inconnu) → net sur le résultat après impôt (ou inconnu, sous-total partiel en note) |
 | Note de synthèse §5 | agrégats, tableau par poste et sens, nets par poste, groupes non déterminés |
 | Cartographie des risques | gravité : masse de gravité + effets explicites + signaux EUR (qualitatif) ; total page = effets explicites dédupliqués par constat |
 
@@ -73,10 +74,10 @@ Un statut `corrected` n'alimente jamais une vue d'anomalies non corrigées : `un
 | Cas | Preuve |
 |---|---|
 | Signal 100 000 / seuil 50 000 sans effet | `effects-c05.test.ts` › signal sans effet |
-| Doublon exact | › identité, versions, empreinte |
-| Deux montants divergents (100 / 120), avec et sans succession démontrée | idem |
+| Doublon exact ; répétitions exactes aux décisions de revue divergentes | › identité, versions, empreinte |
+| Deux montants divergents (100 / 120), avec et sans succession démontrée ; branches v2 → v1 et v3 → v1 (conflit) ; chaîne v1 → v2 → v3 (versions remplacées tracées) | idem |
 | Chevauchement L1/L2 et L2/L3 ; chaîne L1/L2, L2/L3, L3/L4 | › chevauchements et sens |
 | Sens opposés | idem ; `engine.test.ts` › sens opposés |
-| +1 000 avec fiscalité inconnue ; taux sans qualification ; partiel ; non déductible | › fiscalité |
+| +1 000 avec fiscalité inconnue ; taux sans qualification ; partiel ; non déductible ; impôt du waterfall limité au résultat | › fiscalité |
 | Correction totale et partielle ; corrigé sans détail | › correction comptabilisée |
 | Invariance à l'ordre d'entrée, absence de double comptage, mêmes résultats vues / export | › invariance ; `build-datasets.test.ts` ; `components.test.tsx` |
