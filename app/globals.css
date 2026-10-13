@@ -78,8 +78,15 @@
   --font-mono: var(--font-jetbrains-mono), "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
 }
 
-* {
-  border-color: var(--pb-border);
+/*
+  Couleur de bordure par défaut. Dans @layer base pour rester sous les utilitaires
+  Tailwind (@layer utilities) : une règle non stratifiée l'emporterait sur toute
+  classe `border-<couleur>` et neutraliserait les bordures sémantiques.
+*/
+@layer base {
+  * {
+    border-color: var(--pb-border);
+  }
 }
 
 html,

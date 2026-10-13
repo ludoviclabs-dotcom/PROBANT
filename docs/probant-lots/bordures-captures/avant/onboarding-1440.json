@@ -1,0 +1,72 @@
+{
+ "page": "onboarding",
+ "path": "/onboarding",
+ "width": 1440,
+ "phase": "avant",
+ "elements": [
+  {
+   "tag": "div",
+   "text": "1. Import FEC",
+   "tokens": [
+    "border-[var(--pb-accent)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  },
+  {
+   "tag": "button",
+   "text": "Mon fichierFEC . Balance . Liasse",
+   "tokens": [
+    "border-current"
+   ],
+   "inlineStyle": "background-color: color-mix(in srgb, var(--pb-accent) 13%, transparent); border-color: var(--pb-accent); color: var(--pb-accent);",
+   "widths": [
+    "0px",
+    "0px",
+    "2px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Nouveau dossier",
+   "tokens": [
+    "border-[var(--pb-border-strong)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  }
+ ],
+ "stillDefault": 2,
+ "axeSerious": {},
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}

@@ -1,0 +1,72 @@
+{
+ "page": "depot",
+ "path": "/dashboard/depot",
+ "width": 1440,
+ "phase": "apres",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Demo",
+   "tokens": [
+    "border-[#3b82f6]/50"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)"
+   ]
+  },
+  {
+   "tag": "button",
+   "text": "Mon fichierFEC . Balance . Liasse",
+   "tokens": [
+    "border-current"
+   ],
+   "inlineStyle": "background-color: color-mix(in srgb, var(--pb-accent) 13%, transparent); border-color: var(--pb-accent); color: var(--pb-accent);",
+   "widths": [
+    "0px",
+    "0px",
+    "2px",
+    "0px"
+   ],
+   "colors": [
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)",
+    "rgb(91, 157, 255)"
+   ]
+  },
+  {
+   "tag": "a",
+   "text": "Nouveau dossier",
+   "tokens": [
+    "border-[var(--pb-border-strong)]"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(50, 69, 99)",
+    "rgb(50, 69, 99)",
+    "rgb(50, 69, 99)",
+    "rgb(50, 69, 99)"
+   ]
+  }
+ ],
+ "stillDefault": 0,
+ "axeSerious": {},
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}

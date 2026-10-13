@@ -1,0 +1,32 @@
+{
+ "page": "fiscalite",
+ "path": "/dashboard/fiscalite",
+ "width": 1440,
+ "phase": "avant",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Demo",
+   "tokens": [
+    "border-[#3b82f6]/50"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)",
+    "rgb(36, 48, 68)"
+   ]
+  }
+ ],
+ "stillDefault": 1,
+ "axeSerious": {},
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}

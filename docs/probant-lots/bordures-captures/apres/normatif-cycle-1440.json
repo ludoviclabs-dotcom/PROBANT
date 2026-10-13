@@ -1,0 +1,374 @@
+{
+ "page": "normatif-cycle",
+ "path": "/normatif/cycles/achats-charges-externes",
+ "width": 1440,
+ "phase": "apres",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Contenu à valider",
+   "tokens": [
+    "border-[#eab308]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Validé",
+   "tokens": [
+    "border-[#eab308]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.3)"
+   ]
+  },
+  {
+   "tag": "div",
+   "text": "Ce cycle est analysé automatiquement dans PROBANT :Silo Acha",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "div",
+   "text": "Les pourcentages de matérialité affichés sont des pratiques ",
+   "tokens": [
+    "border-[#eab308]/40"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)",
+    "oklab(0.795243 0.0111457 0.161284 / 0.4)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Exhaustivité",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Rattachement",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Exactitude",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Existence",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Exactitude",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présentation",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Existence",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Exactitude",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Droits et obligations",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Exhaustivité",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Rattachement",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Existence",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Présentation",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  },
+  {
+   "tag": "span",
+   "text": "Droits et obligations",
+   "tokens": [
+    "border-[var(--pb-accent)]/30"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)",
+    "oklab(0.697313 -0.0327271 -0.156297 / 0.3)"
+   ]
+  }
+ ],
+ "stillDefault": 0,
+ "axeSerious": {
+  "serious:link-name": 5
+ },
+ "scrollWidth": 1440,
+ "clientWidth": 1440
+}

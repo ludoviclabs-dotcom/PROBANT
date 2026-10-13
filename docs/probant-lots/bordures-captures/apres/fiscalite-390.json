@@ -1,0 +1,32 @@
+{
+ "page": "fiscalite",
+ "path": "/dashboard/fiscalite",
+ "width": 390,
+ "phase": "apres",
+ "elements": [
+  {
+   "tag": "span",
+   "text": "Demo",
+   "tokens": [
+    "border-[#3b82f6]/50"
+   ],
+   "inlineStyle": null,
+   "widths": [
+    "1px",
+    "1px",
+    "1px",
+    "1px"
+   ],
+   "colors": [
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)",
+    "oklab(0.623083 -0.0332476 -0.185052 / 0.5)"
+   ]
+  }
+ ],
+ "stillDefault": 0,
+ "axeSerious": {},
+ "scrollWidth": 390,
+ "clientWidth": 390
+}
