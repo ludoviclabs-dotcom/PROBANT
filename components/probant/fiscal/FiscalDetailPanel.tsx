@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import type { VatResult } from "@/lib/workpapers/fiscal-vat-contract";
 import type { CitResult } from "@/lib/workpapers/fiscal-cit-contract";
@@ -23,7 +24,7 @@ export const FiscalDetailPanel = forwardRef<FiscalDetailHandle, Props>(function 
   const rule = (r: VatResult["blockedRules"][number] | undefined) => !r ? empty : <><h2 ref={heading} tabIndex={-1}>{r.label}</h2><p>{CATEGORY_LABELS[r.category]} · {r.code}</p><p>{r.message}</p>
     {r.controls.length > 0 && <p className={styles.muted}>Contrôles : {r.controls.map(c => CONTROL_LABELS[c] ?? c).join(" · ")}</p>}
     <div className={styles.sourceBox}><p><strong>Source requise</strong></p><p>{r.requiredSource}</p>
-      {r.sources.map(s => <dl key={s.sourceId}><dt>Texte</dt><dd>{s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.title}</a> : s.title} ({s.publisher})</dd><dt>Couverture</dt><dd>{COVERAGE_LABELS[s.coverage]}{s.uncoveredFromDate ? " — non couvert à partir du " + dateFr(s.uncoveredFromDate) : ""}</dd>
+      {r.sources.map(s => <dl key={s.sourceId}><dt>Texte</dt><dd>{s.url ? <DossierContextAnchor href={s.url} target="_blank" rel="noreferrer noopener">{s.title}</DossierContextAnchor> : s.title} ({s.publisher})</dd><dt>Couverture</dt><dd>{COVERAGE_LABELS[s.coverage]}{s.uncoveredFromDate ? " — non couvert à partir du " + dateFr(s.uncoveredFromDate) : ""}</dd>
         <dt>Versions</dt><dd>{s.versions.map(v => v.label + " [" + v.status + "]").join(" ; ") || "Aucune"}</dd><dt>Vérifié le</dt><dd>{dateFr(s.lastVerifiedAt)}</dd></dl>)}</div></>;
   if (selection && result?.tax === "cit") {
     if (selection.kind === "rule") body = rule(result.blockedRules.find(x => x.code === selection.id));
@@ -32,15 +33,15 @@ export const FiscalDetailPanel = forwardRef<FiscalDetailHandle, Props>(function 
       body = !l ? empty : <><h2 ref={heading} tabIndex={-1}>{l.formNumber} · case {l.code} — {l.label}</h2>
         <dl><dt>Montant déclaré</dt><dd className={styles.money}>{cents(l.amountCents)}</dd><dt>Lecture moteur</dt><dd>{l.readByEngine ? "Lue par le moteur IS" : "Non lue"}</dd><dt>Statut du champ</dt><dd>{l.processingStatus}</dd></dl>
         {f && <div className={styles.sourceBox}><p><strong>Pièce</strong> {f.fileName}</p><dl><dt>Version</dt><dd><code>{f.documentVersionId}</code></dd><dt>SHA-256</dt><dd><code>{f.sha256}</code></dd><dt>Millésime</dt><dd>{f.formVintage}{f.published ? "" : " — non publié"}</dd><dt>Localisation</dt><dd>{locatorLabel(l.locator)}</dd></dl>
-          {canDownload && <a href={download(f.documentVersionId)}>Télécharger cette version</a>}</div>}</>;
+          {canDownload && <DossierContextAnchor href={download(f.documentVersionId)}>Télécharger cette version</DossierContextAnchor>}</div>}</>;
     } else if (selection.kind === "adjustment") {
       const a = result.adjustments.find(x => x.id === selection.id);
       body = !a ? empty : <><h2 ref={heading} tabIndex={-1}>{a.id} — {a.label}</h2>
         <dl><dt>Nature</dt><dd>{CIT_CATEGORY_LABELS[a.category]}</dd><dt>Sens</dt><dd>{a.direction === "reintegration" ? "Réintégration" : "Déduction"}</dd><dt>Montant</dt><dd className={styles.money}>{cents(a.amountCents)}</dd>
           <dt>Traitement</dt><dd>{CIT_TREATMENT_LABELS[a.treatment]}{a.inEngine ? " — intégré au calcul du moteur" : ""}</dd><dt>Auteur</dt><dd>{a.authorId} · {a.at}</dd></dl>
         <div className={styles.sourceBox}><p><strong>Pièce citée</strong> {a.citation.fileName}</p><dl><dt>Version</dt><dd><code>{a.citation.documentVersionId}</code></dd><dt>Localisation</dt><dd>{a.citation.row ? "ligne " + a.citation.row : a.citation.zone ?? "document entier"}</dd></dl>
-          {canDownload && <a href={download(a.citation.documentVersionId)}>Télécharger cette version</a>}</div>
-        <div className={styles.sourceBox}><p><strong>Source du registre</strong></p>{a.legalSource ? <dl><dt>Texte</dt><dd>{a.legalSource.url ? <a href={a.legalSource.url} target="_blank" rel="noreferrer noopener">{a.legalSource.title}</a> : a.legalSource.title} ({a.legalSource.locator})</dd>
+          {canDownload && <DossierContextAnchor href={download(a.citation.documentVersionId)}>Télécharger cette version</DossierContextAnchor>}</div>
+        <div className={styles.sourceBox}><p><strong>Source du registre</strong></p>{a.legalSource ? <dl><dt>Texte</dt><dd>{a.legalSource.url ? <DossierContextAnchor href={a.legalSource.url} target="_blank" rel="noreferrer noopener">{a.legalSource.title}</DossierContextAnchor> : a.legalSource.title} ({a.legalSource.locator})</dd>
           <dt>Couverture</dt><dd>{COVERAGE_LABELS[a.legalSource.coverage]}</dd><dt>Vérifié le</dt><dd>{dateFr(a.legalSource.lastVerifiedAt)}</dd></dl> : <p className={styles.muted}>Aucune source citée : le retraitement est documenté par sa pièce ; sa base légale reste à sourcer.</p>}</div></>;
     }
   }
@@ -52,7 +53,7 @@ export const FiscalDetailPanel = forwardRef<FiscalDetailHandle, Props>(function 
         <dl><dt>Montant déclaré</dt><dd className={styles.money}>{cents(l.amountCents)}</dd><dt>Rôle</dt><dd>{l.role ? VAT_ROLE_LABELS[l.role] : "Case non utilisée par le rapprochement"}</dd>
           <dt>Lecture moteur</dt><dd>{l.readByEngine ? "Lue par le moteur TVA" : "Non lue"}</dd><dt>Statut du champ</dt><dd>{l.processingStatus}{l.warnings.length ? " · " + l.warnings.join(", ") : ""}</dd></dl>
         <div className={styles.sourceBox}><p><strong>Pièce</strong> {result.declaration.fileName}</p><dl><dt>Version</dt><dd><code>{result.declaration.documentVersionId}</code></dd><dt>SHA-256</dt><dd><code>{result.declaration.sha256}</code></dd><dt>Localisation</dt><dd>{locatorLabel(l.locator)}</dd></dl>
-          {canDownload && result.declaration.documentVersionId && <a href={download(result.declaration.documentVersionId)}>Télécharger cette version</a>}</div>
+          {canDownload && result.declaration.documentVersionId && <DossierContextAnchor href={download(result.declaration.documentVersionId)}>Télécharger cette version</DossierContextAnchor>}</div>
         <h3>Écritures liées ({l.candidateIds.length})</h3>
         {l.candidateIds.length ? <ul className={styles.list}>{l.candidateIds.map(entryLink)}</ul> : <p className={styles.muted}>Aucune écriture rattachée à ce rôle.</p>}</>;
     } else if (selection.kind === "entry") {
@@ -65,7 +66,7 @@ export const FiscalDetailPanel = forwardRef<FiscalDetailHandle, Props>(function 
           <dt>Lignes FEC</dt><dd>{e.lines.map(n => "ligne " + (n + 1)).join(", ")}</dd><dt>Signaux</dt><dd>{e.signals.length ? e.signals.map(s => SIGNAL_LABELS[s] ?? s).join(" · ") : "Aucun"}</dd></dl>
         <div className={styles.sourceBox}><p><strong>Pièce de l’inventaire</strong></p>
           {e.piece.status === "found" ? <><dl><dt>Référence</dt><dd>{e.piece.ref} · {dateFr(e.piece.date)}</dd><dt>TVA / base</dt><dd>{cents(e.piece.vatCents)} / {cents(e.piece.baseCents)}</dd><dt>Libellé</dt><dd>{e.piece.label || "—"}</dd>
-            <dt>Fichier</dt><dd>{e.piece.fileName} · {locatorLabel(e.piece.locator)}</dd><dt>Version</dt><dd><code>{e.piece.documentVersionId}</code></dd></dl>{canDownload && <a href={download(e.piece.documentVersionId)}>Télécharger l’inventaire (cette version)</a>}</>
+            <dt>Fichier</dt><dd>{e.piece.fileName} · {locatorLabel(e.piece.locator)}</dd><dt>Version</dt><dd><code>{e.piece.documentVersionId}</code></dd></dl>{canDownload && <DossierContextAnchor href={download(e.piece.documentVersionId)}>Télécharger l’inventaire (cette version)</DossierContextAnchor>}</>
             : e.piece.status === "missing" ? <p>Référence {e.piece.ref ?? "absente"} introuvable dans l’inventaire fourni. Une pièce absente de PROBANT n’est pas une pièce absente du dossier.</p> : <p className={styles.muted}>Inventaire des pièces non fourni : la pièce n’est pas recherchée.</p>}</div>
         <h3>Lignes de déclaration concernées</h3><ul className={styles.list}>{result.declaration.lines.filter(l => l.candidateIds.includes(e.id)).map(l => <li key={l.code}><button type="button" onClick={() => onLine(l.code)}>Case {l.code} — {l.label}</button></li>)}</ul></>;
     } else if (selection.kind === "rate") {

@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { formatCents, formatQuantity, ST_CATEGORY_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
 import { KindBadge } from "./StockGrid";
@@ -52,7 +53,7 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
     return <li key={id} className={className}><button type="button" aria-expanded={open} onClick={() => setPiece(open ? null : id)}><span>{l.key}{refName ? " · " + refName : ""} {extra}</span><span className={styles.money}>{formatQuantity(l.quantity)}</span></button>
       {open && <div className={styles.sourceBox}><dl><dt>Source</dt><dd>{l.fileName}</dd><dt>Version</dt><dd><code>{l.documentVersionId}</code></dd><dt>Ligne</dt><dd>{l.row ?? "—"}</dd><dt>Date</dt><dd>{dateFr(l.date)}</dd></dl>
         {support ? <p><strong>Pièce {refName}</strong> — {pieceLabel(support)} (pièces citables, ligne {support.locator.row})</p> : refName ? <p className={styles.muted}>Pièce {refName} absente des pièces citables approuvées : à demander.</p> : <p className={styles.muted}>Aucune référence de pièce sur cette ligne.</p>}
-        {canDownload && <a href={download(l.documentVersionId)}>Télécharger cette version de la source</a>}</div>}</li>;
+        {canDownload && <DossierContextAnchor href={download(l.documentVersionId)}>Télécharger cette version de la source</DossierContextAnchor>}</div>}</li>;
   };
   if (!unit || !result) return <aside className={styles.detail} aria-label="Comptage et pièce" onKeyDown={close}><h2 ref={heading} tabIndex={-1}>Comptage et pièce</h2>
     <p className={styles.muted}>Choisissez une case : le pont inventaire → clôture, les lignes de comptage, la ligne théorique et les mouvements s’affichent ici, chacun avec sa pièce. Échap revient à la case d’origine.</p></aside>;
@@ -72,7 +73,7 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
         <dt>Quantité théorique × coût</dt><dd className={styles.money}>{formatCents(v.recalculatedSystemValueCents)}</dd>
         <dt>Écart de quantité valorisé</dt><dd className={styles.money}>{v.quantityDifferenceValueCents === null ? "Non établi" : formatCents(v.quantityDifferenceValueCents, { signed: true }) + " (écart potentiel)"}</dd>
         <dt>Écart de prix</dt><dd className={styles.money}>{v.priceDifferenceCents === null ? "Non établi" : formatCents(v.priceDifferenceCents, { signed: true })}</dd></dl>
-        {v.cost && canDownload && <a href={download(v.cost.documentVersionId)}>Télécharger la liste des coûts figée</a>}</div>; })()}
+        {v.cost && canDownload && <DossierContextAnchor href={download(v.cost.documentVersionId)}>Télécharger la liste des coûts figée</DossierContextAnchor>}</div>; })()}
     {(() => { const rv = result.valueReview?.units.find(x => x.unitId === unit.unitId); if (!rv || rv.status === "not_reviewed") return null;
       return <div className={styles.sourceBox}><p><strong>Revue de valeur</strong></p><dl>
         <dt>Hypothèse citée</dt><dd>{rv.hypothesis ? rv.hypothesis.kind + " · pièce " + rv.hypothesis.pieceRef + " · " + rv.hypothesis.fileName + (rv.hypothesis.row ? " ligne " + rv.hypothesis.row : "") + " · " + dateFr(rv.hypothesis.date) : "Aucune hypothèse figée"}</dd>

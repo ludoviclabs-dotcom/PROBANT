@@ -1,0 +1,67 @@
+{
+  "verifiedAtUtc": "2026-10-12T22:40:05.497541+00:00",
+  "testedCodeSha": "b03072a33c39f0710ec4770fff713f453a031d26",
+  "baseSha": "ab8f991e65b0ad93e6f9a21281010b680c868466",
+  "branch": "codex/c00-integration",
+  "unit": {
+    "beforeFailed": 3,
+    "afterPassed": 7,
+    "afterFailed": 0,
+    "afterSkipped": 0
+  },
+  "browser": {
+    "startTime": "2026-10-12T22:34:58.226Z",
+    "duration": 265250.315,
+    "expected": 16,
+    "skipped": 0,
+    "unexpected": 0,
+    "flaky": 0
+  },
+  "static": {
+    "lint": 0,
+    "typecheck": 0
+  },
+  "strictAxeStates": 33,
+  "strictAxeSeriousCritical": 0,
+  "m20PreservedFiles": 111,
+  "m20PreservationChanges": [],
+  "m20GitStatusIdentical": true,
+  "selectedSourcesIdenticalToM20": true,
+  "functionalFiles": [
+    "app/dashboard/synthese/page.tsx",
+    "app/globals.css",
+    "components/probant/ClientFramingWorkspace.tsx",
+    "components/probant/CloisonsWorkspace.tsx",
+    "components/probant/DemoLauncher.tsx",
+    "components/probant/WorkpaperPanel.tsx",
+    "components/probant/closing/closing.module.css",
+    "tools/fast-glob-compat/README.md",
+    "tools/fast-glob-compat/index.cjs",
+    "app/page.tsx",
+    "components/probant/risk/RiskMatrixHeatmap.tsx",
+    "components/referentiel/LibrarySection.tsx"
+  ],
+  "postgres": "NON REEXÉCUTÉ / NON VÉRIFIÉ PAR C00",
+  "c02": "Modifications non sauvegardées : incident conservé, hors C00",
+  "remote": {
+    "inspectedAtUtc": "2026-10-12 22:21:45 UTC",
+    "mode": "read-only",
+    "github": {
+      "url": "https://api.github.com/repos/ludoviclabs-dotcom/PROBANT/branches/main",
+      "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466"
+    },
+    "vercel": {
+      "requestedAlias": "probant.vercel.app",
+      "id": "dpl_DeA6RJ2H6c4hwq3cir2eumrXqdy1",
+      "readyState": "READY",
+      "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466",
+      "branch": "main",
+      "aliases": [
+        "probant.vercel.app",
+        "probant-ludovics-projects-159c139c.vercel.app",
+        "probant-git-main-ludovics-projects-159c139c.vercel.app"
+      ]
+    },
+    "mutationsPerformed": false
+  }
+}

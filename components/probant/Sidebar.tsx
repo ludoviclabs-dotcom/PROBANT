@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { usePathname } from "next/navigation";
 import {
   Upload,
@@ -13,24 +13,12 @@ import {
   ShieldCheck,
   Network,
 } from "lucide-react";
+import { WORKFLOW_ROUTES } from "@/lib/capabilities/registry";
 import { cn } from "@/lib/utils";
 import { DemoLauncher } from "@/components/probant/DemoLauncher";
 
-const NAV = [
-  { href: "/dashboard/depot", label: "Dépôt & ingestion", icon: Upload },
-  { href: "/dashboard/synthese", label: "Synthèse", icon: LayoutDashboard },
-  { href: "/dashboard/risques", label: "Cartographie des risques", icon: Network },
-  { href: "/dashboard/cloisons", label: "Revue par cloison", icon: Columns3 },
-  {
-    href: "/dashboard/fiscalite",
-    label: "Fiscalité",
-    icon: Landmark,
-    description: "Fiscalité — contrôles & réconciliations",
-  },
-  { href: "/dashboard/dossier", label: "Dossier & preuve", icon: FileCheck2 },
-  { href: "/dashboard/tests", label: "Tests complémentaires", icon: FlaskConical },
-  { href: "/dashboard/referentiel", label: "Seuils & référentiel", icon: Scale },
-];
+const icons = { upload: Upload, dashboard: LayoutDashboard, risks: Network, columns: Columns3, landmark: Landmark, file: FileCheck2, tests: FlaskConical, scale: Scale };
+const NAV = WORKFLOW_ROUTES.map(item => ({ ...item, icon: icons[item.icon], description: "description" in item ? item.description : undefined }));
 
 /**
  * Navigation latérale. Dès `md` (768 px) elle est fixe dans la grille ; en

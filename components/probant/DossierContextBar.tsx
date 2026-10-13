@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { cn } from "@/lib/utils";
 import type { CycleRow, SourceState } from "@/lib/dossier/cycle-registry";
 

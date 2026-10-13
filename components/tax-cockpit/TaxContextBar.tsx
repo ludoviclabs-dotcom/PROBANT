@@ -7,7 +7,7 @@
  * popover « Méthodologie & traçabilité » (jamais affichés en permanence).
  */
 
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, Fingerprint, Upload } from "lucide-react";
 import { track } from "@/lib/analytics/track";

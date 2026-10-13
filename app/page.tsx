@@ -270,7 +270,7 @@ export default function Home() {
           </Link>
         </div>
 
-        <p style={{ margin: "20px 0 0", fontSize: 11, color: "#5c6b82", animation: "pb-fade-in 0.7s 0.28s ease both" }}>
+        <p style={{ margin: "20px 0 0", fontSize: 11, color: "var(--pb-text-faint)", animation: "pb-fade-in 0.7s 0.28s ease both" }}>
           Démo : société fictive DEMO SA · Normatif 360 : 35 cycles d'audit (ISA, NEP, IFRS, PCG) — contenu à valider par un expert.
         </p>
       </div>

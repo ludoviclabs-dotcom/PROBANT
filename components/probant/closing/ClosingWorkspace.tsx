@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId } from "@/lib/workpapers/model";
@@ -21,8 +23,8 @@ const emptyFilters: ProgramFilters = { nature: "", status: "", owner: "", q: "" 
 export interface ClosingRequested { periodId: string; tab?: ClosingTab; p?: string; filters: ProgramFilters }
 const ROLE_LABELS: Record<string, string> = { prepare: "préparation", review: "revue", sign: "signature", download: "téléchargement" };
 
-export function ClosingWorkspace({ initialDossierId = "", requested }: { initialDossierId?: string; requested?: ClosingRequested }) {
-  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(emptyPeriod);
+export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = emptyPeriod, requested }: { initialDossierId?: string; initialPeriodValue?: AccountingPeriod; requested?: ClosingRequested }) {
+  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(initialPeriodValue);
   const [view, setView] = useState<ClosingView | null>(null), [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [tab, setTab] = useState<ClosingTab>(requested?.tab ?? "programme"), [selected, setSelected] = useState<string | null>(requested?.p ?? null), [filters, setFilters] = useState<ProgramFilters>(requested?.filters ?? emptyFilters);
   const csrf = useRef(""), busy = useRef(false), returnFocus = useRef<HTMLElement | null>(null), panelRef = useRef<ProcedurePanelHandle>(null), focusPanel = useRef(false), tabRefs = useRef<Partial<Record<ClosingTab, HTMLButtonElement | null>>>({});
@@ -107,11 +109,11 @@ export function ClosingWorkspace({ initialDossierId = "", requested }: { initial
     revue: e.items.reviewPoints.filter(r => !r.closed).length, cloture: e.blockers.length, journal: view!.journal.length } : { programme: null, pieces: null, anomalies: null, revue: null, cloture: null, journal: null };
 
   return <main className={`${styles.page} ${cl.root}`}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Synthèse</a><a href="/tresorerie">Trésorerie</a><a href="/stocks">Stocks</a><a href="/provisions">Provisions et engagements</a><a href="/fiscal">Fiscalité</a><span aria-current="page">Dossier professionnel et clôture</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Trésorerie</DossierContextAnchor><DossierContextAnchor href="/stocks">Stocks</DossierContextAnchor><DossierContextAnchor href="/provisions">Provisions et engagements</DossierContextAnchor><DossierContextAnchor href="/fiscal">Fiscalité</DossierContextAnchor><span aria-current="page">Dossier professionnel et clôture</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Dossier professionnel — contrôle interne et clôture</h1>
       <p className={styles.muted}>Le programme relie risques, assertions, procédures et pièces. Les travaux manuels se documentent sans moteur, mais rien n’est validé automatiquement : chaque conclusion est humaine, revue par une autre personne, et la clôture appartient au professionnel habilité. PROBANT ne génère aucune opinion.</p></div></header>
     <form className={styles.scope} onSubmit={ev => { ev.preventDefault(); void load(); }}>
-      <label>Dossier<input value={dossierId} required disabled={saving || loading} onChange={ev => { setDossierId(ev.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={ev => { setDossierId(ev.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d’exercice", "Clôture", "Date de revue"][i]}<input type="date" value={period[k]} required={!requested?.periodId} disabled={saving || loading || !!requested?.periodId}
         onChange={ev => { setPeriod(p => ({ ...p, [k]: ev.target.value })); setView(null); }}/></label>)}
       <button className={styles.primary} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le dossier"}</button>

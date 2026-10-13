@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import type { VatResult } from "@/lib/workpapers/fiscal-vat-contract";
 import { VAT_EXPLANATION_LABELS } from "@/lib/workpapers/fiscal-labels";
 import { CATEGORY_LABELS, cents, CONTROL_LABELS, COVERAGE_LABELS, dateFr, OUTCOME_LABELS, rate, TIER_LABELS } from "./format";
@@ -97,7 +98,7 @@ export function BlockedRules({ result, selection, onSelect }: { result: Pick<Vat
       <h3>{r.label} <span className={fx.chip} data-tone={r.category === "source" ? "warn" : "info"}>{CATEGORY_LABELS[r.category]}</span></h3>
       {r.controls.length > 0 && <p className={styles.muted}>Contrôles concernés : {r.controls.map(c => CONTROL_LABELS[c] ?? c).join(" · ")}</p>}
       <p><strong>Source requise : </strong>{r.requiredSource}</p>
-      {r.sources.length > 0 && <ul className={fx.sourceList}>{r.sources.map(s => <li key={s.sourceId}>{s.url ? <a href={s.url} target="_blank" rel="noreferrer noopener">{s.title}</a> : s.title} — {s.publisher} · {COVERAGE_LABELS[s.coverage]} · vérifié le {dateFr(s.lastVerifiedAt)}
+      {r.sources.length > 0 && <ul className={fx.sourceList}>{r.sources.map(s => <li key={s.sourceId}>{s.url ? <DossierContextAnchor href={s.url} target="_blank" rel="noreferrer noopener">{s.title}</DossierContextAnchor> : s.title} — {s.publisher} · {COVERAGE_LABELS[s.coverage]} · vérifié le {dateFr(s.lastVerifiedAt)}
         <br/><span className={styles.muted}>Versions connues : {s.versions.map(v => v.label + (v.intersectsPeriod ? "" : " (hors période)")).join(" ; ") || "aucune"}</span></li>)}</ul>}
       {r.forms.map(f => <p key={f.formNumber} className={styles.muted}>Formulaire {f.formNumber} millésime {f.vintage} : {f.published ? "publié" : "non publié"} · millésimes publiés : {f.publishedVintages.join(", ") || "aucun"}</p>)}
       <button type="button" onClick={() => onSelect(r.code)}>Ouvrir le détail</button>

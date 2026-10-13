@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-10-12 23:33:40 UTC",
+  "github": {
+    "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466",
+    "url": "https://github.com/ludoviclabs-dotcom/PROBANT/tree/main"
+  },
+  "vercel": {
+    "verification": "Inspection C00 référencée, sans nouveau déploiement C01",
+    "sha": "ab8f991e65b0ad93e6f9a21281010b680c868466"
+  }
+}

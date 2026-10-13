@@ -1,3 +1,5 @@
+import { Suspense } from "react";
+import { DossierRouteBoundary } from "@/components/probant/DossierRouteBoundary";
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
@@ -29,7 +31,7 @@ export default function RootLayout({
   return (
     <html lang="fr" className={`dark ${inter.variable} ${jetbrainsMono.variable}`}>
       <body>
-        {children}
+        <Suspense fallback={<p role="status">Lecture du contexte…</p>}><DossierRouteBoundary>{children}</DossierRouteBoundary></Suspense>
         <GuidedTour />
         <AxeCoreDevTools />
         <WebVitalsReporter />

@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useState } from "react";
 import { fiscalSheetHref, type FiscalMissionFilter } from "@/lib/workpapers/fiscal-labels";
 import type { FiscalMissionSnapshot } from "@/lib/workpapers/fiscal-mission";
@@ -46,13 +48,13 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
   }
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page + " " + fx.synth}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</a><a href="/tresorerie/synthese">Procédures de mission · Trésorerie</a><a href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres</a><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</DossierContextAnchor><DossierContextAnchor href="/tresorerie/synthese">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres</DossierContextAnchor><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse fiscale</h1><p className={styles.muted}>Une ligne par impôt et par période déclarative. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucune liquidation, aucune conformité déclarée ; les autres impôts restent des capacités séparées.</p></div>
-      <a href={m ? fiscalSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all", p?.period ? { tax: "vat", period: p.period } : {}) : "/fiscal"}>Ouvrir la feuille fiscale</a></header>
+      <DossierContextAnchor href={m ? fiscalSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all", p?.period ? { tax: "vat", period: p.period } : {}) : "/fiscal"}>Ouvrir la feuille fiscale</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setSelection({}); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>
-      <label>Dossier<input required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>
       <label>Exercice<input required value={period} onChange={e => setPeriod(e.target.value)} placeholder="Identifiant de période de l’exercice"/></label>
-      <button className={styles.primary} disabled={loading}>Charger la mission</button><a href={"/api/auth/login?returnTo=" + encodeURIComponent("/fiscal/synthese?" + new URLSearchParams(scope))}>Se connecter</a>
+      <button className={styles.primary} disabled={loading}>Charger la mission</button><DossierContextAnchor href={"/api/auth/login?returnTo=" + encodeURIComponent("/fiscal/synthese?" + new URLSearchParams(scope))}>Se connecter</DossierContextAnchor>
     </form>
     {loading && <p role="status">Lecture de l’état serveur…</p>}{error && <p role="alert" className={styles.notice} data-tone="danger">{error}</p>}
     {m && p && <>
@@ -95,13 +97,13 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
             {cit.blockedRules.length > 0 && <ul className={fx.rules}>{cit.blockedRules.map(r => <li key={r.code} data-category={r.category}><h3>{r.label} <span className={fx.chip} data-tone="warn">{CATEGORY_LABELS[r.category]}</span></h3><p>{r.requiredSource}</p></li>)}</ul>}</section>}
           {result && <section className={styles.card} aria-labelledby="fx-synth-exceptions"><h2 id="fx-synth-exceptions">Exceptions et incertitudes conservées après revue</h2><ul className={styles.list}>{result.exceptions.filter((e: { code: string }) => filter === "all" || (filter === "exceptions" && !UNCERTAINTY.includes(e.code)) || (filter === "evidence" && UNCERTAINTY.includes(e.code)) || filter === "blocked").map(e => { const q = m.queue.find(x => x.id === e.id);
             return <li key={e.id}><div className={styles.kv}><strong>{e.label}</strong><span className={styles.money}>{e.amount.kind === "known" ? cents(e.amount.value.amount.replace(".", ""), { signed: true }) : e.amount.reason}</span></div><p>{e.message}</p>
-            {q && p.version && <a href={q.href}>Ouvrir la feuille sur cet élément (v{p.version})</a>}</li>; })}
+            {q && p.version && <DossierContextAnchor href={q.href}>Ouvrir la feuille sur cet élément (v{p.version})</DossierContextAnchor>}</li>; })}
             {!result.exceptions.length && <li>Aucune exception : cela ne vaut ni conformité fiscale ni liquidation.</li>}</ul></section>}
         </div>
         <aside className={styles.detail} aria-label="File de travail et pièces">
           <h2>File de travail</h2><p className={styles.muted}>Priorité aux travaux périmés et aux règles bloquées.</p>
-          {queue.length ? <ol className={styles.list}>{queue.map(q => <li key={q.id}><a href={q.href}>{q.label}</a><p className={styles.muted}>{q.detail}</p></li>)}</ol> : <p>Aucune action dans ce filtre.</p>}
-          <h2>Index des pièces</h2><ul className={styles.list}>{m.sources.map(s => <li key={s.id}><strong>{s.label}</strong><p className={styles.muted}>{s.fileName ?? (s.required ? "Pièce requise absente" : "Pièce conditionnelle absente")} · {s.available ? (s.current ? "courante" : "remplacée") : "absente"} · binaire absent du paquet</p>{s.available && view.permissions.includes("download") && <a href={"/api/workpapers/fiscal?" + new URLSearchParams({ dossierId: m.scope.dossierId, periodId: m.scope.periodId, operation: "download", id: s.id })}>Télécharger l’original</a>}</li>)}</ul>
+          {queue.length ? <ol className={styles.list}>{queue.map(q => <li key={q.id}><DossierContextAnchor href={q.href}>{q.label}</DossierContextAnchor><p className={styles.muted}>{q.detail}</p></li>)}</ol> : <p>Aucune action dans ce filtre.</p>}
+          <h2>Index des pièces</h2><ul className={styles.list}>{m.sources.map(s => <li key={s.id}><strong>{s.label}</strong><p className={styles.muted}>{s.fileName ?? (s.required ? "Pièce requise absente" : "Pièce conditionnelle absente")} · {s.available ? (s.current ? "courante" : "remplacée") : "absente"} · binaire absent du paquet</p>{s.available && view.permissions.includes("download") && <DossierContextAnchor href={"/api/workpapers/fiscal?" + new URLSearchParams({ dossierId: m.scope.dossierId, periodId: m.scope.periodId, operation: "download", id: s.id })}>Télécharger l’original</DossierContextAnchor>}</li>)}</ul>
           {m.replaced.length > 0 && <><h2>Versions remplacées</h2><ul className={styles.list}>{m.replaced.map(r => <li key={r.importId}>{r.key.replace("fx_vat_return:", "Déclaration ").replace(/:/g, " → ")} · {r.fileName}<p className={styles.muted}>SHA-256 {r.sha256.slice(0, 12)}… · {r.usedByRun ? "utilisée par la version affichée — travail périmé" : "non utilisée par la version affichée"}</p></li>)}</ul></>}
           <p className={fx.otherTaxes}>Autres impôts, capacités séparées non couvertes : {m.otherTaxes.map(t => t.title).join(" · ")}.</p>
         </aside>

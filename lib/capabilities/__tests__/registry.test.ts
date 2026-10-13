@@ -1,0 +1,49 @@
+import { describe, expect, it } from "vitest";
+import { PgDialect } from "drizzle-orm/pg-core";
+import { CAPABILITY_REGISTRY, ENGINE_PROCEDURES, STORE_FAMILIES, configuredProcedures } from "../registry";
+import { readStoreHeads, scopedFamilyRuns } from "../store-readers";
+import { capabilityReadModel } from "../read-model";
+import { CL_CYCLES, CL_ENGINE_PROCEDURES, CL_FAMILIES } from "@/lib/workpapers/closing-contract";
+import { AUDIT_CYCLES, DOCUMENT_TYPES } from "@/lib/rapprochement/catalog";
+import { MODULE_MANIFEST } from "@/lib/workpapers/availability";
+import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
+
+describe("C01 registre et adaptateurs de lecture", () => {
+  it("preserves all 13 journal cycles, 15 engine procedures, 7 stores and 11 reconciliation configurations", () => {
+    expect(CL_CYCLES).toHaveLength(13); expect(CL_ENGINE_PROCEDURES).toBe(ENGINE_PROCEDURES); expect(CL_FAMILIES).toBe(STORE_FAMILIES);
+    expect(ENGINE_PROCEDURES).toHaveLength(15); expect(STORE_FAMILIES).toEqual(["clients", "cash", "fa", "eq", "fx", "st", "pv"]);
+    expect(AUDIT_CYCLES).toHaveLength(11); expect(DOCUMENT_TYPES).toHaveLength(22);
+    expect(new Set(ENGINE_PROCEDURES.map(p => p.id)).size).toBe(15);
+    for (const c of CAPABILITY_REGISTRY) { expect(c.requiredSources.length).toBeGreaterThan(0); expect(c.exclusions.length).toBeGreaterThan(0); }
+  });
+  it("describes Stocks as implemented locally and absent only from the workshop", () => {
+    const stocks = CAPABILITY_REGISTRY.find(c => c.id === "stocks")!;
+    expect(stocks.modes.local_persistent.implemented).toBe(true); expect(stocks.modes.historical.implemented).toBe(true); expect(stocks.modes.scenario.implemented).toBe(false);
+    expect(stocks.procedures.map(p => p.id)).toEqual(["stocks.count"]);
+    expect(MODULE_MANIFEST.find(m => m.id === "outside-stocks")!.label).toBe("Stocks · atelier");
+    expect(CAPABILITY_REGISTRY.find(c => c.id === "informatique")!.exclusions).toContain("Pas de moteur ITGC");
+  });
+  it("does not turn activated configuration into execution or authorization", () => {
+    const env = { PROBANT_STOCKS_DURABLE: "disposable", DATABASE_URL: "configured" };
+    expect(configuredProcedures(env)["stocks.count"]).toEqual({ activated: true, databaseConfigured: true });
+    expect(capabilityReadModel(env)).toMatchObject({ observationStatus: "not_read", observations: [] });
+    expect(configuredProcedures({ ...env, VERCEL_ENV: "production" })["stocks.count"].activated).toBe(false);
+  });
+  it("reads existing heads of all seven families using all three scope keys and without writes", async () => {
+    const f = await clientMissionFixture(), queries: { sql: string; params: unknown[] }[] = [];
+    const result = await readStoreHeads({ execute: async query => { const q = new PgDialect().sqlToQuery(query); queries.push(q); return queries.length === 1 ? [{ run: f.locked }] : []; } }, f.scope);
+    expect(result).toEqual([{ family: "clients", run: f.locked }]); expect(queries).toHaveLength(7);
+    for (const [i, q] of queries.entries()) { expect(q.sql).toContain(STORE_FAMILIES[i] + "_workpaper_heads"); expect(q.sql).toContain(STORE_FAMILIES[i] + "_workpaper_versions"); expect(q.params).toEqual([f.scope.organizationId, f.scope.dossierId, f.scope.periodId]); expect(q.sql).not.toMatch(/INSERT|UPDATE|DELETE/); }
+  });
+  it("fails closed when a row belongs to another dossier, organization, period or family", async () => {
+    const f = await clientMissionFixture();
+    for (const key of ["organizationId", "dossierId", "periodId"] as const) expect(() => scopedFamilyRuns(f.scope, [{ family: "clients", run: { ...f.locked, scope: { ...f.scope, [key]: "different" } } }])).toThrow(/SCOPE_MISMATCH/);
+    expect(() => scopedFamilyRuns(f.scope, [{ family: "st", run: f.locked }])).toThrow(/PROCEDURE_MISMATCH/);
+  });
+  it("keeps execution, outcome and review distinct and observes only current heads", async () => {
+    const f = await clientMissionFixture();
+    const read = capabilityReadModel({}, { scope: f.scope, rows: [{ family: "clients", run: f.locked }], procedures: ["clients.frame"] });
+    expect(read.observationStatus).toBe("read"); expect(read.observations[0]).toMatchObject({ state: "locked", runId: f.locked.id, version: 12, outcome: f.locked.result!.outcome, approval: { actorId: "actual-reviewer" } });
+    expect(capabilityReadModel({}, { scope: f.scope, rows: [], procedures: ["clients.frame"] }).observations).toEqual([]);
+  });
+});

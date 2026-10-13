@@ -7,13 +7,15 @@
  * `hero` (page d'accueil).
  */
 
+import { useDossierHref } from "./DossierContextLink";
 import { useRouter } from "next/navigation";
 import { PlayCircle } from "lucide-react";
 import { TOUR_STEPS } from "@/lib/demo/tour";
 
 export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "hero" }) {
   const router = useRouter();
-  const start = () => router.push(`${TOUR_STEPS[0].route}?guide=1&etape=0`);
+  const contextual = useDossierHref();
+  const start = () => router.push(contextual(`${TOUR_STEPS[0].route}?guide=1&etape=0`));
 
   if (variant === "hero") {
     return (
@@ -63,7 +65,7 @@ export function DemoLauncher({ variant = "sidebar" }: { variant?: "sidebar" | "h
     >
       <PlayCircle size={16} />
       <span style={{ flex: 1, textAlign: "left" }}>Visite guidée</span>
-      <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.7 }}>95 s</span>
+      <span style={{ fontSize: 10, fontWeight: 500, color: "var(--pb-text-faint)" }}>95 s</span>
     </button>
   );
 }

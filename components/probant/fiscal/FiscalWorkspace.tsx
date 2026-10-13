@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { fiscalPeriodLabel } from "@/lib/workpapers/fiscal-labels";
@@ -34,8 +36,8 @@ const resultOf = (run: WorkpaperRun | null): VatResult | CitResult | null => {
 const UNCERTAIN_CODES = [...UNCERTAINTY, "LIASSE_ABSENT"];
 const runLabel = (r: WorkpaperRun) => r.fiscalWork!.tax === "vat" ? "TVA · " + fiscalPeriodLabel(r.fiscalWork!.period, r.fiscalWork!.frequency) : "IS · " + fiscalPeriodLabel(r.fiscalWork!.period, "annual");
 
-export function FiscalWorkspace({ initialDossierId = "", requested }: { initialDossierId?: string; requested?: FiscalRequested }) {
-  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(emptyPeriod);
+export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = emptyPeriod, requested }: { initialDossierId?: string; initialPeriodValue?: AccountingPeriod; requested?: FiscalRequested }) {
+  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(initialPeriodValue);
   const [view, setView] = useState<FiscalView | null>(null), [activeId, setActiveId] = useState(""), [tax, setTax] = useState<"vat" | "cit">(requested?.tax ?? "vat");
   const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [conflict, setConflict] = useState<{ current: WorkpaperRun; expectedVersion: number } | null>(null);
@@ -128,12 +130,12 @@ export function FiscalWorkspace({ initialDossierId = "", requested }: { initialD
   const parse = (k: string) => { const [documentId, rowId] = k.split("#"); return { documentId, ...(rowId ? { rowId } : {}) }; };
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><a href="/capitaux-propres">Procédures de mission · Capitaux propres</a><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/capitaux-propres">Procédures de mission · Capitaux propres</DossierContextAnchor><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Fiscalité — TVA puis IS</h1>
       <p className={styles.muted}>Rapprochement des écritures, de la déclaration versionnée et des pièces par période déclarative, avec les moteurs fiscaux existants. Aucune liquidation, aucune télétransmission, aucun taux qualifié de légal.</p></div>
-      <a href={"/fiscal/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse fiscale</a></header>
+      <DossierContextAnchor href={"/fiscal/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse fiscale</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
-      <label>Dossier<input value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d’exercice", "Clôture", "Date de revue"][i]}<input type="date" value={period[k]} required={!requested?.periodId} disabled={saving || loading || !!requested?.periodId} onChange={e => { setPeriod(p => ({ ...p, [k]: e.target.value })); setView(null); }}/></label>)}
       <button className={styles.primary} disabled={saving || loading}>{loading ? "Chargement…" : "Charger les feuilles"}</button>
     </form>
@@ -145,7 +147,7 @@ export function FiscalWorkspace({ initialDossierId = "", requested }: { initialD
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{SAVE_LABELS[status]}</span>
     </div>
     {loading && !view && <p role="status" className={styles.muted}>Lecture de l’état serveur…</p>}
-    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <a href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</a></>}</p>}
+    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <DossierContextAnchor href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</DossierContextAnchor></>}</p>}
     {conflict && <div role="alert" className={styles.notice} data-tone="danger"><p>Conflit : la feuille est passée en version {conflict.current.version} (attendue {conflict.expectedVersion}). Aucune donnée n’a été écrasée.</p><button type="button" onClick={() => { setConflict(null); void refresh(conflict.current.id); }}>Recharger la version serveur</button></div>}
     {exactVersion && <p className={styles.notice} data-tone="info">Consultation de la version {requested?.version} : lecture seule.</p>}
     {view && <>

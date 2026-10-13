@@ -1,5 +1,6 @@
 "use client";
-import Link from "next/link";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import {
   useCallback,
   useEffect,
@@ -561,13 +562,13 @@ export function PayrollWorkspace({
                     ))}
                   </div>
                   <div className={styles.importActions}>
-                    <a
+                    <DossierContextAnchor
                       className={styles.plainButton}
                       href={endpoint + "?operation=template&kind=" + kind}
                     >
                       <Download size={16} />
                       Colonnes attendues
-                    </a>
+                    </DossierContextAnchor>
                     <input
                       ref={fileRef}
                       type="file"
@@ -892,10 +893,10 @@ export function PayrollWorkspace({
                     : "Un écart arithmétique reste soumis à revue. Aucune écriture n’est créée dans le grand livre."}
                 </span>
                 {view && (
-                  <a href={endpoint + "?operation=diagnostic"}>
+                  <DossierContextAnchor href={endpoint + "?operation=diagnostic"}>
                     <Download size={15} />
                     Diagnostic sans données RH
-                  </a>
+                  </DossierContextAnchor>
                 )}
               </div>
               <section className={styles.documentation}>
@@ -944,21 +945,21 @@ export function PayrollWorkspace({
               <section className={styles.official}>
                 <h3>Références officielles — distinctes des pièces client</h3>
                 <p>
-                  <a
+                  <DossierContextAnchor
                     href="https://www.cnil.fr/fr/les-regles-pour-la-gestion-du-personnel"
                     target="_blank"
                     rel="noreferrer"
                   >
                     CNIL · Gestion du personnel
-                  </a>{" "}
+                  </DossierContextAnchor>{" "}
                   · 17 août 2023 · accès limité aux fonctions habilitées.{" "}
-                  <a
+                  <DossierContextAnchor
                     href="https://www.cnil.fr/sites/cnil/files/2023-09/referentiel_gestion_des_ressources_humaines.pdf"
                     target="_blank"
                     rel="noreferrer"
                   >
                     Référentiel RH
-                  </a>{" "}
+                  </DossierContextAnchor>{" "}
                   · adopté le 21 novembre 2019, modifié le 23 mai 2022 · p. 1–2,
                   champ d’application.
                 </p>

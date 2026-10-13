@@ -1,8 +1,9 @@
 "use client";
+import { CapabilityAccess } from "@/components/probant/CapabilityAccess";
 
 import { useMemo, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { LEGACY_EXPOSURE_WEIGHTS } from "@/lib/dossier";
 import { useActiveDossierSnapshot } from "@/lib/dossier/client";
 import { buildSynthesisSnapshot, generateSynthesisNote } from "@/lib/synthesis";
@@ -35,7 +36,7 @@ import { focusStyle } from "@/components/synthesis/tokens";
 const ACCENT  = "#5b9dff";
 const TEXT    = "#e6edf6";
 const MUTED   = "#8a99af";
-const FAINT   = "#5c6b82";
+const FAINT   = "var(--pb-text-faint)";
 const BORDER  = "#1c2430";
 const BORDERS = "#324563";
 const SURFACE = "#0b0e13";
@@ -503,10 +504,12 @@ export default function SynthesePage() {
 
       {/* ── Cycles du dossier : entrées générées depuis le registre ──────── */}
       <CycleRegistryList rows={cycleRows} className="mb-4" />
-      {/* Ouvert dès qu'une feuille existe : les ancres de preuve `#wp-<id>` des lignes de cycle pointent dans ce volet. */}
-      <details open={cycleRows.some((r) => r.runs.length > 0) || undefined} className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
-        <summary className="pbz-focusable cursor-pointer select-none px-4 py-3 text-[14px] font-semibold text-[var(--pb-text)]">Méthode · disponibilité et limites par module</summary>
+      {/* Ouvert par défaut : capacités C01, travaux de l'atelier et ancres de preuve `#wp-<id>` des lignes de cycle. */}
+      <details open className="pb-details mb-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]">
+        <summary className="pbz-focusable cursor-pointer select-none px-4 py-3 text-[14px] font-semibold text-[var(--pb-text)]">Méthode · capacités, disponibilité et limites par module</summary>
         <div className="pb-panel-in border-t border-[var(--pb-border)] px-4 pb-2">
+          {/* Registre de capacités C01 : implémentation, configuration locale et travail lu par mode. */}
+          <CapabilityAccess />
           <ModuleAvailability snapshot={snapshot} />
         </div>
       </details>

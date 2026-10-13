@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import {
   useReactTable,
   getCoreRowModel,
@@ -839,7 +839,7 @@ export function RiskMatrixHeatmap({
                   >
                     {s.composite === null ? "·" : Math.round(s.composite)}
                   </span>
-                  <span className="text-[8.5px] font-semibold text-[var(--pb-text-muted)]">
+                  <span className="text-[8.5px] font-semibold" style={{ color: s.composite === null ? "var(--pb-text-faint)" : compositeTextColor(s.criticityBand, s.composite) }}>
                     {BAND_LABEL[s.criticityBand]}
                   </span>
                 </span>

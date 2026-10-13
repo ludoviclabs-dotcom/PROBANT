@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
@@ -21,8 +23,8 @@ export interface ProvisionRequested { periodId: string; id?: string; version?: n
 const resultOf = (run: WorkpaperRun | null): ProvisionResult | null => run?.result?.execution === "completed" && run.template.id === "provisions.register" ? run.result.result as ProvisionResult : null;
 const emptyFilters: ProvisionFilters = { kinds: [], type: "", state: "", q: "", view: "grid", focus: "" };
 
-export function ProvisionWorkspace({ initialDossierId = "", requested }: { initialDossierId?: string; requested?: ProvisionRequested }) {
-  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(emptyPeriod);
+export function ProvisionWorkspace({ initialDossierId = "", initialPeriodValue = emptyPeriod, requested }: { initialDossierId?: string; initialPeriodValue?: AccountingPeriod; requested?: ProvisionRequested }) {
+  const [dossierId, setDossierId] = useState(initialDossierId), [period, setPeriod] = useState<AccountingPeriod>(initialPeriodValue);
   const [view, setView] = useState<ProvisionView | null>(null), [activeId, setActiveId] = useState("");
   const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
   const [conflict, setConflict] = useState<{ current: Pick<WorkpaperRun, "id" | "version">; expectedVersion: number } | null>(null);
@@ -112,11 +114,11 @@ export function ProvisionWorkspace({ initialDossierId = "", requested }: { initi
   const kindTotals = result ? KIND_ORDER.map(k => [k, result.events.filter(e => PV_STATUS_KIND[e.status] === k).length] as [Kind, number]) : [];
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><a href="/dashboard/synthese">Constats historiques DEMO SA</a><a href="/tresorerie">Procédures de mission · Trésorerie</a><a href="/fiscal">Procédures de mission · Fiscalité</a><a href="/stocks">Procédures de mission · Stocks</a><span aria-current="page">Procédures de mission · Provisions et engagements</span></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/fiscal">Procédures de mission · Fiscalité</DossierContextAnchor><DossierContextAnchor href="/stocks">Procédures de mission · Stocks</DossierContextAnchor><span aria-current="page">Procédures de mission · Provisions et engagements</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Provisions et engagements</h1>
       <p className={styles.muted}>Un registre unique des risques et engagements — ouverts, nouveaux et clos, avec ou sans écriture — relié au grand livre et à l’annexe. L’outil calcule les ponts et compare l’estimation documentée, l’écriture et l’information publiée ; la probabilité, la qualification et la décision comptable restent humaines.</p></div></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
-      <label>Dossier<input value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
+      <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d’exercice", "Clôture", "Date de revue"][i]}<input type="date" value={period[k]} required={!requested?.periodId} disabled={saving || loading || !!requested?.periodId} onChange={e => { setPeriod(p => ({ ...p, [k]: e.target.value })); setView(null); }}/></label>)}
       <button className={styles.primary} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le registre"}</button>
     </form>
@@ -129,7 +131,7 @@ export function ProvisionWorkspace({ initialDossierId = "", requested }: { initi
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{SAVE_LABELS[status]}</span>
     </div>
     {loading && !view && <p role="status" className={styles.muted}>Lecture de l’état serveur…</p>}
-    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <a href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</a></>}</p>}
+    {error && <p role="alert" className={styles.notice} data-tone="danger">{error}{/connect|session/i.test(error) && <> <DossierContextAnchor href={"/api/auth/login?returnTo=" + encodeURIComponent(sheetUrl)}>Se connecter</DossierContextAnchor></>}</p>}
     {conflict && <div role="alert" className={styles.notice} data-tone="danger"><p>Conflit : la feuille est passée en version {conflict.current.version} (attendue {conflict.expectedVersion}). Aucune donnée n’a été écrasée.</p><button type="button" onClick={() => { setConflict(null); void refresh(conflict.current.id); }}>Recharger la version serveur</button></div>}
     {exactVersion && <p className={styles.notice} data-tone="info">Consultation de la version {requested?.version} : lecture seule.</p>}
     {view && !view.confidentialAccess && <p className={styles.notice} data-tone="info">Lecture sans habilitation confidentielle : pour les événements marqués confidentiels, le serveur retire l’obligation décrite, la contrepartie, la méthode, la décision, les scénarios, les estimations et les libellés de pièces confidentielles. Les montants comptabilisés restent visibles.</p>}

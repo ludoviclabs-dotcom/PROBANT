@@ -46,7 +46,7 @@ const FAM: Record<FindingFamily, { mark: string; hex: string; label: string; des
 const ACCENT  = "#5b9dff";
 const TEXT    = "#e8edf4";
 const MUTED   = "#7b8798";
-const FAINT   = "#56616f";
+const FAINT   = "var(--pb-text-faint)";
 const BORDER  = "#1c2430";
 const SURFACE = "#0b0e13";
 const SEP     = "#1a2029";
@@ -305,7 +305,7 @@ function RailPanel({
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: ACCENT }}>Comprendre</span>
-          <span style={{ fontSize: 9, letterSpacing: ".04em", color: "#46505f" }}>Niveau 3 · Analyse</span>
+          <span style={{ fontSize: 9, letterSpacing: ".04em", color: FAINT }}>Niveau 3 · Analyse</span>
           <span style={{ height: 1, flex: 1, background: BORDER }} />
         </div>
 
@@ -363,7 +363,7 @@ function RailPanel({
             {finding.preuve.map((p, i) => (
               <div key={i}>
                 <div style={{ padding: "10px 12px", border: `1px solid ${BORDER}`, borderLeft: `2px solid ${ACCENT}`, background: SURFACE, borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#9aa6b6" }}>
-                  <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: "#6a7587", marginBottom: 3 }}>{p.etape}</div>
+                  <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 3 }}>{p.etape}</div>
                   {p.detail}
                 </div>
                 {i < finding.preuve.length - 1 && (
@@ -387,7 +387,7 @@ function RailPanel({
           </div>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontSize: 11, fontWeight: 600, color: "#cdd6e2" }}>{riskLabel}</div>
-            <div style={{ fontSize: 10, color: "#6a7587" }}>Probabilité de faux positif : {riskProb}</div>
+            <div style={{ fontSize: 10, color: FAINT }}>Probabilité de faux positif : {riskProb}</div>
           </div>
         </div>
       </div>
@@ -399,7 +399,7 @@ function RailPanel({
           style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, border: "none", background: "none", cursor: "pointer", padding: 0 }}
         >
           <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: ACCENT }}>Justifier</span>
-          <span style={{ fontSize: 9, letterSpacing: ".04em", color: "#46505f" }}>Niveau 3 · Preuve</span>
+          <span style={{ fontSize: 9, letterSpacing: ".04em", color: FAINT }}>Niveau 3 · Preuve</span>
           <span style={{ height: 1, flex: 1, background: BORDER }} />
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.4"
             style={{ transition: "transform .2s", transform: showJustifier ? "rotate(180deg)" : "rotate(0deg)" }}>
@@ -461,7 +461,7 @@ function RailPanel({
                         )}
                       </div>
                       <div style={{ paddingBottom: 13 }}>
-                        <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: "#6a7587" }}>{p.etape}</div>
+                        <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: FAINT }}>{p.etape}</div>
                         <div style={{ marginTop: 3, fontSize: 11.5, lineHeight: 1.45, color: "#aeb8c6" }}>{p.detail}</div>
                       </div>
                     </div>
@@ -674,7 +674,7 @@ function SiloBody({
         {/* Zone A: reconstruction comptable */}
         <div style={{ position: "relative", zIndex: 2 }}>
           <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
-            <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace" }}>
+            <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT, fontFamily: "monospace" }}>
               Reconstruction comptable
             </span>
           </div>
@@ -737,7 +737,7 @@ function SiloBody({
 
         {/* Zone B: constat cards */}
         <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: "#6a7587", fontFamily: "monospace", marginBottom: 9 }}>
+          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT, fontFamily: "monospace", marginBottom: 9 }}>
             Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
           </div>
           <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>

@@ -1,4 +1,5 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import { EQ_DECISION_TEXT, EQ_ENTRY_TEXT, type EquityReading, type EquityResult } from "@/lib/workpapers/capitaux-review";
 import type { EquityFactsView } from "@/lib/workpapers/capitaux-sources";
@@ -74,7 +75,7 @@ export const EquityDetailPanel = forwardRef<EquityDetailHandle, Props>(function 
       <h3>Règlements</h3>
       {payments.length ? <ul className={styles.list}>{payments.map(p => <li key={p.paymentId}>{p.paymentId} · {dateFr(p.date)} · {eur(p.amount)}{p.label ? " · " + p.label : ""}</li>)}</ul> : <p className={styles.muted}>{line ? knownLabel(line.payment) : "Non calculé"}.</p>}
       {fact && <section className={styles.sourceBox} aria-label={"Registre des décisions — " + fact.fileName}><h3>Ligne du registre</h3><dl><dt>Pièce</dt><dd>{fact.fileName}</dd><dt>Localisateur</dt><dd>{locatorText(fact.locator)}</dd><dt>Version</dt><dd><code>{fact.documentVersionId}</code></dd></dl>
-        {canDownload && <a href={download(fact.documentVersionId)}>Télécharger l’original (même contrôle d’accès)</a>}</section>}
+        {canDownload && <DossierContextAnchor href={download(fact.documentVersionId)}>Télécharger l’original (même contrôle d’accès)</DossierContextAnchor>}</section>}
     </aside>;
   }
   const e = result?.entries.find(x => x.entryId === selection.id) ?? null, fact = facts?.entries.find(x => x.entryId === selection.id) ?? null;
@@ -93,6 +94,6 @@ export const EquityDetailPanel = forwardRef<EquityDetailHandle, Props>(function 
     </dl>
     {transfer && <section aria-label={"Transfert interne " + transfer.transferRef}><h3>Transfert interne {transfer.transferRef}</h3><ul className={styles.list}>{transfer.lines.map(l => <li key={l.entryId}>{l.entryId === base.entryId ? <strong>{l.entryId}</strong> : <button type="button" onClick={() => onMovement(l.entryId)}>{l.entryId}</button>} · {COMPONENT_LABELS[l.component]} · {eur(l.amount, { signed: true })}</li>)}</ul><p className={styles.muted}>Total du transfert {eur(transfer.total, { signed: true })} : aucun effet sur le total des capitaux propres.</p></section>}
     {fact && <section className={styles.sourceBox} aria-label={"Écritures — " + fact.fileName}><h3>Source</h3><dl><dt>Pièce</dt><dd>{fact.fileName}</dd><dt>Localisateur</dt><dd>{locatorText(fact.locator)}</dd><dt>Version</dt><dd><code>{fact.documentVersionId}</code></dd></dl>
-      {canDownload && <a href={download(fact.documentVersionId)}>Télécharger l’original (même contrôle d’accès)</a>}</section>}
+      {canDownload && <DossierContextAnchor href={download(fact.documentVersionId)}>Télécharger l’original (même contrôle d’accès)</DossierContextAnchor>}</section>}
   </aside>;
 });

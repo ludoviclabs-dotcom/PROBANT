@@ -1,4 +1,6 @@
 "use client";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+
 import { useState } from "react";
 import type { RemainingItem } from "@/lib/workpapers/closing-evaluate";
 import { CitationPicker, Cites, readCitations } from "./ProcedurePanel";
@@ -70,7 +72,7 @@ export function ClosingClose({ view, canSign, send, busy, onItem }: { view: Clos
         <caption className="sr-only">États lus dans les cycles ; le dossier ne les modifie pas.</caption>
         <thead><tr><th scope="col">Feuille</th><th scope="col">État</th><th scope="col">Version</th><th scope="col">Revue</th><th scope="col">Au programme</th></tr></thead>
         <tbody>{e.observations.map(o => { const linked = e.procedures.find(p => p.engine?.id === o.procedure);
-          return <tr key={o.runId}><td>{o.route ? <a href={o.route}>{o.label}</a> : o.label}<br/><span className={cl.hash}>{o.runId}</span></td><td>{STATE_LABELS[o.state] ?? o.state}</td><td className={cl.num}>r{o.revision} v{o.version}</td>
+          return <tr key={o.runId}><td>{o.route ? <DossierContextAnchor href={o.route}>{o.label}</DossierContextAnchor> : o.label}<br/><span className={cl.hash}>{o.runId}</span></td><td>{STATE_LABELS[o.state] ?? o.state}</td><td className={cl.num}>r{o.revision} v{o.version}</td>
             <td className={cl.small}>{o.approval ? o.approval.actorId + " · " + stampFr(o.approval.at) : "—"}</td><td>{linked ? linked.procedureId + " · " + linked.riskIds.join(", ") : <span className={cl.pill} data-tone="danger">Hors programme</span>}</td></tr>; })}</tbody>
       </table></div>
       {!e.observations.length ? <p className={cl.small}>Aucune feuille de cycle pour ce dossier et cet exercice.</p> : null}

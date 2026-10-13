@@ -1,0 +1,62 @@
+{
+  "selectedPaths": [
+    "app/dashboard/synthese/page.tsx",
+    "app/globals.css",
+    "components/probant/ClientFramingWorkspace.tsx",
+    "components/probant/CloisonsWorkspace.tsx",
+    "components/probant/DemoLauncher.tsx",
+    "components/probant/WorkpaperPanel.tsx",
+    "components/probant/closing/closing.module.css",
+    "tools/fast-glob-compat/README.md",
+    "tools/fast-glob-compat/index.cjs"
+  ],
+  "selectedDiffSha256": "738d9f6762967bd0e404b6f98cf5847de7ae3fd7960c7d01259ecfe58d8e73be",
+  "references": [
+    {
+      "path": "mission20-review/PROBANT-MISSION-20-RAPPORT-COMPLET.md",
+      "present": true,
+      "sha256": "ba6b2d0efdb4c3fb84a8a09ac6650b93392d39b19d074ae405f20538464bec44"
+    },
+    {
+      "path": "mission20-review/MISSION20-review.diff",
+      "present": true,
+      "sha256": "ff79a6d0b7b704822499f78acac95f2bfa8c4d1b181c2411bfd1722b6aedf332"
+    },
+    {
+      "path": "mission20-review/package/MISSION20-review.diff",
+      "present": true,
+      "sha256": "ff79a6d0b7b704822499f78acac95f2bfa8c4d1b181c2411bfd1722b6aedf332"
+    },
+    {
+      "path": "mission20/docs/recette/mission20/EVIDENCE.md",
+      "present": true,
+      "sha256": "4e0c346d76b945168364eabc4e7426a7d4fe2adaa820e48b41fddb02a7446047"
+    },
+    {
+      "path": "mission20/docs/recette/mission20/HANDOFF.md",
+      "present": true,
+      "sha256": "c1961f63c659c99727dbec73d93fe6071a8bbd629db99245a9d4ecfa78a7e99c"
+    },
+    {
+      "path": "mission20/docs/recette/mission20/versions.json",
+      "present": true,
+      "sha256": "a5513ca6628d74dc67e8b32227f678a98b91e9a57b30d4900f1d71b21d9f46ee"
+    },
+    {
+      "path": "mission20/docs/recette/mission20/historical-axe.json",
+      "present": true,
+      "sha256": "9f45038bb8d860592ce45512efb6a9fdf78e0511739053b83697864e84a748c9"
+    },
+    {
+      "path": "mission20/docs/recette/mission20/design-faults.json",
+      "present": true,
+      "sha256": "aacdb09dacd6bbfbf57e9b7af4992d8661baeceebac6de541c71e051c29e4235"
+    },
+    {
+      "path": "mission20-review/PROBANT-M20-RECETTE.zip",
+      "present": true,
+      "sha256": "87885554e9edd0d8338cdee7f0f071535429d7cc3807ae2031972be83b96e906"
+    }
+  ],
+  "selectedPackMatchesCheckout": true
+}

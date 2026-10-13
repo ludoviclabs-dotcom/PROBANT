@@ -1,0 +1,15 @@
+{
+  "node": "v24.14.0",
+  "platform": "win32",
+  "architecture": "x64",
+  "appManifest": "0.1.0",
+  "packages": {
+    "next": "15.5.27",
+    "react": "19.2.8",
+    "vitest": "5.0.3",
+    "typescript": "5.9.3",
+    "@playwright/test": "1.62.1",
+    "axe-core": "4.13.0",
+    "tinyglobby": "0.2.17"
+  }
+}

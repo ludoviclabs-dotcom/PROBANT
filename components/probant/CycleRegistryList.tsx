@@ -1,7 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CYCLE_STATUS_LABELS, SEVERITY_ORDER, type CycleRow, type CycleRowStatus } from "@/lib/dossier/cycle-registry";

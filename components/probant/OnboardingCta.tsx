@@ -13,7 +13,7 @@
  * `app/dashboard/layout.tsx` (Server Component) en client component.
  */
 
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { usePathname } from "next/navigation";
 import { UploadCloud } from "lucide-react";
 import { track } from "@/lib/analytics/track";

@@ -1,4 +1,6 @@
 "use client";
+import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
+import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
@@ -240,15 +242,15 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     }
     function dirty() { setStatus("idle"); setConflict(null); pending.current = null; touch(t => t + 1); }
     const controlClass = "rounded border border-[var(--pb-border)] bg-transparent p-2";
-    return <main className="mx-auto max-w-6xl space-y-5 p-6">
+    return <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-6 [overflow-wrap:anywhere]">
     <header><p className="text-sm">Recette jetable · identité serveur</p><h1 className="text-2xl font-semibold">{isSales ? "Clients et ventes" : "Cadrage Clients"}</h1>
-      <p>{isSales ? "Encaissements, avoirs et jugement documenté ; cadrage lié à sa version verrouillée." : "Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus."}</p><a className="underline" href={"/clients-framing/synthesis?" + new URLSearchParams({ dossierId, periodId: requested?.periodId || periodId(period), ...(run ? { rootId: run.rootId, id:run.id, version:String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse de mission</a></header>
+      <p>{isSales ? "Encaissements, avoirs et jugement documenté ; cadrage lié à sa version verrouillée." : "Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus."}</p><DossierContextAnchor className="underline" href={"/clients-framing/synthesis?" + new URLSearchParams({ dossierId, periodId: requested?.periodId || periodId(period), ...(run ? { rootId: run.rootId, id:run.id, version:String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse de mission</DossierContextAnchor></header>
     <style>{`@keyframes pb-exception-resolved{from{background:#293d54}to{background:transparent}}.pb-exception-resolved{animation:pb-exception-resolved 180ms ease-out}@media(prefers-reduced-motion:reduce){.pb-exception-resolved{animation:none}}`}</style>
-    <form onSubmit={e => { e.preventDefault(); void load(); }} className="flex flex-wrap gap-3 rounded-xl border border-[var(--pb-border)] p-4">
-      <label>Dossier<input aria-label="Dossier" className={controlClass} value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); dirty(); }}/></label>
+    <details><summary>Détails du dossier et dates de revue</summary><form onSubmit={e => { e.preventDefault(); void load(); }} className="flex flex-wrap gap-3 rounded-xl border border-[var(--pb-border)] p-4">
+      <label>Dossier<DossierScopedInput aria-label="Dossier" className={controlClass} value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); dirty(); }}/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((key, i) => <label key={key}>{["Début", "Clôture", "Date de revue"][i]}<input type="date" className={controlClass} value={period[key]} required disabled={saving || loading} onChange={e => { setPeriod(p => ({ ...p, [key]: e.target.value })); setView(null); dirty(); }}/></label>)}
       <button className={controlClass} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le cadrage"}</button>
-    </form>
+    </form></details>
     <p role="status" aria-live="polite">{!view ? "Aucune feuille chargée" : saveStateLabel({ status, dirty: isDirty, readOnly })}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
     {error && <p role="alert">{error}</p>}
     {status === "failed" && pending.current && <button className={controlClass} onClick={() => { const p = pending.current!; void mutate(p.body, p.imports, p.key); }}>Réessayer la même commande</button>}
@@ -261,7 +263,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
       <button className={controlClass} onClick={() => { setConclusion(conflict.current.conclusion ?? ""); setView(v => v ? { ...v, runs: v.runs.map(r => r.id === conflict.current.id ? conflict.current : r) } : v); setDraftOverride(null); salesDraftRef.current = null; setConflict(null); setStatus("idle"); }}>Reprendre le contenu serveur</button>
     </section>}
     {view && <>
-      {exactVersion && <section className="rounded border border-[var(--pb-border)] p-4"><p>Examen de la version {run?.version} · version courante {run ? view.currentVersions?.[run.id] ?? "inconnue" : "—"}. {run && view.lineageCurrent?.[run.rootId] && `Révision courante ${view.lineageCurrent[run.rootId].revision}, version ${view.lineageCurrent[run.rootId].version}.`} Vue en lecture seule.</p><a className="underline" href={run ? "/clients-framing?" + new URLSearchParams({ dossierId: run.scope.dossierId, periodId: run.scope.periodId, id: view.lineageCurrent?.[run.rootId]?.id ?? run.id }) : "/clients-framing"}>Travailler sur la version courante</a></section>}
+      {exactVersion && <section className="rounded border border-[var(--pb-border)] p-4"><p>Examen de la version {run?.version} · version courante {run ? view.currentVersions?.[run.id] ?? "inconnue" : "—"}. {run && view.lineageCurrent?.[run.rootId] && `Révision courante ${view.lineageCurrent[run.rootId].revision}, version ${view.lineageCurrent[run.rootId].version}.`} Vue en lecture seule.</p><DossierContextAnchor className="underline" href={run ? "/clients-framing?" + new URLSearchParams({ dossierId: run.scope.dossierId, periodId: run.scope.periodId, id: view.lineageCurrent?.[run.rootId]?.id ?? run.id }) : "/clients-framing"}>Travailler sur la version courante</DossierContextAnchor></section>}
       <nav aria-label="Filtre de la feuille" className="flex flex-wrap gap-2">{(["all","blocked","exceptions","evidence","review","stale"] as MissionFilter[]).map(f => <button key={f} className="rounded border px-3 py-1" aria-pressed={sheetFilter === f} onClick={() => setSheetFilter(f)}>{{all:"Toute la feuille",blocked:"Blocages",exceptions:"Exceptions",evidence:"Pièces",review:"Revue",stale:"Périmé"}[f]}</button>)}</nav>
       <p>Identité connectée : {view.actorId}{run ? " · Préparateur réel : " + run.preparedBy : ""}</p>
       <section className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4">
@@ -299,13 +301,13 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
             <pre tabIndex={0} className="overflow-auto text-xs">{JSON.stringify(batch.rows.slice(0, 5).map(r => ({ source: r.original, normalise: r.normalized, localisateur: r.locator })), null, 2)}</pre></details>
           {!batch.approval && canPrepare && <button className={controlClass} disabled={saving || !!batch.report.blocking.length} onClick={() => void mutate({ command: "approve_import", importId: batch.id, previewHash: batch.previewHash,
                         expectedSourceId: view.sourceHeads.find(h => h.document_type === batch.document.documentType)?.import_id ?? null }, true)}>Approuver ce mapping</button>}
-          {view.permissions.includes("download") && <a className="underline" href={endpoint() + "&operation=download&id=" + encodeURIComponent(batch.document.id)}>Télécharger cette version source</a>}
+          {view.permissions.includes("download") && <DossierContextAnchor className="underline" href={endpoint() + "&operation=download&id=" + encodeURIComponent(batch.document.id)}>Télécharger cette version source</DossierContextAnchor>}
         </article>)}
       </section>
       <section hidden={!["all","blocked","stale"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">2. Population figée et calcul versionné</h2>
         {view.runs.length > 0 && <label className="block min-w-0">Feuille<select className={controlClass + " block w-full min-w-0 sm:inline-block sm:w-auto sm:max-w-full"} disabled={saving} value={activeId} onChange={e => { const selected = view.runs.find(r => r.id === e.target.value)!; setActiveId(selected.id); setPeriod(selected.period); setConclusion(selected.conclusion ?? ""); setDraftOverride(null); salesDraftRef.current=null; dirty(); }}>
           {view.runs.map(r => <option value={r.id} key={r.id}>{r.template.id === "clients.sales" ? "Clients et ventes" : "Cadrage"} · Révision {r.revision} · {r.state} · v{r.version}</option>)}</select></label>}
-        {!run && canPrepare && <button className={controlClass} disabled={saving} onClick={() => void mutate({ command: "create", period, instanceKey: "clients-framing-pilot" })}>Créer la feuille pilote</button>}
+        {!run && canPrepare && <button className={controlClass} disabled={saving} onClick={() => void mutate({ command: "create", period, instanceKey: "clients-framing-pilot" })}>Initialiser la feuille Clients pour ce dossier</button>}
         {run && !current && <p role="alert">Une source a été remplacée. Cette décision reste attachée à ses anciennes sources ; créez une révision pour reprendre.</p>}
         {run?.state === "locked" && !isSales && current && canPrepare && <button className={controlClass} disabled={saving} onClick={() => {const linked=view.runs.filter(r=>r.template.id==="clients.sales" && (r.clientsWork?.framing.rootId ?? view.salesFraming?.[r.id]?.rootId)===run.rootId).sort((a,b)=>b.revision-a.revision)[0]; if(linked){setActiveId(linked.id);setPeriod(linked.period);setConclusion(linked.conclusion??"");setDraftOverride(null);salesDraftRef.current=null;dirty();}else void mutate({command:"create_sales",period:run.period,framingId:run.id,framingVersion:run.version});}}>Ouvrir les encaissements, avoirs et jugement</button>}
         {run?.state === "draft" && !isSales && canPrepare && <button className={controlClass} disabled={saving || view.sourceHeads.filter(h => h.document_type in sourceLabels).length !== 3 || !current} onClick={() => action("freeze", { importIds: view.sourceHeads.filter(h => h.document_type in sourceLabels).map(h => h.import_id) })}>Figer la population complète</button>}
@@ -329,7 +331,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         {run.state === "approved" && canReview && <button className={controlClass} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
         {run.approval && <p>Décision de {run.approval.actorId} · {run.approval.at} · Version {run.approval.version}</p>}
       </section>}
-      <p><a href={"/cutoff?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Cut-off transversal · ventes et achats documentés</a> · <a href={"/payables?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Investigation Achats et fournisseurs</a></p>
+      <p><DossierContextAnchor href={"/cutoff?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Cut-off transversal · ventes et achats documentés</DossierContextAnchor> · <DossierContextAnchor href={"/payables?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Investigation Achats et fournisseurs</DossierContextAnchor></p>
           <WorkpaperPanel runs={run ? [run] : []} durable filter={sheetFilter} noteId={requested?.noteId}/>
     </>}
   </main>;

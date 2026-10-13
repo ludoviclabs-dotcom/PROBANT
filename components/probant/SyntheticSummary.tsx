@@ -1,7 +1,9 @@
 "use client";
 import { useMemo, useState } from "react";
-import Link from "next/link";
+import { CapabilityAccess } from "./CapabilityAccess";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
+import { navigationContext } from "@/lib/dossier/navigation-context";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { periodId } from "@/lib/workpapers/model";
 import { priorityCycle, projectCycleRows, projectSourceState, sortCycleRows } from "@/lib/dossier/cycle-registry";
@@ -39,6 +41,7 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
     </header>
     <DossierContextBar className="mb-4" dossier={{ name: snapshot.dossier.societe.raisonSociale, period, id: snapshot.dossier.id }} sources={sources} priority={priority} />
     <CycleRegistryList rows={rows} synthetic className="mb-4" title="Cycles du scénario" />
+    <CapabilityAccess context={navigationContext(snapshot, { organizationId: snapshot.dossier.organizationId ?? "SYNTHETIC-DEMO", dossierId: snapshot.dossier.id })} />
     <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2"><Link className={linkClass} href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className={linkClass} onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status" className="mt-2 text-[13px] text-[var(--pb-text-muted)]">{message}</p>

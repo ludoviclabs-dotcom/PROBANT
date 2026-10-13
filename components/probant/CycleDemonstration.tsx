@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
+import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { Copy, FlaskConical, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useActiveDossier } from "@/lib/dossier/client";

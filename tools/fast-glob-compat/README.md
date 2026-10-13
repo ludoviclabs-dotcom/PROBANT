@@ -24,3 +24,8 @@ transitif actuel. Le test du lock refuse un autre consommateur futur, pour
 
 La normalisation des barres terminales effectue un parcours linéaire. Les tests
 couvrent aussi les longues séries de séparateurs et la conservation des racines.
+
+Sous Windows, les motifs sont résolus depuis la racine de leur volume, puis les
+résultats retrouvent le caractère absolu ou relatif demandé. Cela couvre les
+motifs avec lettre de lecteur et ceux qui remontent hors du répertoire courant,
+sans désactiver la règle Next de navigation interne ni élargir l’API acceptée.
