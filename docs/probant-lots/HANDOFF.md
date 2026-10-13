@@ -28,7 +28,7 @@
 |---|---|
 | `lib/synthesis/__tests__/effects-c05.test.ts` (recette indépendante) | 19 : signal 100 000 / 50 000 sans effet ; doublon exact ; 100 / 120 avec et sans succession ; L1/L2 + L2/L3 et chaîne à trois ; sens opposés ; postes et sens séparés ; +1 000 fiscalité inconnue ; taux sans qualification ; impôt partiel ; non déductible ; correction totale, partielle, sans détail ; invariance à l'ordre ; double comptage ; vues et export |
 | Suites synthèse, visualisation, risques, composants | 144 réussis / 144 (9 fichiers) |
-| Suite unitaire complète | lancée localement au moment de la PR, résultat non relevé : le contrôle « lint · typecheck · test · build » de la CI fait foi |
+| Suite unitaire complète | 1 607 réussis / 1 612, 149 fichiers ; les 5 échecs sont des délais de 5 s dépassés hors lot (PV Capitaux propres, clavier Trésorerie, HTTP démo, estimation Provisions) ; 29 / 30 rejoués seuls, le dernier (Provisions, 9 s) ne tient le délai que seul dans son fichier ; la CI fait foi |
 | Typecheck, lint | OK (7 avertissements préexistants hors lot) |
 | Parcours Playwright sur le build de production | non rejoués localement : le contrôle « E2E Playwright · axe » de la CI fait foi |
 
