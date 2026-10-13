@@ -51,7 +51,7 @@ Vues relevées : Synthèse, Tests, Cartographie des risques, Revue par cloison, 
 | `e2e/c02-finition.spec.ts` (dont `borderLeftColor` de la feuille bloquée) | 14/14 |
 | `e2e/c03-assertions.spec.ts`, `e2e/demo-journey.spec.ts` | 6/6, 4/4 |
 | `e2e/bordures-stratifiees.spec.ts` | 39/39 |
-| Débordement horizontal | nul partout sauf Onboarding à 390 px : 448 px avant comme après (préexistant, hors lot) |
+| Débordement horizontal | nul partout sauf Onboarding à 390 px : 448 px avant comme après sous Windows, 454 px sous Linux CI (préexistant, hors lot, gelé dans le spec via `KNOWN_OVERFLOW`) |
 | Lint, typecheck, `next build` | OK |
 
 Lecture visuelle des captures longues (après, et « avant simulé » au même cadrage) : les couleurs réactivées sont toutes des jetons de la charte ou des couleurs sémantiques déjà portées par le texte ou le fond de l'élément (pastille « Fichier manquant » ambre sur ambre, « Obligatoire » rouge sombre sous texte rouge, « Sourcé » vert, boutons d'action de la Synthèse en accent indigo tamisé, zone de dépôt et étape courante de l'Onboarding en accent, encart « analysé dans PROBANT » du normatif en accent à 30 %). Aucune bordure ne vient d'une palette étrangère au graphite/indigo et aux accents sémantiques ; les contours `--pb-border-soft` de la matrice des risques deviennent légèrement plus discrets que `--pb-border`, ce qui est leur intention.
