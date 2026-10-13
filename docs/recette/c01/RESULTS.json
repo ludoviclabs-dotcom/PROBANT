@@ -1,0 +1,462 @@
+{
+  "generatedAt": "2026-10-13T00:17:42.921607+00:00",
+  "testedCodeSha": "748141fa201469479257a8daa3a090625ee466ab",
+  "baseSha": "963549987018173945e4222c8a38a27d1ceaf60d",
+  "unit": {
+    "passed": 56,
+    "failed": 0,
+    "skipped": 0,
+    "report": "unit-final56.json",
+    "additionalContextRecheck": {
+      "passed": 10,
+      "report": "unit-context-final.json",
+      "countedAgain": false
+    }
+  },
+  "browser": {
+    "passed": 19,
+    "failed": 0,
+    "skipped": 0,
+    "report": "release/browser.json"
+  },
+  "ui": {
+    "widths": [
+      390,
+      1024,
+      1440
+    ],
+    "stableStates": 51,
+    "seriousCritical": 0,
+    "pageOverflow": 0,
+    "audits": [
+      {
+        "file": "docs/recette/c01/release/clients-proof-1024.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/clients-proof-1440.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/clients-proof-390.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/historical-stocks-1024.json",
+        "route": "http://127.0.0.1:3121/stocks?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/historical-stocks-1440.json",
+        "route": "http://127.0.0.1:3121/stocks?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/historical-stocks-390.json",
+        "route": "http://127.0.0.1:3121/stocks?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/independent-recipe-return.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/mismatched-exercise.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2026&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/missing-dossier.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/missing-sheet-1024.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=33333333-3333-4333-8333-333333333333&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2025&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2025-01-01&exerciseEnd=2025-12-31&procedurePeriod=exercise&procedureStart=2025-01-01&procedureEnd=2025-12-31&reviewDate=2026-02-01&periodId=period-c86f0bc6201b297aa9f432b26230406b542c3664e99684056379645984e00c8f",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/missing-sheet-1440.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=33333333-3333-4333-8333-333333333333&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2025&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2025-01-01&exerciseEnd=2025-12-31&procedurePeriod=exercise&procedureStart=2025-01-01&procedureEnd=2025-12-31&reviewDate=2026-02-01&periodId=period-c86f0bc6201b297aa9f432b26230406b542c3664e99684056379645984e00c8f",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/missing-sheet-390.json",
+        "route": "http://127.0.0.1:3121/clients-framing/synthesis?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=33333333-3333-4333-8333-333333333333&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2025&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2025-01-01&exerciseEnd=2025-12-31&procedurePeriod=exercise&procedureStart=2025-01-01&procedureEnd=2025-12-31&reviewDate=2026-02-01&periodId=period-c86f0bc6201b297aa9f432b26230406b542c3664e99684056379645984e00c8f",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/returned-synthesis-1024.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/returned-synthesis-1440.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/returned-synthesis-390.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=22222222-2222-4222-8222-222222222222&dossierId=11111111-1111-4111-8111-111111111111&entity=ENTIT%C3%89+LOCALE+%C2%B7+fixture+de+recette&exercise=2024&reference=fixture-pcg&dossierMode=local_persistent&siren=123456789&exerciseStart=2024-01-01&exerciseEnd=2024-12-31&procedurePeriod=exercise&procedureStart=2024-01-01&procedureEnd=2024-12-31&reviewDate=2025-02-01&periodId=period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/workshop-scope-1024.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/workshop-scope-1440.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c01/release/workshop-scope-390.json",
+        "route": "http://127.0.0.1:3121/dashboard/synthese?context=1&organizationId=demo&dossierId=demo-sa-2024&entity=DEMO+SA&exercise=2024&reference=2024-01-01&dossierMode=historical&siren=000000000&exerciseEnd=2024-12-31",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/clients-1024.json",
+        "route": null,
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/clients-1440.json",
+        "route": null,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/clients-390.json",
+        "route": null,
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/depot",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/synthese",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/risques",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/cloisons",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/referentiel",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/dossier",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/fiscalite",
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/depot",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/synthese",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/risques",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/cloisons",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/referentiel",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/dossier",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/fiscalite",
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/depot",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/synthese",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/risques",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/cloisons",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/referentiel",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/dossier",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/historical-axe.json",
+        "route": "/dashboard/fiscalite",
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-1024.json",
+        "route": null,
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-1440.json",
+        "route": null,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-390.json",
+        "route": null,
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-detail-1024.json",
+        "route": null,
+        "width": 1024,
+        "scrollWidth": 1024,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-detail-1440.json",
+        "route": null,
+        "width": 1440,
+        "scrollWidth": 1440,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      },
+      {
+        "file": "docs/recette/c00/c01-release-regression/programme-detail-390.json",
+        "route": null,
+        "width": 390,
+        "scrollWidth": 390,
+        "seriousCritical": 0,
+        "otherViolations": 0
+      }
+    ]
+  },
+  "build": {
+    "code": 0,
+    "report": "build-release-owned/build.log",
+    "types": "passed",
+    "lint": "passed",
+    "preexistingWarnings": 7
+  },
+  "notVerified": [
+    "PostgreSQL integration",
+    "real user identity",
+    "screen reader"
+  ],
+  "sourcesPreserved": {
+    "checkedAt": "2026-10-13T00:15:58.223615+00:00",
+    "head": "963549987018173945e4222c8a38a27d1ceaf60d",
+    "proofsChecked": 313,
+    "proofErrors": [],
+    "statusUnchanged": true,
+    "trackedChanges": []
+  }
+}

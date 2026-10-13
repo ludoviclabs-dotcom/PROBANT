@@ -1,0 +1,10 @@
+{
+  "finishedAt": "2026-10-13T00:16:03.533Z",
+  "exitCode": 0,
+  "selected": [
+    "e2e/c01-context.spec.ts",
+    "e2e/c00-layout.spec.ts",
+    "e2e/mission20-contrast.spec.ts",
+    "e2e/mission20-design.spec.ts"
+  ]
+}
