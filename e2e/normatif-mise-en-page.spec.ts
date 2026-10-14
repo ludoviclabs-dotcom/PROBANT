@@ -46,7 +46,10 @@ const ROUTES = [
     name: "source",
     path: "/normatif/sources/cc-capitaux-propres",
     level: 1,
-    title: "Code de commerce — Perte de la moitié du capital social (art. L.225-248)",
+    title: "Code de commerce — Réserve légale et capitaux propres inférieurs à la moitié du capital (art. L232-10, L223-42, L225-248, L227-1)",
+    // Libellé de 127 caractères depuis le lot C09 (PR #86, articles des quatre formes sociales) :
+    // à ≈ 27 caractères par ligne dans 342 px (voir plus bas), 5 lignes.
+    maxLines390: 5,
   },
   { name: "methodologie", path: "/normatif/methodologie", level: 2, title: "Méthodologie & contrôles qualité" },
   { name: "export", path: "/normatif/export", level: 2, title: "Export de la cartographie" },
@@ -194,10 +197,12 @@ for (const width of WIDTHS) {
           await expect(toggle).toBeVisible();
           await expect(toggle).toHaveAttribute("aria-expanded", "false");
           await expect(toggle).toHaveAttribute("aria-controls", "normatif-nav");
-          // Colonne utile : 390 − 2 × 24 px de marge des pages = 342 px. Le titre le plus long
-          // (≈ 70 caractères en 20 px gras) tient alors sur 3 à 4 lignes, pas une douzaine.
+          // Colonne utile : 390 − 2 × 24 px de marge des pages = 342 px. En 20 px gras (≈ 0,55 em par
+          // caractère), une ligne porte ≈ 30 caractères, ≈ 27 une fois les mots renvoyés à la ligne :
+          // un titre de ≈ 70 caractères tient sur 3 à 4 lignes, pas une douzaine. Seul un titre plus
+          // long déclare sa borne, calculée de la même façon ; la largeur du titre reste contrôlée.
           expect(layout.heading.width).toBeGreaterThanOrEqual(300);
-          expect(layout.heading.lines).toBeLessThanOrEqual(4);
+          expect(layout.heading.lines).toBeLessThanOrEqual("maxLines390" in route ? route.maxLines390 : 4);
           for (const frame of layout.tableFrames) expect(frame.clientWidth).toBeGreaterThanOrEqual(300);
         } else {
           // Dès 768 px, la navigation reste en flux à gauche et le bouton du bandeau disparaît.
