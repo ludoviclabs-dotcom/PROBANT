@@ -80,6 +80,12 @@ describe("C09 — démonstration HOLDING-CP-1 : signal daté, chiffres inchangé
     expect(holding.description).not.toMatch(/non engagée/);
     expect(holding.risquesDominants).not.toContain("Alerte capitaux propres (bloquant)");
   });
+
+  it("puce du sélecteur de scénarios : signal « à examiner » et marqueur « (bloquant) » de la gravité inchangée", () => {
+    const chip = holding.risquesDominants.find(r => r.startsWith("Capitaux propres sous la moitié du capital"));
+    expect(chip).toBe("Capitaux propres sous la moitié du capital — à examiner (bloquant)");
+    expect(chip!.endsWith("(bloquant)")).toBe(finding.severity === "bloquant");
+  });
 });
 
 describe("C09 — démonstration DEMO-CP-1 (DEMO SA) : signal daté, chiffres et gravité inchangés", () => {

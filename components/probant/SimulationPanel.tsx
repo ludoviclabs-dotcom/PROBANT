@@ -44,7 +44,7 @@ const SEVERITY_DOT: Record<string, string> = {
   "Créances douteuses": "#ef4444",
   "Cut-off fournisseurs": "#eab308",
   "Dépréciation participation (bloquant)": "#ef4444",
-  "Alerte capitaux propres (bloquant)": "#ef4444",
+  "Capitaux propres sous la moitié du capital — à examiner (bloquant)": "#ef4444",
   "Hors-bilan non déclaré": "#a78bfa",
   "Coût employeur incomplet": "#eab308",
   "Provision réglementaire ARS": "#f97316",

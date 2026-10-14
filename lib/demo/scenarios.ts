@@ -466,7 +466,8 @@ const scenarioHolding: ScenarioMeta = {
   description:
     "Structure holding confrontée à une filiale déficitaire. Trois constats à fort impact : participation non dépréciée (1,2 M€), capitaux propres sous la moitié du capital (à examiner) et garantie hors-bilan cachée.",
   anomaliesCount: 3,
-  risquesDominants: ["Dépréciation participation (bloquant)", "Capitaux propres sous la moitié du capital (à examiner)", "Hors-bilan non déclaré"],
+  // Le signal légal reste « à examiner » ; la gravité PROBANT de HOLDING-CP-1 reste « bloquant » (marqueur de la puce).
+  risquesDominants: ["Dépréciation participation (bloquant)", "Capitaux propres sous la moitié du capital — à examiner (bloquant)", "Hors-bilan non déclaré"],
   silos: [
     {
       siloId: "immobilisations-financieres",
