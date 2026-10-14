@@ -47,6 +47,14 @@ export const REFERENTIEL_EDITIONS: readonly ReferentielEdition[] = [
       "Première édition identifiée : contenu présent sur main depuis f0bc8f2, jusque-là porté sous l'identifiant antérieur 2024-01-01.",
     entrees: [],
   },
+  {
+    numero: 3,
+    empreinte: "9f821c3212856b03a65e00d846300ac0ade4f6855ec1a82ea918f142c9f0d170",
+    registreModifieLe: "2026-10-14",
+    motif:
+      "C. com. art. L225-248 : version en vigueur depuis le 11/03/2023 (loi n° 2023-171, art. 14), citation et URL Légifrance de cette version (PR #89, fusionnée avant le journal sans édition déclarée).",
+    entrees: ["CCOM_CAPITAL"],
+  },
 ];
 
 /** Contenu couvert par l'empreinte. */
