@@ -1,0 +1,14 @@
+{
+  "route": "/dashboard/risques",
+  "width": 1440,
+  "main": {
+    "left": 240,
+    "width": 1200
+  },
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "axeSerious": {}
+}

@@ -1,3 +1,95 @@
+# Handoff — Audit Normatif 360 à 390 px, navigation vers la liste des cycles, tiroirs de navigation (2026-10-14)
+
+**Base.** Worktree `probant-analysis-setup-41121f`, branche `claude/competent-borg-3d6941`, SHA de départ `ff3f9fb` (`main` après la PR #84 C08), checkout propre. Le module Normatif n'avait pas bougé depuis son introduction (`fb43c8e`). Fichiers applicatifs modifiés : `app/normatif/layout.tsx`, `components/normatif/CycleSidebar.tsx`, `app/normatif/sources/[slug]/page.tsx`, `components/normatif/IFRSvsPCGPanel.tsx`. La demande citait `NormatifSidebar` ; le composant réel s'appelle `CycleSidebar`. Aucun contenu modifié, aucun merge ni déploiement.
+
+## Cause
+
+| Défaut | Où | Effet mesuré (Chromium, build de production de `ff3f9fb`, 390 × 900) |
+|---|---|---|
+| Navigation `w-60 shrink-0` toujours affichée, sans point de rupture | `app/normatif/layout.tsx`, `CycleSidebar` | `<main>` de 150 px sur les 7 routes (90 px utiles avec le `p-6` des pages). Titre de la fiche `cc-capitaux-propres` sur 9 lignes, registre des sources dans un cadre de 100 px pour 530 px, bandeau rogné (« Audit Normatif 360 » et le badge coupés). Débordement interne de `<main>` : 24 px (accueil, cycles), 71 px (fiche cycle), 195 px (méthodologie), 457 px (fiche source). Le document restait à 390 / 390 : `<main>` défile dans son cadre, d'où l'angle mort du contrôle `scrollWidth`. |
+| URL insécable dans une ligne flex | `Row` de `app/normatif/sources/[slug]/page.tsx` | sortait de la carte, donc de `<main>`, à toute largeur étroite |
+| Tableau dans un cadre `overflow-hidden` | `IFRSvsPCGPanel` | à 390, seule la colonne « Thème » restait visible ; « Traitement IFRS », « Traitement PCG » et « Impact audit » étaient rognées sans défilement possible |
+
+## Changements
+
+- **Mise en page** (`app/normatif/layout.tsx`, composant client comme `app/dashboard/layout.tsx`) : état `navOpen`, voile `z-[45] md:hidden`, bouton « Ouvrir la navigation » (`aria-controls="normatif-nav"`, `aria-expanded`, `md:hidden`), hauteur `h-dvh`, bandeau `px-4 md:px-6`. Gestion du focus reprise du `ReviewDrawer` des Cloisons. À l'ouverture, le focus va sur « Fermer la navigation » et Tab / Maj+Tab bouclent dans le tiroir. Ouvert, le tiroir rend la colonne de contenu `inert`. Il se ferme par Échap, le voile, « Fermer » ou un lien, et le focus revient alors au bouton du bandeau. Il se ferme aussi quand la fenêtre passe `md` (`matchMedia`, gardé pour jsdom). Sous `sm`, le titre du bandeau prend une seconde ligne (`order-last basis-full`, aucun élément focalisable) et le séparateur disparaît.
+- **Navigation** (`CycleSidebar`) : `id="normatif-nav"`, mêmes classes de tiroir que `components/probant/Sidebar` (`max-md:fixed`, `z-50`, ombre, `invisible` fermé, donc hors de l'ordre de tabulation). Elle accepte `ref`, `open`, `onNavigate` (appelé par chaque lien) et `onClose` (bouton « Fermer », `md:hidden`). Seule la propriété `translate` est animée à l'ouverture ; à la fermeture, `translate` et `visibility` sont animées ensemble. Avec Tailwind 4, `translate-x-*` pose `translate` : la `transition-[transform,visibility]` reprise telle quelle n'aurait rien animé, et une `visibility` encore `hidden` au premier rendu rendait `focus()` inopérant (constaté en e2e).
+- **Fiche source** : la valeur d'une ligne est `min-w-0 [overflow-wrap:anywhere]`. L'icône du lien officiel est `shrink-0`, calée sur la première ligne (`mt-[calc((1lh_-_0.75rem)/2)]`, même position qu'avec le centrage quand l'URL tient sur une ligne).
+- **IFRS / PCG** : cadre `overflow-x-auto`, `tabIndex={0}`, `role="region"`, `aria-label`, comme `ModuleAvailability` et `WorkpaperPanel`.
+- Charte graphite/indigo, accent violet du module et textes inchangés.
+
+## Navigation client vers `/normatif/cycles` (second passage, même jour)
+
+- **Défaut antérieur**, reproduit sur le build d'origine de `ff3f9fb` (sans les changements de mise en page) : un clic vers la liste des cycles, depuis la barre latérale, l'accueil ou le fil d'Ariane d'une fiche cycle, ne changeait ni l'URL ni le contenu, sans erreur (12 / 12 depuis la barre latérale). Le chargement direct fonctionnait, comme toutes les routes statiques du module. Passer d'un filtre à l'autre se figeait aussi, par exemple « Tous » depuis `?famille=ACTIF_IMMOBILISE` chargée directement (6 / 6) ; vers certaines familles, au hasard.
+- **Constaté par instrumentation** (chunk compilé du routeur servi modifié par Playwright, sans toucher au build) :
+  - La page lit `searchParams`, elle est donc dynamique (ƒ). Son préchargement automatique ne contient que l'arbre et le gabarit partagé (154 octets).
+  - Au clic, `layout-router` récupère la page (`?_rsc`, 99 Ko complets, aucun `digest`) et dispatche `ACTION_SERVER_PATCH`. Le patch s'applique (`applyRouterStatePatchToTree` ≠ null) et le cache produit contient `rsc` pour `normatif`, `cycles` et `__PAGE__`.
+  - React re-rend la page plusieurs fois, au fil des lignes Flight qui arrivent (cartes outlinées `$L…`, module client `Link`), puis s'arrête alors que toutes ces lignes finissent `fulfilled`. La file d'actions est vide et l'état pointe sur `/normatif/cycles` : la transition ne se valide jamais.
+  - Un préchargement complet (`router.prefetch(…, { kind: "full" })`) corrige l'entrée (4 / 4) mais pas le passage de filtre à filtre. Le défaut dépend du minutage, et une instrumentation lourde le masque parfois.
+  - Cause interne à React (`19.2.0-canary-0bdb9206-20250818`, embarqué par Next 15.5.27, dernière version 15.x) **non démontrée**. Aucun rapport identique trouvé (le plus proche : correctif de la file d'actions, issue next.js #86151).
+- **Correctifs.**
+  - `app/normatif/cycles/loading.tsx` : le segment se monte sous une frontière neuve, React valide la navigation en affichant « Chargement des cycles d'audit… », puis le contenu arrive par relance de la frontière.
+  - Les filtres et « Réinitialiser » (`app/normatif/cycles/page.tsx`) deviennent des liens de document : la frontière de `loading.tsx` est conservée d'un paramètre de recherche à l'autre, car Next calcule la clé d'état sans les paramètres. Exception ESLint locale et justifiée pour « Réinitialiser ». Pistes écartées, mesurées : clé sur la grille (aucun effet), frontière Suspense dont la clé est dérivée du filtre (11 à 14 réussites sur 15).
+  - Le test du tiroir de `e2e/normatif-mise-en-page.spec.ts` suit de nouveau « Cycles d'audit ».
+- **Vérifié.** `e2e/normatif-navigation.spec.ts` (4 points d'entrée × clic immédiat / après préchargement, plus 7 enchaînements de filtres) : 27 / 27 avec `--repeat-each=3` sur la branche ; 5 échecs sur 9 sur l'état antérieur. Rejoués sur le build final avec `normatif-mise-en-page`, `accessibility`, `mission20-contrast` et `bordures-stratifiees` : 83 / 83. Typecheck OK, lint 0 erreur, avec les 7 avertissements de la base.
+- **Limites.** Un changement de filtre recharge la page (perte de l'état client de la page, sans conséquence aujourd'hui). La cause React reste à confirmer et pourrait disparaître avec une montée de version de Next (16.x, hors lot) ; il faudra alors réévaluer le retour à `next/link` pour les filtres.
+
+## Tiroir du tableau de bord et arbre de la méthodologie (troisième passage, même jour)
+
+- **Tiroir du tableau de bord** (`components/probant/Sidebar.tsx`, `app/dashboard/layout.tsx`).
+  - *Avant* : focus non déplacé à l'ouverture. Tab partait du bouton vers la page derrière le voile, car l'aside précède le bandeau. Rien n'était inerte, Échap ne rendait pas le focus, et le tiroir ne glissait pas (`transition-[transform,visibility]` alors que Tailwind 4 pose `translate`) : il apparaissait d'un coup, puis restait affiché 200 ms avant de disparaître.
+  - *Changements* : hook partagé `components/probant/useNavDrawer.ts`, repris de la mise en page Normatif, qui l'utilise désormais aussi. Il gère le focus sur `[data-nav-close]`, la boucle de Tab, Échap, le retour du focus au bouton et la fermeture au passage à `md`. `Sidebar` accepte `ref` et `onClose`, avec un bouton « Fermer la navigation » en `md:hidden` et des transitions `translate` à l'ouverture, `translate, visibility` à la fermeture. La mise en page rend `inert` la colonne de contenu et le CTA flottant.
+  - *Vérifié* : `e2e/dashboard-tiroir.spec.ts` (phase « avant » sur le build de la base, puis « après ») : 12 / 12. Synthèse et Cartographie des risques à 390, 1024 et 1440, tiroir fermé : identiques au pixel ; dette axe non aggravée.
+- **Arbre de la méthodologie** (`app/normatif/methodologie/page.tsx`, `ContentTree`).
+  - *Avant* : la plus étroite des 168 valeurs mesurait 120 px à 1440 et 1280, 8 px à 1024, 0 px à 768 et 640 (4 textes hors de `<main>` à 1024, valeurs coupées mot par mot, badges sortis des cartes).
+  - *Changement* : ligne clé/valeur en `sm:flex-row sm:flex-wrap sm:gap-x-2`, valeur en `sm:min-w-[7rem]`. Sous 112 px de place, la valeur passe sous sa clé. Pas de requête de conteneur, donc pas de confinement.
+  - *Vérifié* : captures pleine hauteur identiques au pixel à 1440 et 390. Le spec Normatif ne gèle plus la dette (`KNOWN_OVERFLOW` retiré) et vérifie, de 1440 à 640, aucun texte hors colonne et aucune valeur de moins de 112 px à côté de sa clé.
+- **Contrôles du passage.**
+  - Suite e2e complète sur le build final : 267 réussis, 5 ignorés (profil local C07 et FEC persistant, faute de variables d'environnement : non vérifiés), 0 échec. Les captures d'autres lots réécrites par la suite ont été restaurées, et les sorties `docs/recette/c00|c01/after` supprimées.
+  - Suite unitaire : 1 698 réussis, 51 ignorés (recettes PostgreSQL).
+  - Typecheck OK. Lint : 0 erreur, et les 7 avertissements de la base.
+
+## Mesures avant / après (Chromium, build de production)
+
+« Avant » : build de `ff3f9fb` dans un worktree détaché (jonction `node_modules`, retirée avant `git worktree remove`). « Après » : build de la branche. Relevés JSON et captures dans `docs/probant-lots/normatif-captures/{avant,apres}/`, synthèse dans `comparatif-390.png`.
+
+| Route (390) | `<main>` | Débordement interne | Textes hors colonne | Lignes du titre | Cadres de tableau |
+|---|---|---|---|---|---|
+| `/normatif` | 150 → 390 | 24 → 0 | 3 → 0 | 3 → 1 | — |
+| `/normatif/cycles` | 150 → 390 | 24 → 0 | 2 → 0 | 2 → 1 | — |
+| `/normatif/cycles/achats-charges-externes` | 150 → 390 | 71 → 0 | 33 → 0 | 4 → 1 | rogné → 340 / 419 |
+| `/normatif/sources` | 150 → 390 | 0 → 0 | 0 → 0 | 2 → 1 | 100 / 530 → 340 / 530 |
+| `/normatif/sources/cc-capitaux-propres` | 150 → 390 | 457 → 0 | 1 → 0 | 9 → 3 | — |
+| `/normatif/methodologie` | 150 → 390 | 195 → 0 | 15 → 0 | 3 → 1 | — |
+| `/normatif/export` | 150 → 390 | 0 → 0 | 0 → 0 | 2 → 1 | — |
+
+À 1024 et 1440, `<main>` mesure 784 et 1200 px avant comme après. Les captures sont identiques au pixel sur les 7 routes, sauf l'accueil à 1024 : 17 pixels diffèrent d'au plus 8 / 255 (anticrénelage). Dette axe « serious » identique sur les 21 vues : fiche cycle `link-name` 5, méthodologie `scrollable-region-focusable` 1, ailleurs 0.
+
+## Tests exécutés (local, 2026-10-14)
+
+| Vérification | Résultat |
+|---|---|
+| `e2e/normatif-mise-en-page.spec.ts` phase « avant » (build de `ff3f9fb`) | 21 relevés et captures ; assertions et tests du tiroir non joués par construction |
+| `e2e/normatif-mise-en-page.spec.ts` phase « après », 7 routes × 1440 / 1024 / 390 : largeur de `<main>` ; aucun débordement du document ni de `<main>` ; aucun texte hors colonne hors cadres défilants ; titre ≤ 4 lignes et cadres ≥ 300 px à 390 ; navigation en flux (≥ 768) ou en tiroir fermé (390) ; icône du lien officiel ; dette axe non aggravée. Plus le tiroir au clavier (focus sur « Fermer », un tour de Tab et Maj+Tab sans sortir, `inert`, Échap rend le focus) et au pointeur (voile, « Fermer », lien qui navigue et referme), le passage 390 → 1024 → 390 tiroir ouvert et la transition sous mouvement réduit (0,2 s / < 0,01 s) | 26 / 26 |
+| `e2e/accessibility.spec.ts`, `e2e/mission20-contrast.spec.ts` (ne couvrent pas `/normatif` ; sortie de mission20 redirigée puis supprimée), `e2e/bordures-stratifiees.spec.ts` (couvre `/normatif`, `/normatif/cycles/achats-charges-externes`, `/normatif/sources` × 3 largeurs ; captures redirigées hors du dépôt) | 48 / 48 |
+| Suite unitaire complète | 1 698 réussis, 0 échec ; 51 ignorés (9 fichiers de recettes PostgreSQL « durable », sans base locale : **non vérifiés**) ; aucun test de composant ne couvre `components/normatif` |
+| Typecheck | OK |
+| Lint complet | 0 erreur ; 7 avertissements, identiques à la base (aucun dans les fichiers touchés) |
+| Build de production (`next build`) | OK |
+
+## Limites et maturité
+
+- Lecteur d'écran : rôles et noms posés (`aria-controls`, `aria-expanded`, `aria-label`, `inert`) ; **non vérifié** avec NVDA ou VoiceOver.
+- Sous 640 px, le titre du bandeau s'affiche sous le badge alors qu'il le précède dans le DOM. L'élément n'étant pas focalisable, seul l'ordre de lecture vocale diffère de l'ordre visuel.
+- Le cadre IFRS / PCG est un arrêt de tabulation même quand il ne défile pas (1024, 1440), comme les autres cadres du dépôt.
+- Les seuils du spec à 390 (titre ≤ 4 lignes, cadres ≥ 300 px) découlent de la colonne utile de 342 px. Relevé « avant » mesuré sous Windows ; les polices next/font sont embarquées, mais un écart de rendu sous Linux CI reste possible.
+
+## Dépendances du lot suivant
+
+- Aucune.
+
+---
+
 # Handoff — Mission C08 : valeur, coûts et périmètre Stocks (2026-10-14)
 
 **Base.** Branche `claude/c08-stocks-valeur-bornes`, worktree `quizzical-boyd-13e46a`, SHA de départ `c5e717b` (`main` après les PR #82 C06 et #83 C07), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C07 et le lot Cloisons ont été fusionnés depuis ; aucun n'avait touché au moteur Stocks livré par #67. Aucun merge ni déploiement.

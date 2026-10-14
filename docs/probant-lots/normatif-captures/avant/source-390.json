@@ -1,0 +1,28 @@
+{
+  "route": "/normatif/sources/cc-capitaux-propres",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "main": {
+    "left": 240,
+    "width": 150,
+    "clientWidth": 150,
+    "scrollWidth": 607
+  },
+  "overflowing": [
+    "https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000005634379"
+  ],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 104,
+    "lines": 9
+  },
+  "tableFrames": [],
+  "axeSerious": {}
+}

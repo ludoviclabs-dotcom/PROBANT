@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { loadAllCycles } from "@/lib/audit-cycles/loader";
 import {
   CYCLE_FAMILIES,
@@ -57,9 +56,10 @@ export default async function CyclesListPage({
       {filtered.length === 0 ? (
         <p className="text-[13px] text-[var(--pb-text-faint)]">
           Aucun cycle ne correspond à ce filtre.{" "}
-          <Link href="/normatif/cycles" className="text-[var(--pb-accent)] hover:underline">
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- chargement de document voulu, voir FilterChip */}
+          <a href="/normatif/cycles" className="text-[var(--pb-accent)] hover:underline">
             Réinitialiser
-          </Link>
+          </a>
         </p>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -78,6 +78,14 @@ export default async function CyclesListPage({
   );
 }
 
+/**
+ * Filtre de la liste : lien HTML ordinaire (chargement de document), pas `next/link`.
+ * Passer d'un filtre à l'autre garde la page montée ; la navigation client
+ * restait alors suspendue au milieu du rendu en flux de la nouvelle liste, sans
+ * jamais se valider (React canary de Next 15.5.27, relevé le 14/10/2026 ;
+ * `loading.tsx` ne s'applique pas, sa frontière étant conservée d'un paramètre
+ * de recherche à l'autre). Un rechargement local de cette page serveur est sûr.
+ */
 function FilterChip({
   href,
   active,
@@ -88,7 +96,7 @@ function FilterChip({
   children: React.ReactNode;
 }) {
   return (
-    <Link
+    <a
       href={href}
       className={cn(
         "rounded-lg border px-2.5 py-1 text-[12px] transition-colors",
@@ -98,6 +106,6 @@ function FilterChip({
       )}
     >
       {children}
-    </Link>
+    </a>
   );
 }

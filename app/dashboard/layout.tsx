@@ -1,9 +1,10 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense } from "react";
 import { Menu } from "lucide-react";
 import { Sidebar } from "@/components/probant/Sidebar";
 import { OnboardingCta } from "@/components/probant/OnboardingCta";
+import { useNavDrawer } from "@/components/probant/useNavDrawer";
 import {
   ActiveDossierProvider,
   useActiveDossierSnapshot,
@@ -18,16 +19,9 @@ const SOURCE_LABEL = {
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const snapshot = useActiveDossierSnapshot();
   const dossier = snapshot.dossier;
-  // Tiroir de navigation (< md) : fermé par défaut, Échap le referme.
-  const [navOpen, setNavOpen] = useState(false);
-  useEffect(() => {
-    if (!navOpen) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setNavOpen(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [navOpen]);
+  // Tiroir de navigation (< md) : fermé par défaut ; ouvert, il garde le focus
+  // et le reste de la page est inerte (voir components/probant/useNavDrawer.ts).
+  const { open: navOpen, close: closeNav, toggle: toggleNav, navRef, toggleRef } = useNavDrawer();
   const badges: Record<string, number> = {
     "/dashboard/depot": snapshot.admissibilityFindings.filter(
       (finding) => finding.severity === "bloquant",
@@ -41,18 +35,19 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
         <div
           aria-hidden="true"
           className="fixed inset-0 z-[45] bg-black/60 md:hidden"
-          onClick={() => setNavOpen(false)}
+          onClick={closeNav}
         />
       )}
-      <Sidebar badges={badges} open={navOpen} onNavigate={() => setNavOpen(false)} />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <Sidebar ref={navRef} badges={badges} open={navOpen} onNavigate={closeNav} onClose={closeNav} />
+      <div className="flex min-w-0 flex-1 flex-col" inert={navOpen}>
         <header className="flex shrink-0 items-center gap-3 border-b border-[var(--pb-border)] bg-[var(--pb-surface)] px-4 py-3 md:gap-4 md:px-6">
           <button
+            ref={toggleRef}
             type="button"
             aria-label="Ouvrir la navigation"
             aria-controls="dashboard-nav"
             aria-expanded={navOpen}
-            onClick={() => setNavOpen((o) => !o)}
+            onClick={toggleNav}
             className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)] md:hidden"
           >
             <Menu className="h-4 w-4" />
@@ -90,7 +85,10 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
         </header>
         <main className="flex-1 overflow-y-auto">{children}</main>
       </div>
-      <OnboardingCta variant="floating" />
+      {/* Bouton flottant derrière le voile : inerte comme le contenu quand le tiroir est ouvert. */}
+      <div inert={navOpen}>
+        <OnboardingCta variant="floating" />
+      </div>
     </div>
   );
 }

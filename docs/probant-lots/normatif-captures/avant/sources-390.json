@@ -1,0 +1,31 @@
+{
+  "route": "/normatif/sources",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "main": {
+    "left": 240,
+    "width": 150,
+    "clientWidth": 150,
+    "scrollWidth": 150
+  },
+  "overflowing": [],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 102,
+    "lines": 2
+  },
+  "tableFrames": [
+    {
+      "clientWidth": 100,
+      "scrollWidth": 530
+    }
+  ],
+  "axeSerious": {}
+}

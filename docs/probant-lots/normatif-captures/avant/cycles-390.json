@@ -1,0 +1,29 @@
+{
+  "route": "/normatif/cycles",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "main": {
+    "left": 240,
+    "width": 150,
+    "clientWidth": 150,
+    "scrollWidth": 174
+  },
+  "overflowing": [
+    "Cycle relatif à la comptabilisation, l'existence, l'évaluation, l'amortissement ",
+    "Cycle relatif à l'existence, l'exhaustivité et l'évaluation des disponibilités, "
+  ],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 102,
+    "lines": 2
+  },
+  "tableFrames": [],
+  "axeSerious": {}
+}
