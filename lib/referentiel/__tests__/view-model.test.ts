@@ -45,7 +45,8 @@ describe("view-model du référentiel", () => {
 
   it("construit une strate par millésime, épaisseur proportionnelle", () => {
     const strata = buildStrata(sources);
-    expect(strata.map((s) => s.year)).toEqual(["2009", "2013", "2021", "2024", "2026"]);
+    // 2023 : C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171).
+    expect(strata.map((s) => s.year)).toEqual(["2009", "2013", "2021", "2023", "2024", "2026"]);
     expect(strata.reduce((acc, s) => acc + s.items.length, 0)).toBe(27);
     for (const s of strata) expect(s.t).toBe(Math.round(4 + s.items.length * 2));
     // Empilement croissant, interstice de 16 px entre strates.
@@ -54,14 +55,14 @@ describe("view-model du référentiel", () => {
     }
     // Les 2009 sont tous de la méthode (0 % droit dur), les 2026 du droit dur.
     expect(strata[0].pct).toBe(0);
-    expect(strata[4].pct).toBe(100);
+    expect(strata[5].pct).toBe(100);
   });
 
   it("regroupe par famille de texte dans l'ordre de première apparition", () => {
     expect(familyOf("LPF art. A.47 A-1")).toBe("Livre des procédures fiscales");
     expect(familyOf("ISRE 2400 (révisée)")).toBe("Normes d'exercice professionnel");
     expect(familyOf("CGI art. 271")).toBe("Code général des impôts");
-    expect(familyOf("C. com. art. L.225-248")).toBe("Code de commerce");
+    expect(familyOf("C. com. art. L225-248")).toBe("Code de commerce");
     const groups = groupByFamily(sources);
     expect(groups.reduce((acc, g) => acc + g.items.length, 0)).toBe(27);
     expect(groups[0].family).toBe("Livre des procédures fiscales");
