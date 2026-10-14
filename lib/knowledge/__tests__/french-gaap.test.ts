@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { FRENCH_GAAP_TEXTS, applicableArticle, frenchGaapText, resolveFrenchGaap } from "@/lib/knowledge/french-gaap";
+import { FRENCH_GAAP_TEXTS, applicableArticle, contractualApplicability, frenchGaapText, resolveFrenchGaap } from "@/lib/knowledge/french-gaap";
 
 /**
  * C04 — résolveur partagé : applicabilité aux bornes, options absentes, secteur hors périmètre,
@@ -22,8 +22,9 @@ describe("registre des textes : dates lues dans les textes officiels", () => {
       if (e.access === "read_official_pdf") expect(e.sha256).toMatch(/^[0-9a-f]{64}$/);
       else expect(e.sha256).toBeNull();
     }
-    expect(frenchGaapText("pcg-2024").editions[0].access).toBe("inaccessible");
-    expect(frenchGaapText("anc-2026-03").editions.some((e) => e.url.includes("legifrance") && e.access === "inaccessible")).toBe(true);
+    // C11 (15/10/2026) : recueil 2024 lu (empreinte identique à la lecture C06) ; arrêté d'homologation lu sur Légifrance.
+    expect(frenchGaapText("pcg-2024").editions[0]).toMatchObject({ access: "read_official_pdf", sha256: "f608f78f76c32fea2cad4226e089c1ba2c22f52beefbc422dd112db682479303", pages: 677 });
+    expect(frenchGaapText("anc-2026-03").editions.find((e) => e.url.includes("legifrance"))).toMatchObject({ access: "read_official_page", sha256: null, readAt: "2026-10-15" });
   });
   it("les deux fichiers du PCG consolidé au 01/01/2026 sont identifiés par des empreintes distinctes", () => {
     const shas = frenchGaapText("pcg-2026-01-01").editions.map((e) => e.sha256);
@@ -86,6 +87,34 @@ describe("applicabilité aux bornes", () => {
     expect(r.numbering.revenue).toMatchObject({ textId: "anc-2026-03" });
     expect(status(r, "anc-2022-06")).toBe("superseded");
     expect(r.numbering.other_equity?.textId).toBe("pcg-2026-01-01");
+  });
+});
+
+/**
+ * C11 — rattachement et champ contractuel. Attendus établis depuis les textes lus le 15/10/2026 : recueil PCG 2024
+ * (944-40/41/48), ANC 2022-06 et PCG consolidé 2026 (1214-40/41/48), ANC 2026-03 (522-2, 522-11, 522-12, art. 4)
+ * et l'arrêté d'homologation du 12/08/2026 (entrée en vigueur le lendemain de la publication du 03/09/2026).
+ */
+describe("C11 — articles de rattachement et champ contractuel d'ANC 2026-03", () => {
+  it("la numérotation du rattachement suit l'édition de l'exercice, sans rétroactivité", () => {
+    expect(applicableArticle("cutoff", { startDate: "2024-01-01", closingDate: "2024-12-31" })).toMatchObject({ textId: "pcg-2024", article: expect.stringContaining("944-41") });
+    expect(applicableArticle("cutoff", { startDate: "2025-04-01", closingDate: "2026-03-31" })).toMatchObject({ textId: "anc-2022-06", article: expect.stringContaining("1214-41") });
+    expect(applicableArticle("cutoff", { startDate: "2026-01-01", closingDate: "2026-12-31" })).toMatchObject({ textId: "pcg-2026-01-01", basis: "mandatory" });
+    expect(applicableArticle("cutoff", { startDate: "2026-01-01", closingDate: "2026-12-31", anticipated: ["anc-2026-03"] })).toMatchObject({ textId: "anc-2026-03", basis: "anticipation_elected", article: expect.stringContaining("522-12") });
+    expect(applicableArticle("cutoff", { startDate: "2027-01-01", closingDate: "2027-12-31" })).toMatchObject({ textId: "anc-2026-03", basis: "mandatory" });
+    expect(applicableArticle("cutoff", { startDate: "2023-07-01", closingDate: "2024-06-30" })).toBeNull();
+  });
+  it("ANC 2026-03 entre en vigueur le 04/09/2026, lendemain de la publication de l'arrêté au JO du 03/09/2026", () => {
+    expect(frenchGaapText("anc-2026-03").entryIntoForce).toEqual({ date: "2026-09-04", basis: "official_text" });
+    expect(frenchGaapText("anc-2026-03").contractualScopeRule).toEqual({ kind: "sales_contracts_concluded_or_renewed_after_entry_into_force" });
+  });
+  it("champ contractuel : avant, après, le jour même et date absente sont quatre situations distinctes", () => {
+    expect(contractualApplicability("anc-2026-03", "2026-09-03").status).toBe("out_of_scope");
+    expect(contractualApplicability("anc-2026-03", "2026-09-05").status).toBe("in_scope");
+    expect(contractualApplicability("anc-2026-03", "2026-09-04").status).toBe("entry_day");
+    expect(contractualApplicability("anc-2026-03", null).status).toBe("contract_date_required");
+    expect(contractualApplicability("anc-2026-03", "04/09/2026").status).toBe("contract_date_required");
+    expect(contractualApplicability("pcg-2026-01-01", null).status).toBe("no_contractual_scope");
   });
 });
 

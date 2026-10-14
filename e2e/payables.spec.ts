@@ -1,8 +1,10 @@
 import path from "node:path";
 import { test, expect, type Page } from "@playwright/test";
 import { fixture, presentationRun } from "../lib/workpapers/__tests__/payables-fixture";
-import { buildPayablesFacts, type PayablesDraft } from "../lib/workpapers/payables-investigation";
+import { buildPayablesFacts, type PayablesDraft, type PayablesResult } from "../lib/workpapers/payables-investigation";
 import { buildPayablesMission } from "../lib/workpapers/payables-mission";
+import { buildTransversalEventMap } from "../lib/workpapers/transversal-events";
+import { eventMapInput } from "../lib/workpapers/transversal-events-adapter";
 import type { WorkpaperRun } from "../lib/workpapers/model";
 // Presentation only. The native PostgreSQL recipe exercises identity, storage, commands and access.
 async function setup(page: Page, onPost?: (input: Record<string, unknown>) => Promise<{
@@ -95,16 +97,22 @@ test("Achats / RPNE : conflit compare les préparations sans perdre le brouillon
 });
 test("Cut-off : événement double unique, filtres ventes / achats et versions exactes", async ({ page }, info) => {
     const a = await fixture("payables.purchases"), b = await fixture(), runs = [presentationRun(a, "PURCHASES"), presentationRun(b)], imports = [...new Map([...a.imports, ...b.imports].map(b => [b.id, b])).values()], m = buildPayablesMission(a.scope, runs, imports, imports.map(b => ({ document_type: b.document.documentType, import_id: b.id })));
-    await page.route("**/api/workpapers/payables?**", r => r.fulfill({ json: { actorId: "real-preparer", permissions: ["read", "download"], mission: m } }));
+    // C11 : /cutoff lit la carte des événements transversaux (operation=events), construite ici sur les mêmes feuilles.
+    const observation = (run: WorkpaperRun, f: typeof a) => ({ run, result: run.result!.result as PayablesResult, facts: buildPayablesFacts(f.scope, f.period, f.imports, run.id, f.procedure), stale: false, staleReasons: [], href: "/payables?" + new URLSearchParams({ id: run.id, version: String(run.version) }) });
+    const map = buildTransversalEventMap(eventMapInput({ scope: a.scope, period: a.period, payables: [observation(runs[0], a), observation(runs[1], b)], clientsSales: [], vat: [], vatChain: "disabled" }));
+    await page.route("**/api/workpapers/payables?**", r => r.fulfill({ json: new URL(r.request().url()).searchParams.get("operation") === "events" ? { actorId: "real-preparer", map, reason: null } : { actorId: "real-preparer", permissions: ["read", "download"], mission: m } }));
     await page.goto("/cutoff?" + new URLSearchParams({ dossierId: a.scope.dossierId, periodId: a.scope.periodId }));
-    const table = page.getByRole("region", { name: "Événements cut-off — défilement clavier" }), d = table.getByRole("row", { name: /I-D/ });
+    const section = page.getByRole("region", { name: "Carte des événements transversaux" }), list = section.getByRole("list", { name: "Événements" });
+    await expect(list).toContainText("I-D");
+    await section.locator('button[data-event="I-D"]').click();
+    const d = page.getByRole("complementary", { name: /I-D/ });
     await expect(d).toContainText("600.00 EUR");
-    await expect(d).toContainText("Achats enregistrés v1");
-    await expect(d).toContainText("RPNE v1");
-    await expect(d.getByRole("link").first()).toHaveAttribute("href", /version=1/);
-    await page.getByRole("combobox",{name:"Flux",exact:true}).selectOption("sale");
-    await expect(table).toContainText("SALE");
-    await expect(table).not.toContainText("I-D");
+    await expect(d).toContainText("une fois pour 2 observations");
+    await expect(d.getByRole("link", { name: "Achats v1" })).toHaveAttribute("href", /version=1/);
+    await expect(d.getByRole("link", { name: "RPNE v1" })).toHaveAttribute("href", /version=1/);
+    await section.getByRole("combobox",{name:"Flux",exact:true}).selectOption("sale");
+    await expect(list).toContainText("SALE");
+    await expect(list).not.toContainText("I-D");
     await axe(page);
     await page.locator("main").screenshot({ path: info.outputPath("payables-cutoff.png") });
 });

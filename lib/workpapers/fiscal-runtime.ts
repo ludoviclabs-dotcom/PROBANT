@@ -23,6 +23,8 @@ import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
 import { executionProfile } from "@/lib/runtime/profile";
+import type { VatResult } from "./fiscal-vat-contract";
+import type { VatObservation } from "./transversal-events-adapter";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -110,6 +112,21 @@ export class FiscalRuntime {
     const mission = buildFiscalMission(scope, versions, imports.batches, heads, selection, createdAt);
     if (Buffer.byteLength(JSON.stringify(mission)) > LIMITS.response) throw new ApiError("FX_MISSION_LIMIT", "Synthèse trop volumineuse pour cette recette.", 413);
     return { mission, run: versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null, imports: imports.batches };
+  }
+  /**
+   * C11 : feuilles TVA courantes de la période, en lecture seule, pour la carte des événements transversaux. Seuls la
+   * période, la périodicité et les écritures sont transmis ; la péremption suit la règle des feuilles fiscales.
+   */
+  async vatObservations(request: Request, dossierId: string, pid: string): Promise<VatObservation[]> {
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
+      await this.bounded(tx, scope);
+      const heads = await tx.heads(scope), runs = (await Promise.all((await tx.runIds(scope)).map(id => tx.currentRun(scope, id)))).filter((r): r is WorkpaperRun => !!r);
+      return runs.filter(r => r.template.id === "tva.reconciliation" && r.result?.execution === "completed").map(r => {
+        const result = r.result!.result as VatResult, stale = !fiscalSourcesCurrent(r.importIds, heads, fiscalRelevance(r, heads));
+        return { runId: r.id, rootId: r.rootId, version: r.version, revision: r.revision, state: r.state, stale, staleReasons: stale ? ["Une source de la période déclarative a été remplacée."] : [],
+          href: "/fiscal?" + new URLSearchParams({ dossierId: scope.dossierId, periodId: scope.periodId, id: r.id, version: String(r.version) }), result: { period: result.period, frequency: result.frequency, entries: result.entries } };
+      });
+    });
   }
   async mission(request: Request, dossierId: string, pid: string, selection: FiscalMissionSelection = {}) {
     return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.missionData(tx, scope, selection)).mission }));

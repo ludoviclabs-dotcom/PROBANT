@@ -16,6 +16,7 @@ import { PAYABLE_TYPES, type PayableProcedure } from "../payables-program";
 import type { PayablesCommand } from "../payables-commands";
 import type { PayablesResult } from "../payables-investigation";
 import type { PayablesMission } from "../payables-mission";
+import type { TransversalEventMap } from "../transversal-events";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -449,6 +450,23 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         const clientRead = await (await handlers.GET(request(preparer))).json();
         expect(clientRead.runs.some((r: WorkpaperRun) => r.id === payableRun.id)).toBe(false);
         expect((await command({ command: "conclude", id: payableRun.id, expectedVersion: payableRun.version, text: "Interdit via un autre cycle" })).status).toBe(404);
+    });
+    it("C11 : carte des événements lue sur PostgreSQL — effet unique, Clients et Achats raccordés, droits", async () => {
+        const response = await payableHandlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=events"));
+        expect(response.status, await response.clone().text()).toBe(200);
+        const { map } = await response.json() as { map: TransversalEventMap };
+        const d = map.events.find(e => e.invoiceId === "I-D")!;
+        expect(d.effect).toMatchObject({ amountCents: 60000, contributors: 2 });
+        expect(d.observations.filter(o => !o.stale).map(o => o.procedureId).sort()).toEqual(["payables.purchases", "payables.rpne"]);
+        expect(map.globalSettlements.find(g => g.id === "P-G")?.unallocatedTtc).toEqual({ amount: "600.00", currency: "EUR" });
+        // La feuille Clients et ventes verrouillée a une révision en préparation (source d'encaissements remplacée) :
+        // elle reste lue, périmée, et ne compte dans aucun effet.
+        const sales = map.events.flatMap(e => e.observations).filter(o => o.procedureId === "clients.sales");
+        expect(sales.length).toBeGreaterThan(0);
+        expect(sales.every(o => o.stale && o.staleReasons.some(r => r.startsWith("Une révision ou version plus récente")))).toBe(true);
+        expect(map.vatChain).toBe("disabled");
+        expect((await payableHandlers.GET(request(other, "GET", undefined, dossierA, "&operation=events"))).status).toBe(403);
+        expect((await payableHandlers.GET(request(preparer, "GET", undefined, dossierA, "&operation=events&id=" + encodeURIComponent(payableRun.id)))).status).toBe(422);
     });
     it("Mission 08 : permissions, auteur serveur, rejeu, conflit et invalidation", async () => {
         const { authorId: _a, authoredAt: _d, schemaVersion: _s, ...draft } = structuredClone(payableRun.payablesWork!);

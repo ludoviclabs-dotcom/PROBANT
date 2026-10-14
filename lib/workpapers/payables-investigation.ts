@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { cents, money, type KnownAmount, type Money } from "@/lib/canonical-model/money";
-import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import { isCivilDate, type AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { moneySchema, assertScope, frozen, type EvidenceLink, type WorkpaperScope, type Population, type SelectionSet, type SourceRow } from "./model";
 import type { ImportBatch, ImportMapping } from "./imports";
@@ -13,7 +13,24 @@ import { PAYABLE_TYPES, STATUS_LABELS, type PayableProcedure } from "./payables-
 export { PAYABLE_TYPES, PAYABLE_PROCEDURES, PAYABLE_LABELS, STATUS_LABELS, type PayableProcedure } from "./payables-program";
 const text = z.string().trim().min(1).max(500);
 const rowIds = z.array(text).max(100);
-export const payablesMappingSchema = z.object({ version: z.literal("payables-investigation-1"), headerRow: z.number().int().positive(), sheet: text.optional(), columns: z.object({ key: text, amount: text, date: text }).strict(), delimiter: z.enum([";", ",", "\t"]), decimal: z.enum([",", "."]), dateFormat: z.enum(["ISO", "DD/MM/YYYY"]), sign: z.union([z.literal(1), z.literal(-1)]), currency: z.literal("EUR"), expectedTotal: moneySchema.optional(), payables: z.object({ partyColumn: text, currencyColumn: text, accountColumn: text.optional(), eventColumn: text.optional(), invoiceColumn: text.optional(), flowColumn: text.optional(), kindColumn: text.optional(), taxColumn: text.optional(), grossColumn: text.optional(), availabilityColumn: text.optional() }).strict() }).strict();
+/**
+ * C11 : trois colonnes facultatives des factures (`payables_invoices`, `cutoff_sales`) — nature de l'opération pour la
+ * qualification TVA (goods / services / other), option pour les débits applicable à la facture (yes / no / unknown) et
+ * date de conclusion ou de renouvellement du contrat (champ d'ANC 2026-03). Absentes, elles restent « non fournies ».
+ */
+export const payablesMappingSchema = z.object({ version: z.literal("payables-investigation-1"), headerRow: z.number().int().positive(), sheet: text.optional(), columns: z.object({ key: text, amount: text, date: text }).strict(), delimiter: z.enum([";", ",", "\t"]), decimal: z.enum([",", "."]), dateFormat: z.enum(["ISO", "DD/MM/YYYY"]), sign: z.union([z.literal(1), z.literal(-1)]), currency: z.literal("EUR"), expectedTotal: moneySchema.optional(), payables: z.object({ partyColumn: text, currencyColumn: text, accountColumn: text.optional(), eventColumn: text.optional(), invoiceColumn: text.optional(), flowColumn: text.optional(), kindColumn: text.optional(), taxColumn: text.optional(), grossColumn: text.optional(), availabilityColumn: text.optional(), natureColumn: text.optional(), debitOptionColumn: text.optional(), contractDateColumn: text.optional() }).strict() }).strict();
+const NATURES = ["goods", "services", "other"] as const, DEBIT_OPTIONS = ["yes", "no", "unknown"] as const;
+function sourceDate(raw: string, mapping: ImportMapping): string {
+    const v = raw.trim(), d = mapping.dateFormat === "ISO" ? v : /^\d{2}\/\d{2}\/\d{4}$/.test(v) ? `${v.slice(6)}-${v.slice(3, 5)}-${v.slice(0, 2)}` : "";
+    if (!isCivilDate(d))
+        throw new Error("PAYABLE_CONTRACT_DATE_INVALID");
+    return d;
+}
+/** Faits de qualification déclarés sur la ligne de facture ; une cellule vide reste « non fournie ». */
+export function invoiceQualification(batch: ImportBatch, row: SourceRow) {
+    const nature = field(batch, row, "natureColumn", false), option = field(batch, row, "debitOptionColumn", false), contract = field(batch, row, "contractDateColumn", false);
+    return { category: (nature || null) as typeof NATURES[number] | null, debitOption: (option || null) as typeof DEBIT_OPTIONS[number] | null, contractDate: contract ? sourceDate(contract, batch.mapping) : null };
+}
 export const payablesDraftSchema = z.object({ accounts: z.array(z.string().regex(/^\d{3,10}$/)).min(1).max(100), method: z.object({ id: text, version: text, source: text, proofRowIds: rowIds.min(1), note: z.string().trim().min(1).max(10000) }).strict(), window: z.object({ startDate: dateSchema, endDate: dateSchema, coverage: z.enum(["documented", "incomplete"]), proofRowIds: rowIds, note: z.string().trim().min(1).max(10000) }).strict(), purchases: z.array(z.object({ ledgerRowId: text, invoiceId: text, allocated: moneySchema, proofRowIds: rowIds.min(1) }).strict()).max(2000), allocations: z.array(z.object({ id: text, paymentId: text, invoiceId: text, amount: moneySchema, status: z.enum(["proposal", "validated"]), proofRowIds: rowIds.min(1) }).strict()).max(2000) }).strict();
 export type PayablesDraft = z.infer<typeof payablesDraftSchema>;
 export type PayablesWork = PayablesDraft & {
@@ -62,6 +79,13 @@ export function assertPayablesBatch(batch: ImportBatch, period: AccountingPeriod
             const available = field(batch, row, "availabilityColumn", false);
             if (available && !['yes', 'no', 'unknown'].includes(available))
                 throw new Error("PAYABLE_AVAILABILITY_INVALID");
+            const nature = field(batch, row, "natureColumn", false), option = field(batch, row, "debitOptionColumn", false), contract = field(batch, row, "contractDateColumn", false);
+            if (nature && !(NATURES as readonly string[]).includes(nature))
+                throw new Error("PAYABLE_NATURE_INVALID");
+            if (option && !(DEBIT_OPTIONS as readonly string[]).includes(option))
+                throw new Error("PAYABLE_DEBIT_OPTION_INVALID");
+            if (contract && sourceDate(contract, mapping) > period.asOfDate)
+                throw new Error("PAYABLE_CONTRACT_DATE_AFTER_REVIEW");
         }
         if (["payables_payments", "payables_invoices", "cutoff_sales"].includes(type) && cents(row.normalized.amount) <= 0n)
             throw new Error("PAYABLE_POSITIVE_AMOUNT_REQUIRED");
@@ -115,9 +139,9 @@ export function buildPayablesFacts(scope: WorkpaperScope, period: AccountingPeri
         const amount = money(before.reduce((n, r) => n + cents(r.row.normalized!.amount), 0n));
         const existing = regularizations.map(({ batch, row }) => { const kind = field(batch, row, "kindColumn")!; if (!["FNP", "CCA", "FAE", "PCA"].includes(kind))
             throw new Error("PAYABLE_ADJUSTMENT_KIND_INVALID"); return { id: row.normalized!.key, kind: kind as "FNP" | "CCA" | "FAE" | "PCA", amount: { kind: "known" as const, value: row.normalized!.amount }, evidence: [proofFor(batch, row, runId, "Régularisation existante HT")] }; });
-        const perf = performances.length === 1 ? performances[0] : null;
-        const input: CutoffInput = { context, economicEventKey: invoice.key, flow: invoice.flow, documentKind: "invoice", invoice: { id: invoice.id, date: invoice.row.normalized!.date, availableAtClosing: (field(invoice.batch, invoice.row, "availabilityColumn", false) ?? "unknown") as "yes" | "no" | "unknown", evidence: [proofFor(invoice.batch, invoice.row, runId, "Facture HT / TVA / TTC")] }, performance: perf ? { date: perf.row.normalized!.date, kind: field(perf.batch, perf.row, "kindColumn", false) === "spread" ? "spread" : "point", verified: true, evidence: [proofFor(perf.batch, perf.row, runId, "Réception ou prestation déclarée, original à corroborer")] } : null, basis: { net: invoice.net, tax: invoice.tax, gross: invoice.gross, evidence: [proofFor(invoice.batch, invoice.row, runId, "Bases monétaires de la facture")] }, recognition: { searched: records.some(r => r.row.normalized!.date === period.closingDate) && adjustments.some(r => r.row.normalized!.date === period.closingDate), alreadyRecognizedAmount: records.length ? { kind: "known", value: amount } : { kind: "unknown", reason: "Recherche comptable absente" }, bookingDate: before.filter(r => cents(r.row.normalized!.amount) !== 0n).map(r => r.row.normalized!.date).sort().at(-1), evidence: [...records, ...adjustments].map(({ batch, row }) => proofFor(batch, row, runId, "Recherche de comptabilisation et FNP / CCA à clôture")), existingAdjustments: existing } };
-        return { ...invoice, input, cutoff: analyzeCutoff(input), performanceCount: performances.length };
+        const perf = performances.length === 1 ? performances[0] : null, qualification = invoiceQualification(invoice.batch, invoice.row);
+        const input: CutoffInput = { context, economicEventKey: invoice.key, flow: invoice.flow, documentKind: "invoice", invoice: { id: invoice.id, date: invoice.row.normalized!.date, availableAtClosing: (field(invoice.batch, invoice.row, "availabilityColumn", false) ?? "unknown") as "yes" | "no" | "unknown", evidence: [proofFor(invoice.batch, invoice.row, runId, "Facture HT / TVA / TTC")] }, performance: perf ? { date: perf.row.normalized!.date, kind: field(perf.batch, perf.row, "kindColumn", false) === "spread" ? "spread" : "point", verified: true, evidence: [proofFor(perf.batch, perf.row, runId, "Réception ou prestation déclarée, original à corroborer")] } : null, basis: { net: invoice.net, tax: invoice.tax, gross: invoice.gross, evidence: [proofFor(invoice.batch, invoice.row, runId, "Bases monétaires de la facture")] }, recognition: { searched: records.some(r => r.row.normalized!.date === period.closingDate) && adjustments.some(r => r.row.normalized!.date === period.closingDate), alreadyRecognizedAmount: records.length ? { kind: "known", value: amount } : { kind: "unknown", reason: "Recherche comptable absente" }, bookingDate: before.filter(r => cents(r.row.normalized!.amount) !== 0n).map(r => r.row.normalized!.date).sort().at(-1), evidence: [...records, ...adjustments].map(({ batch, row }) => proofFor(batch, row, runId, "Recherche de comptabilisation et FNP / CCA à clôture")), existingAdjustments: existing }, ...(qualification.contractDate ? { contract: { date: qualification.contractDate } } : {}) };
+        return { ...invoice, input, cutoff: analyzeCutoff(input), performanceCount: performances.length, qualification, performance: perf, records, adjustments };
     });
     const payments = byType("payables_payments").map(({ batch, row }) => ({ id: row.normalized!.key, party: field(batch, row, "partyColumn")!, bankAccountId: field(batch, row, "accountColumn")!, value: { amount: row.normalized!.amount, date: row.normalized!.date, source: row }, evidence: [proofFor(batch, row, runId, "Paiement TTC ultérieur")] }));
     if (new Set(payments.map(p => p.id)).size !== payments.length)

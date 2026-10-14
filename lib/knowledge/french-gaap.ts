@@ -24,8 +24,12 @@ export type SourceLayer = "official_normative" | "doctrinal_commentary" | "inter
 
 export type FrenchGaapTextId = "pcg-2024" | "anc-2022-06" | "anc-2024-07" | "pcg-2026-01-01" | "anc-2026-03" | "anc-2026-04";
 
-/** Sujets dont la numérotation d'article dépend de la version applicable. */
-export type NumberingTopic = "exceptional_result" | "income_tax" | "revenue" | "other_equity";
+/**
+ * Sujets dont la numérotation d'article dépend de la version applicable.
+ * `cutoff` (C11) : articles de rattachement des charges et des produits et commentaires des comptes de
+ * régularisation (408, 418, 486, 487), tels que portés par chaque édition lue.
+ */
+export type NumberingTopic = "exceptional_result" | "income_tax" | "revenue" | "other_equity" | "cutoff";
 
 export interface OfficialEdition {
   url: string;
@@ -74,6 +78,8 @@ export interface FrenchGaapText {
   anticipation: AnticipationRule;
   /** Champ contractuel énoncé par le texte (ex. contrats conclus ou renouvelés après l'entrée en vigueur). */
   contractualScope: string | null;
+  /** Forme structurée du champ contractuel, lorsque le texte en énonce un (C11). */
+  contractualScopeRule: { kind: "sales_contracts_concluded_or_renewed_after_entry_into_force" } | null;
   /** Exceptions d'application énoncées par le texte (hors comptes sociaux pour la plupart). */
   exceptions: { articles: string; rule: FirstMandatoryRule; note: string }[];
   /** Numérotation d'article que ce texte établit pour chaque sujet. */
@@ -106,17 +112,21 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     firstMandatory: { kind: "consolidated_edition", from: "2024-01-01", to: "2024-12-31" },
     anticipation: { allowed: false },
     contractualScope: null,
+    contractualScopeRule: null,
     exceptions: [],
-    numbering: { exceptional_result: "946-67 / 947-77 (PCG au 01/01/2024)" },
+    numbering: {
+      exceptional_result: "946-67 / 947-77 (PCG au 01/01/2024)",
+      cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 ; comptes 408 (art. 944-40), 418 et 4191 (art. 944-41), 486 et 487 (art. 944-48) (PCG au 01/01/2024)",
+    },
     supersedes: [],
     editions: [
       {
         url: "https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/Recueils/Recueil%20comptable%20entreprises/2024/Recueil_normes-comptables2024.pdf",
-        sha256: null,
-        pages: null,
-        readAt: "2026-10-09",
-        access: "inaccessible",
-        note: "Référencé par la Mission 17 (pages PDF 563 / 567) ; non relu dans ce lot, empreinte non établie.",
+        sha256: "f608f78f76c32fea2cad4226e089c1ba2c22f52beefbc422dd112db682479303",
+        pages: 677,
+        readAt: "2026-10-15",
+        access: "read_official_pdf",
+        note: "Lu en C11 (même empreinte que la lecture C06 du 14/10/2026) : art. 511-3 (p. 188), 512-3 et 512-4 (p. 191), 513-3 et 513-4 (p. 191-192), 944-40 (408), 944-41 (418, 4191), 944-48 (486, 487). Mission 17 : pages PDF 563 / 567.",
       },
     ],
     limits: ["Fenêtre d'ouverture 2024 = méthode interne : l'édition consolidée n'a pas d'article d'application propre."],
@@ -139,8 +149,12 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
       text: "Art. 27 : s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2025 ; peut être appliqué par anticipation à compter de sa date de publication au Journal officiel.",
     },
     contractualScope: null,
+    contractualScopeRule: null,
     exceptions: [],
-    numbering: { exceptional_result: "513-5 (ANC 2022-06)" },
+    numbering: {
+      exceptional_result: "513-5 (ANC 2022-06)",
+      cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)",
+    },
     supersedes: ["pcg-2024"],
     editions: [
       {
@@ -149,7 +163,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 106,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "En-tête : homologué par arrêté du 26/12/2023, JO du 30/12/2023 ; art. 513-5 créé ; art. 27 lu.",
+        note: "En-tête : homologué par arrêté du 26/12/2023, JO du 30/12/2023 ; art. 513-5 créé ; art. 27 lu. Relu le 15/10/2026 (C11, même empreinte) : art. 1214-40 (408), 1214-41 (418, 4191), 1214-48 (486, 487).",
       },
     ],
     limits: ["Entrée en vigueur non énoncée par le texte lu ; seule la date de publication au JO est portée."],
@@ -172,6 +186,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
       text: "Art. 6-1 : s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2026 ; peut être appliqué par anticipation, à compter de sa date de publication au Journal officiel, aux exercices en cours à cette date.",
     },
     contractualScope: null,
+    contractualScopeRule: null,
     exceptions: [
       {
         articles: "art. 4, 1° et 2° (règlement ANC 2020-01, comptes consolidés, art. 232-5 et 232-12)",
@@ -206,8 +221,12 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     firstMandatory: { kind: "consolidated_edition", from: "2026-01-01", to: null },
     anticipation: { allowed: false },
     contractualScope: null,
+    contractualScopeRule: null,
     exceptions: [],
-    numbering: { exceptional_result: "513-5 (PCG consolidé au 01/01/2026)", income_tax: "515-1 (PCG consolidé au 01/01/2026)", other_equity: "314-1 à 316-1 (PCG consolidé au 01/01/2026, chapitre I bis)" },
+    numbering: {
+      exceptional_result: "513-5 (PCG consolidé au 01/01/2026)", income_tax: "515-1 (PCG consolidé au 01/01/2026)", other_equity: "314-1 à 316-1 (PCG consolidé au 01/01/2026, chapitre I bis)",
+      cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (PCG consolidé au 01/01/2026)",
+    },
     supersedes: [],
     editions: [
       {
@@ -216,7 +235,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 183,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "Fichier généré le 17/02/2026 (métadonnées PDF) ; porte l'art. 513-5 et le chapitre I bis « Autres fonds propres » ; aucun art. 531-5.",
+        note: "Fichier généré le 17/02/2026 (métadonnées PDF) ; porte l'art. 513-5 et le chapitre I bis « Autres fonds propres » ; aucun art. 531-5. Relu le 15/10/2026 (C11, même empreinte) : 511-3 (p. 41), 512-3, 512-4, 513-3, 513-4 (p. 42), 1214-40 (p. 164), 1214-41 (p. 165), 1214-48 (p. 171).",
       },
       {
         url: "https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/recueil/2026/PCG--1er-janvier-2026.pdf",
@@ -241,7 +260,9 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     adoptionDate: "2026-03-06",
     homologationDate: "2026-08-12",
     publicationDate: "2026-09-03",
-    entryIntoForce: null,
+    // C11 : l'arrêté d'homologation lu sur Légifrance le 15/10/2026 porte « Entrée en vigueur : l'arrêté entre en vigueur
+    // le lendemain de sa publication » (JORF n° 0205 du 03/09/2026). Le règlement ne fixe pas lui-même cette date.
+    entryIntoForce: { date: "2026-09-04", basis: "official_text" },
     firstMandatory: { kind: "periods_opened_from", date: "2027-01-01" },
     anticipation: {
       allowed: true,
@@ -249,9 +270,13 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
       scope: "period_in_progress_at_publication",
       text: "Art. 4 : s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2027 ; peut être appliqué par anticipation sur l'exercice en cours à sa date de publication au Journal officiel.",
     },
-    contractualScope: "Art. 4, al. 2 : s'applique aux contrats de vente conclus ou renouvelés postérieurement à son entrée en vigueur.",
+    contractualScope: "Art. 4, al. 2 : s'applique aux contrats de vente conclus ou renouvelés postérieurement à son entrée en vigueur (04/09/2026, lendemain de la publication de l'arrêté d'homologation).",
+    contractualScopeRule: { kind: "sales_contracts_concluded_or_renewed_after_entry_into_force" },
     exceptions: [],
-    numbering: { exceptional_result: "531-5 (ANC 2026-03)", income_tax: "542-1 (ANC 2026-03)", revenue: "521-1 à 523-7 (ANC 2026-03)" },
+    numbering: {
+      exceptional_result: "531-5 (ANC 2026-03)", income_tax: "542-1 (ANC 2026-03)", revenue: "521-1 à 523-7 (ANC 2026-03)",
+      cutoff: "511-3, 521-4, 522-2, 522-3, 522-7, 522-11, 522-12 (ANC 2026-03)",
+    },
     supersedes: ["anc-2022-06", "pcg-2026-01-01", "anc-2026-04"],
     editions: [
       {
@@ -260,20 +285,20 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 10,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "En-tête : homologué par arrêté du 12/08/2026, JO du 03/09/2026 ; art. 1er-3 (chapitre I du titre V remplacé : 511-1 à 542-2, dont 531-5 et 542-1) ; art. 4 lu.",
+        note: "En-tête : homologué par arrêté du 12/08/2026, JO du 03/09/2026 ; art. 1er-3 (chapitre I du titre V remplacé : 511-1 à 542-2, dont 531-5 et 542-1) ; art. 4 lu. Relu le 15/10/2026 (C11, même empreinte) : 511-3, 521-4, 522-2, 522-3, 522-5 à 522-7, 522-11, 522-12.",
       },
       {
         url: "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054791025",
         sha256: null,
         pages: null,
-        readAt: READ_AT,
-        access: "inaccessible",
-        note: "Arrêté du 12/08/2026 : Légifrance a répondu 403 (protection anti-robot) ; la date est établie par l'en-tête du texte homologué publié par l'ANC.",
+        readAt: "2026-10-15",
+        access: "read_official_page",
+        note: "Arrêté du 12/08/2026 (NOR ECOT2617843A, JORF n° 0205 du 03/09/2026, texte n° 18) lu dans le navigateur le 15/10/2026 : « Entrée en vigueur : l'arrêté entre en vigueur le lendemain de sa publication » ; art. 1er homologue les règlements 2026-01 à 2026-04. Le 13/10/2026, une lecture automatisée avait reçu une réponse 403.",
       },
     ],
     limits: [
-      "Date d'entrée en vigueur non énoncée par le texte : le champ contractuel (contrats conclus ou renouvelés après l'entrée en vigueur) ne peut pas être daté ici.",
-      "Seule la numérotation (531-5, 542-1, 521-1 à 523-7) est résolue ; les règles de comptabilisation des produits ne sont pas implémentées.",
+      "Entrée en vigueur datée par l'arrêté d'homologation (lendemain de la publication) : le règlement ne la fixe pas lui-même. Un contrat conclu ou renouvelé le jour même (04/09/2026) reste à apprécier : « postérieurement » n'est pas tranché ici.",
+      "Rattachement (C11) : la grille de cut-off cite 511-3, 521-4, 522-2, 522-3, 522-7, 522-11 et 522-12 ; prix variables, contrats à long terme, droits de retour et avantages accordés (522-4 à 522-10, 523-1 et suivants) ne sont pas implémentés.",
     ],
   },
   {
@@ -289,6 +314,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     firstMandatory: { kind: "periods_in_progress_at", date: "2026-09-04" },
     anticipation: { allowed: false, text: "Aucune disposition d'anticipation : le règlement s'applique aux exercices en cours à son entrée en vigueur." },
     contractualScope: null,
+    contractualScopeRule: null,
     exceptions: [],
     numbering: { income_tax: "515-1 (rédaction ANC 2026-04 ; 542-1 à compter d'ANC 2026-03)" },
     supersedes: ["pcg-2026-01-01"],
@@ -464,4 +490,31 @@ export function resolveFrenchGaap(input: ApplicabilityQuery): FrenchGaapResoluti
 /** Article applicable pour un sujet, ou null si aucun texte appliqué ne le porte. */
 export function applicableArticle(topic: NumberingTopic, input: ApplicabilityQuery): { article: string; textId: FrenchGaapTextId; basis: ApplicabilityStatus } | null {
   return resolveFrenchGaap(input).numbering[topic] ?? null;
+}
+
+export type ContractualScopeStatus =
+  /** Contrat conclu ou renouvelé après l'entrée en vigueur : le texte s'applique au contrat. */
+  | "in_scope"
+  /** Contrat conclu ou renouvelé avant l'entrée en vigueur : le texte antérieur continue de régir le contrat. */
+  | "out_of_scope"
+  /** Contrat conclu ou renouvelé le jour même de l'entrée en vigueur : « postérieurement » n'est pas tranché. */
+  | "entry_day"
+  /** Date de conclusion ou de renouvellement absente ou invalide : le texte applicable au contrat reste inconnu. */
+  | "contract_date_required"
+  /** Le texte n'énonce aucun champ contractuel. */
+  | "no_contractual_scope";
+
+/**
+ * Champ contractuel d'un texte (C11) : dit si un contrat de vente, daté de sa conclusion ou de son dernier
+ * renouvellement, relève du texte. N'est consulté que si le texte s'applique à l'exercice. Aucune date n'est supposée.
+ */
+export function contractualApplicability(textId: FrenchGaapTextId, contractDate: string | null): { status: ContractualScopeStatus; entryIntoForce: string | null; reason: string } {
+  const t = frenchGaapText(textId);
+  if (!t.contractualScopeRule) return { status: "no_contractual_scope", entryIntoForce: t.entryIntoForce?.date ?? null, reason: "Le texte n'énonce aucun champ contractuel." };
+  const entry = t.entryIntoForce?.date ?? null;
+  if (!entry) return { status: "contract_date_required", entryIntoForce: null, reason: "Entrée en vigueur non datée : le champ contractuel ne peut pas être apprécié." };
+  if (!contractDate || !isoDate(contractDate)) return { status: "contract_date_required", entryIntoForce: entry, reason: `Date de conclusion ou de renouvellement du contrat requise : ${t.contractualScope ?? "champ contractuel du texte"}` };
+  if (contractDate > entry) return { status: "in_scope", entryIntoForce: entry, reason: `Contrat conclu ou renouvelé le ${contractDate}, après l'entrée en vigueur du ${entry}.` };
+  if (contractDate < entry) return { status: "out_of_scope", entryIntoForce: entry, reason: `Contrat conclu ou renouvelé le ${contractDate}, avant l'entrée en vigueur du ${entry} : le texte antérieur continue de le régir.` };
+  return { status: "entry_day", entryIntoForce: entry, reason: `Contrat conclu ou renouvelé le jour de l'entrée en vigueur (${entry}) : « postérieurement » est à apprécier par le professionnel.` };
 }

@@ -66,11 +66,11 @@ const findStartupCA: Finding = {
   ruleVersion: "1.0.0",
   cloison: "resultat",
   siloId: "chiffre-affaires",
-  titre: "Reconnaissance du revenu SaaS avant transfert du contrôle",
+  titre: "Reconnaissance du revenu SaaS avant réalisation de la prestation",
   constat:
-    "840 000 € de revenus issus de contrats SaaS pluriannuels sont comptabilisés en totalité à la date de signature, sans étalement sur la durée de service. Les CCA correspondants ne sont pas constatés.",
+    "840 000 € de revenus issus de contrats SaaS pluriannuels sont comptabilisés en totalité à la date de signature, sans étalement sur la durée de service. Les produits constatés d'avance (487) correspondants ne sont pas constatés.",
   explication:
-    "La comptabilisation du revenu exige que la prestation soit rendue. Pour les contrats d'abonnement, le chiffre d'affaires est acquis prorata temporis. L'absence de CCA entraîne une surestimation du CA de l'exercice et une présomption de fraude au titre de l'ISA 240.",
+    "La comptabilisation du revenu exige que la prestation soit rendue. Pour les contrats d'abonnement, le chiffre d'affaires est acquis prorata temporis. L'absence de produits constatés d'avance entraîne une surestimation du CA de l'exercice et une présomption de fraude au titre de l'ISA 240.",
   mesure: { constate: 840000, seuil: 420000, unite: "EUR", libelle: "CA reconnu vs CA acquis (50 % contrats annuels)" },
   source: SOURCES.ISA_240,
   comptesConcernes: ["706", "487"],
