@@ -102,6 +102,8 @@ describe("ST-1522 cadrage état valorisé ↔ grand livre et propriété", () =>
   it("issue et décompte : 14 exceptions et incertitudes, exceptions détectées", async () => {
     const r = run(await valued());
     expect(r.schemaVersion).toBe("stocks-result-3");
+    // Population (C08): 8 tested at cost (7 valued, REF-H unknown), 7 not tested; goods not owned: REF-F 1 800,00 known, REF-T (counted, absent from the system) unknown.
+    expect(r.valuation!.totals.population).toEqual({ tested: 8, valued: 7, unknown: 1, notTested: 7, notOwnedValueCents: "180000", notOwnedUnknown: 1 });
     expect(r.exceptions).toHaveLength(14);
     expect(r.exceptions.filter(e => ["PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "COST_MISSING"].includes(e.code)).map(e => e.code).sort()).toEqual(["COST_MISSING", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED"]);
     expect(stockOutcome(r)).toBe("exceptions_detected");

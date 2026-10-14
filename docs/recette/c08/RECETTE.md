@@ -65,7 +65,8 @@ Pour chaque unité revue, sur la quantité retenue *q* (quantité théorique), a
 | Part non revue | R au coût ; S inconnue | 35,00 + 1 inconnue |
 | Hors revue | T (tiers) | 1 unité, 300,00 déclarés |
 | Dépréciations : détail / comptes 39 / écart | 100 + 5 + 20 ; −(−125) | 125,00 / 125,00 / 0,00 |
-| Population du sous-lot coûts | 9 testées au coût, 7 valorisées (N, P, U, L1, L2, Q, R), 2 inconnues (M, S), 1 non testée (T) | 300,00 portés pour des biens non détenus |
+| Population du sous-lot coûts | 9 testées au coût, 7 valorisées (N, P, U, L1, L2, Q, R), 2 inconnues (M, S), 1 non testée (T) | 300,00 portés pour des biens non détenus, 0 inconnue |
+| Même population, colonne de valeur non mappée | T sans valeur déclarée | valeur des biens non détenus **inconnue**, 1 ligne (jamais 0) |
 
 Exceptions et incertitudes attendues : `QUANTITY_DIFFERENCE` (REF-Q, −4 × 5,00 = −20,00), `COST_MISSING` ×2 (M, S), `VALUE_ON_NOT_OWNED` (T), `VALUE_REVIEW_DIFFERENCE` (N), `VALUE_EXCESS_TO_QUALIFY` (N), `VALUE_REVIEW_INCOMPLETE` ×2 (M, U), `VALUE_QUANTITY_UNRESOLVED` (Q). **Neuf** au total ; issue « exceptions détectées ».
 

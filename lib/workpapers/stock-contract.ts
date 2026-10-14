@@ -195,7 +195,8 @@ export const stockValuationSchema = z.object({
     priceDifferenceNetCents: cents, systemValueCents: cents.nullable(), ledgerCents: cents.nullable(),
     /** Rule 1.1.0: the population behind the value totals — units valued, units whose value stays unknown, units not tested and the value carried for goods not owned. */
     population: z.object({ tested: z.number().int().nonnegative(), valued: z.number().int().nonnegative(), unknown: z.number().int().nonnegative(), notTested: z.number().int().nonnegative(),
-      notOwnedValueCents: cents }).strict().optional() }).strict(),
+      // Known values only; null when goods not owned exist and none of their values is known (value column unmapped or empty).
+      notOwnedValueCents: cents.nullable(), notOwnedUnknown: z.number().int().nonnegative() }).strict().optional() }).strict(),
 }).strict();
 export type StockValuation = z.infer<typeof stockValuationSchema>;
 export const stockResultSchema = z.object({

@@ -104,7 +104,7 @@ describe("C08 — bornage de la revue de valeur", () => {
     expect(review(r).units.some(u => u.unitId.startsWith("REF-T|"))).toBe(false);
     expect(review(r).totals.excluded).toEqual([{ group: "third_party", units: 1, statedValueCents: "30000", unknownValues: 0 }]);
     expect(exception(r, "NOTOWN:REF-T|ENTREPOT-NORD|")).toMatchObject({ code: "VALUE_ON_NOT_OWNED", amount: { kind: "known", value: { amount: "300.00" } } });
-    expect(r.valuation!.totals.population).toEqual({ tested: 9, valued: 7, unknown: 2, notTested: 1, notOwnedValueCents: "30000" });
+    expect(r.valuation!.totals.population).toEqual({ tested: 9, valued: 7, unknown: 2, notTested: 1, notOwnedValueCents: "30000", notOwnedUnknown: 0 });
   });
 
   it("absence de revue (REF-R, REF-S) et totaux : populations connues, partiel séparé du complet, part non revue", async () => {
@@ -128,6 +128,8 @@ describe("C08 — bornage de la revue de valeur", () => {
     expect(unit(unmapped, "REF-N")).toMatchObject({ bookedCents: null, differenceCents: null, assetImpairmentCents: "10000", statedValueCents: null });
     expect(exception(unmapped, "VBKD:REF-N|ENTREPOT-NORD|")).toMatchObject({ code: "VALUE_REVIEW_INCOMPLETE", amount: { kind: "unknown" } });
     expect(review(unmapped).totals.excluded).toEqual([{ group: "third_party", units: 1, statedValueCents: null, unknownValues: 1 }]);
+    // Value column unmapped: the value carried for the third-party stock is unknown, never a documented zero.
+    expect(unmapped.valuation!.totals.population).toMatchObject({ notOwnedValueCents: null, notOwnedUnknown: 1 });
     expect(unit(r, "REF-N").bookedCents).toBe("0");
   });
 

@@ -294,7 +294,7 @@ Le résultat expose, pour chaque unité, les quantités théorique, comptée (av
 
 La revue porte le décompte des unités testées : complètes, partielles, incomplètes, dépréciées sans hypothèse et non revues. Elle porte aussi les unités hors revue, par motif : stock de tiers, consignations, transit, en-cours, références exclues, sites non visités, écarts de propriété. Pour chaque motif, elle donne la valeur déclarée connue et le nombre de valeurs inconnues. Une valeur inconnue n'est jamais un zéro.
 
-Chacun des montants *E*, *A* et *X* est totalisé séparément pour l'estimation complète et pour l'estimation partielle. La part non revue est valorisée au coût documenté quand il est connu ; sinon, elle est décomptée comme inconnue. Le sous-lot coûts porte sa population : testées, valorisées, de valeur inconnue, non testées, et valeur portée pour des biens non détenus. Stock propre et stock de tiers, références, sites et lots, mouvements intercalaires, comptes 39 et écarts bruts et nets sont inchangés.
+Chacun des montants *E*, *A* et *X* est totalisé séparément pour l'estimation complète et pour l'estimation partielle. La part non revue est valorisée au coût documenté quand il est connu ; sinon, elle est décomptée comme inconnue. Le sous-lot coûts porte sa population : testées, valorisées, de valeur inconnue, non testées, et valeur portée pour des biens non détenus. Cette dernière ne compte que les valeurs déclarées : le nombre de lignes sans valeur est donné à part, et le total reste inconnu (jamais 0) quand aucune n'est déclarée, par exemple si la colonne de valeur n'est pas mappée. Stock propre et stock de tiers, références, sites et lots, mouvements intercalaires, comptes 39 et écarts bruts et nets sont inchangés.
 
 ### Codes ajoutés
 

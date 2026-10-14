@@ -101,9 +101,12 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
     message: "Total net des écarts valorisés " + formatCents(String(net), { signed: true }) + " pour des écarts bruts de " + formatCents(String(gross)) + " sur " + all.length + " références / sites / lots : le net ne justifie aucun écart individuel.", amount: unknown("Écarts compensés à expliquer un par un") });
   const systemTotal = valued.filter(v => v.owned && v.systemValueCents !== null).reduce((n, v) => n + BigInt(v.systemValueCents!), 0n);
   // Population behind the value totals: what is valued, what stays unknown, what is not tested and what is carried for goods not owned.
+  // A missing stated value of a good not owned stays unknown: never summed as zero.
+  const notOwned = valued.filter(v => !v.owned), notOwnedKnown = notOwned.filter(v => v.systemValueCents !== null);
   const population = { tested: valued.filter(v => v.costStatus !== "not_tested").length, valued: valued.filter(v => v.costStatus === "documented").length,
     unknown: valued.filter(v => v.costStatus === "missing" || v.costStatus === "unit_incompatible").length, notTested: valued.filter(v => v.costStatus === "not_tested").length,
-    notOwnedValueCents: String(valued.filter(v => !v.owned && v.systemValueCents !== null).reduce((n, v) => n + BigInt(v.systemValueCents!), 0n)) };
+    notOwnedValueCents: notOwned.length && !notOwnedKnown.length ? null : String(notOwnedKnown.reduce((n, v) => n + BigInt(v.systemValueCents!), 0n)),
+    notOwnedUnknown: notOwned.length - notOwnedKnown.length };
   const valuation: StockValuation = {
     costsProvided: !!facts.costs, ledgerProvided: !!facts.ledger, valueMapped: facts.valueMapped, units: valued, accounts: framed,
     depreciation: depreciation.map(l => ({ account: l.account, ledgerCents: l.quantity, ledger: lineRef(l) })), references,
