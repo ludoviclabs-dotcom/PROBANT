@@ -21,9 +21,20 @@ async function readDownload(download: import("@playwright/test").Download): Prom
 
 test.describe("TAX-10 — release gate E2E synthétique", () => {
   test("crée l'intention de dossier, dépose une balance synthétique et renseigne le profil d'onboarding", async ({ page }) => {
+    const depotHeading = page.getByRole("heading", { name: "Dépôt & ingestion", level: 2 });
     await page.goto("/dashboard/depot");
+    await expect(depotHeading).toBeVisible();
     await page.getByRole("link", { name: "Nouveau dossier" }).click();
-    await expect(page).toHaveURL(/dashboard\/depot/u);
+    // Le lien ajoute le contexte de navigation du dossier (?context=1&dossierId=…) :
+    // ActiveDossierProvider relit alors le dossier et remonte la page. Un fichier
+    // déposé avant ce remontage est perdu ; on attend donc la nouvelle URL, puis
+    // le titre de la page remontée.
+    await expect(page).toHaveURL((url) =>
+      url.pathname === "/dashboard/depot"
+      && url.searchParams.get("context") === "1"
+      && url.searchParams.get("dossierId") === "demo-sa-2024");
+    await expect(depotHeading).toBeVisible();
+    await expect(page.getByText("Lecture du dossier sélectionné…")).toHaveCount(0);
 
     await page.locator('input[type="file"]').first().setInputFiles({
       name: "balance-tax-release-2026.csv",
