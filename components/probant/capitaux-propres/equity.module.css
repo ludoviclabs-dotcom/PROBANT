@@ -104,4 +104,7 @@
 /* Form fields shrink with their label: no intrinsic input width may overflow a 390 px screen, whatever the font metrics. */
 .synthesis :is(input,select){width:100%;min-width:0}
 @media (max-width:720px){.synthesis label{min-width:0}}
+/* C09 : formulaire des termes contractuels d’un instrument. */
+.instrumentForm{border:1px solid var(--pb-border,#243044);border-radius:6px;padding:12px;margin:10px 0;min-width:0;display:grid;gap:4px}
+.instrumentForm legend{font-size:12px;color:var(--muted,#8a99af)}
 @media (prefers-reduced-motion:reduce){.expansion,.movements button,.chevron{animation:none!important;transition:none!important}}

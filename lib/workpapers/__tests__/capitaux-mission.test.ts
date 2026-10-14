@@ -27,7 +27,7 @@ describe("EQ-1106 Synthèse et export Capitaux propres", () => {
     const mission = await h.mission();
     const html = await (await h.handlers.exportPOST(exportRequest({ kind: "diagnostic", format: "html", expectedSnapshotHash: mission.hash }))).text();
     expect(html).not.toContain("<script>alert(1)</script>"); expect(html).toContain("&lt;script&gt;");
-    for (const text of ["Export diagnostic — ne constitue pas un paquet approuvé", "eq-sign-1", "36100 / 15000 (centimes)", "Aucune règle juridique n’est implémentée", "Transferts internes (effet nul sur le total)", "Les originaux binaires (PV compris) ne sont pas inclus"]) expect(html).toContain(text);
+    for (const text of ["Export diagnostic — ne constitue pas un paquet approuvé", "eq-sign-1", "36100 / 15000 (centimes)", "aucune alerte de dissolution, aucun délai calculé", "Transferts internes (effet nul sur le total)", "Les originaux binaires (PV compris) ne sont pas inclus"]) expect(html).toContain(text);
     const csv = await (await h.handlers.exportPOST(exportRequest({ kind: "diagnostic", format: "exceptions_csv", expectedSnapshotHash: mission.hash }))).text();
     expect(csv).toContain("ENTRY_WITHOUT_DECISION"); expect(csv).toContain(",'=E09,"); expect(csv).not.toMatch(/,=E09,/);
     const pdf = await h.handlers.exportPOST(exportRequest({ kind: "diagnostic", format: "pdf", expectedSnapshotHash: mission.hash }));

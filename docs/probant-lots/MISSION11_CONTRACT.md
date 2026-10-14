@@ -1,5 +1,7 @@
 # Mission 11 — contrat du dossier de décisions
 
+> **C09 (2026-10-14).** `equity.review` (`/equity`) reste en règle 1.0.0 comme parcours historique, lisible et poursuivable. Il est lu avec `/capitaux-propres` dans le parcours unique `/capitaux-propres/parcours`, qui compte une seule fois une décision citée par le même PV dans les deux feuilles. Comparaison et transition : [`../mission-c09/COMPARAISON.md`](../mission-c09/COMPARAISON.md).
+
 Cette méthode interne de rapprochement n’implémente aucune règle juridique ou nouvelle prescription comptable. Les familles proposées sont une checklist à déclarer et à corroborer pour la forme sociale, la période et les sources du dossier. Aucun ratio ne conclut à la légalité.
 
 Questions : les composantes pertinentes sont-elles cartographiées ? Le pont ouverture + mouvements = clôture est-il documenté ? Les décisions et leurs écritures se correspondent-elles ? Quels règlements sont distincts de la décision et de sa comptabilisation ?

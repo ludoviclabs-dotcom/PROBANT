@@ -3,8 +3,11 @@ import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliati
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
 import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, type CapabilityCycleId } from "./procedures";
 export * from "./procedures";
-/** 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory. */
-export const CAPABILITY_REGISTRY_VERSION = "1.1.0";
+/**
+ * 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory.
+ * 1.2.0 (C09): Capitaux propres — single journey over the two sheets, other equity funds by declared contractual terms, dated legal markers.
+ */
+export const CAPABILITY_REGISTRY_VERSION = "1.2.0";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -18,7 +21,7 @@ const sources: Record<CapabilityCycleId, string[]> = {
   immobilisations: ["Registre des immobilisations", "Grand livre", "Mouvements, mise en service et méthode documentée"],
   stocks: ["Feuilles de comptage transcrites et état théorique à la clôture", "Mouvements intercalaires (quantités)", "Coûts unitaires déclarés par pièce (méthode indiquée)", "Hypothèses de valeur citées, dépréciations comptabilisées et comptes 39"],
   provisions: ["Registre des risques", "Grand livre", "Pièces d’estimation, événements et annexe"],
-  capitaux_propres: ["Grand livre", "Décisions et PV", "Mouvements et règlements"],
+  capitaux_propres: ["Grand livre", "Décisions et PV", "Mouvements et règlements", "Forme sociale et contrats des instruments proches du capital (pièces citées)"],
   participations: ["Droits et titres", "Distributions", "Dossier de valeur et méthode approuvée"],
   fiscal: ["Grand livre TVA", "CA3 de la période déclarative", "Résultat fiscal et retraitements documentés", "Règles fiscales applicables validées"],
   paie: ["Journal de paie", "Exports déclaratifs", "Paiements", "Droits à congés, unités et bases comparables"],
@@ -32,13 +35,14 @@ const exclusions: Record<CapabilityCycleId, string[]> = {
   stocks: ["Comptage transcrit : présence physique et exhaustivité de l’inventaire non certifiées", "Stocks de tiers et consignations présentés à part", "Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions",
     "Aucune dépréciation ni provision automatique (complément au-delà de la valeur comptable : à qualifier)"],
   provisions: ["Aucune issue juridique déduite", "Pièces confidentielles selon droits serveur"],
-  capitaux_propres: ["Deux procédures distinctes, aucune conclusion juridique"], participations: ["DCF complet et classement automatique absents"],
+  capitaux_propres: ["Deux feuilles d’origine lues dans un parcours unique, sans double compte ni migration", "Aucune conclusion juridique : repères légaux datés, sans alerte de dissolution", "Autres fonds propres classés par termes contractuels déclarés, jamais par numéro de compte"], participations: ["DCF complet et classement automatique absents"],
   fiscal: ["Aucune liquidation ou conformité déclarée", "TVA mensuelle distincte de l’exercice IS"],
   paie: ["Paie complète et lecture native DSN absentes", "Accès RH réel bloqué"], exceptionnel: ["Qualification humaine par événement"],
   transversal: ["Aucune opinion générée", "Cut-off : fait générateur documenté requis"], informatique: ["Pas de moteur ITGC", "Travaux manuels possibles dans le programme de clôture"],
 };
 /** Local scope stated per cycle when the generic wording would overstate or blur what the sheet establishes. */
 const localScopes: Partial<Record<CapabilityCycleId, string>> = {
+  capitaux_propres: "Parcours unique /capitaux-propres/parcours : feuille décisions et PV versionnés (règle 1.1.0, travaux nouveaux) et dossier /equity (règle 1.0.0, historique) lus à leur version exacte ; activation locale et accès autorisé requis.",
   stocks: "Feuille versionnée : quantités comptées transcrites et passage à la clôture, coûts déclarés (non reconstitués), revue de valeur bornée à la valeur comptable avec estimation partielle si la quantité n’est pas rapprochée ; activation locale et accès autorisé requis. Aucun inventaire physique certifié.",
 };
 const journalCycles = CAPABILITY_CYCLE_IDS.map(id => {

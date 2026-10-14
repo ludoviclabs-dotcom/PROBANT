@@ -1,0 +1,248 @@
+{
+ "engine": "capitaux_propres.review 1.0.0 (main ff3f9fb)",
+ "schemaVersion": "equity-result-1",
+ "decisions": [
+  {
+   "lineId": "D-AFF-AR",
+   "type": "affectation_resultat",
+   "voted": "146.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "146.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-AFF-RAN",
+   "type": "affectation_resultat",
+   "voted": "20.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "20.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-AFF-RES",
+   "type": "affectation_resultat",
+   "voted": "-180.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "-180.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-AFF-RL",
+   "type": "affectation_resultat",
+   "voted": "14.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "14.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-DIV",
+   "type": "distribution",
+   "voted": "-120.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "-120.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-EXC-1",
+   "type": "distribution",
+   "voted": "-50.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "-50.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "0.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "not_applicable",
+    "reason": "Aucun règlement rattaché"
+   },
+   "status": "matched"
+  },
+  {
+   "lineId": "D-EXC-2",
+   "type": "distribution",
+   "voted": "-30.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "20.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "known",
+    "value": {
+     "amount": "50.00",
+     "currency": "EUR"
+    }
+   },
+   "payment": {
+    "kind": "known",
+    "value": {
+     "amount": "30.00",
+     "currency": "EUR"
+    }
+   },
+   "status": "amount_divergent"
+  },
+  {
+   "lineId": "D-CAP",
+   "type": "augmentation_capital",
+   "voted": "200.00",
+   "booked": {
+    "kind": "known",
+    "value": {
+     "amount": "200.00",
+     "currency": "EUR"
+    }
+   },
+   "difference": {
+    "kind": "unknown",
+    "reason": "SOURCE REQUISE : PV et lecture validée"
+   },
+   "payment": {
+    "kind": "known",
+    "value": {
+     "amount": "200.00",
+     "currency": "EUR"
+    }
+   },
+   "status": "reading_required"
+  }
+ ],
+ "exceptions": [
+  {
+   "code": "AMOUNT_DIVERGENT",
+   "targetId": "D-EXC-2",
+   "amount": {
+    "kind": "known",
+    "value": {
+     "amount": "50.00",
+     "currency": "EUR"
+    }
+   }
+  },
+  {
+   "code": "PV_MISSING",
+   "targetId": "D-CAP",
+   "amount": {
+    "kind": "unknown",
+    "reason": "PV absent"
+   }
+  }
+ ],
+ "totals": {
+  "opening": {
+   "kind": "known",
+   "value": {
+    "amount": "1520.00",
+    "currency": "EUR"
+   }
+  },
+  "closing": {
+   "kind": "known",
+   "value": {
+    "amount": "1630.00",
+    "currency": "EUR"
+   }
+  }
+ },
+ "legalMeaning": "Aucune règle juridique n’est implémentée (réserve légale, capitaux propres inférieurs à la moitié du capital, conditions de distribution…) : une telle règle doit être sourcée pour la forme sociale et la période avant toute implémentation. Les rapports affichés sont arithmétiques et ne valent ni conformité ni feu vert juridique.",
+ "limitations": [
+  "Aucune conclusion juridique : un rapport arithmétique ou une décision rapprochée ne démontre ni la régularité de la décision ni la conformité des capitaux propres.",
+  "La lecture d’un PV est une validation humaine de la transcription à la page citée ; elle ne prouve ni l’authenticité du PV, ni le quorum, ni la régularité de la convocation.",
+  "La complétude de l’extraction des écritures n’est démontrée que composante par composante, par le pont ouverture + mouvements = clôture.",
+  "Autres fonds propres listés et exclus du total avec motif ; composition non qualifiée par cette procédure.",
+  "Une composante incomplète (ouverture, clôture ou compte absents) reste inconnue : aucune valeur réputée nulle, aucun total ni rapport calculé sur une partie.",
+  "Paiements des distributions présentés séparément ; ils ne valent ni décision ni comptabilisation.",
+  "Événements postérieurs à la clôture présentés sur la frise ; aucune appréciation de leur traitement comptable."
+ ]
+}

@@ -60,7 +60,7 @@ describe("EQ-1101 recette : décisions, mouvements, transferts et tableau de var
     expect(result.ratios.equityToCapital).toEqual({ kind: "ratio", numerator: "36100", denominator: "15000" });
     expect(result.ratios.reservesToCapital).toEqual({ kind: "ratio", numerator: "2600", denominator: "15000" });
     expect(result.legalConclusion.kind).toBe("unknown");
-    expect(result.legalMeaning).toContain("Aucune règle juridique n’est implémentée");
+    expect(result.legalMeaning).toContain("Aucune conclusion juridique, aucune alerte de dissolution, aucun délai calculé");
     expect(result.conclusion).toBeNull();
   });
 });

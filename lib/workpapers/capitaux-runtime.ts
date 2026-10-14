@@ -6,7 +6,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { buildEquityMissionPackage, type EquityExportKind } from "@/lib/evidence/capitaux-mission-package";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { EQUITY_TEMPLATE, EquityRegistry } from "./capitaux-adapter";
+import { EQUITY_RULE, EQUITY_TEMPLATE, EquityRegistry } from "./capitaux-adapter";
 import type { EquityCitationInput, EquityCommand } from "./capitaux-commands";
 import { buildEquityMission, type EquityMissionSelection } from "./capitaux-mission";
 import { previewMinutes } from "./capitaux-minutes";
@@ -175,6 +175,8 @@ export class EquityRuntime {
       const current = await repository.get(scope, command.id);
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (current.capitauxWork) capitauxWorkSchema.parse(current.capitauxWork);
+      // A sheet of a replaced rule is read, never continued: only a revision (which adopts the current template) is allowed.
+      if (command.command !== "revise" && current.template.rule?.version !== EQUITY_RULE.version) throw new Error("EQ_RULE_REPLACED_REVISION_REQUIRED");
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion;
       let run: WorkpaperRun;
@@ -189,7 +191,7 @@ export class EquityRuntime {
           const selectedIds = population.items.map(i => i.id).filter(i => !exclusions.some(e => e.id === i));
           if (!selectedIds.length) throw new Error("EQ_NO_ITEM_IN_SCOPE");
           run = await service.configureCapitaux(scope, id, v, stampEquityWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, actor, at }));
-          const selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les écritures de l’exercice et toutes les lignes de décision des composantes de capitaux propres ; autres fonds propres exclus avec motif", requestedSize: selectedIds.length, selectedIds, exclusions }, actor);
+          const selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les écritures de l’exercice et toutes les lignes de décision des composantes de capitaux propres ; autres fonds propres exclus avec motif (présentés à part)", requestedSize: selectedIds.length, selectedIds, exclusions }, actor);
           run = await service.attachInputs(scope, id, run.version, population, selection);
           for (const batch of batches) run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source Capitaux propres figée");
           run = await service.transition(scope, id, run.version, "ready"); break;
@@ -218,7 +220,7 @@ export class EquityRuntime {
         case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
         case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
         case "lock": run = await service.lock(scope, id, v); break;
-        case "revise": run = await service.revise(scope, id, v); break;
+        case "revise": run = await service.revise(scope, id, v, EQUITY_TEMPLATE); break;
       }
       return { run };
     }));

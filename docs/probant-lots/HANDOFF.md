@@ -90,6 +90,84 @@
 
 ---
 
+# Handoff — Mission C09 : parcours Capitaux propres unique (2026-10-14)
+
+**Base.**
+
+- Branche `claude/c09-capitaux-propres-parcours`, worktree `quizzical-boyd-13e46a`.
+- SHA de départ `ff3f9fb` (`main` après la PR #84 C08), checkout propre.
+- Écart avec la base du diagnostic `ab8f991` : C00 à C08 ont été fusionnés depuis. Aucun ne touchait les deux feuilles Capitaux propres, hormis :
+  - les liens de contexte (C01) ;
+  - le profil personnel (C07).
+
+## Inventaire (avant)
+
+- **Deux procédures.**
+  - `equity.review` : `/equity`, #62, tables `clients_*`, règle 1.0.0, résultat `equity-result-1`.
+  - `capitaux_propres.review` : `/capitaux-propres`, #65, tables `eq_*`, règle 1.0.0, résultat portant le même nom `equity-result-1`.
+- **Navigation.** Le registre des cycles proposait la feuille et la « procédure parallèle ».
+- **Moteur `/capitaux-propres`.**
+  - Pas d’amendement.
+  - Paiement présenté sans comparaison au vote.
+  - Autres fonds propres exclus sans qualification.
+  - Aucun repère juridique.
+- **ANC 2024-07.** Le résolveur C04 le datait, mais aucun moteur ne le consommait.
+
+## Cause et reproduction
+
+Moteur de `ff3f9fb` exécuté sur le dossier C09 (`docs/recette/c09/AVANT-capitaux-1.0.0.json`) :
+
+- **Amendement.** D-EXC-2 ressort en `amount_divergent` **+50** (20 comptabilisés contre −30 votés), et D-EXC-1 et D-EXC-2 sont comptées comme deux votes.
+- **Dividende non payé.** D-DIV n’affiche que « Aucun règlement rattaché ».
+- **Deux parcours.** Lus séparément, ils affichent deux fois les décisions communes.
+
+## Changements
+
+Voir `docs/mission-c09/COMPARAISON.md`, `docs/mission-c09/CONTRAT.md` et `docs/probant-lots/C09_PR.md`.
+
+- **Vue commune** en lecture seule. Entrée unique `/capitaux-propres/parcours` ; dédoublonnage par PV (empreinte et page) ; liens vers chaque feuille à sa version exacte avec le contexte du dossier.
+- **Règle `capitaux_propres.review` 1.1.0** :
+  - amendements ;
+  - paiement par décision ;
+  - présentation dettes / autres fonds propres datée par le résolveur C04 ;
+  - repères légaux datés.
+
+  Une feuille 1.0.0 est consultable ; seule la révision est permise.
+- **Écrans.**
+  - Formulaire du cadre et des instruments.
+  - Blocs présentation et repères, partagés avec le parcours.
+  - Alerte 1.0.0.
+  - Liens croisés entre les feuilles et le parcours.
+- **Registres.** Registre des cycles réduit à une seule entrée Capitaux propres ; registre C01 passé en 1.2.0.
+- **Export de mission** complété.
+
+## Vérifié
+
+- **Recette C09** : 18/18 (garde de règle au runtime et amendement postérieur à la clôture compris), attendus posés à la main (`docs/recette/c09/RECETTE.md`).
+- **Modules purs** : 19/19.
+- **Route du parcours** : 5/5.
+- **Suites `/capitaux-propres` existantes** : 52/52, attendus Mission 11 inchangés hors texte juridique.
+- **Registres, dossier et composants** : 152/152.
+- **Suite unitaire complète** (`--project unit --pool=forks` ; la configuration par threads plante sur ce poste) : 1 739/1 739, sans test ignoré.
+- **Recettes PostgreSQL** (`--project durable`, PostgreSQL 17.11 jetable, port 55432, base `probant_test`, variable `PROBANT_CLIENTS_TEST_DATABASE_URL`) : 51/51, sans test ignoré.
+- **E2E** sur build de production : `c09-capitaux-parcours.spec.ts` (7 cas, trois largeurs) et `capitaux-propres.spec.ts` (5 cas). Captures : `docs/probant-lots/c09-captures/`.
+
+## Pièges
+
+- **Recettes PostgreSQL.** Elles lisent `PROBANT_CLIENTS_TEST_DATABASE_URL`, pas `DATABASE_URL`. Sans elle, les 51 cas sont ignorés.
+- **Imports dans les fixtures.** Un fixture importé par un e2e Playwright ne doit pas utiliser `await import("../…")` : l’alias `@/` des modules chargés dynamiquement n’est pas résolu.
+- **Légifrance.** Les pages `codes/article_lc` et `section_lc/<date>` se lisent dans le navigateur intégré. Les pages `/loda/` déclenchent une vérification anti-robot, à ne pas contourner.
+- **Format des montants.** `eur()` produit « EUR » précédé d’une espace insécable, jamais « € ».
+
+## Reste à faire (hors lot)
+
+- **Phase 2 de la transition** : correspondance manuelle citée entre feuilles, portage de la couverture déclarée de `/equity`.
+- **Textes paraphrasés** : alignement de `data/cycles/capitaux-propres.yml` et de `lib/demo/scenarios.ts` (HOLDING-CP-1) sur les articles lus (tâche proposée).
+
+Aucun merge ni déploiement réalisés.
+
+---
+
 # Handoff — Mission C08 : valeur, coûts et périmètre Stocks (2026-10-14)
 
 **Base.** Branche `claude/c08-stocks-valeur-bornes`, worktree `quizzical-boyd-13e46a`, SHA de départ `c5e717b` (`main` après les PR #82 C06 et #83 C07), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C07 et le lot Cloisons ont été fusionnés depuis ; aucun n'avait touché au moteur Stocks livré par #67. Aucun merge ni déploiement.

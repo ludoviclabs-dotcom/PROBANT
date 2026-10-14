@@ -26,6 +26,14 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission15/CONTRAT.md`](./mission15/CONTRAT.md) § C08 | Règle Stocks 1.1.0 : perte de valeur bornée à la valeur comptable, complément à qualifier, quantité retenue, coûts déclarés, sources PCG lues et choix internes |
 | [`recette/c08/`](./recette/c08/) | Attendus calculés à la main et reproduction du moteur 1.0.0 (`AVANT-1.0.0.json`) |
 
+## Capitaux propres — parcours unique — C09
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission-c09/COMPARAISON.md`](./mission-c09/COMPARAISON.md) | Matrice des deux parcours (`/equity`, `/capitaux-propres`), choix motivé du parcours cible, stratégie de transition et correspondance documentée pour une reprise |
+| [`mission-c09/CONTRAT.md`](./mission-c09/CONTRAT.md) | Vue commune et dédoublonnage par PV, règle Capitaux propres 1.1.0 (amendements, paiement, autres fonds propres ANC 2024-07, repères légaux), sources lues et choix internes |
+| [`recette/c09/`](./recette/c09/) | Attendus calculés à la main et reproduction du moteur 1.0.0 (`AVANT-capitaux-1.0.0.json`) |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

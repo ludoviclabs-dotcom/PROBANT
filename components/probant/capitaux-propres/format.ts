@@ -45,6 +45,14 @@ const MESSAGES: Record<string, string> = {
   WORKPAPER_TRANSITION_FORBIDDEN: "Cette action ne correspond plus à l’état de la feuille. Rechargez sa version courante.", WORKPAPER_ALREADY_EXISTS: "La feuille Capitaux propres existe déjà pour cette période : rechargez.",
   MAPPING_COLUMNS_INVALID: "Vérifiez les noms des colonnes du mapping dans votre fichier.", EQ_FILE_LIMIT: "Le fichier dépasse la limite de 3 Mio de cette recette.", EQ_STATE_LIMIT: "La feuille dépasse les bornes de cette recette.",
   EQ_REQUEST_INVALID: "Requête refusée : champs inattendus ou incomplets.", IDEMPOTENCY_KEY_REUSED: "Cette clé de commande a déjà servi pour un autre contenu.",
+  EQ_RULE_REPLACED_REVISION_REQUIRED: "Cette feuille a été établie sous la règle Capitaux propres 1.0.0, remplacée par la règle 1.1.0 : elle reste consultable. Créez une révision pour poursuivre.",
+  EQ_AMENDMENT_INVALID: "Référence de décision remplacée invalide (identifiant de ligne du registre, différent de la ligne elle-même).",
+  EQ_AMENDMENT_TARGET_UNKNOWN: "La ligne remplacée citée n’existe pas dans le registre des décisions.",
+  EQ_AMENDMENT_TARGET_MISMATCH: "Une décision amendée remplace une ligne de même composante et de même type.",
+  EQ_AMENDMENT_ORDER_INVALID: "La décision qui amende doit être datée après la décision qu’elle remplace.",
+  EQ_AMENDMENT_DUPLICATE: "Une même ligne est remplacée par deux décisions : une seule décision en vigueur est admise.",
+  EQ_ANTICIPATION_CITATION_REQUIRED: "L’application anticipée d’ANC 2024-07 est un choix de l’entité : citez la pièce qui la documente.",
+  EQ_INSTRUMENT_DUPLICATE: "Deux instruments portent le même identifiant.", EQ_INSTRUMENT_ACCOUNT_DUPLICATE: "Un même compte est rattaché à deux instruments.",
 };
 export function equityFailureMessage(code?: string, locator?: SourceLocator & { column?: string; value?: string }) {
   const base = code && MESSAGES[code] ? MESSAGES[code] : "L’opération a été refusée. Rechargez la feuille et vérifiez ses sources, sa période et vos permissions.";
