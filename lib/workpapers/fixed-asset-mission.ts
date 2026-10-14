@@ -8,12 +8,12 @@ import type { FixedAssetSourceHead } from "./fixed-asset-store";
 
 /** Closed programme: its denominators exist before any result or exception. */
 export const FIXED_ASSET_MISSION_PROGRAM = {
-  id: "fixed_assets.program", version: "1.0.0", label: "Programme Immobilisations : mouvements, cadrage et recalcul documenté",
-  procedures: [{ id: "fixed_assets.review", version: "1.0.0", label: "Mouvements, cadrage registre → GL et recalcul documenté",
+  id: "fixed_assets.program", version: "1.1.0", label: "Programme Immobilisations : mouvements, cadrage et recalcul documenté",
+  procedures: [{ id: "fixed_assets.review", version: "1.1.0", label: "Mouvements, cadrage registre → GL et recalcul documenté",
     requiredSources: ["fa_register", "fa_ledger"], conditionalSources: ["fa_parameters", "fa_support"],
     tests: [{ id: "movements", label: "Ponts Brut / Amortissements / Dépréciations", dimension: "table" }, { id: "frame", label: "Cadrage registre → GL", dimension: "account" },
       { id: "supports", label: "Entrées et sorties appuyées par une pièce", dimension: "movement" }, { id: "recalculation", label: "Recalcul documenté de la dotation", dimension: "asset" }] }],
-  outOfScope: ["Existence physique et état des biens (inventaire physique)", "Indices de perte de valeur et valeur actuelle", "Recherche de dépenses à immobiliser", "Méthodes non linéaires, sorties de l’exercice et sorties partielles au recalcul", "Crédit-bail, actifs réévalués, financiers ou en devise : exclus avec motif"],
+  outOfScope: ["Existence physique et état des biens (inventaire physique)", "Indices de perte de valeur et valeur actuelle", "Recherche de dépenses à immobiliser", "Méthodes non linéaires, plans révisés ou dépréciés sans base validée, sorties de l’exercice et sorties partielles au recalcul", "Amortissement dérogatoire (provisions réglementées)", "Crédit-bail, actifs réévalués, financiers ou en devise : exclus avec motif"],
   exclusions: [] as { id: string; reason: string }[],
 } as const;
 export type FixedAssetMissionFilter = "all" | "blocked" | "exceptions" | "evidence" | "review" | "stale";
@@ -65,14 +65,16 @@ export function buildFixedAssetMission(scope: WorkpaperScope, versions: Workpape
   const staleReasons: string[] = [];
   if (run && current && (run.id !== current.id || run.version !== current.version)) staleReasons.push("Une version Immobilisations plus récente est disponible.");
   if (run && !fixedAssetSourcesCurrent(run.importIds, heads)) staleReasons.push("Une source Immobilisations approuvée a été remplacée ou ajoutée depuis le gel.");
-  if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Immobilisations diffère du programme.");
+  if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push(`Règle Immobilisations ${run.template.rule?.version ?? run.template.version} appliquée, programme ${definition.version} : résultat périmé (base restante, cumul antérieur et fin de plan non contrôlés), consultable ; créez une révision pour l’exécuter à nouveau.`);
   const stale = staleReasons.length > 0;
   const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
   const resultLabel = !run?.result ? "Non exécuté" : !assets ? "Calcul Immobilisations bloqué ou contrat invalide" : assets.exceptions.some(e => !isUncertainty(e.code)) ? "Exceptions maintenues" : assets.controls.some(c => c.outcome === "inconclusive") ? "Travaux partiels — non concluant sur une partie" : "Aucun écart sur le périmètre testé — existence et valeur non démontrées";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
+  // Each control states the rule its outcome was computed with: the run's own (1.0.0 for a legacy sheet), the programme's only without a run.
+  const appliedRule = run?.result?.ruleVersion ?? run?.template.rule?.version ?? definition.version;
   const controls = definition.tests.map(test => {
     const control = assets?.controls.find(c => c.id === test.id);
-    return { id: test.id, label: test.label, ruleVersion: definition.version, convention: CONVENTIONS[test.id], conventionValidated: !!assets, outcome: control?.outcome ?? null,
+    return { id: test.id, label: test.label, ruleVersion: appliedRule, convention: CONVENTIONS[test.id], conventionValidated: !!assets, outcome: control?.outcome ?? null,
       coverage: { numerator: control?.numerator ?? 0, denominator: control?.denominator ?? null, unit: control?.unit ?? test.label, exclusions: control?.exclusions ?? [] },
       complete: !!control && control.denominator > 0 && control.numerator === control.denominator };
   });
