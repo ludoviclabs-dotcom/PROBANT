@@ -38,12 +38,14 @@ applicableStandards:
 thresholds:
   - label: Capitaux propres inférieurs à la moitié du capital social
     value: >
-      SARL (C. com. art. L223-42) ; SA et SCA (art. L225-248) ; SAS par le renvoi de
-      l'art. L227-1. Lorsque, du fait de pertes constatées dans les documents comptables,
-      les capitaux propres deviennent inférieurs à la moitié du capital social, les associés
-      décident (SARL), ou l'assemblée générale extraordinaire est convoquée pour décider (SA),
-      s'il y a lieu à dissolution anticipée, dans les quatre mois qui suivent l'approbation
-      des comptes ayant fait apparaître la perte.
+      Lorsque, du fait de pertes constatées dans les documents comptables, les capitaux propres
+      deviennent inférieurs à la moitié du capital social : en SARL (C. com. art. L223-42), les
+      associés décident, dans les quatre mois qui suivent l'approbation des comptes ayant fait
+      apparaître la perte, s'il y a lieu à dissolution anticipée ; en SA et SCA (art. L225-248),
+      et en SAS par le renvoi de l'art. L227-1, l'organe compétent (SA : conseil d'administration
+      ou directoire ; SAS : président ou dirigeants désignés par les statuts) est tenu de
+      convoquer dans ce délai l'assemblée générale extraordinaire à l'effet de décider s'il y a
+      lieu à dissolution anticipée.
     status: OBLIGATOIRE
     sourceIds: ["cc-capitaux-propres", "legifrance-code-commerce"]
     caveat: >

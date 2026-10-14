@@ -14,6 +14,13 @@ import { articleVersion } from "../capitaux-legal";
  */
 const L225_248_SINCE_2023 = "C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171 du 09/03/2023, art. 14)";
 
+/** L223-42 : les associés de SARL décident dans les quatre mois ; L225-248 : l'organe de SA convoque l'AGE dans ce délai. */
+function expectDistinctHalfCapitalProcedures(text: string, sarl: string) {
+  expect(text).toContain(sarl + ", les associés décident, dans les quatre mois qui suivent l'approbation des comptes");
+  expect(text).toContain("est tenu de convoquer dans ce délai l'assemblée générale extraordinaire à l'effet de décider");
+  expect(text).not.toMatch(/associés se prononcent sur la dissolution anticipée dans les quatre mois/);
+}
+
 describe("C09 — base de connaissance capitaux-propres.yml : texte paraphrasé, signal à examiner", () => {
   it("réserve légale : un vingtième du bénéfice diminué des pertes antérieures, jusqu’au dixième du capital ; deux versions datées", async () => {
     const c = await loadCycle("capitaux-propres");
@@ -32,6 +39,7 @@ describe("C09 — base de connaissance capitaux-propres.yml : texte paraphrasé,
     const c = await loadCycle("capitaux-propres");
     const half = c.thresholds.find(t => t.label === "Capitaux propres inférieurs à la moitié du capital social")!;
     for (const article of ["L223-42", "L225-248", "L227-1"]) expect(half.value).toContain(article);
+    expectDistinctHalfCapitalProcedures(half.value, "en SARL (C. com. art. L223-42)");
     expect(half.caveat).toContain("11/03/2023 (loi n° 2023-171, art. 14)");
     expect(half.caveat).toContain("ni alerte de dissolution ni délai calculé");
     const ratio = c.ratios.find(r => r.name === "Pertes cumulées / Capital social")!;
@@ -112,5 +120,6 @@ describe("C09 — registres de sources : C. com. art. L225-248 daté, formes soc
     expect(source.summary).toContain("signal « à examiner », sans alerte de dissolution ni délai calculé");
     expect(source.summary).not.toMatch(/Obligation de consultation|</);
     expect(source.note).toContain("11/03/2023 (loi n° 2023-171, art. 14)");
+    expectDistinctHalfCapitalProcedures(source.note!, "en SARL (L223-42)");
   });
 });
