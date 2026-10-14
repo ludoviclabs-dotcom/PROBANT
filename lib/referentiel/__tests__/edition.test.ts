@@ -21,6 +21,7 @@ import {
  */
 const EDITIONS_PUBLIEES = [
   { numero: 2, empreinte: "cf23de34ea7f5e42e2242180bf2d2ee6b1fd5b1bb544fbe3eeab0473b191075f" },
+  { numero: 3, empreinte: "9f821c3212856b03a65e00d846300ac0ade4f6855ec1a82ea918f142c9f0d170" },
 ];
 
 /** Empreinte attendue calculée indépendamment de l'implémentation pure (node:crypto). */
@@ -51,7 +52,8 @@ describe("édition du registre normatif", () => {
   it("une citation ou un seuil modifié donne un brouillon, jamais l'édition courante", () => {
     const { sources, seuilsInternes } = contenuRegistre();
     const citation = {
-      sources: { ...sources, CCOM_CAPITAL: { ...sources.CCOM_CAPITAL, effectiveDate: "2023-03-11" } },
+      // Modification relative à la valeur courante : reste un changement quelle que soit l'édition chargée.
+      sources: { ...sources, CCOM_CAPITAL: { ...sources.CCOM_CAPITAL, citation: `${sources.CCOM_CAPITAL.citation} (modifiée)` } },
       seuilsInternes,
     };
     const seuil = { sources, seuilsInternes: { ...seuilsInternes, materialitePctBilan: 2 } };
@@ -87,6 +89,22 @@ describe("édition du registre normatif", () => {
         expect(edition.entrees.length).toBeGreaterThan(0);
       }
     });
+  });
+
+  it("éd. 3 : CCOM_CAPITAL explique tout l'écart avec l'éd. 2", () => {
+    // Valeur portée par l'éd. 2 (sources.ts en 8192e6b), avant la version du 11/03/2023 (PR #89).
+    const ccomCapitalEd2 = {
+      ...SOURCES.CCOM_CAPITAL,
+      ref: "C. com. art. L.225-248",
+      citation:
+        "Lorsque, du fait de pertes, les capitaux propres deviennent inférieurs à la moitié du capital social, l'assemblée générale est consultée dans les quatre mois sur la dissolution éventuelle ; à défaut, la situation doit être régularisée au plus tard à la clôture du deuxième exercice suivant.",
+      effectiveDate: "2024-01-01",
+      url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006825098",
+    };
+    const ed3 = REFERENTIEL_EDITIONS.find((e) => e.numero === 3)!;
+    expect(ed3.entrees).toEqual(["CCOM_CAPITAL"]);
+    expect(empreinteRegistre({ sources: { ...SOURCES, CCOM_CAPITAL: ccomCapitalEd2 }, seuilsInternes: SEUILS_INTERNES }))
+      .toBe(EDITIONS_PUBLIEES[0].empreinte);
   });
 
   it("décrit les identifiants lus dans les snapshots sans les réécrire", () => {

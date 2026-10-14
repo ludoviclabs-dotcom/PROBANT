@@ -21,6 +21,20 @@ Un snapshot existant garde l'identifiant sous lequel il a été produit. Un lien
 qui porte un autre identifiant que le dossier est refusé par la garde existante
 (`lib/dossier/client.tsx`).
 
+## Éditions publiées
+
+| Édition | Identifiant | Contenu entré le | Entrées modifiées | Motif |
+|---|---|---|---|---|
+| 2 | `ed2-cf23de34ea7f` | 16/08/2026 | — | Premier contenu identifié (f0bc8f2), jusque-là porté sous « 2024-01-01 ». |
+| 3 | `ed3-9f821c321285` | 14/10/2026 | `CCOM_CAPITAL` | C. com. art. L225-248 dans sa version en vigueur depuis le 11/03/2023 (loi n° 2023-171, art. 14) : citation, date d'effet et URL Légifrance de cette version. |
+
+L'éd. 3 a été déclarée le 15/10/2026. La PR #89 avait modifié `CCOM_CAPITAL`.
+Fusionnée sur main avant la PR #90, elle n'avait pas pu ajouter d'édition, et
+le registre chargé apparaissait « brouillon » entre 983c5c1 et cette
+déclaration. Vérification : en restaurant la seule valeur de `CCOM_CAPITAL`
+lue en 8192e6b, l'empreinte redevient celle de l'éd. 2. Le test
+`edition.test.ts` fige cette vérification.
+
 ## Ajouter une édition
 
 1. Modifier `SOURCES` ou `SEUILS_INTERNES`.
