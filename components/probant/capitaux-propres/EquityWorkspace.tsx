@@ -4,7 +4,9 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
-import { EQ_UNCERTAINTY_CODES, equityDraftFromWork, type EquityDraft } from "@/lib/workpapers/capitaux-review";
+import { CAPITAUX_RULE_VERSION, EQ_UNCERTAINTY_CODES, equityDraftFromWork, type EquityDraft } from "@/lib/workpapers/capitaux-review";
+import { CapitauxFramingForm } from "./CapitauxFramingForm";
+import { FramingResult } from "./parcours/ParcoursFraming";
 import { equityResultOf, type EquityMissionFilter } from "@/lib/workpapers/capitaux-mission";
 import { EQ_COMPONENTS, EQ_EXCLUSIONS, type EqComponent } from "@/lib/workpapers/capitaux-sources";
 import { VariationTable, type VariationMode, type VariationTableHandle } from "./VariationTable";
@@ -52,7 +54,9 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
   const readings = useMemo(() => run?.capitauxWork?.readings ?? [], [run]);
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
   const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
-  const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state) && !!run.population;
+  // A sheet of a replaced rule (1.0.0) stays readable; it is continued only through a revision adopting rule 1.1.0.
+  const ruleCurrent = !run || run.template.rule?.version === CAPITAUX_RULE_VERSION;
+  const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ruleCurrent && ["draft", "ready", "executed"].includes(run.state) && !!run.population;
   const saving = status === "saving";
   const endpoint = (imports = false) => "/api/workpapers/capitaux-propres" + (imports ? "/imports" : "") + "?" + new URLSearchParams({ dossierId, periodId: pid });
 
@@ -148,7 +152,7 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
   const cartography = result?.cartography ?? EQ_COMPONENTS.map(c => { const accounts = (facts?.accounts ?? []).filter(a => a.component === c).map(a => a.account); return { component: c, label: COMPONENT_LABELS[c], status: !accounts.length ? "not_provided" as const : EQ_EXCLUSIONS[c] ? "excluded" as const : "provided" as const, accounts, reason: EQ_EXCLUSIONS[c] ?? null }; });
 
   return <main className={styles.page}>
-    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/immobilisations">Procédures de mission · Immobilisations</DossierContextAnchor><span aria-current="page">Procédures de mission · Capitaux propres</span><DossierContextAnchor href="/equity">Capitaux propres · dossier /equity (procédure parallèle)</DossierContextAnchor></nav>
+    <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/immobilisations">Procédures de mission · Immobilisations</DossierContextAnchor><DossierContextAnchor href={"/capitaux-propres/parcours?" + new URLSearchParams({ dossierId, periodId: pid, ...(run && exactVersion ? { capitauxId: run.id, capitauxVersion: String(run.version) } : {}) })}>Cycle · Capitaux propres (parcours unique)</DossierContextAnchor><span aria-current="page">Feuille décisions et PV versionnés</span></nav>
     <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Capitaux propres — décisions et mouvements</h1>
       <p className={styles.muted}>Tableau de variation par composante, décisions des PV rapprochées des écritures et des paiements, transferts internes neutres. Aucun rapport ne vaut conclusion juridique.</p></div>
       <DossierContextAnchor href={"/capitaux-propres/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse Capitaux propres</DossierContextAnchor></header>
@@ -175,9 +179,10 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
     </section>}
     {view && <>
       {exactVersion && run && <p className={styles.notice} data-tone="info">Examen en lecture seule de la version {run.version}{view.currentVersions?.[run.id] ? " · version courante " + view.currentVersions[run.id] : ""}. <DossierContextAnchor href={"/capitaux-propres?" + new URLSearchParams({ dossierId: run.scope.dossierId, periodId: run.scope.periodId, id: view.lineageCurrent?.[run.rootId]?.id ?? run.id })}>Travailler sur la version courante</DossierContextAnchor></p>}
+      {run && !ruleCurrent && <div role="alert" className={styles.notice} data-tone="danger"><p>Feuille établie sous la règle Capitaux propres {run.template.rule?.version ?? run.template.version}, remplacée par la règle {CAPITAUX_RULE_VERSION} (décisions amendées, paiement par décision, autres fonds propres, repères légaux). Elle reste consultable telle quelle ; seule une révision permet de poursuivre.</p>{canPrepare && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision (règle {CAPITAUX_RULE_VERSION})</button>}</div>}
       {run && !current && <p role="alert" className={styles.notice} data-tone="danger">Une source (ou un PV) a été remplacée ou ajoutée : cette version reste attachée à ses anciennes sources et ses décisions restent intactes. Créez une révision pour reprendre.</p>}
       {run && view.factsIssues[run.id] && <p role="alert" className={styles.notice} data-tone="danger">Sources à corriger : {equityFailureMessage(view.factsIssues[run.id].code, view.factsIssues[run.id].locator)}</p>}
-      <div className={styles.scopeNote} aria-label="Périmètre de l’écran"><span>Décision ≠ comptabilisation ≠ paiement</span><span>Transferts internes sans effet sur le total</span><span>Aucun rapport ne vaut conclusion juridique</span><span>Composante incomplète = inconnue, jamais nulle</span><span>Autres fonds propres exclus avec motif</span></div>
+      <div className={styles.scopeNote} aria-label="Périmètre de l’écran"><span>Décision ≠ comptabilisation ≠ paiement</span><span>Transferts internes sans effet sur le total</span><span>Aucun rapport ne vaut conclusion juridique</span><span>Composante incomplète = inconnue, jamais nulle</span><span>Autres fonds propres présentés à part, jamais par numéro de compte</span></div>
       <div role="tablist" aria-label="Navigation de la feuille" className={styles.tabs}>{TABS.map((t, i) => <button key={t.id} ref={el => { tabRefs.current[t.id] = el; }} role="tab" id={"eq-tab-" + t.id} aria-controls={"eq-panel-" + t.id} aria-selected={tab === t.id} tabIndex={tab === t.id ? 0 : -1} onClick={() => setTab(t.id)} onKeyDown={e => onTabKey(e, i)}>
         {t.label}{t.id === "exceptions" && result ? <span>{exceptions.length}</span> : null}{t.id === "population" && run?.population ? <span>{run.population.items.length}</span> : null}</button>)}</div>
       <p className={styles.srOnly} role="status" aria-live="polite">{announce}</p>
@@ -197,6 +202,8 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
             : facts ? <p className={styles.muted}>Sources courantes : {plural(facts.entries.length, "écriture")} · {facts.decisions ? plural(facts.decisions.length, "ligne de décision", "lignes de décision") : "registre des décisions absent"} · {plural(facts.minutes.length, "PV")}. Figez-les pour établir la population.</p>
             : <p className={styles.muted}>Population non définie : approuvez la balance et les écritures.</p>}
         </section>
+        {run?.population && ruleCurrent && <CapitauxFramingForm key={run.id + ":" + run.version} draft={draftReadings()} period={run.period} pieces={frozenSources} otherEquityAccounts={(facts?.accounts ?? []).filter(a => a.component === "autres_fonds_propres").map(a => ({ account: a.account, label: a.label }))}
+          editable={editable} saving={saving} onSave={d => action("configure", { draft: d })}/>}
         <EquityImportPanel view={view} period={period} periodId={pid} busy={saving} canPrepare={canPrepare} dossierId={dossierId} onPreview={data => void mutate(data, true)} onApprove={command => void mutate({ command: "approve_import", ...command }, true)}/>
         {!run && canPrepare && <section className={styles.card}><h2>Feuille Capitaux propres</h2><p>Une seule feuille par dossier et par période ; ses révisions conservent les décisions antérieures.</p><button type="button" className={styles.primary} disabled={saving || !pid} onClick={() => void mutate({ command: "create", period })}>Créer la feuille Capitaux propres</button></section>}
         {run && run.state === "draft" && !run.population && canPrepare && <section className={styles.card} aria-labelledby="eq-freeze-title"><h2 id="eq-freeze-title">Figer les sources et la population</h2>
@@ -229,6 +236,8 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
               <div className={eq.ratios}><div><small className={styles.muted}>Capitaux propres / capital (clôture)</small><br/><strong>{ratioText(result.ratios.equityToCapital)}</strong></div><div><small className={styles.muted}>Réserves / capital (clôture)</small><br/><strong>{ratioText(result.ratios.reservesToCapital)}</strong></div></div>
               <p className={styles.muted}>{result.ratios.meaning}</p><p className={styles.notice} data-tone="info">{result.legalMeaning}</p>
             </section>
+            {result.presentation && result.legal && result.framing ? <FramingResult presentation={result.presentation} legal={result.legal} socialFormLabel={result.framing.socialFormLabel} source={"Version " + run!.version + " · règle " + (run!.template.rule?.version ?? "")}/>
+              : <p className={styles.notice} data-tone="info">Règle 1.0.0 : présentation des autres fonds propres, paiement par décision et repères légaux non établis pour cette version.</p>}
           </>}
         </div>
         <EquityDetailPanel ref={detailRef} selection={selection} result={result} facts={facts} readings={readings} view={view} dossierId={dossierId} periodId={pid} canRead={editable} saving={saving} onValidateReading={validateReading} onWithdrawReading={withdrawReading} onDecision={openDecision} onMovement={openMovement} onReturn={returnFromPanel}/>

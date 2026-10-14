@@ -1,5 +1,6 @@
 "use client";
 import { EQ_DECISION_TEXT, EQ_ENTRY_TEXT, type EquityDecisionResult, type EquityResult } from "@/lib/workpapers/capitaux-review";
+import { PAYMENT_STATUS_LABELS } from "@/lib/workpapers/capitaux-payment";
 import { COMPONENT_LABELS, dateFr, DECISION_TYPE_LABELS, eur, knownLabel, NATURE_LABELS, plural } from "./format";
 import type { EquitySelection } from "./types";
 import styles from "../cash/cash.module.css";
@@ -12,10 +13,10 @@ export function DecisionTable({ decisions, selected, onSelect }: { decisions: Eq
       <thead><tr><th scope="col">Décision · ligne</th><th scope="col">Statut</th><th scope="col">Type · composante</th><th scope="col">Décision → effet</th><th scope="col" className={styles.money}>Voté</th><th scope="col" className={styles.money}>Comptabilisé</th><th scope="col" className={styles.money}>Payé</th><th scope="col" className={styles.money}>Écart</th><th scope="col">PV · lecture</th></tr></thead>
       <tbody>{decisions.map(d => <tr key={d.lineId} aria-current={selected?.kind === "decision" && selected.id === d.lineId || undefined}>
         <th scope="row"><button type="button" onClick={() => onSelect(d.lineId)}>{d.decisionId} · {d.lineId}</button><span className={styles.meaning}>{d.label}</span></th>
-        <td><span className={eq.status} data-status={d.status}>{EQ_DECISION_TEXT[d.status].label}</span></td>
+        <td><span className={eq.status} data-status={d.status}>{EQ_DECISION_TEXT[d.status].label}</span>{d.status === "superseded" && d.supersededBy ? <span className={styles.meaning}>par {d.supersededBy}</span> : d.chain?.length ? <span className={styles.meaning}>remplace {d.chain.join(", ")}</span> : d.amends ? <span className={styles.meaning}>modifie {d.amends} après la clôture</span> : null}</td>
         <td>{DECISION_TYPE_LABELS[d.type]}<span className={styles.meaning}>{COMPONENT_LABELS[d.component]}</span></td>
         <td>{dateFr(d.decisionDate)} → {dateFr(d.effectDate)}</td>
-        <td className={styles.money}>{eur(d.voted, { signed: true })}</td><td className={styles.money}>{knownLabel(d.booked)}</td><td className={styles.money}>{knownLabel(d.payment)}</td>
+        <td className={styles.money}>{eur(d.voted, { signed: true })}</td><td className={styles.money}>{knownLabel(d.booked)}</td><td className={styles.money}>{knownLabel(d.payment)}{d.paymentState && d.paymentState.status !== "not_applicable" && <span className={styles.meaning}>{PAYMENT_STATUS_LABELS[d.paymentState.status]}{d.paymentState.remainingAtReview.kind === "known" && d.paymentState.remainingAtReview.value.amount !== "0.00" ? " · reste " + eur(d.paymentState.remainingAtReview.value) : ""}</span>}</td>
         <td className={styles.money}>{d.difference.kind === "known" ? eur(d.difference.value, { signed: true }) : "—"}</td>
         <td>{d.pv.status === "available" ? d.pv.pieceRef + " p. " + d.pv.page : d.pv.status === "missing" ? "PV absent" : "Page introuvable"}<span className={styles.meaning}>{d.reading.status === "validated" ? "Lecture validée" : d.reading.status === "pending" ? "Lecture à valider" : "Lecture impossible"}</span></td>
       </tr>)}</tbody></table></div></>;

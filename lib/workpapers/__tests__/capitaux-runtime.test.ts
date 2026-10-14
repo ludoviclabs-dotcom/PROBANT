@@ -49,7 +49,7 @@ describe("EQ-1104 chaîne serveur : sources → population figée → lectures �
     const exported = await h.handlers.exportPOST(exportRequest("reviewer", { id: run.id, version: run.version, kind: "approved", format: "html", expectedSnapshotHash: mission.hash }));
     expect(exported.status).toBe(200);
     const html = await exported.text();
-    for (const text of ["Paquet Capitaux propres approuvé et verrouillé", "aucune conclusion juridique", "Aucune règle juridique n’est implémentée", "Pièce citée : PV-AGO-2024 · PV-AGO-2024.pdf · version " + pv + " · page 3", "5.00 EUR", "T1"]) expect(html).toContain(text);
+    for (const text of ["Paquet Capitaux propres approuvé et verrouillé", "aucune conclusion juridique", "aucune alerte de dissolution, aucun délai calculé", "Pièce citée : PV-AGO-2024 · PV-AGO-2024.pdf · version " + pv + " · page 3", "5.00 EUR", "T1"]) expect(html).toContain(text);
     const csv = await (await h.handlers.exportPOST(exportRequest("reviewer", { id: run.id, version: run.version, kind: "approved", format: "exceptions_csv", expectedSnapshotHash: mission.hash }))).text();
     for (const code of ["AMOUNT_DIVERGENT", "DECISION_WITHOUT_ENTRY", "ENTRY_WITHOUT_DECISION", "EFFECT_OUTSIDE_PERIOD", "PV_MISSING", "STATEMENT_DIFFERENCE"]) expect(csv).toContain(code);
   }, 90_000);

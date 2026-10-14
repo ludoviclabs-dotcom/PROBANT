@@ -3,19 +3,25 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import { CalculationRegistry, type CalculationRequest } from "./calculations";
 import { moneySchema, type ProcedureTemplate, type RuleReference } from "./model";
 import { buildEquityFacts, equityPopulationExclusions } from "./capitaux-sources";
-import { equityOutcome, equityResultSchema, capitauxWorkSchema, evaluateEquity } from "./capitaux-review";
+import { CAPITAUX_RESULT_SCHEMA_VERSION, CAPITAUX_RULE_VERSION, equityOutcome, equityResultSchema, capitauxWorkSchemaV2, evaluateEquity } from "./capitaux-review";
 
-/** Internal method validated as a calculation contract only: no legal rule, threshold, ratio conclusion or audit opinion is encoded. */
-export const EQUITY_RULE: RuleReference = { id: "capitaux_propres.review", version: "1.0.0", authority: "internal", source: "docs/mission11/CONTRAT.md", effectiveFrom: "2000-01-01", validation: "validated" };
-export const EQUITY_TEMPLATE: ProcedureTemplate = { id: "capitaux_propres.review", version: "1.0.0", objective: "Capitaux propres — décisions, mouvements et tableau de variation", kind: "calculated",
+/**
+ * Internal method validated as a calculation contract only: no legal conclusion, threshold verdict or audit opinion is encoded.
+ * 1.1.0 (C09): amended decisions counted once, settlement per decision, other-equity presentation dated by ANC 2024-07, dated legal markers.
+ */
+export const EQUITY_RULE_VERSION = CAPITAUX_RULE_VERSION;
+export const EQUITY_RULE: RuleReference = { id: "capitaux_propres.review", version: EQUITY_RULE_VERSION, authority: "internal", source: "docs/mission-c09/CONTRAT.md", effectiveFrom: "2000-01-01", validation: "validated" };
+export const EQUITY_TEMPLATE: ProcedureTemplate = { id: "capitaux_propres.review", version: EQUITY_RULE_VERSION, objective: "Capitaux propres — décisions, mouvements et tableau de variation", kind: "calculated",
   assertions: [{ label: "Exhaustivité et exactitude des mouvements des capitaux propres (visées, non validées)", validation: "proposed" }, { label: "Existence des décisions et séparation décision / comptabilisation / paiement (visées, non validées)", validation: "proposed" }],
   requiredDocumentTypes: ["eq_balances", "eq_entries"], rule: EQUITY_RULE };
-const parametersSchema = z.object({ work: capitauxWorkSchema, runId: z.string().min(1) }).strict();
+const parametersSchema = z.object({ work: capitauxWorkSchemaV2, runId: z.string().min(1) }).strict();
+/** Only the current contract can be produced by an execution; 1.0.0 results stay readable through equityResultSchema. */
+const currentResultSchema = equityResultSchema.refine(r => r.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION, "Contrat de résultat Capitaux propres périmé");
 /** A fresh closed registry per call: no synthetic equity fixture can enter the durable runtime. */
 export class EquityRegistry extends CalculationRegistry {
   override execute(request: CalculationRequest) {
     const registry = new CalculationRegistry();
-    registry.register(EQUITY_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), parametersSchema, equityResultSchema,
+    registry.register(EQUITY_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), parametersSchema, currentResultSchema,
       (_input, parameters) => evaluateEquity(request.scope, request.period, request.imports, parameters.runId, parameters.work),
       result => equityOutcome(result),
       r => {

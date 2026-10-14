@@ -1,5 +1,7 @@
 # Mission 11 — contrat Capitaux propres `capitaux_propres.review@1.0.0`
 
+> **C09 (2026-10-14).** Cette procédure passe en règle `capitaux_propres.review@1.1.0` (amendements, paiement par décision, autres fonds propres selon ANC 2024-07, repères légaux datés) et devient le parcours cible des travaux nouveaux, lu avec `/equity` dans le parcours unique `/capitaux-propres/parcours`. Contrat : [`../mission-c09/CONTRAT.md`](../mission-c09/CONTRAT.md). Ce document décrit la règle 1.0.0, dont les feuilles restent consultables.
+
 > **Cohabitation (2026-10-09).** Une autre implémentation de la Mission 11 (Codex, PR #62 : `/equity`, `equity-dossier`, migration `0010_equity_dossier`) a été fusionnée dans `main` pendant la revue de la PR #63. À la demande du propriétaire, cette feuille est portée **à côté** d’elle, sans la modifier : branche `claude/capitaux-propres-cohabitation`, base `main` `5e49934`. Renommages :
 > - fichiers `lib/workpapers/capitaux-*.ts`, `components/probant/capitaux-propres/`, `e2e/capitaux-propres.spec.ts` ;
 > - procédure et règle `capitaux_propres.review@1.0.0` (programme `capitaux_propres.program`), champ `capitauxWork`, clé de mapping `capitaux` ;

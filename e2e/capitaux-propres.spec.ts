@@ -149,7 +149,8 @@ test("Capitaux propres — capital et réserves incomplets : composantes inconnu
   await page.goto(sheet());
   await expect(variation(page).getByRole("row", { name: /^Capital/ }).first()).toContainText("Inconnu");
   await expect(variation(page).getByRole("row", { name: /^Total des capitaux propres/ })).toContainText("Inconnu");
-  await expect(page.getByText("Total non calculé : au moins une composante est incomplète.")).toBeVisible();
+  // C09: the same reason also appears in the dated legal markers; the statement card is the one asserted here.
+  await expect(page.locator("section", { has: page.getByRole("heading", { name: "Tableau de variation des capitaux propres" }) }).getByText("Total non calculé : au moins une composante est incomplète.")).toBeVisible();
   await expect(page.getByText("Cartographie ou sources incomplètes").first()).toBeVisible();
   await capture(page, testInfo, "eq-incomplete-1440.png");
   const empty = createEquityHarness(); await empty.importAll({}, ["eq_balances", "eq_decisions"], []); await empty.ok({ command: "create", period: eqPeriod });
@@ -172,7 +173,7 @@ test("Synthèse Capitaux propres — aucune conclusion juridique, lien exact ver
   const download = page.waitForEvent("download");
   await page.getByRole("button", { name: "HTML imprimable" }).first().click();
   const html = await readFile(await (await download).path(), "utf8");
-  expect(html).toContain("Export diagnostic — ne constitue pas un paquet approuvé"); expect(html).toContain("Aucune règle juridique n’est implémentée"); expect(html).toContain("5.00 EUR");
+  expect(html).toContain("Export diagnostic — ne constitue pas un paquet approuvé"); expect(html).toContain("aucune alerte de dissolution, aucun délai calculé"); expect(html).toContain("5.00 EUR");
   await axe(page);
   await capture(page, testInfo, "eq-synthesis-1440.png");
   await page.setViewportSize({ width: 390, height: 844 });

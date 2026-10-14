@@ -40,7 +40,7 @@ describe("Capitaux propres — tableau de variation, frise, listes et panneau PV
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     const movements = screen.getByRole("region", { name: "Mouvements de Résultat de l’exercice" });
     expect(within(movements).getAllByRole("button").map(b => b.textContent?.slice(0, 3))).toEqual(["E01", "E04", "E10"]);
-    expect(screen.getByText(/Aucune règle juridique n’est implémentée/)).toBeTruthy();
+    expect(screen.getByText(/Aucune conclusion juridique, aucune alerte de dissolution/)).toBeTruthy();
   });
   it("liste « montant divergent » → panneau PV : voté, comptabilisé et payé séparés ; page et transcription citées", async () => {
     await mount();

@@ -29,7 +29,9 @@ export const equityMappingSchema = z.object({
   capitaux: z.object({ basis: z.enum(["balances", "entries", "variation", "decisions", "payments"]),
     accountColumn: column.optional(), componentColumn: column.optional(), natureColumn: column.optional(), effectDateColumn: column.optional(), decisionColumn: column.optional(),
     transferColumn: column.optional(), pieceColumn: column.optional(), labelColumn: column.optional(), columnColumn: column.optional(), decisionIdColumn: column.optional(),
-    typeColumn: column.optional(), organColumn: column.optional(), minutesColumn: column.optional(), pageColumn: column.optional(), resolutionColumn: column.optional(), extractColumn: column.optional() }).strict(),
+    typeColumn: column.optional(), organColumn: column.optional(), minutesColumn: column.optional(), pageColumn: column.optional(), resolutionColumn: column.optional(), extractColumn: column.optional(),
+    /** C09 (règle 1.1.0) : ligne du registre remplacée par une décision ultérieure (décision amendée). */
+    amendsColumn: column.optional() }).strict(),
 }).strict();
 export type EquityMapping = z.infer<typeof equityMappingSchema>;
 /** A PDF has no columns: its mapping only names the piece, its title and its date; the tabular fields are neutral constants. */
@@ -172,6 +174,8 @@ export function assertEquityBatch(batch: ImportBatch, period: AccountingPeriod) 
       // An empty PV reference stays « PV absent » at calculation; a malformed one is refused here.
       if (ref && !EQ_PIECE_REF.test(ref)) throw at("EQ_MINUTES_REF_INVALID", f.minutesColumn);
       if (page && !/^[1-9]\d{0,3}$/.test(page)) throw at("EQ_PAGE_INVALID", f.pageColumn);
+      const amends = cell(row, f.amendsColumn);
+      if (amends && (!id.safeParse(amends).success || amends === key)) throw at("EQ_AMENDMENT_INVALID", f.amendsColumn);
     }
     if (type === "eq_payments") {
       if (amount <= 0n) throw at("EQ_PAYMENT_SIGN_INVALID", m.columns.amount);
@@ -187,7 +191,7 @@ export interface EqSourceFact { importId: string; rowId: string; documentVersion
 export interface EqBalance extends EqSourceFact { account: string; component: EqComponent; point: "opening" | "closing"; label: string }
 export interface EqEntry extends EqSourceFact { entryId: string; account: string; component: EqComponent; nature: EqNature; effectDate: string; decisionRef: string | null; transferRef: string | null; pieceRef: string; label: string }
 export interface EqVariationCell extends EqSourceFact { component: EqComponent; column: EqVariationColumn }
-export interface EqDecisionLine extends EqSourceFact { lineId: string; decisionId: string; type: EqDecisionType; component: EqComponent; organ: string; effectDate: string; minutesRef: string; page: number | null; resolution: string; extract: string; label: string }
+export interface EqDecisionLine extends EqSourceFact { lineId: string; decisionId: string; type: EqDecisionType; component: EqComponent; organ: string; effectDate: string; minutesRef: string; page: number | null; resolution: string; extract: string; label: string; amends: string | null }
 export interface EqPayment extends EqSourceFact { paymentId: string; decisionRef: string; label: string }
 export interface EqMinutes { importId: string; documentVersionId: string; fileName: string; sha256: string; pieceRef: string; title: string; documentDate: string; pageCount: number; pages: { page: number; rowId: string; proof: EvidenceLink }[] }
 export interface EquityFacts {
@@ -269,7 +273,7 @@ export function buildEquityFacts(scope: WorkpaperScope, period: AccountingPeriod
       } else if (type === "eq_decisions") {
         const page = cell(row, f.pageColumn);
         facts.decisions!.push({ ...fact(row, "Registre des décisions — ligne " + key), lineId: key, decisionId: cell(row, f.decisionIdColumn), type: pick(EQ_DECISION_TYPES, cell(row, f.typeColumn))!, component, organ: cell(row, f.organColumn),
-          effectDate: equityDate(cell(row, f.effectDateColumn), m.dateFormat)!, minutesRef: cell(row, f.minutesColumn), page: page ? Number(page) : null, resolution: cell(row, f.resolutionColumn), extract: cell(row, f.extractColumn), label: cell(row, f.labelColumn) });
+          effectDate: equityDate(cell(row, f.effectDateColumn), m.dateFormat)!, minutesRef: cell(row, f.minutesColumn), page: page ? Number(page) : null, resolution: cell(row, f.resolutionColumn), extract: cell(row, f.extractColumn), label: cell(row, f.labelColumn), amends: cell(row, f.amendsColumn) || null });
       } else {
         facts.payments!.push({ ...fact(row, "Règlement " + key), paymentId: key, decisionRef: cell(row, f.decisionColumn), label: cell(row, f.labelColumn) });
       }
@@ -278,6 +282,17 @@ export function buildEquityFacts(scope: WorkpaperScope, period: AccountingPeriod
   // A transfer moves equity between equity components only; a leg outside equity would change the total.
   const outside = facts.entries.find(e => e.transferRef && EQ_EXCLUSIONS[e.component]);
   if (outside) throw new EquitySourceError("EQ_TRANSFER_SCOPE_INVALID", { ...outside.locator, column: "composante", value: outside.component });
+  // An amendment replaces one earlier line of the same component and type; it is never inferred from an amount or a label.
+  const amended = new Set<string>();
+  for (const line of facts.decisions ?? []) {
+    if (!line.amends) continue;
+    const target = facts.decisions!.find(d => d.lineId === line.amends), at = (code: string) => new EquitySourceError(code, { ...line.locator, column: "amends", value: line.amends!.slice(0, 80) });
+    if (!target) throw at("EQ_AMENDMENT_TARGET_UNKNOWN");
+    if (target.component !== line.component || target.type !== line.type) throw at("EQ_AMENDMENT_TARGET_MISMATCH");
+    if (target.value.date >= line.value.date) throw at("EQ_AMENDMENT_ORDER_INVALID");
+    if (amended.has(target.lineId)) throw at("EQ_AMENDMENT_DUPLICATE");
+    amended.add(target.lineId);
+  }
   facts.accounts = [...accountComponent.entries()].map(([account, v]) => ({ account, component: v.component, label: v.label })).sort((a, b) => EQ_COMPONENTS.indexOf(a.component) - EQ_COMPONENTS.indexOf(b.component) || (a.account < b.account ? -1 : 1));
   facts.entries.sort((a, b) => a.value.date < b.value.date ? -1 : a.value.date > b.value.date ? 1 : a.entryId < b.entryId ? -1 : 1);
   facts.decisions?.sort((a, b) => a.value.date < b.value.date ? -1 : a.value.date > b.value.date ? 1 : a.lineId < b.lineId ? -1 : 1);
@@ -293,7 +308,7 @@ export function equityFactsView(facts: EquityFacts) {
     accounts: facts.accounts,
     balances: facts.balances.map(b => ({ ...factRef(b), account: b.account, component: b.component, point: b.point, label: b.label })),
     entries: facts.entries.map(e => ({ ...factRef(e), entryId: e.entryId, account: e.account, component: e.component, nature: e.nature, effectDate: e.effectDate, decisionRef: e.decisionRef, transferRef: e.transferRef, pieceRef: e.pieceRef, label: e.label })),
-    decisions: facts.decisions?.map(d => ({ ...factRef(d), lineId: d.lineId, decisionId: d.decisionId, type: d.type, component: d.component, organ: d.organ, effectDate: d.effectDate, minutesRef: d.minutesRef, page: d.page, resolution: d.resolution, extract: d.extract, label: d.label })) ?? null,
+    decisions: facts.decisions?.map(d => ({ ...factRef(d), lineId: d.lineId, decisionId: d.decisionId, type: d.type, component: d.component, organ: d.organ, effectDate: d.effectDate, minutesRef: d.minutesRef, page: d.page, resolution: d.resolution, extract: d.extract, label: d.label, amends: d.amends })) ?? null,
     payments: facts.payments?.map(p => ({ ...factRef(p), paymentId: p.paymentId, decisionRef: p.decisionRef, label: p.label })) ?? null,
     variationProvided: facts.variation !== null,
     minutes: facts.minutes.map(m => ({ importId: m.importId, documentVersionId: m.documentVersionId, fileName: m.fileName, sha256: m.sha256, pieceRef: m.pieceRef, title: m.title, documentDate: m.documentDate, pageCount: m.pageCount })),
