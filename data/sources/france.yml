@@ -18,11 +18,22 @@ sources:
     summary: Procédure d'approbation des conventions entre la société et ses dirigeants/associés.
 
   - id: cc-capitaux-propres
-    label: Code de commerce — Perte de la moitié du capital social (art. L.225-248)
+    label: Code de commerce — Réserve légale et capitaux propres inférieurs à la moitié du capital (art. L232-10, L223-42, L225-248, L227-1)
     type: CODE_COMMERCE
     url: https://www.legifrance.gouv.fr/codes/texte_lc/LEGITEXT000005634379
     status: OBLIGATOIRE
-    summary: Obligation de consultation des associés si capitaux propres < moitié du capital.
+    article: L232-10 (SARL et sociétés par actions) ; L223-42 (SARL) ; L225-248 (SA, SCA) ; L227-1 (renvoi des SAS aux règles des SA)
+    summary: >
+      Réserve légale (L232-10) ; capitaux propres devenus inférieurs à la moitié du capital
+      (L223-42 pour les SARL, L225-248 pour les SA et SCA, SAS par le renvoi de L227-1).
+      PROBANT n'en tire qu'un signal « à examiner », sans alerte de dissolution ni délai calculé.
+    note: >
+      Lorsque, du fait de pertes constatées dans les documents comptables, les capitaux propres
+      deviennent inférieurs à la moitié du capital, les associés se prononcent sur la dissolution
+      anticipée dans les quatre mois qui suivent l'approbation des comptes ayant fait apparaître
+      la perte. Versions lues sur Légifrance le 14/10/2026 : L232-10 du 21/09/2000 au 30/09/2025
+      et depuis le 01/10/2025 (ord. n° 2025-229, art. 62) ; L223-42 et L225-248 avant et depuis
+      le 11/03/2023 (loi n° 2023-171, art. 14) ; L227-1 dans ses versions depuis le 21/07/2019.
 
   - id: legifrance-cgi
     label: Code général des impôts (CGI) — Légifrance

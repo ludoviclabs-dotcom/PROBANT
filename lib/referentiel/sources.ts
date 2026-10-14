@@ -188,12 +188,14 @@ const RAW_SOURCES: Record<SourceKey, SourceNormative> = {
       "Une dépréciation des créances est constatée à hauteur du risque de non-recouvrement apprécié à la clôture (ancienneté, litige, situation du débiteur). Les créances dont le recouvrement est incertain sont classées en créances douteuses.",
     effectiveDate: "2024-01-01",
   },
+  // Version en vigueur depuis le 11/03/2023 (loi n° 2023-171, art. 14), lue sur Légifrance le
+  // 14/10/2026 ; même date et même URL que LEGAL_ARTICLE_VERSIONS["L225-248"] (C09).
   CCOM_CAPITAL: {
-    ref: "C. com. art. L.225-248",
+    ref: "C. com. art. L225-248",
     citation:
-      "Lorsque, du fait de pertes, les capitaux propres deviennent inférieurs à la moitié du capital social, l'assemblée générale est consultée dans les quatre mois sur la dissolution éventuelle ; à défaut, la situation doit être régularisée au plus tard à la clôture du deuxième exercice suivant.",
-    effectiveDate: "2024-01-01",
-    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000006825098",
+      "Si, du fait de pertes constatées dans les documents comptables, les capitaux propres deviennent inférieurs à la moitié du capital social, le conseil d'administration ou le directoire convoque, dans les quatre mois qui suivent l'approbation des comptes ayant fait apparaître cette perte, l'assemblée générale extraordinaire pour décider s'il y a lieu à dissolution anticipée. Si la dissolution n'est pas prononcée, la société reconstitue ses capitaux propres à concurrence d'au moins la moitié du capital social, ou réduit son capital du montant nécessaire, au plus tard à la clôture du deuxième exercice suivant celui de la constatation des pertes. Alinéas suivants : publicité, seuil de capital fixé par décret, action en dissolution, sociétés en sauvegarde ou en redressement exclues.",
+    effectiveDate: "2023-03-11",
+    url: "https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000047292156",
   },
   PCG_ENGAGEMENTS: {
     ref: "PCG art. 831-2 / 531-2",

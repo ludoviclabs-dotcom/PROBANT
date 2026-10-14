@@ -1,6 +1,6 @@
 import type { SiloView, Finding, ReconstitutedStatement } from "@/lib/canonical-model";
 import { SOURCES } from "@/lib/referentiel/sources";
-import { DEMO_DOSSIER } from "./dataset";
+import { DEMO_DOSSIER, articleL225248At } from "./dataset";
 
 export interface ScenarioMeta {
   id: string;
@@ -386,6 +386,9 @@ const findHoldingPartic: Finding = {
   statutRevue: "en_attente",
 };
 
+// SA clôturant au 31/12/2024 : version d'article retenue par le moteur C09 à cette date.
+const holdingCpArticle = articleL225248At("2024-12-31");
+
 const findHoldingCP: Finding = {
   id: "HOLDING-CP-1",
   family: "hardLaw",
@@ -394,28 +397,28 @@ const findHoldingCP: Finding = {
   ruleVersion: "1.0.0",
   cloison: "bilan-passif",
   siloId: "capitaux-propres",
-  titre: "Capitaux propres inférieurs à la moitié du capital — procédure L.225-248 non engagée",
+  titre: "Capitaux propres inférieurs à la moitié du capital — à examiner (C. com. art. L225-248)",
   constat:
-    "Les capitaux propres s'établissent à 32 000 € au 31/12/2024 pour un capital social de 500 000 €, soit 6,4 % du capital (seuil légal : 50 %). La procédure d'information de l'AGE prévue à l'article L.225-248 n'a pas été engagée.",
+    "Les capitaux propres s'établissent à 32 000 € au 31/12/2024 pour un capital social de 500 000 €, soit 6,4 % du capital, sous la moitié du capital (250 000 €). Le dossier de démonstration ne documente aucune décision des actionnaires sur cette situation.",
   explication:
-    "Lorsque les pertes réduisent les capitaux propres en dessous de la moitié du capital, l'assemblée générale doit être consultée dans les 4 mois sur la dissolution. À défaut, la situation doit être régularisée avant la clôture du deuxième exercice suivant. Le non-respect de cette obligation constitue une anomalie bloquante.",
+    `Pour une SA, ${holdingCpArticle}, retenu à la date de clôture du 31/12/2024, vise les capitaux propres devenus inférieurs à la moitié du capital du fait de pertes constatées dans les documents comptables. PROBANT relève le rapport et signale la situation à examiner : il ne conclut ni à une irrégularité ni à une dissolution, et ne calcule aucun délai. Approbation des comptes, décision de l'assemblée générale extraordinaire, publicité, reconstitution ou réduction du capital relèvent d'une appréciation juridique.`,
   mesure: { constate: 32000, seuil: 250000, unite: "EUR", libelle: "capitaux propres vs 50 % du capital" },
   source: SOURCES.CCOM_CAPITAL,
   comptesConcernes: ["101", "106", "119", "12"],
   lignesSource: [],
   faisceau: [
     "CP = 32 000 € < 50 % × 500 000 € = 250 000 €",
-    "Procédure L.225-248 non engagée dans les 4 mois de la clôture N-1",
+    "Aucune décision des actionnaires sur la situation dans le dossier (source absente, non une conclusion)",
     "Aucune mention en annexe de la situation",
-    "Risque de dissolution judiciaire si non régularisation",
+    "Suites juridiques (décision, publicité, reconstitution ou réduction) à apprécier — aucun délai calculé",
   ],
-  annotation: "CP 32 k€ < 50 % capital (250 k€) — L.225-248",
+  annotation: "CP 32 k€ < 50 % capital (250 k€) — à examiner, L225-248",
   cibleRowId: "hld-cp-total",
   preuve: [
     { etape: "Source", detail: "Bilan N et N-1 — comptes 101 + 10x + 119 + 12" },
     { etape: "Calcul", detail: "CP = 32 000 € ; capital = 500 000 € ; ratio = 6,4 % < 50 %" },
-    { etape: "Règle", detail: "C. com. art. L.225-248 : AGE dans 4 mois + régularisation sous 2 ans" },
-    { etape: "Résultat", detail: "Procédure légale non respectée — alerte bloquante" },
+    { etape: "Règle", detail: `${holdingCpArticle} — repère : capitaux propres inférieurs à la moitié du capital` },
+    { etape: "Résultat", detail: "Signal à examiner — aucune conclusion juridique, aucune alerte de dissolution, aucun délai calculé" },
   ],
   statutRevue: "en_attente",
 };
@@ -461,9 +464,9 @@ const scenarioHolding: ScenarioMeta = {
   siren: "777888999",
   exercice: "2024",
   description:
-    "Structure holding confrontée à une filiale déficitaire. Trois anomalies à fort impact : participation non dépréciée (1,2 M€), procédure légale CP non engagée et garantie hors-bilan cachée.",
+    "Structure holding confrontée à une filiale déficitaire. Trois constats à fort impact : participation non dépréciée (1,2 M€), capitaux propres sous la moitié du capital (à examiner) et garantie hors-bilan cachée.",
   anomaliesCount: 3,
-  risquesDominants: ["Dépréciation participation (bloquant)", "Alerte capitaux propres (bloquant)", "Hors-bilan non déclaré"],
+  risquesDominants: ["Dépréciation participation (bloquant)", "Capitaux propres sous la moitié du capital (à examiner)", "Hors-bilan non déclaré"],
   silos: [
     {
       siloId: "immobilisations-financieres",
