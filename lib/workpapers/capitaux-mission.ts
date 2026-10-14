@@ -2,14 +2,14 @@ import { canonicalCompare, stableSha256 } from "@/lib/synthesis/canonical";
 import type { KnownAmount, Money } from "@/lib/canonical-model/money";
 import { assertScope, contentHash, frozen, validateRun, type EvidenceLink, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
-import { CAPITAUX_RESULT_SCHEMA_VERSION, EQ_LEGAL_TEXT, EQ_LEGAL_TEXT_V2, EQ_UNCERTAINTY_CODES, EQUITY_LIMITATIONS, EQUITY_LIMITATIONS_V2, equityResultSchema, type EquityResult } from "./capitaux-review";
+import { CAPITAUX_RESULT_SCHEMA_VERSION, CAPITAUX_RULE_VERSION, CAPITAUX_RULE_VERSION_1_1_0, capitauxRuleReplaced, EQ_LEGAL_TEXT, EQ_LEGAL_TEXT_V2, EQ_LEGAL_TEXT_V3, EQ_UNCERTAINTY_CODES, EQUITY_LIMITATIONS, EQUITY_LIMITATIONS_V2, equityResultSchema, type EquityResult } from "./capitaux-review";
 import { EQ_SOURCE_LABELS, EQ_TABULAR_TYPES, equitySourcesCurrent, type EqComponent, type EquitySourceType } from "./capitaux-sources";
 import type { EquitySourceHead } from "./capitaux-store";
 
 /** Closed programme: its denominators exist before any result or exception. */
 export const EQUITY_MISSION_PROGRAM = {
-  id: "capitaux_propres.program", version: "1.1.0", label: "Programme Capitaux propres : décisions, mouvements et tableau de variation",
-  procedures: [{ id: "capitaux_propres.review", version: "1.1.0", label: "Décisions, mouvements, transferts internes et tableau de variation",
+  id: "capitaux_propres.program", version: CAPITAUX_RULE_VERSION, label: "Programme Capitaux propres : décisions, mouvements et tableau de variation",
+  procedures: [{ id: "capitaux_propres.review", version: CAPITAUX_RULE_VERSION, label: "Décisions, mouvements, transferts internes et tableau de variation",
     requiredSources: ["eq_balances", "eq_entries"], conditionalSources: ["eq_variation", "eq_decisions", "eq_payments", "eq_minutes"],
     tests: [{ id: "bridge", label: "Pont par composante", dimension: "component" }, { id: "statement", label: "Tableau de variation fourni ↔ reconstitué", dimension: "cell" },
       { id: "decisions", label: "Décisions ↔ comptabilisation", dimension: "decision" }, { id: "entries", label: "Écritures ↔ décisions", dimension: "movement" },
@@ -71,7 +71,9 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
   const staleReasons: string[] = [];
   if (run && current && (run.id !== current.id || run.version !== current.version)) staleReasons.push("Une version Capitaux propres plus récente est disponible.");
   if (run && !equitySourcesCurrent(run.importIds, heads)) staleReasons.push("Une source Capitaux propres approuvée (y compris un PV) a été remplacée ou ajoutée depuis le gel.");
-  if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Capitaux propres diffère du programme.");
+  // A 1.1.0 sheet of a form other than an SCA gets the same result under 1.1.1: only the sheets concerned are stale.
+  const ruleReplaced = run ? capitauxRuleReplaced(run) : null, runRule = run ? run.template.rule?.version ?? run.template.version : null;
+  if (ruleReplaced) staleReasons.push(`La version de règle Capitaux propres diffère du programme : règle ${runRule}, ${ruleReplaced}`);
   const stale = staleReasons.length > 0;
   const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   // No label can read as a legal green light: the best case is « aucun écart sur le périmètre testé ».
@@ -79,7 +81,7 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
   const controls = definition.tests.map(test => {
     const control = equity?.controls.find(c => c.id === test.id);
-    return { id: test.id, label: test.label, ruleVersion: definition.version, convention: CONVENTIONS[test.id], conventionValidated: !!equity, outcome: control?.outcome ?? null,
+    return { id: test.id, label: test.label, ruleVersion: runRule ?? definition.version, convention: CONVENTIONS[test.id], conventionValidated: !!equity, outcome: control?.outcome ?? null,
       coverage: { numerator: control?.numerator ?? 0, denominator: control?.denominator ?? null, unit: control?.unit ?? test.label, exclusions: control?.exclusions ?? [] },
       complete: !!control && control.denominator > 0 && control.numerator === control.denominator };
   });
@@ -132,7 +134,7 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
     versionIndex: assigned.map(v => ({ id: v.id, revision: v.revision, version: v.version, state: v.state, contentHash: contentHash(v), actorId: v.events.at(-1)?.actorId ?? v.preparedBy, approval: v.approval ?? null, reviewNotes: v.notes.filter(n => n.kind === "judgment"), events: v.events,
       readings: v.capitauxWork?.readings.map(r => ({ lineId: r.lineId, pieceRef: r.pieceRef, documentVersionId: r.documentVersionId, page: r.page, authorId: r.authorId, authoredAt: r.authoredAt })) ?? [] })),
     sourceHeads: [...heads].sort((a, b) => canonicalCompare(a.document_type, b.document_type)),
-    limitations: [...(equity?.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION ? [...EQUITY_LIMITATIONS_V2, EQ_LEGAL_TEXT_V2] : [...EQUITY_LIMITATIONS, EQ_LEGAL_TEXT]), "Revue documentée ne signifie pas conformité des comptes ni régularité juridique ; aucune opinion automatique.", "PV et pièces binaires absents du paquet ; téléchargement séparé soumis aux mêmes permissions.", "SHA-256 = intégrité, sans signature légale ni archivage certifié."] };
+    limitations: [...(equity?.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION ? [...EQUITY_LIMITATIONS_V2, runRule === CAPITAUX_RULE_VERSION_1_1_0 ? EQ_LEGAL_TEXT_V2 : EQ_LEGAL_TEXT_V3] : [...EQUITY_LIMITATIONS, EQ_LEGAL_TEXT]), "Revue documentée ne signifie pas conformité des comptes ni régularité juridique ; aucune opinion automatique.", "PV et pièces binaires absents du paquet ; téléchargement séparé soumis aux mêmes permissions.", "SHA-256 = intégrité, sans signature légale ni archivage certifié."] };
   return frozen({ ...body, hash: stableSha256(body) });
 }
 export type EquityMissionSnapshot = ReturnType<typeof buildEquityMission>;

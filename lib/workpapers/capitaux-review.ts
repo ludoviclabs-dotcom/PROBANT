@@ -7,7 +7,7 @@ import { dateSchema, known, proofSchema, type SupportedAmount } from "./cycle-re
 import { reviewEquity } from "./equity";
 import { buildEquityFacts, EQ_COMPONENTS, EQ_COMPONENT_LABELS, EQ_DECISION_NATURES, EQ_DECISION_TYPES, EQ_DECISION_TYPE_LABELS, EQ_EXCLUSIONS, EQ_NATURES, EQ_NATURE_LABELS, EQ_RESERVES, EQ_TRANSFER_NATURES, EQ_VARIATION_COLUMNS,
   EquitySourceError, type EqComponent, type EqDecisionLine, type EqEntry, type EqMinutes, type EqNature, type EquityFacts } from "./capitaux-sources";
-import { frozen, knownAmountSchema, moneySchema, scopeSchema, type EvidenceLink, type WorkpaperScope } from "./model";
+import { frozen, knownAmountSchema, moneySchema, scopeSchema, type EvidenceLink, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
 import { authorize, type Principal } from "./policy";
 import { legalMarkers, legalMarkersSchema, SOCIAL_FORMS, SOCIAL_FORM_LABELS } from "./capitaux-legal";
@@ -17,8 +17,24 @@ import { paymentState, paymentStateSchema, type PaymentState } from "./capitaux-
 export const EQUITY_PROCEDURE = "equity.review" as const;
 /** Result contract of rule 1.1.0 (C09); results of rule 1.0.0 (« equity-result-1 ») stay readable and are never rewritten. */
 export const CAPITAUX_RESULT_SCHEMA_VERSION = "capitaux-result-2" as const;
-/** Rule of the /capitaux-propres procedure producing that contract. */
-export const CAPITAUX_RULE_VERSION = "1.1.0" as const;
+/** Rule of the /capitaux-propres procedure producing that contract. 1.1.1: an SCA's half-capital marker cites L225-248 through the renvoi of C. com. L226-1. */
+export const CAPITAUX_RULE_VERSION = "1.1.1" as const;
+/** Previous rule on the same contract: every other social form (or none declared) gets an identical result under 1.1.1. */
+export const CAPITAUX_RULE_VERSION_1_1_0 = "1.1.0" as const;
+/**
+ * Why a sheet must be revised before being continued, or null when its rule still applies to it (callers name the sheet's rule).
+ * Only the works concerned are made stale: a 1.1.0 sheet stays current unless its declared social form is an SCA; a 1.0.0 sheet
+ * always needs a revision.
+ */
+export function capitauxRuleReplaced(run: Pick<WorkpaperRun, "template" | "capitauxWork">): string | null {
+  const version = run.template.rule?.version ?? run.template.version;
+  if (version === CAPITAUX_RULE_VERSION) return null;
+  if (version === CAPITAUX_RULE_VERSION_1_1_0) {
+    const form = run.capitauxWork?.schemaVersion === "equity-2" ? run.capitauxWork.framing.socialForm : null;
+    return form === "sca" ? `forme déclarée SCA ; la règle ${CAPITAUX_RULE_VERSION} cite l’art. L225-248 par le renvoi de l’art. L226-1 (repère « moitié du capital »).` : null;
+  }
+  return `la règle ${CAPITAUX_RULE_VERSION} apporte les décisions amendées, le paiement par décision, les autres fonds propres et les repères légaux.`;
+}
 const id = z.string().trim().min(1).max(200), note = z.string().trim().max(10000), required = note.refine(v => !!v, "Texte requis");
 const timestamp = z.string().refine(v => Number.isFinite(Date.parse(v)), "Horodatage requis");
 /** The browser names a frozen document version (and a PDF page); file name, hash and piece are resolved by the server. */
@@ -47,6 +63,8 @@ export const EQ_METHOD_TEXT = "Méthode interne de recherche (pas une règle jur
 export const EQ_LEGAL_TEXT = "Aucune règle juridique n’est implémentée (réserve légale, capitaux propres inférieurs à la moitié du capital, conditions de distribution…) : une telle règle doit être sourcée pour la forme sociale et la période avant toute implémentation. Les rapports affichés sont arithmétiques et ne valent ni conformité ni feu vert juridique.";
 /** Rule 1.1.0: dated legal markers, arithmetic only. */
 export const EQ_LEGAL_TEXT_V2 = "Repères légaux datés par forme sociale (C. com. L232-10, L232-11, L223-42, L225-248, L227-1, versions lues le 14/10/2026) : calculs arithmétiques sur les sources et signaux « à examiner » seulement. Aucune conclusion juridique, aucune alerte de dissolution, aucun délai calculé.";
+/** Rule 1.1.1: same markers, the SCA citing the renvoi of L226-1. */
+export const EQ_LEGAL_TEXT_V3 = "Repères légaux datés par forme sociale (C. com. L232-10, L232-11, L223-42, L225-248, L226-1, L227-1, versions lues le 14/10/2026) : calculs arithmétiques sur les sources et signaux « à examiner » seulement. Aucune conclusion juridique, aucune alerte de dissolution, aucun délai calculé.";
 export const EQUITY_LIMITATIONS = [
   "Aucune conclusion juridique : un rapport arithmétique ou une décision rapprochée ne démontre ni la régularité de la décision ni la conformité des capitaux propres.",
   "La lecture d’un PV est une validation humaine de la transcription à la page citée ; elle ne prouve ni l’authenticité du PV, ni le quorum, ni la régularité de la convocation.",

@@ -38,15 +38,41 @@ applicableStandards:
 thresholds:
   - label: Capitaux propres inférieurs à la moitié du capital social
     value: >
-      Obligation légale de consultation de l'assemblée (art. L.225-248 et L.223-42
-      C. com.) lorsque les capitaux propres deviennent inférieurs à la moitié du capital social
+      Lorsque, du fait de pertes constatées dans les documents comptables, les capitaux propres
+      deviennent inférieurs à la moitié du capital social : en SARL (C. com. art. L223-42), les
+      associés décident, dans les quatre mois qui suivent l'approbation des comptes ayant fait
+      apparaître la perte, s'il y a lieu à dissolution anticipée ; en SA (art. L225-248), en SCA
+      par le renvoi de l'art. L226-1 et en SAS par le renvoi de l'art. L227-1, l'organe compétent
+      (SA : conseil d'administration ou directoire ; SAS : président ou dirigeants désignés par
+      les statuts ; SCA : à apprécier selon le chapitre VI du titre II) est tenu de convoquer
+      dans ce délai l'assemblée générale extraordinaire à l'effet de décider s'il y a lieu à
+      dissolution anticipée.
     status: OBLIGATOIRE
     sourceIds: ["cc-capitaux-propres", "legifrance-code-commerce"]
+    caveat: >
+      Versions lues sur Légifrance le 14/10/2026 : L223-42 du 05/08/2003 au 10/03/2023 ;
+      L225-248 du 21/09/2000 au 10/03/2023 ; l'un et l'autre depuis le 11/03/2023
+      (loi n° 2023-171, art. 14) ; L226-1 dans ses quatre versions depuis le 21/09/2000 (la
+      dernière depuis le 26/05/2023, ord. n° 2023-393, art. 12), dont aucune n'exclut L225-248 ;
+      L227-1 dans ses versions depuis le 21/07/2019.
+      La version applicable dépend de la date de clôture. PROBANT calcule seulement le rapport capitaux propres / capital et émet un signal
+      « à examiner » ; ni alerte de dissolution ni délai calculé. Approbation des comptes,
+      décision, publicité, reconstitution ou réduction du capital restent une appréciation
+      juridique.
   - label: Dotation à la réserve légale
     value: >
-      5 % du bénéfice net de l'exercice, dotation obligatoire jusqu'à 10 % du capital social
+      SARL et sociétés par actions (C. com. art. L232-10) : prélèvement d'un vingtième
+      au moins sur le bénéfice de l'exercice, diminué le cas échéant des pertes antérieures,
+      affecté à la réserve légale ; il cesse d'être obligatoire lorsque la réserve atteint
+      le dixième du capital social.
     status: OBLIGATOIRE
     sourceIds: ["cc-capitaux-propres", "legifrance-code-commerce"]
+    caveat: >
+      Versions lues sur Légifrance le 14/10/2026 : du 21/09/2000 au 30/09/2025
+      (ord. n° 2000-912) et depuis le 01/10/2025 (ord. n° 2025-229, art. 62 ;
+      application : art. 70). La base est le bénéfice diminué des pertes antérieures, non
+      le bénéfice net seul. PROBANT n'en calcule qu'un repère sur les soldes d'ouverture ;
+      les notions légales de bénéfice et de pertes antérieures restent à apprécier.
   - label: Écart d'affectation du résultat vs décision d'AG
     value: Tout écart entre l'affectation comptabilisée et la décision d'assemblée (paramètre interne PROBANT)
     status: PARAMETRABLE
@@ -87,8 +113,15 @@ ratios:
     sourceIds: ["isa-520"]
   - name: Pertes cumulées / Capital social
     formula: (Report à nouveau débiteur + résultat déficitaire) / Capital social
-    alertThreshold: Capitaux propres < moitié du capital social (alerte légale)
-    interpretation: Détecte le franchissement du seuil légal et un risque sur la continuité d'exploitation.
+    alertThreshold: >
+      Capitaux propres inférieurs à la moitié du capital social : signal « à examiner » au
+      regard de l'art. L223-42 (SARL) ou L225-248 (SA ; SCA par le renvoi de l'art. L226-1 ; SAS
+      par le renvoi de l'art. L227-1),
+      dans la version applicable à la clôture ; ni alerte de dissolution ni délai calculé.
+    interpretation: >
+      Repère arithmétique du poids des pertes sur le capital. Un passage des capitaux propres
+      sous la moitié du capital appelle une appréciation juridique et un examen de la
+      continuité d'exploitation, sans conclusion automatique.
     status: BONNE_PRATIQUE
     sourceIds: ["isa-520", "cc-capitaux-propres"]
   - name: Taux de distribution (pay-out)
@@ -181,14 +214,17 @@ risks:
   - name: Capitaux propres inférieurs aux seuils légaux menaçant la continuité
     category: RISQUE_INHERENT
     description: >
-      Capitaux propres devenus inférieurs à la moitié du capital social, déclenchant une
-      obligation légale et faisant peser un doute sur la continuité d'exploitation.
+      Capitaux propres devenus inférieurs à la moitié du capital social : situation à
+      examiner au regard de l'art. L223-42 (SARL) ou L225-248 (SA ; SCA par le renvoi de l'art.
+      L226-1 ; SAS par le renvoi de l'art. L227-1), dans la version applicable. Le texte prévoit une décision des
+      associés sur la dissolution anticipée ; la situation peut aussi peser sur la continuité
+      d'exploitation. Aucune de ces suites n'est conclue automatiquement.
     indicators:
       - Pertes cumulées importantes
-      - Capitaux propres < moitié du capital social
-      - Absence de régularisation dans les délais légaux
+      - Capitaux propres inférieurs à la moitié du capital social
+      - Aucune décision des associés sur la situation documentée dans le dossier
     response:
-      - Vérifier la consultation de l'assemblée dans les délais
+      - Examiner la décision des associés, sa date et sa publication au regard du texte applicable (appréciation juridique, aucun délai calculé)
       - Apprécier l'incidence sur la continuité d'exploitation
       - Recouper avec l'appréciation au titre de la continuité (ISA 570)
     sourceIds: ["isa-315", "isa-570", "cc-capitaux-propres"]
@@ -247,9 +283,9 @@ officialSources:
 
 keyPoints:
   - Rapprocher systématiquement les mouvements de capitaux propres avec les PV d'assemblée générale.
-  - Recalculer la dotation à la réserve légale (5 % du bénéfice jusqu'à 10 % du capital).
+  - Rapprocher l'affectation à la réserve légale du repère de l'art. L232-10 (un vingtième au moins du bénéfice de l'exercice diminué des pertes antérieures, jusqu'à ce que la réserve atteigne le dixième du capital).
   - Vérifier les sommes distribuables avant toute distribution de dividendes.
-  - Alerter si les capitaux propres deviennent inférieurs à la moitié du capital social (obligation légale + risque continuité).
+  - Signaler « à examiner » des capitaux propres inférieurs à la moitié du capital social (art. L223-42, L225-248 ; SCA par L226-1, SAS par L227-1) et apprécier la continuité d'exploitation ; ni alerte de dissolution ni délai calculé.
   - PROBANT suit les mouvements de capitaux propres et signale les ruptures d'affectation (silo capitaux-propres).
 
 relatedCycles:
