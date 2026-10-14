@@ -1,6 +1,6 @@
 # Handoff — Mission C06 : fin de plan d’amortissement, base restante et état du plan (2026-10-14)
 
-**Base.** `main` `e9f8b6d` (fusion de la PR #80, Cloisons). Branche `claude/c06-fin-de-plan-amortissement`, worktree `blissful-nash-5afb47`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; le moteur Immobilisations (Mission 10, PR #61) n’avait pas changé. Dépendances du prompt : C04 (référentiel daté) et contrat de métriques C03, tous deux dans `main`. Contrat mis à jour : [docs/mission10/CONTRAT.md](../mission10/CONTRAT.md) (§ « C06 »). Aucune fusion, aucun déploiement.
+**Base.** `main` `e9f8b6d` (fusion de la PR #80, Cloisons). Branche `claude/c06-fin-plan-amortissement`, worktree `blissful-nash-5afb47`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; le moteur Immobilisations (Mission 10, PR #61) n’avait pas changé. Dépendances du prompt : C04 (référentiel daté) et contrat de métriques C03, tous deux dans `main`. Contrat mis à jour : [docs/mission10/CONTRAT.md](../mission10/CONTRAT.md) (§ « C06 »). Aucune fusion, aucun déploiement.
 
 ## Cause
 
