@@ -605,18 +605,23 @@ const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select
 
 /**
  * Tiroir modal à droite (pleine largeur sur mobile), même patron que FindingDrawer : voile,
- * Échap, focus sur « Fermer » à l'ouverture puis rendu à « Analyser » à la fermeture ; Tab reste
- * dans le tiroir. Rendu dans document.body pour ne dépendre d'aucun ancêtre de la page.
+ * Échap, focus sur « Fermer » à l'ouverture ; Tab reste dans le tiroir. À la fermeture, le focus
+ * revient au bouton « Analyser » du constat (`data-finding-trigger`), quel que soit l'ouvreur :
+ * ligne signalée de la reconstruction (non focalisable) ou rail ancré retiré par un redimensionnement.
+ * Rendu dans document.body pour ne dépendre d'aucun ancêtre de la page.
  */
-function ReviewDrawer({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+function ReviewDrawer({ findingId, title, onClose, children }: { findingId: string; title: string; onClose: () => void; children: ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
-    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
     closeRef.current?.focus();
-    return () => opener?.focus();
-  }, []);
+    return () => {
+      const trigger = [...document.querySelectorAll<HTMLElement>("[data-finding-trigger]")].find((el) => el.dataset.findingTrigger === findingId);
+      (trigger ?? (opener?.isConnected ? opener : null))?.focus();
+    };
+  }, [findingId]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -693,16 +698,17 @@ function SiloBody({
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [arrows, setArrows] = useState<ArrowPath[]>([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
-  const [wide, setWide] = useState(true);
+  // Une colonne tant que la largeur réelle n'est pas mesurée (jamais deux colonnes trop étroites).
+  const [wide, setWide] = useState(false);
 
   const compute = useCallback(() => {
     const cont = containerRef.current;
     if (!cont) return;
     const cr = cont.getBoundingClientRect();
     setDims({ w: cr.width, h: cr.height });
-    // Seuil d'affichage des connecteurs : sous ~620px les étiquettes
-    // d'annotation deviennent illisibles. 620 (et non 680) pour que la courbe
-    // reste visible à 1440px de viewport (colonne ≈ 656px avec le rail droit).
+    // Seuil d'affichage des connecteurs et des deux colonnes : sous ~620px les
+    // étiquettes d'annotation deviennent illisibles et chaque colonne passe sous
+    // ~300px. 620 (et non 680) pour que la courbe reste visible avec le rail droit.
     const isWide = cr.width >= 620;
     setWide(isWide);
     if (!isWide) { setArrows([]); return; }
@@ -754,9 +760,9 @@ function SiloBody({
         data-tour-flag={
           siloView.siloId === "rapprochement-clients" ? findingsToShow[0]?.severity : undefined
         }
-        // Une colonne sur mobile (reconstruction puis constats), deux colonnes dès 640 px.
-        className="grid grid-cols-1 gap-[18px] sm:grid-cols-[minmax(0,1.04fr)_minmax(0,1fr)] sm:gap-[26px]"
-        style={{ position: "relative", alignItems: "start" }}
+        // Deux colonnes seulement si le silo mesure ≥ 620 px (avec la navigation à 768 px, il en
+        // fait ~420) ; sinon la reconstruction puis les constats.
+        style={{ position: "relative", display: "grid", gridTemplateColumns: wide ? "minmax(0,1.04fr) minmax(0,1fr)" : "minmax(0,1fr)", gap: wide ? 26 : 18, alignItems: "start" }}
       >
 
         {/* Connecteurs SVG (overlay, derrière le contenu) */}
@@ -899,6 +905,7 @@ function SiloBody({
                       )}
                     </div>
                     <button
+                      data-finding-trigger={f.id}
                       onClick={() => setSelId(isSelected ? null : f.id)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isSelected ? fSev.hex : ACCENT, background: "none", border: "none", cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap", flexShrink: 0 }}
                     >
@@ -1304,7 +1311,7 @@ export function CloisonsWorkspace({
       </div>
 
       {selectedFinding && !railDocked && (
-        <ReviewDrawer title={selectedFinding.titre} onClose={closeReview}>
+        <ReviewDrawer key={selectedFinding.id} findingId={selectedFinding.id} title={selectedFinding.titre} onClose={closeReview}>
           <RailPanel key={selectedFinding.id} finding={selectedFinding} decisions={decisions} onDecision={handleDecision} />
         </ReviewDrawer>
       )}

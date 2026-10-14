@@ -237,5 +237,15 @@
       "overlapping": []
     }
   ],
+  "bodies": [
+    {
+      "silo": "Immobilisations incorporelles",
+      "clipped": []
+    },
+    {
+      "silo": "Rapprochement créances clients",
+      "clipped": []
+    }
+  ],
   "axeSerious": {}
 }

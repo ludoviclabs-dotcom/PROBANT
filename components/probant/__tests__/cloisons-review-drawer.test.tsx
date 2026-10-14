@@ -60,6 +60,19 @@ it("« Analyser » ouvre le panneau de revue en tiroir modal ; Échap le referme
   expect(analyser.textContent).toBe("Analyser");
 });
 
+it("ouvert depuis la ligne signalée de la reconstruction, le tiroir rend le focus au bouton du constat", () => {
+  const { container } = renderDemo();
+  const row = [...container.querySelectorAll("tr")].find((tr) => tr.textContent?.includes("Frais de développement activés"))!;
+  fireEvent.click(row);
+  expect(screen.getByRole("dialog")).toBeTruthy();
+  fireEvent.keyDown(document, { key: "Escape" });
+  expect(screen.queryByRole("dialog")).toBeNull();
+  const focused = document.activeElement as HTMLElement;
+  expect(focused.dataset.findingTrigger).toBeTruthy();
+  expect(focused.textContent).toBe("Analyser");
+  expect(focused.parentElement!.textContent).toContain("Frais de développement activés sans conditions démontrées");
+});
+
 it("le voile et « Fermer » referment le tiroir et désélectionnent le constat", () => {
   renderDemo();
   fireEvent.click(screen.getAllByRole("button", { name: "Analyser" })[0]);

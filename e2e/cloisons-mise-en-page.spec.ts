@@ -10,7 +10,8 @@ import { expect, test, type Page } from "@playwright/test";
  * silos — ≈ 32 px de large à 390 px pour ≈ 453 px de contenu, 296 px à 1024 px (gravité et
  * effet rognés « 1 co… ») — et le conteneur principal défilait horizontalement.
  *
- * Aux largeurs 1440, 1024 et 390, sur le dossier démo, ce spec relève puis vérifie :
+ * Aux largeurs 1440, 1024, 768 (navigation latérale visible) et 390, sur le dossier démo, ce spec
+ * relève puis vérifie :
  *  - aucun débordement horizontal, ni du document ni de <main> (qui défile dans son cadre) ;
  *  - chaque ligne de silo occupe la largeur de la liste et aucun de ses textes n'est rogné ou
  *    sorti de la ligne ; aucun texte d'une carte de constat ouverte ne passe sous « Analyser » ;
@@ -34,6 +35,7 @@ interface Layout {
   main: { scrollWidth: number; clientWidth: number };
   rows: { label: string; width: number; clientWidth: number; scrollWidth: number; clipped: string[] }[];
   cards: { title: string; width: number; overlapping: string[] }[];
+  bodies: { silo: string; clipped: string[] }[];
   axeSerious?: Record<string, number>;
 }
 
@@ -92,11 +94,24 @@ async function measure(page: Page): Promise<Layout> {
           .map((el) => (el.textContent ?? "").trim());
         return { title: leaves(card)[0]?.textContent?.trim() ?? "", width: Math.round(card.getBoundingClientRect().width), overlapping };
       });
+    // Silos ouverts : aucun texte de la reconstruction ni des constats hors du cadre du silo (overflow: hidden).
+    const bodies = [...document.querySelectorAll<HTMLButtonElement>(rowSelector)]
+      .filter((b) => (b.parentElement?.children.length ?? 0) > 1)
+      .map((b) => {
+        const frame = b.parentElement!;
+        const fr = frame.getBoundingClientRect();
+        const clipped = leaves(frame)
+          .filter((el) => !b.contains(el))
+          .filter((el) => { const r = textRect(el); return r.right > fr.right + 1 || r.left < fr.left - 1; })
+          .map((el) => (el.textContent ?? "").trim());
+        return { silo: (leaves(b)[0]?.textContent ?? "").trim(), clipped };
+      });
     return {
       document: { scrollWidth: doc.scrollWidth, clientWidth: doc.clientWidth },
       main: { scrollWidth: main.scrollWidth, clientWidth: main.clientWidth },
       rows,
       cards,
+      bodies,
     };
   }, ROW_SELECTOR);
 }
@@ -119,7 +134,7 @@ async function openCloisons(page: Page) {
   await expect(page.locator(ROW_SELECTOR).first()).toBeVisible();
 }
 
-for (const width of [1440, 1024, 390] as const) {
+for (const width of [1440, 1024, 768, 390] as const) {
   test.describe(`largeur ${width}`, () => {
     test.use({ viewport: { width, height: 900 } });
 
@@ -144,6 +159,8 @@ for (const width of [1440, 1024, 390] as const) {
       }
       expect(layout.cards.length, "cartes de constat des silos ouverts").toBeGreaterThan(0);
       for (const card of layout.cards) expect(card.overlapping, `carte « ${card.title} » : texte sous le bouton`).toEqual([]);
+      expect(layout.bodies.length, "silos ouverts par défaut").toBeGreaterThan(0);
+      for (const body of layout.bodies) expect(body.clipped, `silo ouvert « ${body.silo} » : texte rogné`).toEqual([]);
       const before = await readFile(path.join(ROOT, "avant", `cloisons-${width}.json`), "utf-8").then((t) => JSON.parse(t) as Layout).catch(() => null);
       for (const [rule, count] of Object.entries(layout.axeSerious)) {
         if (before?.axeSerious) expect(count, `axe « ${rule} » : ${count} nœud(s), relevé avant ${before.axeSerious[rule] ?? 0}`).toBeLessThanOrEqual(before.axeSerious[rule] ?? 0);
@@ -186,6 +203,15 @@ for (const width of [1440, 1024, 390] as const) {
         await expect(rail.getByRole("heading", { level: 3 })).toBeVisible();
         await expect(rail.getByRole("button", { name: /Valider/ })).toBeVisible();
         if (CAPTURE) await page.screenshot({ path: path.join(OUT, `cloisons-${width}-revue.jpg`), type: "jpeg", quality: 72 });
+        // Focus dans le rail, puis la fenêtre rétrécit : le rail disparaît au profit du tiroir ;
+        // à la fermeture, le focus revient au bouton du constat et non au document.
+        await rail.getByRole("button", { name: /Valider/ }).focus();
+        await page.setViewportSize({ width: 1024, height: 900 });
+        const drawer = page.getByRole("dialog");
+        await expect(drawer).toBeVisible();
+        await page.keyboard.press("Escape");
+        await expect(drawer).toHaveCount(0);
+        await expect(page.getByRole("button", { name: "Analyser" }).first()).toBeFocused();
         return;
       }
 
@@ -211,6 +237,13 @@ for (const width of [1440, 1024, 390] as const) {
       await page.keyboard.press("Shift+Tab");
       expect(await dialog.evaluate((d) => d.contains(document.activeElement))).toBe(true);
 
+      await page.keyboard.press("Escape");
+      await expect(dialog).toHaveCount(0);
+      await expect(page.getByRole("button", { name: "Analyser" }).first()).toBeFocused();
+
+      // Ouverture par la ligne signalée de la reconstruction (non focalisable) : même retour du focus.
+      await page.locator("tr", { hasText: "Frais de développement activés" }).first().click();
+      await expect(dialog).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(dialog).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Analyser" }).first()).toBeFocused();
