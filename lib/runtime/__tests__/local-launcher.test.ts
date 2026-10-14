@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { atomicMigration } from "../../../scripts/db/migration-utils.mjs";
 import {
   DURABLE_CHAIN_FLAGS, REMOTE_KEYS, childEnv, compareManifests, defaultHome, loopbackUrl, envExampleKeys, parseArgs, pieceFile, restoreTargetIssues, validateConfig, withinDirectory,
@@ -8,9 +9,11 @@ import {
 import { personalProfileIssues } from "../profile";
 import { readLocalAuthConfig } from "@/lib/auth/local/config";
 
+/** Chemins absolus du système courant : la CI tourne sous Linux, le poste sous Windows. */
+const P = join(tmpdir(), "probant-c07-P"), Q = join(tmpdir(), "probant-c07-Q");
 const config = {
   formatVersion: 1, profileId: "6f1c2a4e-3b7d-4c9a-8e21-5d0f7a9b1c33", organizationId: "0b4d6e8f-1a2c-4e3f-9a5b-7c8d9e0f1a2b", owner: { name: "Camille Martin" },
-  review: "personal", simulation: false, postgres: { bin: "C:\\pg\\bin", port: 54329, database: "probant_personnel" }, app: { host: "127.0.0.1", port: 3210 }, restoredFrom: null,
+  review: "personal", simulation: false, postgres: { bin: join(tmpdir(), "pg", "bin"), port: 54329, database: "probant_personnel" }, app: { host: "127.0.0.1", port: 3210 }, restoredFrom: null,
 };
 const secrets = { appPassword: "app pass/é", superPassword: "s", sessionSecret: "x".repeat(64) };
 
@@ -50,11 +53,13 @@ describe("C07 — lanceur : configuration et environnement de Next", () => {
 
 describe("C07 — sauvegarde et restauration : garde-fous", () => {
   it("la restauration va dans un dossier distinct, jamais sur ou dans le profil courant", () => {
-    expect(restoreTargetIssues("C:\\P\\personnel", "C:\\P\\restauration", false)).toEqual([]);
-    expect(restoreTargetIssues("C:\\P\\personnel", "c:\\p\\PERSONNEL", false)).toEqual(["la cible est le profil courant"]);
-    expect(restoreTargetIssues("C:\\P\\personnel", "C:\\P\\personnel\\copie", false)).toEqual(["la cible est à l'intérieur du profil courant"]);
-    expect(restoreTargetIssues("C:\\P\\personnel", "C:\\P", false)).toEqual(["la cible contient le profil courant"]);
-    expect(restoreTargetIssues("C:\\P\\personnel", "C:\\Q", true)).toEqual(["la cible existe et n'est pas vide"]);
+    const home = join(P, "personnel");
+    expect(restoreTargetIssues(home, join(P, "restauration"), false)).toEqual([]);
+    expect(restoreTargetIssues(home, home, false)).toEqual(["la cible est le profil courant"]);
+    if (process.platform === "win32") expect(restoreTargetIssues(home, home.toUpperCase(), false)).toEqual(["la cible est le profil courant"]);
+    expect(restoreTargetIssues(home, join(home, "copie"), false)).toEqual(["la cible est à l'intérieur du profil courant"]);
+    expect(restoreTargetIssues(home, P, false)).toEqual(["la cible contient le profil courant"]);
+    expect(restoreTargetIssues(home, Q, true)).toEqual(["la cible existe et n'est pas vide"]);
   });
 
   it("le manifeste relu doit être identique : lignes, empreintes et pièces", () => {
@@ -66,10 +71,11 @@ describe("C07 — sauvegarde et restauration : garde-fous", () => {
   });
 
   it("chemins et arguments", () => {
-    expect(withinDirectory("C:\\P\\pieces", "C:\\P\\pieces\\a\\b.txt")).toBe(true);
-    expect(withinDirectory("C:\\P\\pieces", "C:\\P\\pieces\\..\\secrets.json")).toBe(false);
-    expect(pieceFile("C:\\P\\pieces", "organizations/o/dossiers/d/documents/x/source")).toBe(resolve("C:\\P\\pieces\\organizations\\o\\dossiers\\d\\documents\\x\\source"));
-    for (const key of ["../../victim", "a/../../b", "a\\b", "", "/abs", "a//b", 42]) expect(pieceFile("C:\\P\\pieces", key)).toBeNull();
+    const pieces = join(P, "pieces");
+    expect(withinDirectory(pieces, join(pieces, "a", "b.txt"))).toBe(true);
+    expect(withinDirectory(pieces, join(pieces, "..", "secrets.json"))).toBe(false);
+    expect(pieceFile(pieces, "organizations/o/dossiers/d/documents/x/source")).toBe(resolve(pieces, "organizations", "o", "dossiers", "d", "documents", "x", "source"));
+    for (const key of ["../../victim", "a/../../b", "a\\b", "", "/abs", "a//b", 42]) expect(pieceFile(pieces, key)).toBeNull();
     expect(loopbackUrl(3210, "/api/auth/session")).toBe("http://127.0.0.1:3210/api/auth/session");
     for (const port of ["3210@evil.example", 80, "x", 70000]) expect(() => loopbackUrl(port, "/")).toThrow();
     expect(() => loopbackUrl(3210, "//evil.example/x")).toThrow();
