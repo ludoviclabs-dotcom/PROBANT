@@ -2,19 +2,19 @@ import { canonicalCompare, stableSha256 } from "@/lib/synthesis/canonical";
 import type { KnownAmount, Money } from "@/lib/canonical-model/money";
 import { assertScope, contentHash, frozen, validateRun, type EvidenceLink, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
-import { EQ_LEGAL_TEXT, EQ_UNCERTAINTY_CODES, EQUITY_LIMITATIONS, equityResultSchema, type EquityResult } from "./capitaux-review";
+import { CAPITAUX_RESULT_SCHEMA_VERSION, EQ_LEGAL_TEXT, EQ_LEGAL_TEXT_V2, EQ_UNCERTAINTY_CODES, EQUITY_LIMITATIONS, EQUITY_LIMITATIONS_V2, equityResultSchema, type EquityResult } from "./capitaux-review";
 import { EQ_SOURCE_LABELS, EQ_TABULAR_TYPES, equitySourcesCurrent, type EqComponent, type EquitySourceType } from "./capitaux-sources";
 import type { EquitySourceHead } from "./capitaux-store";
 
 /** Closed programme: its denominators exist before any result or exception. */
 export const EQUITY_MISSION_PROGRAM = {
-  id: "capitaux_propres.program", version: "1.0.0", label: "Programme Capitaux propres : décisions, mouvements et tableau de variation",
-  procedures: [{ id: "capitaux_propres.review", version: "1.0.0", label: "Décisions, mouvements, transferts internes et tableau de variation",
+  id: "capitaux_propres.program", version: "1.1.0", label: "Programme Capitaux propres : décisions, mouvements et tableau de variation",
+  procedures: [{ id: "capitaux_propres.review", version: "1.1.0", label: "Décisions, mouvements, transferts internes et tableau de variation",
     requiredSources: ["eq_balances", "eq_entries"], conditionalSources: ["eq_variation", "eq_decisions", "eq_payments", "eq_minutes"],
     tests: [{ id: "bridge", label: "Pont par composante", dimension: "component" }, { id: "statement", label: "Tableau de variation fourni ↔ reconstitué", dimension: "cell" },
       { id: "decisions", label: "Décisions ↔ comptabilisation", dimension: "decision" }, { id: "entries", label: "Écritures ↔ décisions", dimension: "movement" },
       { id: "minutes", label: "Décisions appuyées par le PV lu", dimension: "decision" }] }],
-  outOfScope: ["Régularité juridique des décisions (convocation, quorum, majorité, pouvoirs)", "Règles propres à la forme sociale : réserve légale, capitaux propres inférieurs à la moitié du capital, conditions de distribution", "Autres fonds propres et leur qualification", "Traitement comptable des événements postérieurs à la clôture", "Capital souscrit non appelé, actions propres et instruments composés"],
+  outOfScope: ["Régularité juridique des décisions (convocation, quorum, majorité, pouvoirs)", "Conclusions juridiques propres à la forme sociale (réserve légale, moitié du capital, distribution) : seuls des repères arithmétiques datés sont présentés", "Lecture des contrats : les termes des instruments sont déclarés et cités, jamais déduits", "Traitement comptable des événements postérieurs à la clôture", "Capital souscrit non appelé, actions propres et instruments composés"],
   exclusions: [] as { id: string; reason: string }[],
 } as const;
 export type EquityMissionFilter = "all" | "blocked" | "exceptions" | "evidence" | "review" | "stale";
@@ -90,7 +90,7 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
   const procedure = { id: definition.id as string, label: definition.label as string, runId: run?.id ?? null, rootId: run?.rootId ?? null, revision: run?.revision ?? null, version: run?.version ?? null,
     contentHash: run ? contentHash(run) : null, state: run?.state ?? "not_started", preparedBy: run?.preparedBy ?? null, period: run?.period ?? null, conclusion: run?.conclusion ?? "Conclusion non renseignée",
     resultId: run?.result?.id ?? null, resultInputHash: run?.result?.inputHash ?? null, resultLabel, reviewLabel, review, stale, staleReasons, coverage, controls, notes: run?.notes ?? [], evidence: run?.evidence ?? [], equity,
-    legal: { conclusion: "Aucune conclusion juridique", meaning: EQ_LEGAL_TEXT },
+    legal: { conclusion: "Aucune conclusion juridique", meaning: equity?.legalMeaning ?? EQ_LEGAL_TEXT },
     beforeReview: before ? { id: before.id, version: before.version, contentHash: contentHash(before), conclusion: before.conclusion ?? "", notes: before.notes, resultId: before.result?.id ?? null, resultLabel } : null,
     afterReview: review && run ? { id: run.id, version: run.version, contentHash: contentHash(run), conclusion: run.conclusion ?? "", notes: run.notes, resultId: run.result?.id ?? null, resultLabel } : null };
   const required: readonly string[] = definition.requiredSources, conditional: readonly string[] = definition.conditionalSources;
@@ -116,6 +116,9 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
   if (run && !run.result) add("procedure:prepare", "blocked", 2, run.population ? "Revue à exécuter" : "Sources à figer", "Le programme prévoit cette procédure, même sans exception.");
   if (run?.result && !equity) add("result:invalid", "blocked", 1, "Contrat de résultat Capitaux propres invalide", "Le calcul n’est pas restitué comme un résultat exploitable.");
   equity?.exceptions.forEach(e => add(e.id, isUncertainty(e.code) ? "evidence" : "exceptions", 3, e.label, e.message + " · " + equityAmountLabel(e.amount), e.proofIds, { component: e.component, item: itemOf(e) }));
+  // Rule 1.1.0: instruments or accounts still to qualify, and legal markers to examine (signals, never findings).
+  if (equity?.presentation?.toQualify) add("presentation:to-qualify", "evidence", 3, "Autres fonds propres à qualifier", `${equity.presentation.toQualify} instrument(s) ou compte(s) sans termes contractuels suffisants : exclus des autres fonds propres comme des dettes.`, [], { component: "autres_fonds_propres" });
+  equity?.legal?.items.filter(i => i.signal.kind === "a_examiner").forEach(i => add("legal:" + i.topic, "review", 4, "Repère légal à examiner — " + i.title, i.signal.text + " " + i.articles.map(a => a.label).join(" ; "), []));
   procedure.notes.filter(n => !n.resolution).forEach(n => add("note:" + n.id, n.blocking ? "blocked" : n.kind === "missing_evidence" ? "evidence" : "exceptions", n.blocking ? 1 : 2, n.blocking ? "Point bloquant Capitaux propres" : "Traitement à documenter", n.text, [], { noteId: n.id }));
   if (run && ["executed", "awaiting_review", "changes_requested", "approved"].includes(run.state)) add("review:pending", "review", 4, run.state === "approved" ? "Verrouillage attendu" : run.state === "executed" ? "Soumission à préparer" : run.state === "changes_requested" ? "Correction demandée" : "Revue attendue", "Décision sur cette version ; les exceptions restent dans le résultat ; aucune conclusion juridique.");
   queue.sort((a, b) => a.priority - b.priority || canonicalCompare(a.id, b.id));
@@ -129,7 +132,7 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
     versionIndex: assigned.map(v => ({ id: v.id, revision: v.revision, version: v.version, state: v.state, contentHash: contentHash(v), actorId: v.events.at(-1)?.actorId ?? v.preparedBy, approval: v.approval ?? null, reviewNotes: v.notes.filter(n => n.kind === "judgment"), events: v.events,
       readings: v.capitauxWork?.readings.map(r => ({ lineId: r.lineId, pieceRef: r.pieceRef, documentVersionId: r.documentVersionId, page: r.page, authorId: r.authorId, authoredAt: r.authoredAt })) ?? [] })),
     sourceHeads: [...heads].sort((a, b) => canonicalCompare(a.document_type, b.document_type)),
-    limitations: [...EQUITY_LIMITATIONS, EQ_LEGAL_TEXT, "Revue documentée ne signifie pas conformité des comptes ni régularité juridique ; aucune opinion automatique.", "PV et pièces binaires absents du paquet ; téléchargement séparé soumis aux mêmes permissions.", "SHA-256 = intégrité, sans signature légale ni archivage certifié."] };
+    limitations: [...(equity?.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION ? [...EQUITY_LIMITATIONS_V2, EQ_LEGAL_TEXT_V2] : [...EQUITY_LIMITATIONS, EQ_LEGAL_TEXT]), "Revue documentée ne signifie pas conformité des comptes ni régularité juridique ; aucune opinion automatique.", "PV et pièces binaires absents du paquet ; téléchargement séparé soumis aux mêmes permissions.", "SHA-256 = intégrité, sans signature légale ni archivage certifié."] };
   return frozen({ ...body, hash: stableSha256(body) });
 }
 export type EquityMissionSnapshot = ReturnType<typeof buildEquityMission>;

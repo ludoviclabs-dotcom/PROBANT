@@ -6,7 +6,7 @@ import styles from "../cash/cash.module.css";
 import eq from "./equity.module.css";
 
 const day = (date: string) => Date.UTC(Number(date.slice(0, 4)), Number(date.slice(5, 7)) - 1, Number(date.slice(8, 10))) / 86_400_000;
-const SEVERITY = ["without_entry", "amount_divergent", "effect_outside_period", "reading_required", "matched", "not_expected", "prior_period", "excluded"] as const;
+const SEVERITY = ["without_entry", "amount_divergent", "effect_outside_period", "reading_required", "matched", "not_expected", "prior_period", "excluded", "superseded"] as const;
 /** Decisions on a date axis: the financial year, then the period after closing up to the review date. Positions only; an alternative table carries the same facts. */
 export function DecisionTimeline({ decisions, period, selectedLine, onSelect }: { decisions: EquityDecisionResult[]; period: AccountingPeriod; selectedLine: string | null; onSelect(lineId: string): void }) {
   const groups = [...new Set(decisions.map(d => d.decisionId))].map(id => {
