@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { cents, type Money } from "@/lib/canonical-model/money";
-import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { SourcedAmount } from "./cycle-context";
 import { assertScope, frozen, moneySchema, type EvidenceLink, type SourceLocator, type SourceRow, type WorkpaperScope } from "./model";
+import { isCivilDate, type AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ImportBatch, ImportMapping } from "./imports";
 
 /** Qualified sources of the fixed-asset review (Mission 10). One closed basis per type; one amount per row. */
@@ -21,7 +21,9 @@ export const fixedAssetMappingSchema = z.object({
   fixedAssets: z.object({ basis: z.enum(["asset_register", "ledger_closing", "depreciation_parameters", "movement_support"]),
     assetColumn: id.optional(), componentColumn: id.optional(), familyColumn: id.optional(), tableColumn: id.optional(), movementColumn: id.optional(), statusColumn: id.optional(),
     accountColumn: id.optional(), treatmentColumn: id.optional(), methodColumn: id.optional(), durationColumn: id.optional(), prorataNumeratorColumn: id.optional(),
-    prorataDenominatorColumn: id.optional(), kindColumn: id.optional(), labelColumn: id.optional(), pieceColumn: id.optional() }).strict(),
+    prorataDenominatorColumn: id.optional(), kindColumn: id.optional(), labelColumn: id.optional(), pieceColumn: id.optional(),
+    /** Parameters only (C06): start of the current plan segment when the plan was revised (art. 214-14); empty = plan of origin. */
+    segmentStartColumn: id.optional() }).strict(),
 }).strict();
 export type FixedAssetMapping = z.infer<typeof fixedAssetMappingSchema>;
 export function isFixedAssetMapping(mapping: ImportMapping): boolean { return fixedAssetMappingSchema.safeParse(mapping).success; }
@@ -62,6 +64,11 @@ export const FA_MOVEMENT_LABELS: Record<FaMovement, string> = { opening: "Ouvert
 export const FA_STATUS_LABELS: Record<FaStatus, string> = { in_progress: "En cours", in_service: "Mis en service", disposed: "Sorti" };
 const cell = (row: SourceRow, column?: string) => column ? row.original[column]?.trim() ?? "" : "";
 export function unitIdOf(asset: string, component: string) { return component ? asset + "/" + component : asset; }
+/** A secondary date cell in the mapping's declared format (same rule as the import's date column); this module stays browser-safe. */
+function mappedDate(raw: string, format: FixedAssetMapping["dateFormat"]): string | null {
+  const s = raw.trim(), date = format === "ISO" ? s : /^\d{2}\/\d{2}\/\d{4}$/.test(s) ? `${s.slice(6)}-${s.slice(3, 5)}-${s.slice(0, 2)}` : "";
+  return isCivilDate(date) ? date : null;
+}
 
 /** Row-level qualification of one previewed or approved batch; population-level checks happen in buildFixedAssetFacts. */
 export function assertFixedAssetBatch(batch: ImportBatch, period: AccountingPeriod) {
@@ -121,6 +128,12 @@ export function assertFixedAssetBatch(batch: ImportBatch, period: AccountingPeri
       // An empty duration or prorata stays "source requise" at calculation; a malformed one is refused here.
       if (duration && !(/^[1-9]\d{0,3}$/.test(duration) && Number(duration) <= 1200)) throw at("FA_DURATION_INVALID", f.durationColumn);
       if ((n || d) && !(/^\d{1,6}$/.test(n) && /^[1-9]\d{0,5}$/.test(d) && BigInt(n) <= BigInt(d))) throw at("FA_PRORATA_INVALID", n && !/^\d{1,6}$/.test(n) ? f.prorataNumeratorColumn : f.prorataDenominatorColumn);
+      // A declared revision date must follow the in-service date and precede the closing; it is never inferred.
+      const segment = cell(row, f.segmentStartColumn);
+      if (segment) {
+        const start = mappedDate(segment, m.dateFormat);
+        if (!start || start <= date || start > period.closingDate) throw at("FA_SEGMENT_START_INVALID", f.segmentStartColumn);
+      }
       if (parameterUnits.has(unit)) throw at("FA_PARAMETERS_DUPLICATE", f.assetColumn);
       parameterUnits.add(unit);
     }
@@ -134,7 +147,7 @@ export function assertFixedAssetBatch(batch: ImportBatch, period: AccountingPeri
 
 export interface FaSourceFact { importId: string; rowId: string; documentVersionId: string; fileName: string; locator: SourceLocator; value: SourcedAmount; proof: EvidenceLink }
 export interface FaLine extends FaSourceFact { lineId: string; table: FaTable; movement: FaMovement; account: string; pieceRef: string; label: string }
-export interface FaParameters extends FaSourceFact { methodRef: string; durationMonths: number | null; prorata: { numerator: string; denominator: string } | null; inServiceDate: string }
+export interface FaParameters extends FaSourceFact { methodRef: string; durationMonths: number | null; prorata: { numerator: string; denominator: string } | null; inServiceDate: string; segmentStart: string | null }
 export interface FaSupport extends FaSourceFact { pieceId: string; kind: FaSupportKind; label: string }
 export interface FaUnitFact {
   unitId: string; assetId: string; componentId: string | null; family: string; status: FaStatus; treatment: FaTreatment; label: string;
@@ -209,8 +222,9 @@ export function buildFixedAssetFacts(scope: WorkpaperScope, period: AccountingPe
       } else if (type === "fa_ledger") {
         facts.ledger.push({ ...fact(row, "Solde GL à la clôture"), account: key, table: TABLES[norm(cell(row, f.tableColumn))], label: cell(row, f.labelColumn) });
       } else if (type === "fa_parameters") {
-        const unit = unitOf(row), duration = cell(row, f.durationColumn), n = cell(row, f.prorataNumeratorColumn), d = cell(row, f.prorataDenominatorColumn);
-        unit.parameters = { ...fact(row, "Paramètres d’amortissement"), methodRef: cell(row, f.methodColumn), durationMonths: duration ? Number(duration) : null, prorata: n && d ? { numerator: n, denominator: d } : null, inServiceDate: row.normalized!.date };
+        const unit = unitOf(row), duration = cell(row, f.durationColumn), n = cell(row, f.prorataNumeratorColumn), d = cell(row, f.prorataDenominatorColumn), segment = cell(row, f.segmentStartColumn);
+        unit.parameters = { ...fact(row, "Paramètres d’amortissement"), methodRef: cell(row, f.methodColumn), durationMonths: duration ? Number(duration) : null, prorata: n && d ? { numerator: n, denominator: d } : null, inServiceDate: row.normalized!.date,
+          segmentStart: segment ? mappedDate(segment, fixedAssetMappingSchema.parse(batch.mapping).dateFormat) : null };
       } else {
         unitOf(row).supports.push({ ...fact(row, "Pièce de mouvement"), pieceId: key, kind: KINDS[norm(cell(row, f.kindColumn))], label: cell(row, f.labelColumn) });
       }
@@ -232,7 +246,7 @@ export function fixedAssetFactsView(facts: FixedAssetFacts) {
   return {
     units: facts.units.map(u => ({ unitId: u.unitId, assetId: u.assetId, componentId: u.componentId, family: u.family, status: u.status, treatment: u.treatment, label: u.label, inScope: u.inScope, exclusionReason: u.exclusionReason, accounts: u.accounts,
       lines: u.lines.map(l => ({ ...factRef(l), lineId: l.lineId, table: l.table, movement: l.movement, account: l.account, pieceRef: l.pieceRef, label: l.label })),
-      parameters: u.parameters && { ...factRef(u.parameters), methodRef: u.parameters.methodRef, durationMonths: u.parameters.durationMonths, prorata: u.parameters.prorata, inServiceDate: u.parameters.inServiceDate },
+      parameters: u.parameters && { ...factRef(u.parameters), methodRef: u.parameters.methodRef, durationMonths: u.parameters.durationMonths, prorata: u.parameters.prorata, inServiceDate: u.parameters.inServiceDate, segmentStart: u.parameters.segmentStart },
       supports: u.supports.map(s => ({ ...factRef(s), pieceId: s.pieceId, kind: s.kind, label: s.label })) })),
     ledger: facts.ledger.map(l => ({ ...factRef(l), account: l.account, table: l.table, label: l.label })),
   };

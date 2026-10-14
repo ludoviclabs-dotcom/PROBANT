@@ -6,7 +6,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { buildFixedAssetMissionPackage, type FixedAssetExportKind } from "@/lib/evidence/fixed-asset-mission-package";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { FIXED_ASSETS_TEMPLATE, FixedAssetsRegistry } from "./fixed-asset-adapter";
+import { FIXED_ASSETS_RULE, FIXED_ASSETS_TEMPLATE, FixedAssetsRegistry } from "./fixed-asset-adapter";
 import type { FixedAssetCommand } from "./fixed-asset-commands";
 import { buildFixedAssetMission, fixedAssetResultOf, type FixedAssetMissionSelection } from "./fixed-asset-mission";
 import { compareFixedAssetRecalculations, FA_UNCERTAINTY_CODES, fixedAssetWorkSchema, recalculationBasisHash, stampFixedAssetWork, type FixedAssetResult, type RecalculationComparisonRow } from "./fixed-asset-review";
@@ -171,6 +171,9 @@ export class FixedAssetRuntime {
       const current = await repository.get(scope, command.id);
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (current.fixedAssetWork) fixedAssetWorkSchema.parse(current.fixedAssetWork);
+      // A sheet established under an earlier rule version stays readable; nothing may advance or finalize it (execution, notes,
+      // conclusion, submission, review, lock): only a revision, which adopts the current rule.
+      if (command.command !== "revise" && current.template.rule?.version !== FIXED_ASSETS_RULE.version) throw new Error("FA_RULE_REPLACED_REVISION_REQUIRED");
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion;
       let run: WorkpaperRun;
@@ -211,7 +214,7 @@ export class FixedAssetRuntime {
         case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
         case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
         case "lock": run = await service.lock(scope, id, v); break;
-        case "revise": run = await service.revise(scope, id, v); break;
+        case "revise": run = await service.revise(scope, id, v, FIXED_ASSETS_TEMPLATE); break;
       }
       return { run };
     }));

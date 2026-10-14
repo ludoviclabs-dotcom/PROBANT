@@ -86,7 +86,67 @@ Aucune règle comptable, fiscale ou d'audit nouvelle. Les limites d'ingestion du
 ## Dépendances du lot suivant
 
 - C09, C12, C13, C14 peuvent s'appuyer sur le profil personnel ; C14 doit décider de la relecture personnelle dans le journal de clôture.
-- La PR C06 (`claude/c06-fin-plan-amortissement`, non fusionnée au départ de ce lot) touche aussi `fixed-assets/format.ts`, `fixed-asset-mission.ts`, `fixed-asset-runtime.ts` et `service.ts` : lignes distinctes, conflits de fusion possibles mais localisés.
+- La PR C06 (`claude/c06-fin-plan-amortissement`), fusionnée dans `main` pendant la revue de ce lot (PR #82), touche aussi `fixed-assets/format.ts`, `fixed-asset-mission.ts`, `fixed-asset-runtime.ts` et `service.ts` : lignes distinctes ; la fusion de `main` n'a produit de conflit que dans ce handoff.
+
+---
+
+# Handoff — Mission C06 : fin de plan d’amortissement, base restante et état du plan (2026-10-14)
+
+**Base.** `main` `e9f8b6d` (fusion de la PR #80, Cloisons). Branche `claude/c06-fin-plan-amortissement`, worktree `blissful-nash-5afb47`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; le moteur Immobilisations (Mission 10, PR #61) n’avait pas changé. Dépendances du prompt : C04 (référentiel daté) et contrat de métriques C03, tous deux dans `main`. Contrat mis à jour : [docs/mission10/CONTRAT.md](../mission10/CONTRAT.md) (§ « C06 »). Aucune fusion, aucun déploiement.
+
+## Cause
+
+`recalculateDepreciation` (`lib/workpapers/fixed-assets.ts`) recevait coût, résiduel, durée et prorata, sans le cumul d’amortissement antérieur ni la fin du plan : la dotation était plafonnée au **montant amortissable total**. Le tableau Amortissements du registre portait pourtant ce cumul (ouverture, ligne sourcée) ; il n’était lu que pour le pont des mouvements. Conséquences, mesurées en exécutant la fonction 1.0.0 de `main` sur les entrées de la recette C06 :
+
+| Actif | Situation | 1.0.0 (exécuté) | 1.1.0 | Effet |
+|---|---|---|---|---|
+| E-01 | 12 000, 60 mois, cumul d’ouverture 12 000, plan échu le 31/12/2023 ; 2 400 comptabilisés | 2 400 | **0** | l’erreur de dotation était masquée ; désormais écart +2 400 |
+| L-02 | dernière annuité, cumul 10 800, prorata 12/12 | 2 400 | **1 200** (plafond) | faux écart −1 200 supprimé |
+| I-01 | cumul 13 000 > montant amortissable 12 000 | 2 400 | inconnu, bloqué | incohérence du cumul signalée (excès 1 000) |
+| M-01 | segment révisé déclaré au 01/01/2024, base non validée | 3 000 | inconnu, bloqué | segment isolé |
+| D-01 | dépréciation 1 000 inscrite | 2 400 | inconnu, bloqué | la base modifiée n’est plus confondue avec brut − résiduel ni avec la VNC |
+| N-01, L-01, R-01, B-01/TOITURE | neuf, dernière annuité 6/12, résiduel positif, composant | 1 800 · 1 200 · 2 000 · 3 000 | identiques | — |
+
+## Sources
+
+PCG — règlement ANC n° 2014-03, version consolidée au 1er janvier 2026 (S1 ; `pcg-2026-01-01` du résolveur C04) : copies locales issues de C04 dont les SHA-256 (`55c824b2…`, `b9e7a732…`) sont ceux enregistrés par le résolveur pour les deux URL officielles ANC. Édition du dossier de recette (exercice 2024) : Recueil des normes comptables 2024 (`pcg-2024`, noté « inaccessible » en C04), PDF ANC lu le 14/10/2026, 677 p., SHA-256 `f608f78f…82479303` — mêmes numéros et même texte pour les articles 214-4, 214-8, 214-9, 214-12, 214-13, 214-14, 214-17. Articles appliqués et choix internes : contrat § C06.
+
+## Changements
+
+- **Moteur** (`fixed-assets.ts`) : `recalculateLinearPlan` (trace du plan : début, fin, montant amortissable, cumul d’ouverture, restant, annuité, plafond, position dans le plan, incohérence) ; `recalculateDepreciation` en lit le montant et exige `priorAccumulated` (null = inconnu). `linearPlanEnd` : fin = début + durée − 1 jour.
+- **Source** (`fixed-asset-sources.ts`) : colonne facultative « début de segment » des paramètres (plan révisé déclaré), refusée si mal formée, antérieure ou égale à la mise en service, ou postérieure à la clôture (`FA_SEGMENT_START_INVALID`) ; module resté compatible navigateur (aucun import serveur).
+- **Revue** (`fixed-asset-review.ts`) : résultat `fixed-assets-result-2` (lit encore `-1`), `recalculation.plan` (état, segment, cumul et sa preuve, restant, annuité, plafond), exception `PLAN_ACCUMULATED_INCONSISTENT`, isolement des plans révisés, dépréciés, à base modifiée ou au cumul absent ; invariant de schéma « dotation = min(annuité, restant), 0 si échu ». Formule et limites réécrites ; comparaison versionnée incluant l’état du plan (sans les identifiants de preuve, propres à chaque exécution).
+- **Versions** : règle, gabarit et programme 1.1.0 ; feuille 1.0.0 consultable, marquée périmée, toute commande autre que la révision refusée (`FA_RULE_REPLACED_REVISION_REQUIRED` : ni exécution, ni conclusion, ni soumission, revue ou verrouillage d’un résultat 1.0.0 — revue Codex PR #82) ; contrôles de la synthèse rattachés à la version de règle réellement appliquée ; `WorkpaperService.revise` peut adopter le gabarit courant de la même procédure ; garde de `create` : version de règle = version du gabarit (toutes les autres procédures restent en 1.0.0 / 1.0.0).
+- **Écran** (`AssetDetailPanel.tsx`) : bloc « Plan et segment » (état, segment, cumul d’ouverture et sa ligne de registre, montant amortissable, restant, annuité × prorata, plafond, incohérence), « Dotation attendue (recalculée) », avis pour un résultat 1.0.0. Charte et puces existantes réutilisées.
+- **Atelier synthétique** (`demo-cycles.ts`) : cumul d’ouverture transmis ; début du plan avancé de deux ans pour rester cohérent avec ses 300,00 de cumul (dotation inchangée : 180,00).
+
+## Tests exécutés (local, 2026-10-14, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `lib/workpapers/__tests__/fixed-asset-plan.test.ts` (moteur sur exercice non calendaire, recette `FA_C06_CSV`, refus du début de segment, versions 1.0.0 → 1.1.0 par le runtime) | 15 / 15 |
+| Suites Immobilisations, atelier synthétique, revue de cycle, composant | 128 réussis / 128 (9 fichiers) ; 3 ignorés : recette PostgreSQL durable, **non vérifiée** |
+| Suite unitaire complète (`--pool=forks`) | 1 651 réussis, 0 échec ; 48 ignorés (8 fichiers de recettes PostgreSQL « durable », sans base locale : **non vérifiés**) |
+| Typecheck · lint des fichiers touchés | OK · 0 problème |
+| Build de production | OK, 180 pages |
+| `e2e/c06-fin-de-plan.spec.ts` (1440, 1024, 390 : plan échu, plafond, cumul invalide, plan révisé, dépréciation ; débordements, axe, puce non rognée) + `e2e/fixed-assets.spec.ts` | 6 / 6 et 5 / 5 ; avec `demo-journey` et `accessibility` : 23 / 23 |
+| Exécution de la fonction 1.0.0 de `main` sur les entrées de la recette (tableau ci-dessus) | 9 cas relevés, fichiers temporaires supprimés |
+
+Captures : `docs/probant-lots/c06-captures/` (plan échu, plafond, cumul invalide, dépréciation × 3 largeurs).
+
+## Limites et maturité
+
+- Segments révisés (changement de durée, de résiduel, de méthode) et actifs dépréciés : isolés et bloqués ; leur recalcul exige une base de segment validée et le cumul depuis le début du segment, absents du contrat actuel.
+- La cohérence du cumul est contrôlée aux bornes (supérieur au montant amortissable, non nul avant le début, plan échu non soldé, soldé avant terme) ; un cumul en avance ou en retard sur le calendrier théorique d’un plan en cours n’est pas mesuré, faute de convention de prorata temporis sourcée.
+- Le prorata de l’exercice reste une donnée sourcée ; la fin du plan n’est utilisée que pour situer le segment.
+- Sortie, sortie partielle, entrée sur actif inscrit, méthodes non linéaires, dérogatoire : hors recalcul avec motif (inchangé ou explicité).
+- Recettes PostgreSQL durables (`fixed-asset-durable.integration.test.ts`) : non exécutées sans base locale — **non vérifiées**.
+- Lecteur d’écran : non vérifié.
+
+## Dépendances du lot suivant
+
+- Segments révisés : ajouter au contrat la base validée et le cumul au début du segment, puis lever le blocage.
+- C07 (runtime local persistant) : rejouer la recette 1.0.0 → 1.1.0 sur PostgreSQL.
 
 ---
 

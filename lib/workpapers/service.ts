@@ -58,7 +58,7 @@ export class WorkpaperService {
   async history(scope: WorkpaperScope, id: string) { await this.actor(scope, "read"); return this.repository.history(scope, id); }
   async download(scope: WorkpaperScope, documentId: string) { const actor = await this.actor(scope, "download"); return this.imports.download(scope, documentId, actor); }
   async create(scope: WorkpaperScope, period: AccountingPeriod, template: ProcedureTemplate, instanceKey: string, clientsWork?: ClientsSalesWork, fiscalWork?: FiscalWork) {
-    if (scope.mode === "real" && (template.id !== this.realAdapter || template.rule?.id !== this.realAdapter || template.rule.version !== "1.0.0")) throw new Error("CLIENT_TEMPLATE_REQUIRED");
+    if (scope.mode === "real" && (template.id !== this.realAdapter || template.rule?.id !== this.realAdapter || template.rule.version !== template.version)) throw new Error("CLIENT_TEMPLATE_REQUIRED");
     const actor = await this.actor(scope, "prepare"); if (!instanceKey.trim()) throw new Error("INSTANCE_KEY_REQUIRED");
     const id = `workpaper-${stableSha256({ scope, template: { id: template.id, version: template.version }, instanceKey })}`;
     return this.repository.create(this.stamp(validateRun({ id, rootId: id, revision: 1, version: 1, schemaVersion: "1.0.0", scope, period, template,
@@ -308,11 +308,13 @@ export class WorkpaperService {
       return this.stamp(next, actor, target);
     });
   }
-  async revise(scope: WorkpaperScope, id: string, version: number) {
+  /** A revision may adopt the adapter's current template (same procedure): an earlier rule version is never re-executed. */
+  async revise(scope: WorkpaperScope, id: string, version: number, template?: ProcedureTemplate) {
     const actor = await this.actor(scope, "prepare");
     return this.repository.revise(scope, id, version, (old) => {
+      if (template && (template.id !== old.template.id || template.rule?.id !== old.template.rule?.id || (scope.mode === "real" && (template.id !== this.realAdapter || template.rule?.version !== template.version)))) throw new Error("CLIENT_TEMPLATE_REQUIRED");
       const nextId = `${old.rootId}:r${old.revision + 1}`;
-      return this.stamp({ ...old, id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
+      return this.stamp({ ...old, ...(template ? { template } : {}), id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
         ...(scope.mode === "real" ? { exceptionalWork: undefined, investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, stockWork: undefined, provisionWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),

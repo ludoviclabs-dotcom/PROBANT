@@ -4,7 +4,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { CycleContext } from "./cycle-context";
 import { dateSchema, known, proofSchema, type BalanceLine, type SupportedAmount } from "./cycle-review";
-import { fixedAssetMethodEligible, fixedAssetMovements, frameFixedAssets, movementBridge, recalculateDepreciation, type FixedAssetDocumentedMethod, type Movement } from "./fixed-assets";
+import { fixedAssetMethodEligible, fixedAssetMovements, frameFixedAssets, movementBridge, recalculateLinearPlan, type FixedAssetDocumentedMethod, type LinearPlanTrace, type Movement, type PlanInconsistencyCode } from "./fixed-assets";
 import { buildFixedAssetFacts, FA_TABLES, FA_TABLE_LABELS, FixedAssetSourceError, type FaLine, type FaTable, type FaUnitFact, type FixedAssetFacts } from "./fixed-asset-sources";
 import { frozen, knownAmountSchema, moneySchema, scopeSchema, type EvidenceLink, type WorkpaperScope } from "./model";
 import type { ImportBatch } from "./imports";
@@ -23,12 +23,15 @@ export const fixedAssetConventionSchema = z.object({ version: z.literal("fa-sign
 export const fixedAssetWorkSchema = fixedAssetDraftSchema.extend({ schemaVersion: z.literal("fixed-assets-1"), convention: fixedAssetConventionSchema, methods: z.array(fixedAssetMethodSchema.extend(stamp).strict()).max(100) }).strict();
 export type FixedAssetWork = z.infer<typeof fixedAssetWorkSchema>;
 export const FA_CONVENTION_MEANING = "Registre : montants positifs dans le sens de chaque tableau (brut, amortissements cumulés, dépréciations cumulées). GL : soldes signés, débit positif. Cadrage : brut comparé tel quel ; amortissements et dépréciations comparés en valeur opposée (− clôture du registre).";
-export const FA_FORMULA = "Dotation recalculée = (coût − valeur résiduelle) × 12 ÷ durée en mois × prorata n ÷ d ; arrondi au centime, demi supérieur ; plafonnée à la base amortissable. Écart = dotation comptabilisée (entrées du tableau Amortissements) − dotation recalculée.";
+export const FA_FORMULA = "Dotation recalculée = (coût − valeur résiduelle) × 12 ÷ durée en mois × prorata n ÷ d ; arrondi au centime, demi supérieur ; plafonnée au montant amortissable restant = coût − valeur résiduelle − cumul d’amortissement d’ouverture ; plan échu avant l’ouverture : 0. Écart = dotation comptabilisée (entrées du tableau Amortissements) − dotation recalculée.";
 export const FIXED_ASSET_LIMITATIONS = [
   "La VNC est une différence arithmétique (brut − amortissements − dépréciations), pas une conclusion de valeur.",
   "Aucune conclusion d’existence physique : le registre et les pièces ne prouvent ni la présence ni l’état des biens.",
   "Aucune durée, aucun seuil de capitalisation, aucun prorata ni aucune valeur résiduelle implicites : chaque paramètre vient d’une source ou d’une méthode documentée.",
-  "Recalcul limité aux méthodes linéaires documentées ; méthodes non couvertes, sorties de l’exercice et sorties partielles restent hors recalcul, avec motif.",
+  "Recalcul limité au plan linéaire d’origine inchangé (PCG 2026, art. 214-4, 214-12, 214-13) : base restante = coût − résiduel − cumul d’ouverture du registre, fin du plan et dernière annuité comprises.",
+  "Plan révisé (changement de durée, de résiduel ou de méthode déclaré) et actif déprécié : la base amortissable change de manière prospective (art. 214-14, 214-17) ; sans base de segment validée, recalcul bloqué, jamais remplacé par la VNC.",
+  "Composants : chaque composant inscrit au registre a son propre plan (art. 214-9) ; entrée ou reclassement sur un actif déjà inscrit, sortie et sortie partielle de l’exercice : hors recalcul, avec motif.",
+  "Amortissement dérogatoire et durée d’usage fiscale : provisions réglementées (art. 214-8), hors registre et hors recalcul ; méthodes non linéaires exclues avec motif.",
   "Dépréciations : pont des mouvements uniquement ; aucun test d’indice de perte de valeur ni de valeur actuelle.",
   "Recherche de dépenses à immobiliser hors périmètre de cet écran ; aucun reclassement automatique.",
   "Actifs complexes déclarés (crédit-bail, réévaluation, financier, devise, autre) exclus avec motif, jamais testés en silence.",
@@ -67,13 +70,25 @@ const tableSchema = z.discriminatedUnion("status", [
 const recalcStatus = z.enum(["computed", "blocked", "not_applicable", "excluded"]);
 const supportStatus = z.enum(["matched", "amount_difference", "date_difference", "missing"]);
 const familyTableSchema = z.object({ inScopeUnits: z.number().int().nonnegative(), computedUnits: z.number().int().nonnegative(), complete: z.boolean(), opening: moneySchema, additions: moneySchema, disposals: moneySchema, reversals: moneySchema, reclassifications: moneySchema, closing: moneySchema, expected: moneySchema, difference: moneySchema, unitsWithDifference: z.number().int().nonnegative(), absoluteDifference: moneySchema }).strict();
-const exceptionCodes = ["MOVEMENT_DIFFERENCE", "TABLE_INCOMPLETE", "FRAME_DIFFERENCE", "FRAME_SCOPE_INCOMPLETE", "SUPPORT_MISSING", "SUPPORT_AMOUNT_DIFFERENCE", "SUPPORT_DATE_DIFFERENCE", "RECALCULATION_DIFFERENCE", "RECALCULATION_BLOCKED"] as const;
+const exceptionCodes = ["MOVEMENT_DIFFERENCE", "TABLE_INCOMPLETE", "FRAME_DIFFERENCE", "FRAME_SCOPE_INCOMPLETE", "SUPPORT_MISSING", "SUPPORT_AMOUNT_DIFFERENCE", "SUPPORT_DATE_DIFFERENCE", "RECALCULATION_DIFFERENCE", "RECALCULATION_BLOCKED", "PLAN_ACCUMULATED_INCONSISTENT"] as const;
 export type FixedAssetExceptionCode = typeof exceptionCodes[number];
 export const FA_UNCERTAINTY_CODES: FixedAssetExceptionCode[] = ["TABLE_INCOMPLETE", "FRAME_SCOPE_INCOMPLETE", "SUPPORT_MISSING", "RECALCULATION_BLOCKED"];
 const controlIds = ["movements", "frame", "supports", "recalculation"] as const;
+/** Results written before C06 (`fixed-assets-result-1`) stay readable; every new execution writes `fixed-assets-result-2`. */
+export const FA_RESULT_SCHEMA_VERSION = "fixed-assets-result-2" as const;
+const planInconsistencyCodes = ["ACCUMULATED_ABOVE_AMORTIZABLE", "ACCUMULATED_BEFORE_START", "ENDED_NOT_FULLY_AMORTIZED", "FULLY_AMORTIZED_BEFORE_END"] as const satisfies readonly PlanInconsistencyCode[];
+/** State of the depreciation plan and of its current segment, as the sources establish it (C06). */
+const planSchema = z.object({
+  state: z.enum(["unchanged", "revised", "impaired", "base_changed", "unknown"]), stateReason: note,
+  segment: z.object({ start: dateSchema, end: dateSchema.nullable(), origin: z.enum(["in_service", "declared_revision"]), methodId: id.nullable(), methodVersion: id.nullable(), source: note.nullable() }).strict().nullable(),
+  priorAccumulated: moneySchema.nullable(), priorAccumulatedProofId: id.nullable(), amortizable: moneySchema.nullable(), remaining: moneySchema.nullable(), annuity: moneySchema.nullable(),
+  capApplied: z.boolean(), startsInPeriod: z.boolean().nullable(), endsInPeriod: z.boolean().nullable(), ended: z.boolean().nullable(),
+  inconsistency: z.object({ code: z.enum(planInconsistencyCodes), message: note, amount: knownAmountSchema }).strict().nullable(),
+}).strict();
+export type FixedAssetPlan = z.infer<typeof planSchema>;
 export type FixedAssetControlId = typeof controlIds[number];
 export const fixedAssetResultSchema = z.object({
-  schemaVersion: z.literal("fixed-assets-result-1"), scope: scopeSchema, runId: id, mode: z.enum(["real", "demo"]), startDate: dateSchema, closingDate: dateSchema, reviewDate: dateSchema,
+  schemaVersion: z.enum(["fixed-assets-result-1", FA_RESULT_SCHEMA_VERSION]), scope: scopeSchema, runId: id, mode: z.enum(["real", "demo"]), startDate: dateSchema, closingDate: dateSchema, reviewDate: dateSchema,
   convention: fixedAssetConventionSchema.extend({ meaning: note }).strict(), formula: note,
   methods: z.array(fixedAssetMethodSchema.extend({ ...stamp, applicable: z.boolean(), unitsUsing: z.number().int().nonnegative(), evidence: z.array(proofSchema) }).strict()),
   units: z.array(z.object({
@@ -83,7 +98,7 @@ export const fixedAssetResultSchema = z.object({
     vnc: knownAmountSchema,
     recalculation: z.object({ status: recalcStatus, reason: note, method: z.object({ id, version: id, kind: z.enum(["linear", "not_covered"]), label: note, source: note }).strict().nullable(),
       inputs: z.object({ cost: moneySchema.nullable(), residual: moneySchema.nullable(), base: moneySchema.nullable(), durationMonths: z.number().int().positive().nullable(), prorataNumerator: z.string().nullable(), prorataDenominator: z.string().nullable(), inServiceDate: dateSchema.nullable(), rounding: z.literal("half_up_cent") }).strict(),
-      recalculated: knownAmountSchema, booked: knownAmountSchema, difference: knownAmountSchema, proofIds: z.array(id) }).strict(),
+      recalculated: knownAmountSchema, booked: knownAmountSchema, difference: knownAmountSchema, proofIds: z.array(id), plan: planSchema.nullable().optional() }).strict(),
     supports: z.array(z.object({ lineId: id, movement: z.enum(["addition", "disposal"]), amount: moneySchema, date: dateSchema, pieceRef: note, status: supportStatus, statusMeaning: note,
       piece: z.object({ pieceId: id, kind: z.enum(["acquisition", "cession", "mise_en_service"]), amount: moneySchema, date: dateSchema, label: note, proofId: id }).strict().nullable(), difference: knownAmountSchema, proofIds: z.array(id) }).strict()),
   }).strict()),
@@ -108,6 +123,13 @@ export const fixedAssetResultSchema = z.object({
     const x = u.recalculation;
     if (x.difference.kind === "known" && (x.recalculated.kind !== "known" || x.booked.kind !== "known" || c(x.difference.value) !== c(x.booked.value) - c(x.recalculated.value))) issue("Recalcul incohérent pour " + u.unitId);
     if (x.status === "computed" && x.recalculated.kind !== "known") issue("Recalcul déclaré calculé sans montant pour " + u.unitId);
+    if (r.schemaVersion === FA_RESULT_SCHEMA_VERSION && x.plan === undefined) issue("État du plan absent pour " + u.unitId);
+    // The expected charge is the annuity capped at the remaining amortizable amount, or zero once the plan has ended.
+    const plan = x.plan;
+    if (x.status === "computed" && plan && plan.annuity && plan.remaining && x.recalculated.kind === "known") {
+      const cap = c(plan.remaining) < 0n ? 0n : c(plan.remaining), expected = plan.ended ? 0n : c(plan.annuity) < cap ? c(plan.annuity) : cap;
+      if (c(x.recalculated.value) !== expected || plan.capApplied !== (!plan.ended && c(plan.annuity) > cap)) issue("Plafond du plan incohérent pour " + u.unitId);
+    }
   }
   const proofIds = new Set([...r.units.flatMap(u => u.evidence), ...r.framing.rows.flatMap(x => x.evidence), ...r.methods.flatMap(m => m.evidence)].map(p => p.id));
   if (r.exceptions.some(e => e.proofIds.some(p => !proofIds.has(p))) || r.units.some(u => u.recalculation.proofIds.some(p => !proofIds.has(p)) || u.supports.some(s => s.proofIds.some(p => !proofIds.has(p))))) issue("Référence de preuve non résolue");
@@ -120,6 +142,14 @@ export const FA_EXCEPTION_LABELS: Record<FixedAssetExceptionCode, string> = {
   MOVEMENT_DIFFERENCE: "Écart du pont des mouvements à expliquer", TABLE_INCOMPLETE: "Tableau du registre incomplet", FRAME_DIFFERENCE: "Écart de cadrage registre / GL",
   FRAME_SCOPE_INCOMPLETE: "Cadrage registre / GL incomplet", SUPPORT_MISSING: "Pièce de mouvement absente", SUPPORT_AMOUNT_DIFFERENCE: "Montant de pièce différent du registre",
   SUPPORT_DATE_DIFFERENCE: "Date de pièce différente du registre", RECALCULATION_DIFFERENCE: "Écart entre dotation comptabilisée et dotation recalculée", RECALCULATION_BLOCKED: "Recalcul bloqué : source ou paramètre requis",
+  PLAN_ACCUMULATED_INCONSISTENT: "Cumul d’amortissement incohérent avec le plan",
+};
+export const FA_PLAN_STATE_TEXT: Record<FixedAssetPlan["state"], { label: string; meaning: string }> = {
+  unchanged: { label: "Plan d’origine inchangé", meaning: "Plan linéaire défini à la mise en service, sans révision déclarée ni dépréciation : base restante = coût − résiduel − cumul d’ouverture (PCG art. 214-4, 214-12, 214-13)." },
+  revised: { label: "Plan révisé", meaning: "Un segment révisé est déclaré (durée, résiduel ou méthode modifiés) : la base du segment doit être validée avant tout recalcul (art. 214-14)." },
+  impaired: { label: "Base modifiée par une dépréciation", meaning: "Une dépréciation modifie de manière prospective la base amortissable (art. 214-14, 214-17) ; la VNC n’est pas la base restante." },
+  base_changed: { label: "Base modifiée dans l’exercice", meaning: "Entrée ou reclassement sur un actif déjà inscrit : composant distinct (art. 214-9) ou révision du plan, non couverts par ce recalcul." },
+  unknown: { label: "État du plan inconnu", meaning: "Une source requise manque : l’état du plan n’est pas établi, aucune valeur n’est réputée nulle." },
 };
 export const FA_RECALC_TEXT = {
   computed: { label: "Recalculé", meaning: "Recalcul exécuté sur des paramètres documentés et applicables ; l’écart éventuel reste à expliquer, il ne vaut pas conclusion." },
@@ -147,6 +177,11 @@ function movementOf(unit: FaUnitFact, table: FaTable): { movement: Movement; mis
 }
 const EXPECTED_KIND = { addition: "acquisition", disposal: "cession" } as const;
 
+/** Unchanged plan of origin with its segment located by the engine trace (start, end, remaining base, annuity, cap). */
+function planFromTrace(plan: FixedAssetPlan, t: LinearPlanTrace): FixedAssetPlan {
+  return { ...plan, segment: plan.segment && { ...plan.segment, end: t.end }, amortizable: t.amortizable, remaining: t.remaining, annuity: t.annuity, capApplied: t.capApplied,
+    startsInPeriod: t.startsInPeriod, endsInPeriod: t.endsInPeriod, ended: t.ended, inconsistency: t.inconsistency };
+}
 /** Pure, deterministic evaluation on the frozen approved sources. Missing sources stay visible as such; nothing unknown becomes zero. */
 export function evaluateFixedAssets(scope: WorkpaperScope, period: AccountingPeriod, imports: ImportBatch[], runId: string, input: FixedAssetWork): FixedAssetResult {
   const work = fixedAssetWorkSchema.parse(input), facts: FixedAssetFacts = buildFixedAssetFacts(scope, period, imports, runId), ctx = context(scope, period);
@@ -161,7 +196,7 @@ export function evaluateFixedAssets(scope: WorkpaperScope, period: AccountingPer
     const base = { unitId: unit.unitId, assetId: unit.assetId, componentId: unit.componentId, family: unit.family, status: unit.status, treatment: unit.treatment, label: unit.label, inScope: unit.inScope, exclusionReason: unit.exclusionReason, evidence: [...new Map(evidence.map(p => [p.id, p])).values()] };
     const noRecalc = (status: "blocked" | "not_applicable" | "excluded", reason: string, extra: Partial<FixedAssetUnitResult["recalculation"]> = {}): FixedAssetUnitResult["recalculation"] => ({ status, reason, method: null,
       inputs: { cost: null, residual: unit.parameters?.value.amount ?? null, base: null, durationMonths: unit.parameters?.durationMonths ?? null, prorataNumerator: unit.parameters?.prorata?.numerator ?? null, prorataDenominator: unit.parameters?.prorata?.denominator ?? null, inServiceDate: unit.parameters?.inServiceDate ?? null, rounding: "half_up_cent" },
-      recalculated: { kind: status === "blocked" ? "unknown" : "not_applicable", reason }, booked: { kind: "not_applicable", reason: "Comparaison non effectuée" }, difference: { kind: status === "blocked" ? "unknown" : "not_applicable", reason }, proofIds: unit.parameters ? [unit.parameters.proof.id] : [], ...extra });
+      recalculated: { kind: status === "blocked" ? "unknown" : "not_applicable", reason }, booked: { kind: "not_applicable", reason: "Comparaison non effectuée" }, difference: { kind: status === "blocked" ? "unknown" : "not_applicable", reason }, proofIds: unit.parameters ? [unit.parameters.proof.id] : [], plan: null, ...extra });
     if (!unit.inScope) {
       const excludedTable = (t: FaTable) => ({ status: "excluded" as const, account: unit.accounts[t] ?? null, reason: unit.exclusionReason!, lines: linesOf(unit, t).map(lineRef) });
       return { ...base, tables: { gross: excludedTable("gross"), amortization: excludedTable("amortization"), impairment: excludedTable("impairment") }, vnc: { kind: "not_applicable" as const, reason: unit.exclusionReason! }, recalculation: noRecalc("excluded", unit.exclusionReason!), supports: [] };
@@ -223,18 +258,42 @@ export function evaluateFixedAssets(scope: WorkpaperScope, period: AccountingPer
       const cost = tables.gross.closing, residual = p.value.amount, inputs = { cost, residual, base: money(cents(cost) - cents(residual)), durationMonths: p.durationMonths, prorataNumerator: p.prorata.numerator, prorataDenominator: p.prorata.denominator, inServiceDate: p.inServiceDate, rounding: "half_up_cent" as const };
       const proofIds = [linesOf(unit, "gross").find(l => l.movement === "closing")!.proof.id, p.proof.id, servicePiece.proof.id];
       if (cents(residual) > cents(cost)) return noRecalc("blocked", `Valeur résiduelle ${residual.amount} EUR supérieure au coût ${cost.amount} EUR : paramètres incohérents.`, { method, inputs: { ...inputs, base: null }, proofIds });
+      // State of the plan (C06): only an unchanged plan of origin is recalculated on its remaining base; any change of base is isolated
+      // with its cause and never replaced by the VNC (PCG art. 214-14, 214-17).
+      const opening = linesOf(unit, "amortization").find(l => l.movement === "opening") ?? null;
+      const segment = { start: p.segmentStart ?? p.inServiceDate, end: null as string | null, origin: p.segmentStart ? "declared_revision" as const : "in_service" as const, methodId: m.id, methodVersion: m.version, source: m.source };
+      const planOf = (state: FixedAssetPlan["state"], extra: Partial<FixedAssetPlan> = {}): FixedAssetPlan => ({ state, stateReason: FA_PLAN_STATE_TEXT[state].meaning, segment, priorAccumulated: opening?.value.amount ?? null, priorAccumulatedProofId: opening?.proof.id ?? null,
+        amortizable: inputs.base, remaining: null, annuity: null, capApplied: false, startsInPeriod: null, endsInPeriod: null, ended: null, inconsistency: null, ...extra });
+      const planProofs = opening ? [...proofIds, opening.proof.id] : proofIds;
+      // A plan that starts after the closing is examined by no rule of this period, whatever its base.
+      if (p.inServiceDate > period.closingDate) return noRecalc("not_applicable", "Mise en service postérieure à clôture", { method, inputs, proofIds });
+      const gross = tables.gross;
+      if (cents(gross.opening) > 0n && (cents(gross.additions) > 0n || cents(gross.reclassifications) !== 0n))
+        return noRecalc("excluded", `Entrée ou reclassement de l’exercice sur un actif déjà inscrit (brut d’ouverture ${gross.opening.amount} EUR) : composant distinct ou révision du plan, non couverts par ce recalcul (PCG art. 214-9, 214-14).`, { method, inputs, proofIds: planProofs, plan: planOf("base_changed") });
+      if (p.segmentStart) return noRecalc("blocked", `Plan révisé : segment déclaré à partir du ${p.segmentStart} (durée, résiduel ou méthode modifiés) ; montant amortissable restant à cette date non validé, aucun recalcul (PCG art. 214-14).`, { method, inputs, proofIds: planProofs, plan: planOf("revised") });
+      const imp = tables.impairment;
+      if (imp.status !== "computed") return noRecalc("blocked", "Dépréciations non établies au registre : état du plan inconnu, aucune base restante réputée inchangée.", { method, inputs, proofIds: planProofs, plan: planOf("unknown") });
+      if ([imp.opening, imp.additions, imp.reversals, imp.reclassifications, imp.closing].some(v => cents(v) !== 0n))
+        return noRecalc("blocked", `Dépréciation inscrite (ouverture ${imp.opening.amount} EUR, clôture ${imp.closing.amount} EUR) : la base amortissable est modifiée de manière prospective (PCG art. 214-14, 214-17) ; base du segment révisé non validée, la VNC n’en tient pas lieu.`, { method, inputs, proofIds: planProofs, plan: planOf("impaired") });
+      if (!opening) return noRecalc("blocked", "SOURCE REQUISE : cumul d’amortissement d’ouverture absent du registre (aucun cumul réputé nul).", { method, inputs, proofIds, plan: planOf("unknown") });
       const closingLine = linesOf(unit, "gross").find(l => l.movement === "closing")!;
-      const value = recalculateDepreciation(ctx, { method: scope.mode === "real" ? documented(m) : { id: m.id, version: m.version, source: m.source, from: m.from, to: m.to, approvedBy: m.authorId, synthetic: true }, kind: "linear",
+      const { amount: value, plan: trace } = recalculateLinearPlan(ctx, { method: scope.mode === "real" ? documented(m) : { id: m.id, version: m.version, source: m.source, from: m.from, to: m.to, approvedBy: m.authorId, synthetic: true }, kind: "linear",
         cost: { amount: cost, date: period.closingDate, basis: "depreciable_cost_eur", evidence: [closingLine.proof] }, residual: { amount: residual, date: period.closingDate, basis: "depreciable_cost_eur", evidence: [p.proof] },
+        priorAccumulated: { amount: opening.value.amount, date: period.startDate, basis: "accumulated_amortization_eur", evidence: [opening.proof] },
         inServiceDate: p.inServiceDate, durationMonths: p.durationMonths, prorata: { numerator: p.prorata.numerator, denominator: p.prorata.denominator, evidence: [p.proof, servicePiece.proof] }, rounding: "half_up_cent" });
-      if (value.kind !== "known") return noRecalc(value.kind === "unknown" && /postérieure à clôture/.test(value.reason) ? "not_applicable" : "blocked", value.kind === "unknown" ? value.reason : "Recalcul non applicable", { method, inputs, proofIds });
+      const plan = trace ? planFromTrace(planOf("unchanged"), trace) : planOf("unchanged");
+      if (trace?.inconsistency) add("PLAN_ACCUMULATED_INCONSISTENT", "recalculation", unit.unitId, "amortization", unit.unitId + ":plan", `${unit.unitId} — ${trace.inconsistency.message}`, trace.inconsistency.amount, planProofs);
+      if (value.kind !== "known") return noRecalc(value.kind === "unknown" && /postérieure à clôture/.test(value.reason) ? "not_applicable" : "blocked", value.kind === "unknown" ? value.reason : "Recalcul non applicable", { method, inputs, proofIds: planProofs, plan });
       const booked: KnownAmount = tables.amortization.status === "computed" ? known(tables.amortization.additions) : { kind: "unknown", reason: "Dotation comptabilisée non établie : tableau Amortissements incomplet." };
       const difference: KnownAmount = booked.kind === "known" ? known(money(cents(booked.value) - cents(value.value))) : { kind: "unknown", reason: "Comparaison impossible : dotation comptabilisée non établie." };
       const bookedProofs = linesOf(unit, "amortization").filter(l => l.movement === "addition").map(l => l.proof.id);
-      if (difference.kind === "known" && cents(difference.value) !== 0n) add("RECALCULATION_DIFFERENCE", "recalculation", unit.unitId, "amortization", unit.unitId + ":recalc", `${unit.unitId} — dotation comptabilisée ${booked.kind === "known" ? booked.value.amount : "?"} − dotation recalculée ${value.value.amount} = ${difference.value.amount} EUR (méthode ${m.id} v${m.version}).`, difference, [...proofIds, ...bookedProofs]);
-      return { status: "computed", reason: difference.kind === "known" ? "Recalcul exécuté sur paramètres documentés." : difference.reason, method, inputs, recalculated: value, booked, difference, proofIds: [...proofIds, ...bookedProofs] };
+      if (difference.kind === "known" && cents(difference.value) !== 0n) add("RECALCULATION_DIFFERENCE", "recalculation", unit.unitId, "amortization", unit.unitId + ":recalc", `${unit.unitId} — dotation comptabilisée ${booked.kind === "known" ? booked.value.amount : "?"} − dotation recalculée ${value.value.amount} = ${difference.value.amount} EUR (méthode ${m.id} v${m.version}).`, difference, [...planProofs, ...bookedProofs]);
+      const reason = difference.kind !== "known" ? difference.reason : plan.ended ? `Plan échu le ${plan.segment!.end} : aucune dotation attendue sur l’exercice.`
+        : plan.capApplied ? `Dotation plafonnée au montant amortissable restant (${plan.remaining!.amount} EUR)${plan.endsInPeriod ? " : dernière annuité du plan" : ""}.` : "Recalcul exécuté sur paramètres documentés.";
+      return { status: "computed", reason, method, inputs, recalculated: value, booked, difference, proofIds: [...planProofs, ...bookedProofs], plan };
     })();
-    if (recalculation.status === "blocked") add("RECALCULATION_BLOCKED", "recalculation", unit.unitId, "amortization", unit.unitId + ":recalc", `${unit.unitId} — ${recalculation.reason}`, { kind: "unknown", reason: "Recalcul bloqué" }, recalculation.proofIds.length ? recalculation.proofIds : base.evidence.slice(0, 1).map(p => p.id));
+    // A plan inconsistency already carries its own exception; the generic "blocked" uncertainty would only repeat it.
+    if (recalculation.status === "blocked" && !recalculation.plan?.inconsistency) add("RECALCULATION_BLOCKED", "recalculation", unit.unitId, "amortization", unit.unitId + ":recalc", `${unit.unitId} — ${recalculation.reason}`, { kind: "unknown", reason: "Recalcul bloqué" }, recalculation.proofIds.length ? recalculation.proofIds : base.evidence.slice(0, 1).map(p => p.id));
     return { ...base, tables, vnc, recalculation, supports };
   });
   // Framing register → GL: all register assets (excluded ones included, since they share the accounts), by account, never compensated across accounts.
@@ -292,7 +351,7 @@ export function evaluateFixedAssets(scope: WorkpaperScope, period: AccountingPer
   // Deterministic presentation order: programme control, then asset or account, then target.
   exceptions.sort((x, y) => controlIds.indexOf(x.controlId) - controlIds.indexOf(y.controlId) || (x.unitId ?? "").localeCompare(y.unitId ?? "") || x.targetId.localeCompare(y.targetId) || x.code.localeCompare(y.code));
   const methods = work.methods.map(m => ({ ...m, applicable: m.kind === "linear" ? methodApplicable(m) : false, unitsUsing: facts.units.filter(u => u.parameters?.methodRef === m.id).length, evidence: methodEvidence }));
-  return frozen(fixedAssetResultSchema.parse({ schemaVersion: "fixed-assets-result-1", scope, runId, mode: scope.mode, startDate: period.startDate, closingDate: period.closingDate, reviewDate: period.asOfDate,
+  return frozen(fixedAssetResultSchema.parse({ schemaVersion: FA_RESULT_SCHEMA_VERSION, scope, runId, mode: scope.mode, startDate: period.startDate, closingDate: period.closingDate, reviewDate: period.asOfDate,
     convention: { ...work.convention, meaning: FA_CONVENTION_MEANING }, formula: FA_FORMULA, methods, units, families, framing, exceptions, controls, limitations: FIXED_ASSET_LIMITATIONS, conclusion: null }));
 }
 export function fixedAssetOutcome(result: FixedAssetResult): "no_exception_detected" | "exceptions_detected" | "inconclusive" {
@@ -301,8 +360,8 @@ export function fixedAssetOutcome(result: FixedAssetResult): "no_exception_detec
 export function fixedAssetResultEvidence(result: FixedAssetResult): EvidenceLink[] {
   return [...new Map([...result.units.flatMap(u => u.evidence), ...result.framing.rows.flatMap(r => r.evidence), ...result.methods.flatMap(m => m.evidence)].map(p => [p.id, p])).values()];
 }
-/** Recalculation basis of one asset: what a method or parameter change must make visible, never silently. */
-function basisOf(u: FixedAssetUnitResult) { const r = u.recalculation; return { status: r.status, method: r.method && { id: r.method.id, version: r.method.version, kind: r.method.kind }, inputs: r.inputs, recalculated: r.recalculated }; }
+/** Recalculation basis of one asset: what a method or parameter change must make visible, never silently. Proof ids depend on the run and are left out. */
+function basisOf(u: FixedAssetUnitResult) { const r = u.recalculation; return { status: r.status, method: r.method && { id: r.method.id, version: r.method.version, kind: r.method.kind }, inputs: r.inputs, recalculated: r.recalculated, plan: r.plan ? { ...r.plan, priorAccumulatedProofId: null } : null }; }
 export interface RecalculationComparisonRow {
   unitId: string; label: string;
   before: ReturnType<typeof basisOf> | null; after: ReturnType<typeof basisOf> | null; change: KnownAmount;
