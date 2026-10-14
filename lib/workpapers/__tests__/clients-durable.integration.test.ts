@@ -37,6 +37,7 @@ import { clientsSalesDraftFromWork, clientsSalesMappingSchema, type ClientsSales
 import { contentHash } from "../model";
 import type { ImportBatch } from "../imports";
 import { csv, mapping, period } from "./clients-framing-fixtures";
+import { assertDisposableDatabase } from "./disposable-database";
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions serveur et téléchargements", () => {
     let client: ReturnType<typeof postgres>;
@@ -131,6 +132,7 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname))
             throw new Error("Disposable local *_ci / *_test database required");
         const store = await connect();
+        await assertDisposableDatabase(client);
         await client `INSERT INTO organizations (id,name) VALUES (${orgA},'Clients A'),(${orgB},'Clients B')`;
         for (const [id, org] of [[dossierA, orgA], [dossierA2, orgA], [dossierB, orgB], [dossierB2, orgB]])
             await client `INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${id},${org},${id})`;

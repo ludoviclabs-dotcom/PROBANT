@@ -1,0 +1,57 @@
+/* Profil personnel local (C07) — tokens PROBANT (--pb-*), lignes continues, tableau lisible, panneau de détail. */
+.page{min-height:100vh;background:var(--pb-bg);color:var(--pb-text);font:14px/1.55 var(--font-inter),system-ui,sans-serif;padding:24px clamp(16px,3vw,40px) 64px;max-width:1280px;margin:0 auto}
+.page *{box-sizing:border-box}
+.page h1{font-size:24px;letter-spacing:-.4px;margin:2px 0 8px;font-weight:650}
+.page h2{font-size:16px;font-weight:650;margin:0 0 10px}
+.page h3{font-size:14px;font-weight:650;margin:0 0 8px}
+.page p{margin:6px 0;overflow-wrap:anywhere}
+.page a{color:var(--pb-accent);text-underline-offset:3px}
+.page code{font-family:var(--font-jetbrains-mono),ui-monospace,monospace;font-size:12.5px;background:var(--pb-surface-inset);border:1px solid var(--pb-border-soft);border-radius:4px;padding:1px 5px;overflow-wrap:anywhere}
+.page :is(a,button,input,summary,[tabindex]):focus-visible{outline:2px solid var(--pb-accent);outline-offset:2px}
+.eyebrow{font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--pb-text-muted);margin:0}
+.lead{max-width:72ch;color:var(--pb-text-muted)}
+.header{border-bottom:1px solid var(--pb-border);padding-bottom:14px}
+.context{display:flex;flex-wrap:wrap;gap:6px 28px;margin:0;padding:12px 0;border-bottom:1px solid var(--pb-border);font-size:13px}
+.context div{min-width:0}
+.context dt{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--pb-text-muted)}
+.context dd{margin:2px 0 0;overflow-wrap:anywhere}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(280px,360px);gap:28px;align-items:start;margin-top:18px}
+.list{min-width:0}
+.count{font-variant-numeric:tabular-nums;font-size:12px;color:var(--pb-text-muted);margin-left:6px}
+.scroll{overflow-x:auto;position:relative;border-top:1px solid var(--pb-border)}
+.table{width:100%;border-collapse:collapse;font-size:13px}
+.table th,.table td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--pb-border-soft);vertical-align:top}
+.table thead th{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--pb-text-muted);font-weight:600}
+.table tbody tr[data-selected]{background:var(--pb-surface)}
+.table tbody tr[data-selected] th{box-shadow:inset 3px 0 0 var(--pb-accent)}
+.rowButton.rowButton{all:unset;cursor:pointer;font-weight:600;color:var(--pb-text);overflow-wrap:anywhere}
+.rowButton.rowButton:focus-visible{outline:2px solid var(--pb-accent);outline-offset:2px}
+.rowButton.rowButton[aria-pressed=true]{color:var(--pb-text-bright)}
+/* Identifiants, montants et dates ne se coupent pas dans la table : elle défile dans sa région. */
+.table .cell{white-space:nowrap}
+.table .cell .mono{overflow-wrap:normal}
+.mono{font-family:var(--font-jetbrains-mono),ui-monospace,monospace;font-size:12px;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.muted{color:var(--pb-text-muted);font-size:13px}
+.form{margin-top:22px;padding-top:16px;border-top:1px solid var(--pb-border)}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px 14px;margin-bottom:12px}
+.fields label{display:grid;gap:4px;font-size:12px;color:var(--pb-text-muted);min-width:0}
+.fields input{font:inherit;font-size:14px;color:var(--pb-text);background:var(--pb-surface);border:1px solid var(--pb-border-strong);border-radius:6px;padding:7px 10px;min-width:0;width:100%}
+.button.button{font:inherit;color:var(--pb-text-bright);background:var(--pb-accent-dim);border:1px solid var(--pb-accent);border-radius:6px;padding:7px 14px;cursor:pointer}
+.button.button:disabled{opacity:.5;cursor:not-allowed}
+.panel{border-left:1px solid var(--pb-border);padding-left:22px;min-width:0;position:sticky;top:16px}
+.panel h2:focus{outline:none}
+.panel h2:focus-visible{outline:2px solid var(--pb-accent);outline-offset:2px}
+.links{list-style:none;margin:10px 0;padding:0;border-top:1px solid var(--pb-border-soft)}
+.links li{border-bottom:1px solid var(--pb-border-soft)}
+.links a{display:grid;gap:2px;padding:9px 0;text-decoration:none;color:var(--pb-text)}
+.links a:hover span:last-child{text-decoration:underline}
+.cycle{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--pb-accent)}
+.method{margin-top:22px;border-top:1px solid var(--pb-border);padding-top:10px;font-size:13px;color:var(--pb-text-muted)}
+.method summary{cursor:pointer;color:var(--pb-text)}
+.chains{columns:2 260px;margin:8px 0;padding-left:18px}
+/* Sous 560 px, la date de création quitte la table (elle reste dans le panneau du dossier) : la raison sociale garde sa largeur. */
+@media (max-width:560px){.table .created{display:none}}
+@media (max-width:900px){
+  .layout{grid-template-columns:minmax(0,1fr)}
+  .panel{border-left:0;border-top:1px solid var(--pb-border);padding-left:0;padding-top:16px;position:static}
+}

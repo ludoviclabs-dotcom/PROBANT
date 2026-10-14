@@ -1,5 +1,6 @@
+/** `local` : pièces du profil personnel local (C07), écrites une fois sur le disque du PC. */
 export interface StoredObjectRef {
-  provider: "s3";
+  provider: "s3" | "local";
   bucket: string;
   key: string;
   versionId?: string;
@@ -35,7 +36,7 @@ export interface StoredObjectMetadata {
 }
 
 export interface ObjectStorage {
-  readonly provider: "s3";
+  readonly provider: "s3" | "local";
   readonly bucket: string;
   readonly maxDirectUploadBytes: number;
   createDirectUpload(request: DirectUploadRequest): Promise<DirectUploadGrant>;

@@ -1,7 +1,11 @@
+import { mayReviewOwnWork, type ReviewKind } from "@/lib/auth/review-kind";
 import { assertScope, contentHash, type WorkpaperRun, type WorkpaperScope, type WorkpaperState } from "./model";
 export type Permission = "read" | "prepare" | "review" | "download";
-/** Supplied only by a trusted server session adapter, never request JSON. */
-export interface Principal { id: string; grants: { scope: WorkpaperScope; permissions: Permission[] }[] }
+/**
+ * Supplied only by a trusted server session adapter, never request JSON.
+ * `review` / `displayName` come from the authenticated identity (C07): absent for OIDC and signed contexts.
+ */
+export interface Principal { id: string; grants: { scope: WorkpaperScope; permissions: Permission[] }[]; review?: ReviewKind; displayName?: string }
 export function authorize(principal: Principal | null, scope: WorkpaperScope, permission: Permission) {
   if (!principal?.id || !principal.grants.some((g) => {
     try { assertScope(scope, g.scope); return g.permissions.includes(permission); } catch { return false; }
@@ -16,7 +20,8 @@ export function assertTransition(run: WorkpaperRun, target: WorkpaperState, prin
   if (!transitions[run.state]?.includes(target)) throw new Error("WORKPAPER_TRANSITION_FORBIDDEN");
   const review = ["approved", "changes_requested", "locked"].includes(target);
   authorize(principal, run.scope, review ? "review" : "prepare");
-  if (review && principal.id === run.preparedBy) throw new Error("SELF_APPROVAL_FORBIDDEN");
+  // Only the named personal review of the local solo profile may review its own work (C07).
+  if (review && principal.id === run.preparedBy && !mayReviewOwnWork(principal.review)) throw new Error("SELF_APPROVAL_FORBIDDEN");
   if (target === "ready" && run.template.kind === "calculated" && (!run.importIds.length || !run.population || !run.selection)) throw new Error("WORKPAPER_INPUTS_REQUIRED");
   if (target === "executed" && run.result?.execution !== "completed") throw new Error("COMPLETED_RESULT_REQUIRED");
   if (target === "blocked" && run.result?.execution !== "blocked") throw new Error("BLOCKED_RESULT_REQUIRED");

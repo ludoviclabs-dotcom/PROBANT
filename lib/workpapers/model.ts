@@ -17,6 +17,7 @@ import { assessmentSchema, assessmentOutcome } from "./result-contract";
 import { cents, type KnownAmount, type Money } from "@/lib/canonical-model/money";
 import { isCivilDate, periodIssues, type AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
+import { REVIEW_KINDS, type ReviewKind } from "@/lib/auth/review-kind";
 
 export const WORKPAPER_SCHEMA_VERSION = "1.0.0";
 export const scopeSchema = z.object({ organizationId: z.string().trim().min(1), dossierId: z.string().trim().min(1), periodId: z.string().min(1), mode: z.enum(["demo", "real"]) }).strict();
@@ -83,7 +84,11 @@ export interface WorkpaperNote {
   resolution?: { text: string; authorId: string; at: string; citation?: NoteCitation };
 }
 export interface NoteCitation { documentVersionId: string; importId: string; fileName: string; sha256: string; pieceRef?: string; page?: number; rowId?: string; row?: number; zone?: string }
-export interface Approval { actorId: string; snapshotHash: string; note: string; at: string; version: number }
+/**
+ * `kind` records the server-decided review type (C07). Absent on approvals recorded before C07 and for OIDC
+ * identities: a review by another identity. `reviewerName` names the person of a personal review.
+ */
+export interface Approval { actorId: string; snapshotHash: string; note: string; at: string; version: number; kind?: ReviewKind; reviewerName?: string }
 export interface WorkpaperRun {
   id: string; rootId: string; revision: number; version: number; schemaVersion: typeof WORKPAPER_SCHEMA_VERSION;
   scope: WorkpaperScope; period: AccountingPeriod; template: ProcedureTemplate; state: WorkpaperState;
@@ -132,7 +137,8 @@ export function validateRun(run: WorkpaperRun): WorkpaperRun {
   }
   if (new Set(run.notes.map((n) => n.id)).size !== run.notes.length) throw new Error("DUPLICATE_NOTE");
   if (run.result && (run.result.scope.organizationId !== run.scope.organizationId || run.result.scope.dossierId !== run.scope.dossierId || run.result.scope.mode !== run.scope.mode || stableSha256(run.result.period) !== stableSha256(run.period))) throw new Error("RESULT_SCOPE_MISMATCH");
-  if (run.approval && (run.approval.actorId === run.preparedBy || !run.approval.note.trim() || run.approval.snapshotHash !== contentHash(run) || !Number.isFinite(Date.parse(run.approval.at)))) throw new Error("APPROVAL_INVALID");
+  // Self-review exists only as a named personal review; a personal review is always by the preparer.
+  if (run.approval && ((run.approval.actorId === run.preparedBy) !== (run.approval.kind === "personal") || (run.approval.kind !== undefined && !REVIEW_KINDS.includes(run.approval.kind)) || (run.approval.kind === "personal" && !run.approval.reviewerName?.trim()) || !run.approval.note.trim() || run.approval.snapshotHash !== contentHash(run) || !Number.isFinite(Date.parse(run.approval.at)))) throw new Error("APPROVAL_INVALID");
   if (["approved", "locked", "superseded"].includes(run.state) && !run.approval) throw new Error("APPROVAL_REQUIRED");
   if (run.result && run.result.execution !== "completed" && run.result.outcome !== "inconclusive") throw new Error("FAILED_RESULT_CANNOT_CONCLUDE");
   if (run.result?.assessment) {

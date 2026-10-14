@@ -20,6 +20,7 @@ import {
   sessionTokenDigest,
 } from "./session/cookie";
 import type { SessionStore } from "./session/store";
+import { isLocalIssuer, localIdentity, type LocalAuthConfig } from "./local/config";
 
 /**
  * Autorisation d'une requête — point d'entrée unique de toutes les routes.
@@ -50,6 +51,12 @@ export interface AuthorizerDeps {
    * son contrôle est une faille, un `authorize` qui l'oublie est un bug unique.
    */
   readonly dossierOwnership?: DossierOwnershipReader | null;
+  /**
+   * Profil personnel local (C07). Une session émise par `probant-local:<profil>`
+   * n'est acceptée que par ce même profil ; rôles et type de relecture viennent
+   * de cette configuration serveur.
+   */
+  readonly localAuth?: LocalAuthConfig | null;
 }
 
 export class RequestAuthorizer {
@@ -108,6 +115,15 @@ export class RequestAuthorizer {
     if (!record) {
       throw new AuthorizationDenied("SESSION_INVALID", "Session absente ou expirée.", 401);
     }
+    const local = isLocalIssuer(record.issuer)
+      ? this.deps.localAuth && record.issuer === this.deps.localAuth.issuer && record.organizationId === this.deps.localAuth.organizationId
+        ? localIdentity(this.deps.localAuth, record.subject)
+        : null
+      : undefined;
+    // Session locale d'un autre profil, ou présentée hors du profil personnel : refusée.
+    if (local === null) {
+      throw new AuthorizationDenied("SESSION_INVALID", "Session absente ou expirée.", 401);
+    }
 
     if (UNSAFE_METHODS.has(request.method.toUpperCase())) {
       assertSameOrigin(request, sessionConfig.appOrigin);
@@ -137,11 +153,12 @@ export class RequestAuthorizer {
     return {
       subject: record.subject,
       organizationId: record.organizationId,
-      roles: record.roles,
+      roles: local ? local.roles : record.roles,
       // Une session OIDC ne porte pas de liste de dossiers : l'isolation est
       // assurée par le filtrage `organization_id` de chaque requête de données.
       dossierIds: null,
-      authenticationMethod: "oidc-session",
+      authenticationMethod: local ? "local-session" : "oidc-session",
+      ...(local ? { reviewKind: local.reviewKind, displayName: local.displayName } : {}),
       amr: record.amr,
       acr: record.acr,
       mfaSatisfied: record.mfaSatisfied,

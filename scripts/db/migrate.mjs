@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import postgres from "postgres";
 import {
+  atomicMigration,
   migrationDirectory,
   migrationFiles,
   validateMigrations,
@@ -42,8 +43,8 @@ try {
   for (const name of migrationFiles()) {
     if (applied.has(name)) continue;
     const body = readFileSync(resolve(migrationDirectory, name), "utf8");
-    await sql.unsafe(body);
-    await sql`INSERT INTO _probant_migrations (name) VALUES (${name})`;
+    // Ledger row and migration commit together (see atomicMigration).
+    await sql.unsafe(atomicMigration(name, body));
     process.stdout.write(`db:migrate: applied ${name}\n`);
   }
 } finally {

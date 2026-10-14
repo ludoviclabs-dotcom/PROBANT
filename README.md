@@ -26,6 +26,18 @@ npm run build
 Hors `npm run dev`, ces commandes sont exactement celles exécutées par la CI, dans
 cet ordre ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)).
 
+### Sur son PC, avec ses dossiers (profil personnel local)
+
+```powershell
+npm run local:init -- --nom "Prénom Nom"   # une fois : PostgreSQL 17 local dédié, base, migrations
+npm run local:start                        # PostgreSQL + Next sur http://127.0.0.1:3210, lien de connexion
+npm run local:stop
+```
+
+Données et pièces restent sur le poste ; sauvegarde (`local:backup`) et restauration dans un
+dossier distinct (`local:restore`). Guide Windows complet :
+[`docs/local/RUNTIME_PERSONNEL.md`](docs/local/RUNTIME_PERSONNEL.md).
+
 ## Les sept écrans
 
 - **Dépôt & ingestion** — dépose un FEC ; empreinte → parsing → validation

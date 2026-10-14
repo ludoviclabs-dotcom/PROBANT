@@ -1,0 +1,34 @@
+2026-10-14T04:04:28.618Z start [probant-local] PostgreSQL démarré (port 54329).
+2026-10-14T04:04:28.618Z start [probant-local] Build : code modifié depuis le dernier build.
+2026-10-14T04:04:28.618Z start [probant-local] Compilation de production (next build) : quelques minutes au premier lancement…
+2026-10-14T04:04:28.618Z start [probant-local] Next démarré (PID 16812, journal C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\logs\next.log) ; attente de http://127.0.0.1:3210…
+2026-10-14T04:04:28.618Z start [probant-local] Prêt. Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:04:28.618Z start [probant-local] Arrêt : npm run local:stop · nouveau lien : npm run local:login · sauvegarde : npm run local:backup
+2026-10-14T04:04:28.929Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:04:34.953Z stop [probant-local] Next arrêté (PID 16812).
+2026-10-14T04:04:34.953Z stop [probant-local] PostgreSQL arrêté proprement.
+2026-10-14T04:04:38.179Z start [probant-local] PostgreSQL démarré (port 54329).
+2026-10-14T04:04:38.179Z start [probant-local] Build : build à jour (01150b5).
+2026-10-14T04:04:38.179Z start [probant-local] Next démarré (PID 11540, journal C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\logs\next.log) ; attente de http://127.0.0.1:3210…
+2026-10-14T04:04:38.179Z start [probant-local] Prêt. Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:04:38.179Z start [probant-local] Arrêt : npm run local:stop · nouveau lien : npm run local:login · sauvegarde : npm run local:backup
+2026-10-14T04:04:38.591Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:04:41.869Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:04:44.002Z backup [probant-local] Sauvegarde cohérente : C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\sauvegardes\20261014-060442-recette-c07 (69 tables, 2 pièce(s) sur disque, dump 342283 octets).
+2026-10-14T04:04:56.185Z restore [probant-local] Restauration de C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\sauvegardes\20261014-060442-recette-c07 vers C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\restauration (nouveau profil d2c21c37-aea2-4246-be7c-0f5b8a6ca02b, PostgreSQL 54339, Next 3220).
+2026-10-14T04:04:56.185Z restore [probant-local] PostgreSQL démarré (port 54339).
+2026-10-14T04:04:56.185Z restore [probant-local] PostgreSQL arrêté proprement.
+2026-10-14T04:04:56.185Z restore [probant-local] Restauration vérifiée : 69 tables et 2 pièce(s) identiques à la sauvegarde.
+2026-10-14T04:04:56.185Z restore [probant-local] Démarrer le profil restauré : npm run local:start -- --home "C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\restauration"
+2026-10-14T04:04:56.480Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3210/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:05:01.001Z start [probant-local] PostgreSQL démarré (port 54339).
+2026-10-14T04:05:01.001Z start [probant-local] Profil restauré depuis ebc321dd-e418-4c00-acaf-1860fbabd114 @ C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\sauvegardes\20261014-060442-recette-c07.
+2026-10-14T04:05:01.001Z start [probant-local] Build : build à jour (01150b5).
+2026-10-14T04:05:01.001Z start [probant-local] Next démarré (PID 15560, journal C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\restauration\logs\next.log) ; attente de http://127.0.0.1:3220…
+2026-10-14T04:05:01.001Z start [probant-local] Prêt. Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3220/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:05:01.001Z start [probant-local] Arrêt : npm run local:stop · nouveau lien : npm run local:login · sauvegarde : npm run local:backup
+2026-10-14T04:05:01.345Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3220/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-14T04:05:04.691Z stop [probant-local] Next arrêté (PID 15560).
+2026-10-14T04:05:04.691Z stop [probant-local] PostgreSQL arrêté proprement.
+2026-10-14T04:05:05.328Z stop [probant-local] Next arrêté (PID 11540).
+2026-10-14T04:05:05.328Z stop [probant-local] PostgreSQL arrêté proprement.

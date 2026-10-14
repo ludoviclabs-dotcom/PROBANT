@@ -16,6 +16,7 @@ import type { FixedAssetResult } from "../fixed-asset-review";
 import type { FixedAssetSourceType } from "../fixed-asset-sources";
 import { periodId, type WorkpaperRun } from "../model";
 import { FA_CSV, FA_TYPE_ORDER, faDraft, faMapping, faPeriod } from "./fixed-asset-fixtures";
+import { assertDisposableDatabase } from "./disposable-database";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -51,6 +52,7 @@ describe.skipIf(!databaseUrl)("recette Immobilisations — PostgreSQL jetable, s
     const u = new URL(databaseUrl!);
     if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
     connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${orgA},'Immobilisations A'),(${orgB},'Immobilisations B')`;
     await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${dossierA},${orgA},${dossierA}),(${dossierB},${orgB},${dossierB})`;
     preparer = await session(orgA, "fa-preparer", ["preparer"]); reviewer = await session(orgA, "fa-reviewer", ["reviewer"]); other = await session(orgB, "fa-other", ["preparer", "reviewer"]);

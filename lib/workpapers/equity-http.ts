@@ -1,4 +1,5 @@
 import { DrizzleQueryError } from "drizzle-orm/errors";
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { EQUITY_TYPES, equityMappingSchema } from "./equity-dossier";
 import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
@@ -11,8 +12,8 @@ const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(
 const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(), kind: z.enum(["diagnostic", "approved"]), format: z.enum(["json", "html", "pdf", "manifest", "exceptions_csv", "decisions_csv", "procedures_csv", "sources_csv"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
 const headers = { "Cache-Control": "private, no-store" };
 export function requireDisposableEquity(env: Record<string, string | undefined> = process.env) {
-    if (env.VERCEL_ENV === "production" || env.PROBANT_EQUITY_DURABLE !== "disposable")
-        throw new ApiError("EQUITY_DURABLE_DISABLED", "Le dossier de décisions durable est réservé à la recette jetable.", 503);
+    if (!durableChainEnabled(env, "PROBANT_EQUITY_DURABLE"))
+        throw new ApiError("EQUITY_DURABLE_DISABLED", "Le dossier de décisions durable est réservé à la recette jetable ou au profil personnel local.", 503);
 }
 function failure(error: unknown) {
     if (error instanceof ClientsConflict)

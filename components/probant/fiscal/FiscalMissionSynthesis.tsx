@@ -8,6 +8,7 @@ import { Chip } from "./FiscalTests";
 import { cents, CATEGORY_LABELS, COVERAGE_LABELS, dateFr, fiscalFailureMessage, STATE_LABELS, TIER_LABELS } from "./format";
 import styles from "../cash/cash.module.css";
 import fx from "./fiscal.module.css";
+import { executionProfileLabel, type ExecutionProfile } from "@/lib/runtime/profile";
 
 type ExportFormat = "html" | "pdf" | "json" | "manifest" | "exceptions_csv" | "decisions_csv" | "procedures_csv" | "sources_csv";
 const CSV = [{ id: "exceptions_csv", label: "Exceptions" }, { id: "decisions_csv", label: "Décisions" }, { id: "procedures_csv", label: "Procédures" }, { id: "sources_csv", label: "Index des sources" }] as const;
@@ -18,7 +19,7 @@ const IMPACT_LABELS: Record<string, string> = { tax_computed: "Impôt calculé p
 export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId = "", initialRootId = "", initialRunId = "", initialVersion }: { initialDossierId?: string; initialPeriodId?: string; initialRootId?: string; initialRunId?: string; initialVersion?: number }) {
   const [dossier, setDossier] = useState(initialDossierId), [period, setPeriod] = useState(initialPeriodId), [scope, setScope] = useState({ dossierId: initialDossierId, periodId: initialPeriodId });
   const [selection, setSelection] = useState<{ rootId?: string; id?: string; version?: number }>(initialRunId && initialVersion ? { rootId: initialRootId || undefined, id: initialRunId, version: initialVersion } : initialRootId ? { rootId: initialRootId } : {});
-  const [view, setView] = useState<{ actorId: string; permissions: string[]; mission: FiscalMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<FiscalMissionFilter>("all"), [exporting, setExporting] = useState(false);
+  const [view, setView] = useState<{ actorId: string; permissions: string[]; executionProfile?: ExecutionProfile; mission: FiscalMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<FiscalMissionFilter>("all"), [exporting, setExporting] = useState(false);
   const load = useCallback(async () => {
     if (!scope.dossierId || !scope.periodId) return;
     setLoading(true); setError("");
@@ -49,7 +50,7 @@ export function FiscalMissionSynthesis({ initialDossierId = "", initialPeriodId 
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page + " " + fx.synth}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</DossierContextAnchor><DossierContextAnchor href="/tresorerie/synthese">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres</DossierContextAnchor><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse fiscale</h1><p className={styles.muted}>Une ligne par impôt et par période déclarative. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucune liquidation, aucune conformité déclarée ; les autres impôts restent des capacités séparées.</p></div>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)}</p><h1>Revue et Synthèse fiscale</h1><p className={styles.muted}>Une ligne par impôt et par période déclarative. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucune liquidation, aucune conformité déclarée ; les autres impôts restent des capacités séparées.</p></div>
       <DossierContextAnchor href={m ? fiscalSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all", p?.period ? { tax: "vat", period: p.period } : {}) : "/fiscal"}>Ouvrir la feuille fiscale</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setSelection({}); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>
       <label>Dossier<DossierScopedInput required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>

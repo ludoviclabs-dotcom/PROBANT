@@ -1,11 +1,13 @@
 import type { ImportBatch } from "@/lib/workpapers/imports";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import { PV_STATUS_KIND, type ProvisionStatus } from "@/lib/workpapers/provision-contract";
+import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { ExecutionProfile } from "@/lib/runtime/profile";
 
 export { dateFr, plural, STATE_LABELS, locatorLabel } from "../fiscal/format";
 /** Server response of GET /api/workpapers/provisions (the browser never recomputes an amount, and never unmasks one). */
 export interface ProvisionView {
-  actorId: string; permissions: string[]; confidentialAccess: boolean; runs: WorkpaperRun[]; sourcesCurrent: Record<string, boolean>; expectedSources: string[];
+  actorId: string; permissions: string[]; reviewKind?: ReviewKind; executionProfile?: ExecutionProfile; confidentialAccess: boolean; runs: WorkpaperRun[]; sourcesCurrent: Record<string, boolean>; expectedSources: string[];
   lineageCurrent: Record<string, { id: string; version: number; revision: number }>; currentVersions: Record<string, number>;
   versions: Record<string, { importId: string; documentVersionId: string; fileName: string; sha256: string; approvedAt: string; current: boolean; confidential: boolean }[]>;
   imports: (ImportBatch & { rowCount?: number; maskedRows?: number })[]; sourceHeads: { document_type: string; import_id: string }[];
@@ -15,7 +17,7 @@ export const KIND_LABELS: Record<Kind, string> = { difference: "Différence à e
 export const KIND_ORDER: Kind[] = ["difference", "annex", "unsupported", "uncertain", "ok", "off", "apart"];
 export const SOURCE_LABELS: Record<string, string> = { pv_register: "Registre des risques et engagements", pv_movements: "Mouvements de provisions", pv_estimates: "Estimations et scénarios", pv_ledger: "Grand livre (comptes 15)", pv_annex: "Annexe publiée", pv_support: "Pièces citables" };
 const MESSAGES: Record<string, string> = {
-  PV_DURABLE_DISABLED: "Registre Provisions durable fermé : réservé à la recette jetable (drapeau désactivé ou production).",
+  PV_DURABLE_DISABLED: "Registre Provisions durable fermé sur ce serveur : profil personnel local (npm run local:start) ou recette jetable requis.",
   PV_DURABLE_UNAVAILABLE: "Service Provisions indisponible. Aucune donnée n’a été modifiée ; réessayez.",
   PV_CURRENT_SOURCES_REQUIRED: "Les sources nommées ne sont plus les versions approuvées courantes : rechargez la feuille.",
   PV_SOURCES_REQUIRED: "Un registre et un grand livre approuvés sont requis (au plus une version courante de chaque source).",

@@ -1,11 +1,13 @@
 import type { ImportBatch } from "@/lib/workpapers/imports";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import { ST_STATUS_KIND, type StockStatus } from "@/lib/workpapers/stock-contract";
+import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { ExecutionProfile } from "@/lib/runtime/profile";
 
 export { dateFr, plural, STATE_LABELS, locatorLabel } from "../fiscal/format";
 /** Server response of GET /api/workpapers/stocks (the browser never recomputes a quantity). */
 export interface StockView {
-  actorId: string; permissions: string[]; runs: WorkpaperRun[]; sourcesCurrent: Record<string, boolean>; expectedSources: string[];
+  actorId: string; permissions: string[]; reviewKind?: ReviewKind; executionProfile?: ExecutionProfile; runs: WorkpaperRun[]; sourcesCurrent: Record<string, boolean>; expectedSources: string[];
   lineageCurrent: Record<string, { id: string; version: number; revision: number }>; currentVersions: Record<string, number>;
   versions: Record<string, { importId: string; documentVersionId: string; fileName: string; sha256: string; approvedAt: string; current: boolean }[]>;
   imports: (ImportBatch & { rowCount?: number })[]; sourceHeads: { document_type: string; import_id: string }[];
@@ -15,7 +17,7 @@ export const KIND_LABELS: Record<Kind, string> = { ok: "Sans écart", quantity: 
 export const KIND_ORDER: Kind[] = ["quantity", "ownership", "blocked", "uncertain", "ok", "apart"];
 export const SOURCE_LABELS: Record<string, string> = { st_count: "Feuilles de comptage", st_system: "État théorique à la clôture", st_movements: "Mouvements intercalaires", st_support: "Pièces citables", st_costs: "Coûts unitaires documentés", st_ledger: "Grand livre des comptes de stocks", st_value: "Hypothèses de valeur actuelle" };
 const MESSAGES: Record<string, string> = {
-  ST_DURABLE_DISABLED: "Parcours Stocks durable fermé : réservé à la recette jetable (drapeau désactivé ou production).",
+  ST_DURABLE_DISABLED: "Parcours Stocks durable fermé sur ce serveur : profil personnel local (npm run local:start) ou recette jetable requis.",
   ST_DURABLE_UNAVAILABLE: "Service Stocks indisponible. Aucune donnée n’a été modifiée ; réessayez.",
   ST_CURRENT_SOURCES_REQUIRED: "Les sources nommées ne sont plus les versions approuvées courantes : rechargez la feuille.",
   ST_SOURCES_REQUIRED: "Une feuille de comptage et un état théorique approuvés sont requis (au plus un journal de mouvements et un lot de pièces).",

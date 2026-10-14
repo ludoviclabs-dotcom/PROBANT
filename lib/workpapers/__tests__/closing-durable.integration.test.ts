@@ -13,6 +13,7 @@ import { closingHandlers } from "../closing-http";
 import { PostgresClosingDatabase } from "../closing-store";
 import { periodId, WORKPAPER_SCHEMA_VERSION, type WorkpaperRun } from "../model";
 import { pvPeriod } from "./provision-fixtures";
+import { assertDisposableDatabase } from "./disposable-database";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -54,6 +55,7 @@ describe.skipIf(!databaseUrl)("recette Dossier de clôture — PostgreSQL jetabl
     const u = new URL(databaseUrl!);
     if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
     connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${orgA},'Clôture A'),(${orgB},'Clôture B')`;
     await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${dossierA},${orgA},${dossierA}),(${dossierB},${orgB},${dossierB})`;
     preparer = await session(orgA, "cl-preparer", ["preparer"]); reviewer = await session(orgA, "cl-reviewer", ["reviewer"]); signer = await session(orgA, "cl-signer", ["signer"]);

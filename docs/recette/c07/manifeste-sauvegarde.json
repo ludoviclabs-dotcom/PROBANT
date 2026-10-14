@@ -1,0 +1,332 @@
+{
+  "format": "probant-local-backup-1",
+  "createdAt": "2026-10-14T04:04:43.984Z",
+  "label": "recette-c07",
+  "profileId": "ebc321dd-e418-4c00-acaf-1860fbabd114",
+  "organizationId": "a9d010b9-1473-458e-8498-84a853682928",
+  "owner": {
+    "name": "Camille Martin (recette C07)"
+  },
+  "review": "personal",
+  "postgres": {
+    "serverVersion": "17.11",
+    "major": 17
+  },
+  "migrations": [
+    "0000_init_durable_ingestion.sql",
+    "0001_source_document_completion_guard.sql",
+    "0002_append_only_review_evidence.sql",
+    "0002_tax_canonical_model.up.sql",
+    "0003_tax_document_processors.up.sql",
+    "0003_user_identity_and_upload_quota.sql",
+    "0004_tax_review_evidence.sql",
+    "0005_clients_framing.up.sql",
+    "0006_clients_sales.up.sql",
+    "0007_cash_reconciliation.up.sql",
+    "0008_fixed_assets.up.sql",
+    "0009_payables_investigation.up.sql",
+    "0010_equity_dossier.up.sql",
+    "0011_investment_review.up.sql",
+    "0012_capitaux_propres.up.sql",
+    "0013_fiscal_workpapers.up.sql",
+    "0014_stock_workpapers.up.sql",
+    "0015_stock_costs_ledger.up.sql",
+    "0016_stock_value_review.up.sql",
+    "0017_exceptional_review.up.sql",
+    "0018_provision_workpapers.up.sql",
+    "0019_closing_dossier.up.sql"
+  ],
+  "dump": {
+    "file": "base.dump",
+    "bytes": 342283,
+    "sha256": "9f02e7331d404b32099235cd1654cc0cd10f235b24c6aeb0602c2b4b43d4f453"
+  },
+  "tables": {
+    "_probant_migrations": {
+      "rows": 22,
+      "digest": "41a47f66fe1c6b0189f9a19bba30c419ee9c9d5503ef31631164fa29e9e77cd4"
+    },
+    "auth_sessions": {
+      "rows": 3,
+      "digest": "d8f85e7b3b121ed2b018d7af6ea358714d34fcef72064c61309ea3d96020879a"
+    },
+    "cash_command_receipts": {
+      "rows": 21,
+      "digest": "172e2f7a72cc4b1f298b5a2dcf723d148d8ef024013f297cb4d50c6cc82c6edd"
+    },
+    "cash_import_approvals": {
+      "rows": 5,
+      "digest": "c729cd7abb83fdb962627a1b2f9e90af4d686fdf91ed07eabc02577b6117303a"
+    },
+    "cash_imports": {
+      "rows": 5,
+      "digest": "635974feea0183565207b5a9318c6265ea41696fb41ddc3c6063753fb4e1b5ee"
+    },
+    "cash_source_heads": {
+      "rows": 5,
+      "digest": "a2daf215e81f8af635903b812dfd1a36e4a178e09e41c4dcbd6185c9ec98d934"
+    },
+    "cash_workpaper_heads": {
+      "rows": 1,
+      "digest": "32d4b48f9ab3b88cdd30d04c333982e462c49116049ece3c862fcec9ed874bb6"
+    },
+    "cash_workpaper_versions": {
+      "rows": 19,
+      "digest": "d5ce79209f83d86335a51706169bc6669d649628c1e976a5c1ca56f22d6bc28c"
+    },
+    "cl_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cl_events": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "cl_pieces": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "clients_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "control_executions": {
+      "rows": 30,
+      "digest": "fe9cf66131eabd7606468ea996344c81c9afa8ad488f4ee94f42a219c41bf5c9"
+    },
+    "dossiers": {
+      "rows": 1,
+      "digest": "61c8f1873ea55e30cfabc609b5e8e364bcc1e93952f99cc4ab24a595b6e2dac7"
+    },
+    "eq_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eq_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eq_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eq_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eq_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eq_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fa_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fec_entries": {
+      "rows": 1000,
+      "digest": "fc87fdce701d178eb4883f00fa0bfc10d02deb231226ce534c553cd8e1920e57"
+    },
+    "finding_entries": {
+      "rows": 61,
+      "digest": "4baef51852a162557c783baac27e330b5d705656880fa2b1729938eeaf973267"
+    },
+    "findings": {
+      "rows": 6,
+      "digest": "929466ba753ae8aff0adcc17ca1b31ce9129090466b29abf98d544d4a406cb1f"
+    },
+    "fx_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fx_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fx_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fx_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fx_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "fx_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "ingestion_jobs": {
+      "rows": 2,
+      "digest": "9213d7bca0c380e13048c698148574ac1ad484ffcd22be54490f6f3a7a88595c"
+    },
+    "memberships": {
+      "rows": 3,
+      "digest": "98faa3d88823edfbd16003d61d7e8fc3585733f42d45c8b341ace07ffbcf88f6"
+    },
+    "organizations": {
+      "rows": 1,
+      "digest": "b93698e961d3240dbd5d8841bbd7df708c225838033ca4466846e91ec0ef4ae8"
+    },
+    "pv_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "pv_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "pv_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "pv_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "pv_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "pv_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "report_artifacts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "review_events": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "source_documents": {
+      "rows": 2,
+      "digest": "0eec2102a5d932106d5c6f808a2b143bffa34eb16671987278d2b996cd1b31e2"
+    },
+    "st_command_receipts": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "st_import_approvals": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "st_imports": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "st_source_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "st_workpaper_heads": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "st_workpaper_versions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "synthesis_snapshots": {
+      "rows": 2,
+      "digest": "328c37dcf39801f308d905dfb667c060c64daf7d42f3490bc9f534070a1d4aa6"
+    },
+    "tax_adjustments": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_computation_snapshots": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_control_executions": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_declaration_fields": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_documents": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_periods": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_profiles": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "tax_reconciliation_lines": {
+      "rows": 0,
+      "digest": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "upload_quota_counters": {
+      "rows": 2,
+      "digest": "8ad2a43e5fa8bba897b50f9cf177f473fd24736b394526c795b43cbac0b0979d"
+    },
+    "users": {
+      "rows": 1,
+      "digest": "85d819fab542a562f1b35c5a1a6f3c68eda823dece3644187bfae17888b6b62b"
+    }
+  },
+  "pieces": [
+    {
+      "key": "organizations/a9d010b9-1473-458e-8498-84a853682928/dossiers/4396e901-014c-4d98-a4dc-4abcb5181e78/documents/1ff4f83e-1b4e-4b3c-83a1-a3422fa418c1/source",
+      "sha256": "479031a829bce306682adfd886950671e0cfc5654614021ede9b62a9c51fb7cc"
+    },
+    {
+      "key": "organizations/a9d010b9-1473-458e-8498-84a853682928/dossiers/4396e901-014c-4d98-a4dc-4abcb5181e78/documents/c5f88ea7-dda1-43a3-bdaa-8e8accef7692/source",
+      "sha256": "fa2262ed868f81fb40751b5ceebee671555e062e0abead70b14371cd87393718"
+    }
+  ]
+}

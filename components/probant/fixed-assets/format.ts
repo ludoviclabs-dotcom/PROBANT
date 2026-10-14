@@ -10,7 +10,7 @@ export const SOURCE_TYPE_LABELS = { fa_register: "Registre des immobilisations",
 export const TREATMENT_LABELS: Record<string, string> = { standard: "Standard", credit_bail: "Crédit-bail", reevaluation: "Réévalué", financier: "Financier", devise: "Devise", autre_complexe: "Complexe" };
 
 const MESSAGES: Record<string, string> = {
-  FA_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette jetable.",
+  FA_DURABLE_DISABLED: "Ce parcours n’est pas ouvert sur ce serveur : lancez le profil personnel local (npm run local:start) ou une recette jetable.",
   FA_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
   SESSION_INVALID: "Votre session a expiré. Reconnectez-vous pour reprendre.",
   AUTHENTICATION_REQUIRED: "Connectez-vous pour accéder à ce dossier.",

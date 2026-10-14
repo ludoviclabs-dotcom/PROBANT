@@ -16,6 +16,7 @@ import type { CashResult } from "../cash-reconciliation";
 import type { CashSourceType } from "../cash-sources";
 import { periodId, type WorkpaperRun } from "../model";
 import { CASH_CSV, cashMapping, cashPeriod } from "./cash-reconciliation-fixtures";
+import { assertDisposableDatabase } from "./disposable-database";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -51,6 +52,7 @@ describe.skipIf(!databaseUrl)("recette Trésorerie — PostgreSQL jetable, sessi
     const u = new URL(databaseUrl!);
     if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
     connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${orgA},'Trésorerie A'),(${orgB},'Trésorerie B')`;
     await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${dossierA},${orgA},${dossierA}),(${dossierB},${orgB},${dossierB})`;
     preparer = await session(orgA, "cash-preparer", ["preparer"]); reviewer = await session(orgA, "cash-reviewer", ["reviewer"]); other = await session(orgB, "cash-other", ["preparer", "reviewer"]);

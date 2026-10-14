@@ -8,6 +8,7 @@ import { OidcClient } from "./oidc/client";
 import { isOidcConfigured, readOidcConfig, type OidcConfig } from "./oidc/config";
 import { isSessionConfigured, readSessionConfig, type SessionConfig } from "./session/config";
 import { DrizzleSessionStore, type SessionStore } from "./session/store";
+import { readLocalAuthConfig } from "./local/config";
 
 /**
  * Câblage serveur de l'authentification.
@@ -49,6 +50,7 @@ export function getRequestAuthorizer(): RequestAuthorizer {
     dossierOwnership: isDatabaseConfigured()
       ? new DrizzleDossierOwnershipReader(getDatabase())
       : null,
+    localAuth: readLocalAuthConfig(process.env),
   });
 }
 

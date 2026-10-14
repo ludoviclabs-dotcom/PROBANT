@@ -58,7 +58,7 @@ export class IngestionProcessor {
     try {
       await this.repository.prepareParsing(message.jobId, acquired.document.id);
       const rawStream = await this.storage.read({
-        provider: "s3",
+        provider: this.storage.provider,
         bucket: acquired.document.storageBucket,
         key: acquired.document.storageKey,
         versionId: acquired.document.storageVersionId ?? undefined,
@@ -149,7 +149,7 @@ export class IngestionProcessor {
         fingerprint: parsed.sha256,
         parserVersion: FEC_STREAM_PARSER_VERSION,
         sourceLocation: {
-          provider: "s3",
+          provider: this.storage.provider,
           bucket: acquired.document.storageBucket,
           key: acquired.document.storageKey,
           versionId: acquired.document.storageVersionId ?? undefined,

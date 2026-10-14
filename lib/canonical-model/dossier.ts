@@ -65,7 +65,7 @@ export interface SourceDocumentSummary {
   parserVersion?: string;
   /** Localisation logique, sans URL signee ni secret. */
   location?: {
-    provider: "s3" | "session" | "demo";
+    provider: "s3" | "local" | "session" | "demo";
     bucket?: string;
     key: string;
     versionId?: string;

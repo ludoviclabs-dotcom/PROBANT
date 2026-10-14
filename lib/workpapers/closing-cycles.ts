@@ -1,5 +1,6 @@
 import { contentHash, validateRun, type WorkpaperRun, type WorkpaperState } from "./model";
 import { CL_FAMILIES, engineProcedure, type CycleFamily } from "./closing-contract";
+import type { ReviewKind } from "@/lib/auth/review-kind";
 
 /**
  * Read-only observation of the cycle sheets (Missions 05 to 17) for the professional file.
@@ -7,7 +8,7 @@ import { CL_FAMILIES, engineProcedure, type CycleFamily } from "./closing-contra
  */
 export interface CycleObservation {
   family: CycleFamily; procedure: string; label: string; route: string | null; runId: string; rootId: string; revision: number; version: number; state: WorkpaperState;
-  outcome: string | null; objective: string; assertions: { label: string; validation: string }[]; preparedBy: string; approval: { actorId: string; at: string } | null;
+  outcome: string | null; objective: string; assertions: { label: string; validation: string }[]; preparedBy: string; approval: { actorId: string; at: string; kind?: ReviewKind; reviewerName?: string } | null;
   contentHash: string; openBlockingNotes: number; populationSize: number | null; sourceCount: number;
 }
 export interface CycleFingerprint { procedure: string; runId: string; version: number; state: WorkpaperState; contentHash: string }
@@ -20,7 +21,7 @@ export function observeRuns(rows: { family: CycleFamily; run: WorkpaperRun }[]):
     const known = engineProcedure(run.template.id);
     return { family, procedure: run.template.id, label: known?.label ?? run.template.objective, route: known?.route ?? null, runId: run.id, rootId: run.rootId, revision: run.revision, version: run.version, state: run.state,
       outcome: run.result?.outcome ?? null, objective: run.template.objective, assertions: run.template.assertions.map(a => ({ label: a.label, validation: a.validation })), preparedBy: run.preparedBy,
-      approval: run.approval ? { actorId: run.approval.actorId, at: run.approval.at } : null, contentHash: contentHash(run), openBlockingNotes: run.notes.filter(n => n.blocking && !n.resolution).length,
+      approval: run.approval ? { actorId: run.approval.actorId, at: run.approval.at, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null, contentHash: contentHash(run), openBlockingNotes: run.notes.filter(n => n.blocking && !n.resolution).length,
       populationSize: run.population ? run.population.items.length : null, sourceCount: run.importIds.length };
   }).filter(o => o.state !== "superseded").sort((a, b) => a.procedure < b.procedure ? -1 : a.procedure > b.procedure ? 1 : a.runId < b.runId ? -1 : 1);
 }

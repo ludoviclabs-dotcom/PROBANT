@@ -64,7 +64,7 @@ export function buildCashMission(scope: WorkpaperScope, versions: WorkpaperRun[]
   if (run?.importIds.some(id => !heads.some(h => h.import_id === id))) staleReasons.push("Une source Trésorerie approuvée a été remplacée.");
   if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Trésorerie diffère du programme.");
   const stale = staleReasons.length > 0;
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   const resultLabel = !run?.result ? "Non exécuté" : !cash ? "Calcul Trésorerie bloqué ou contrat invalide" : cash.exceptions.some(e => e.code !== "WINDOW_INCOMPLETE" && e.code !== "BRIDGE_SOURCE_MISSING") ? "Exceptions maintenues" : cash.controls.some(c => c.outcome === "inconclusive") ? "Travaux partiels — non concluant sur une partie" : "Aucun écart sur le périmètre testé — authenticité non démontrée";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
   const controls = definition.tests.map(test => {

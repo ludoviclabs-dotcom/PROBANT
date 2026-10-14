@@ -16,6 +16,7 @@ import type { EquityResult } from "../capitaux-review";
 import type { EquityTabularType } from "../capitaux-sources";
 import { periodId, type WorkpaperRun } from "../model";
 import { EQ_CSV, EQ_MINUTES, EQ_TABULAR_ORDER, eqDraft, eqMapping, eqPeriod, minutesPdf } from "./capitaux-fixtures";
+import { assertDisposableDatabase } from "./disposable-database";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -54,6 +55,7 @@ describe.skipIf(!databaseUrl)("recette Capitaux propres — PostgreSQL jetable, 
     const u = new URL(databaseUrl!);
     if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
     connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${orgA},'Capitaux propres A'),(${orgB},'Capitaux propres B')`;
     await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${dossierA},${orgA},${dossierA}),(${dossierB},${orgB},${dossierB})`;
     preparer = await session(orgA, "eq-preparer", ["preparer"]); reviewer = await session(orgA, "eq-reviewer", ["reviewer"]); other = await session(orgB, "eq-other", ["preparer", "reviewer"]);

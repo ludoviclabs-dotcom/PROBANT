@@ -17,6 +17,7 @@ import type { VatResult } from "../fiscal-vat";
 import { periodId, type WorkpaperRun } from "../model";
 import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, ca3Text, citText, DECL_2065, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, LIASSE_2058A, T1, T2 } from "./fiscal-fixtures";
 import type { CitResult } from "../fiscal-cit-contract";
+import { assertDisposableDatabase } from "./disposable-database";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
@@ -59,6 +60,7 @@ describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessi
     const u = new URL(databaseUrl!);
     if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
     connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${orgA},'Fiscal A'),(${orgB},'Fiscal B')`;
     await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${dossierA},${orgA},${dossierA}),(${dossierB},${orgB},${dossierB})`;
     preparer = await session(orgA, "fx-preparer", ["preparer"]); reviewer = await session(orgA, "fx-reviewer", ["reviewer"]); other = await session(orgB, "fx-other", ["preparer", "reviewer"]);

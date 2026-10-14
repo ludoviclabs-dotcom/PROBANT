@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { durableChainEnabled } from '@/lib/runtime/profile';
 import { DrizzleQueryError } from 'drizzle-orm/errors';
 import { ApiError } from '@/lib/api/errors';
 import { ClientsConflict } from './clients-persistence';
@@ -9,8 +10,8 @@ import type { ExceptionalRuntime } from './exceptional-runtime';
 const headers = { 'Cache-Control': 'private, no-store' };
 const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(['list', 'history', 'version', 'download']).optional(), id: z.string().min(1).max(200).optional(), version: z.coerce.number().int().positive().optional() }).strict();
 export function requireDisposableExceptional(env: Record<string, string | undefined> = process.env) {
-    if (env.VERCEL_ENV === 'production' || env.PROBANT_EXCEPTIONAL_DURABLE !== 'disposable')
-        throw new ApiError('EXCEPTIONAL_DURABLE_DISABLED', 'Cycle réservé à la recette jetable.', 503);
+    if (!durableChainEnabled(env, 'PROBANT_EXCEPTIONAL_DURABLE'))
+        throw new ApiError('EXCEPTIONAL_DURABLE_DISABLED', 'Cycle réservé à la recette jetable ou au profil personnel local.', 503);
 }
 function failure(e: unknown) {
     if (e instanceof ClientsConflict)

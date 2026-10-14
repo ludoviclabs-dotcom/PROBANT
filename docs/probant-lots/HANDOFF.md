@@ -1,3 +1,95 @@
+# Handoff — Mission C07 : runtime personnel local persistant (2026-10-14)
+
+**Base.** Branche `claude/local-persistent-runtime-ff20f9`, worktree `quizzical-boyd-13e46a`, SHA de départ `01150b5` (= `main` après la PR #81), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; aucun lot n'avait touché aux drapeaux `disposable`, au stockage ni à l'identité. Aucun push, aucune PR distante, aucun déploiement ; rien n'est activé sur Vercel.
+
+**Dépendance installée sur le poste, avec l'accord explicite de l'utilisateur** : binaires PostgreSQL 17.11 pour Windows (EDB, `postgresql-17.11-5-windows-x64-binaries.zip`, 381,5 Mo, SHA-256 `80379b2c…f82f`), extraits (bin, lib, share) dans `%LOCALAPPDATA%\PROBANT\pgsql-17`. Pas de service Windows, pas de droits administrateur.
+
+## Inventaire constaté (avant)
+
+| Chaîne (tables) | Drapeau | Construction | Pièces |
+|---|---|---|---|
+| Clients cadrage + ventes (`clients_`) | `PROBANT_CLIENTS_DURABLE` | `clients-server.ts` → `ClientsRuntime(getDatabase())`, SQL direct | `clients_imports.original_base64` (≤ 10 Mio) |
+| Achats (`clients_`) | `PROBANT_PAYABLES_DURABLE` | `PayablesRuntime extends ClientsRuntime` | idem |
+| Equity (`clients_`) | `PROBANT_EQUITY_DURABLE` | `EquityRuntime extends ClientsRuntime` | idem |
+| Participations (`clients_`) | `PROBANT_INVESTMENT_DURABLE` | `InvestmentRuntime extends ClientsRuntime` | idem |
+| Exceptionnel (`clients_`) | `PROBANT_EXCEPTIONAL_DURABLE` | `ExceptionalRuntime extends ClientsRuntime` | idem |
+| Trésorerie (`cash_`) | `PROBANT_CASH_DURABLE` | `CashRuntime(PostgresCashDatabase)` | `cash_imports.original_base64` |
+| Immobilisations (`fa_`) | `PROBANT_FIXED_ASSETS_DURABLE` | `FixedAssetRuntime(PostgresFixedAssetDatabase)` | `fa_imports` |
+| Capitaux propres (`eq_`) | `PROBANT_CAPITAUX_DURABLE` | `EquityRuntime` de `capitaux-runtime.ts` | `eq_imports` (PV en PDF) |
+| Fiscal TVA / IS (`fx_`) | `PROBANT_FISCAL_DURABLE` | `FiscalRuntime(PostgresFiscalDatabase)` | `fx_imports` |
+| Stocks (`st_`) | `PROBANT_STOCKS_DURABLE` | `StockRuntime(PostgresStockDatabase)` | `st_imports` |
+| Provisions (`pv_`) | `PROBANT_PROVISIONS_DURABLE` | `ProvisionRuntime(PostgresProvisionDatabase)` | `pv_imports` |
+| Clôture (`cl_`) | `PROBANT_CLOSING_DURABLE` | `ClosingRuntime(PostgresClosingDatabase)`, lit les têtes des 7 familles | `cl_pieces.original_base64` (≤ 3 Mio) |
+| Paie | aucun | en mémoire (`payroll-runtime.ts`) | — (lot C12) |
+
+- Chaque garde n'acceptait que `=== "disposable"` hors `VERCEL_ENV=production` ; sans drapeau, 503 `*_DURABLE_DISABLED`, sans repli.
+- Contrats de stockage : imports des feuilles en base (`insertImport` / `imports` / `download` avec contrôle SHA-256, tables append-only) ; dépôt FEC persistant par `ObjectStorage` (seule implémentation `S3ObjectStorage`) + SQS + Lambda ; chemin historique `PrivateObjectStore` (mémoire ou Vercel Blob).
+- Identité : sessions créées uniquement par le rappel OIDC ; aucune voie locale. `SELF_APPROVAL_FORBIDDEN` par sujet ; « relecture personnelle » absente du code.
+- Recettes jetables : 8 `*-durable.integration.test.ts`, base `*_ci` / `*_test` sur la boucle locale, sans migration ni nettoyage.
+- Écrans de feuilles : « Mission · recette jetable » et « Mode réel — recette jetable » écrits en dur.
+
+## Cause
+
+Le seul mode durable des chaînes était la recette jetable ; le dépôt FEC durable exigeait S3, SQS et un IdP ; aucune identité locale ni relecture solo n'existait ; aucune sauvegarde ni restauration. Rien ne séparait le choix d'exécution, le type de dossier et le type de relecture.
+
+## Changements
+
+**Profil d'exécution** — `lib/runtime/profile.ts` : `browser_demo` / `disposable_recipe` / `personal_local`, `durableChainEnabled` (profil personnel : drapeau `personal` seulement, refus de `disposable`, de Vercel, d'une base non locale ou `*_ci` / `*_test`), libellés. Les 12 gardes `requireDisposable*` et `configuredProcedures` l'appellent ; comportement de la recette jetable inchangé.
+
+**Identité locale** — `lib/auth/local/` : configuration serveur du profil, code de connexion à usage unique (`probant_local.login_codes`, empreinte seule, 10 min), `GET /api/auth/local` (boucle locale, origine canonique d'après `Host`, marqueur de la base revérifié) qui crée une session ordinaire `auth_sessions` émise par `probant-local:<profil>`. `RequestAuthorizer` n'accepte une session locale que pour le profil courant et en tire rôles, `reviewKind` et nom ; `SessionRecord.issuer` lu depuis `users.external_subject`. `/api/auth/session` expose profil, type de relecture et nom pour une session locale.
+
+**Type de relecture** — `lib/auth/review-kind.ts` (`distinct_identity`, `personal`, `simulated_second_identity`, libellés, `canReviewRun`, `approvalLabel`, `reviewAuthor`). `policy.ts` : l'auto-relecture n'est admise que pour `personal`. `model.ts` : `Approval.kind` / `reviewerName` additifs, validés (auto-relecture ⇔ `personal` nommée). `service.ts` : l'approbation enregistre le type et le nom ; OIDC inchangé (aucun champ ajouté). Les 7 runtimes transmettent le type au principal et l'exposent, avec le profil d'exécution, dans leurs vues ; synthèses de mission, exports (5 paquets), panneaux de clôture et `WorkpaperPanel` nomment le type. Écrans : règle `canReview` alignée sur le serveur dans 11 espaces de feuilles, avis `ReviewKindNotice` avant toute décision, libellés « recette jetable » remplacés par le profil réel.
+
+**Pièces et dépôt FEC sur le PC** — `lib/storage/local-object-storage.ts` : `LocalObjectStorage` (contrat `ObjectStorage`, autorisation scellée et éphémère, écriture unique, notice SHA-256, renvoi identique idempotent) ; `PUT /api/local/objects`. `lib/ingestion/local-runtime.ts` : file en processus et reprise depuis `ingestion_jobs` ; `createPersistentIngestionRuntime` bascule sur ce runtime dans le profil personnel. `provider: "local"` admis par `StoredObjectRef`, `source_documents.storage_provider` et la localisation des synthèses.
+
+**Dossiers locaux** — `GET/POST /api/local/dossiers` (création de la ligne `dossiers` exigée par les clés étrangères, référence dérivée du contenu : un double envoi retrouve le même dossier), `GET /api/local/status`, page `/local` (contexte d'exécution, relecture, base, migrations, dossiers, création, liens vers les 12 feuilles).
+
+**Lanceur Windows** — `scripts/local/probant-local.mjs` + `local-lib.mjs`, scripts `npm run local:init|start|stop|status|login|backup|restore|migrate`. Cluster PostgreSQL 17 dédié (127.0.0.1, SCRAM, sommes de contrôle), rôle applicatif non superutilisateur, marqueur `probant_local.profile`, vérification nom / `data_directory` / marqueur à chaque démarrage, sauvegarde « avant-migration » automatique, build de production seulement si l'application a changé, environnement de Next qui neutralise toute variable distante, sauvegarde cohérente (`pg_export_snapshot` + `pg_dump --snapshot` + manifeste table par table + pièces), restauration vérifiée dans un dossier distinct.
+
+**Migrations** — `scripts/db/migration-utils.mjs` `atomicMigration` : l'inscription au registre est dans la transaction du fichier.
+
+**Défaut antérieur corrigé** — `lib/ingestion/quota.ts` : `release` passait une `Date` brute dans un fragment SQL ; tout rejeu d'une intention d'envoi FEC échouait en 500.
+
+**Garde-fous de test** — `lib/workpapers/__tests__/disposable-database.ts` : les 8 recettes jetables refusent une base qui porte le marqueur personnel.
+
+**Documentation** — [`docs/local/RUNTIME_PERSONNEL.md`](../local/RUNTIME_PERSONNEL.md), [`docs/adr/ADR-012-profil-personnel-local.md`](../adr/ADR-012-profil-personnel-local.md), [`docs/recette/c07/`](../recette/c07/), `.env.example`, `README.md`, `docs/README.md`.
+
+**Revue Codex PR #83 (corrigée)** — dossier de profil créé en `0700` et `secrets.local.json` en `0600` hors Windows (profil initialisé et restauré) ; la sauvegarde refuse une pièce dont les octets ne correspondent plus à l'empreinte enregistrée en base ou dans sa notice ; la restauration confine chaque clé du manifeste (non signé) aux dossiers source et cible avant toute lecture ou copie (`pieceFile`) ; le stockage local complète une pièce écrite sans notice si ce sont les mêmes octets, et la laisse intacte sinon. Vérifié sur le profil de recette : pièce altérée → sauvegarde refusée, original remis → acceptée ; manifeste avec `../../victim` → restauration refusée sans rien écrire. Scan de secrets : les URL PostgreSQL des tests sont assemblées, sans identifiants littéraux. Suite complète avec les recettes PostgreSQL : 1 721 / 1 721.
+
+## Sources
+
+Aucune règle comptable, fiscale ou d'audit nouvelle. Les limites d'ingestion du profil reprennent `docs/ingestion/INGESTION_LIMITS.md` ; les quotas d'envoi locaux (30/min, 500 fichiers et 2 Gio par jour) et la durée des sessions locales (4 h d'inactivité, 24 h au plus) sont des choix internes du profil, non normatifs. La règle de relecture distincte du journal de clôture (NEP 230 §08, Mission 19) n'est pas modifiée.
+
+## Contrôles (local, 2026-10-14, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| Recette de reprise `scripts/local/recette-c07.ts` (profil neuf : import → gel → exécution → relecture personnelle → verrouillage → export ; double commande ; conflit d'onglets ; FEC local ; arrêt / relance ; sauvegarde ; restauration) | **42 / 42** — [rapport](../recette/c07/REPORT.md) |
+| `e2e/c07-profil-local.spec.ts` sur le profil démarré (390 / 1024 / 1440 ; axe ; débordement ; relecture ; deux onglets) | 4 / 4 sur le build final ; captures `docs/probant-lots/c07-captures/` |
+| Recettes PostgreSQL jetables sur un cluster 17.11 local (`probant_test`, port 55432) : 8 chaînes + `local-ingestion.integration.test.ts` | 51 / 51 (9 fichiers), deux fois ; une première exécution lancée pendant un `next build` avait eu 1 échec non identifié (journal non conservé), non reproduit depuis — exécutées localement pour la première fois (jusqu'ici CI seulement) |
+| Tests unitaires nouveaux : profil, connexion locale, relecture personnelle (chaîne Trésorerie complète en solo, simulation, OIDC inchangé), lanceur, stockage local, migrations atomiques | inclus ci-dessous |
+| Suite unitaire complète (`--pool=forks`) | 1 669 réussis, 0 échec (51 recettes durables ignorées faute de variable, jouées à part ci-dessus) ; instabilité : `clients-sales-workspace.test.tsx` « compare le brouillon et le serveur… » a échoué 1 fois sur 3 exécutions complètes (libellé de conflit lu avant mise à jour), 3 / 3 isolé — test antérieur, composant non concerné par ce lot hors la règle `canReview` |
+| Typecheck · lint | typecheck OK ; lint 0 erreur, 7 avertissements dans des fichiers non touchés |
+| Build de production | OK (`next build` lancé par `local:start` : compilation, lint, types, 180 pages statiques) |
+| Suite e2e existante (build de démo) | 199 réussis, 0 échec, 5 ignorés (les 4 tests C07 sans profil démarré, le parcours FEC persistant historique) ; captures des autres lots régénérées puis restaurées |
+
+## Limites et maturité
+
+- **Écran Dépôt** : le dépôt FEC durable n'y est proposé que pour un dossier qui a déjà une synthèse persistante ; un nouveau dossier local reçoit son premier FEC par l'API (`/api/dossiers/<id>/uploads`), comme dans la recette. Raccorder l'écran : lot distinct.
+- **Clôture (`cl_*`)** : la relecture personnelle n'y est pas admise (règles NEP 230 §08 du journal inchangées) ; l'habilitation de clôture reste accordée à personne. Avec la simulation ouverte, la seconde identité peut relire, ses décisions portant son identifiant de simulation. Dépend de C14.
+- **Paie** en mémoire (C12) ; **Emprunts** sans moteur durable (C13).
+- Un seul serveur Next par profil : la reprise FEC est en processus, pas une file partagée.
+- Binaires EDB sans signature Authenticode (empreinte du téléchargement HTTPS seulement).
+- Ce qui reste **non vérifié** : lecteur d'écran, autres navigateurs, coupure de courant réelle, service Windows PostgreSQL, disque plein.
+- Le profil personnel par défaut de l'utilisateur n'a pas été créé (il porte son nom) ; seuls les profils de recette existent dans `%LOCALAPPDATA%\PROBANT\recette-c07\` et peuvent être supprimés.
+
+## Dépendances du lot suivant
+
+- C09, C12, C13, C14 peuvent s'appuyer sur le profil personnel ; C14 doit décider de la relecture personnelle dans le journal de clôture.
+- La PR C06 (`claude/c06-fin-plan-amortissement`), fusionnée dans `main` pendant la revue de ce lot (PR #82), touche aussi `fixed-assets/format.ts`, `fixed-asset-mission.ts`, `fixed-asset-runtime.ts` et `service.ts` : lignes distinctes ; la fusion de `main` n'a produit de conflit que dans ce handoff.
+
+---
+
 # Handoff — Mission C06 : fin de plan d’amortissement, base restante et état du plan (2026-10-14)
 
 **Base.** `main` `e9f8b6d` (fusion de la PR #80, Cloisons). Branche `claude/c06-fin-plan-amortissement`, worktree `blissful-nash-5afb47`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; le moteur Immobilisations (Mission 10, PR #61) n’avait pas changé. Dépendances du prompt : C04 (référentiel daté) et contrat de métriques C03, tous deux dans `main`. Contrat mis à jour : [docs/mission10/CONTRAT.md](../mission10/CONTRAT.md) (§ « C06 »). Aucune fusion, aucun déploiement.

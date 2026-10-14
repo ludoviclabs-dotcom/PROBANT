@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { ApiError } from "@/lib/api/errors";
 import { fixedAssetApprovalSchema, fixedAssetCommandSchema, fixedAssetPeriodSchema } from "./fixed-asset-commands";
 import type { FixedAssetRuntime } from "./fixed-asset-runtime";
@@ -13,7 +14,7 @@ const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string()
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableFixedAssets(env: Record<string, string | undefined> = process.env) {
-  if (env.VERCEL_ENV === "production" || env.PROBANT_FIXED_ASSETS_DURABLE !== "disposable") throw new ApiError("FA_DURABLE_DISABLED", "Le parcours Immobilisations durable est réservé à la recette jetable.", 503);
+  if (!durableChainEnabled(env, "PROBANT_FIXED_ASSETS_DURABLE")) throw new ApiError("FA_DURABLE_DISABLED", "Le parcours Immobilisations durable est réservé à la recette jetable ou au profil personnel local.", 503);
 }
 export function fixedAssetFailureStatus(code: string) {
   return /SESSION_INVALID|AUTHENTICATION_REQUIRED/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404

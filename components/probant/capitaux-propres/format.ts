@@ -10,7 +10,7 @@ export const TIMING_LABELS = { before_period: "Effet antérieur à l’exercice"
 export function columnLabel(column: string) { return column === "ouverture" ? "Ouverture" : column === "cloture" ? "Clôture" : NATURE_LABELS[column as EqNature] ?? column; }
 
 const MESSAGES: Record<string, string> = {
-  EQ_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette jetable.",
+  EQ_DURABLE_DISABLED: "Ce parcours n’est pas ouvert sur ce serveur : lancez le profil personnel local (npm run local:start) ou une recette jetable.",
   EQ_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
   SESSION_INVALID: "Votre session a expiré. Reconnectez-vous pour reprendre.",
   AUTHENTICATION_REQUIRED: "Connectez-vous pour accéder à ce dossier.",

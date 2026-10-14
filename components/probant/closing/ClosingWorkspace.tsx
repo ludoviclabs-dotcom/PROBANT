@@ -14,6 +14,7 @@ import { ClosingClose, ClosingJournal, ClosingReview } from "./ClosingClose";
 import { closingFailureMessage, dateFr, type ClosingTab, type ClosingView } from "./format";
 import styles from "../cash/cash.module.css";
 import cl from "./closing.module.css";
+import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 const SAVE_LABELS: Record<SaveState, string> = { idle: "Aucune modification en attente", saving: "Enregistrement en cours…", saved: "Enregistré — accusé serveur reçu", failed: "Échec de l’enregistrement", conflict: "Conflit : le journal a avancé" };
@@ -110,7 +111,7 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
 
   return <main className={`${styles.page} ${cl.root}`}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Trésorerie</DossierContextAnchor><DossierContextAnchor href="/stocks">Stocks</DossierContextAnchor><DossierContextAnchor href="/provisions">Provisions et engagements</DossierContextAnchor><DossierContextAnchor href="/fiscal">Fiscalité</DossierContextAnchor><span aria-current="page">Dossier professionnel et clôture</span></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Dossier professionnel — contrôle interne et clôture</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Dossier professionnel — contrôle interne et clôture</h1>
       <p className={styles.muted}>Le programme relie risques, assertions, procédures et pièces. Les travaux manuels se documentent sans moteur, mais rien n’est validé automatiquement : chaque conclusion est humaine, revue par une autre personne, et la clôture appartient au professionnel habilité. PROBANT ne génère aucune opinion.</p></div></header>
     <form className={styles.scope} onSubmit={ev => { ev.preventDefault(); void load(); }}>
       <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={ev => { setDossierId(ev.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>

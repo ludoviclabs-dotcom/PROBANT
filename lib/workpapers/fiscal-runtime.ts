@@ -22,6 +22,7 @@ import { periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } f
 import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
+import { executionProfile } from "@/lib/runtime/profile";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -41,7 +42,7 @@ export class FiscalRuntime {
     return identity;
   }
   private actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
-    return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
+    return { id: identity.subject, ...(identity.reviewKind ? { review: identity.reviewKind, displayName: identity.displayName } : {}), grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
   }
   private async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: FiscalTx, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
     const identity = await this.identity(request, dossierId, permission);
@@ -96,7 +97,7 @@ export class FiscalRuntime {
       // Legal sources an IS adjustment may cite: the corporate income tax sources of the registry, with their version status.
       const citSources = taxKnowledgeRegistry.sources.filter(s => s.taxTypes.includes("corporate_income_tax")).flatMap(s => taxKnowledgeRegistry.sourceVersions.filter(v => v.sourceId === s.id)
         .map(v => ({ sourceId: s.id, sourceVersionId: v.id, label: s.title + " — " + v.versionLabel + (v.status === "effective" ? "" : " [" + v.status + "]") })));
-      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, sourcesCurrent, expectedSources, lineageCurrent, citSources, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])), versions,
+      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), runs, sourcesCurrent, expectedSources, lineageCurrent, citSources, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])), versions,
         imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, ROWS_SENT[b.document.documentType] ?? 0), rowCount: b.rows.length })), sourceHeads: heads, ...(history && id ? { history: await repository.history(scope, id) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("FX_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);
       return response;
@@ -111,7 +112,7 @@ export class FiscalRuntime {
     return { mission, run: versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null, imports: imports.batches };
   }
   async mission(request: Request, dossierId: string, pid: string, selection: FiscalMissionSelection = {}) {
-    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, mission: (await this.missionData(tx, scope, selection)).mission }));
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.missionData(tx, scope, selection)).mission }));
   }
   async missionExport(request: Request, dossierId: string, pid: string, selection: FiscalMissionSelection, kind: FiscalExportKind, expectedSnapshotHash: string) {
     const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

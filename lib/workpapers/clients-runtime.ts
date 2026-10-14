@@ -18,6 +18,7 @@ import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
 import type { ClientsCommand } from "./clients-commands";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import { executionProfile } from "@/lib/runtime/profile";
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 export class ClientsRuntime {
     protected readonly procedureIds: readonly string[] = ["clients.frame", "clients.sales"];
@@ -32,7 +33,7 @@ export class ClientsRuntime {
         return identity;
     }
     protected actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
-        return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter((p) => hasPermission(identity.roles, permissions[p])) }] };
+        return { id: identity.subject, ...(identity.reviewKind ? { review: identity.reviewKind, displayName: identity.displayName } : {}), grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter((p) => hasPermission(identity.roles, permissions[p])) }] };
     }
     protected async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: ClientsSql, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
         const identity = await this.identity(request, dossierId, permission);
@@ -126,7 +127,7 @@ export class ClientsRuntime {
                 try { facts = batches.some(b => b.document.documentType === "clients_invoices") && batches.some(b => b.document.documentType === "clients_payments") ? buildClientsSalesFacts(scope, r.period, batches, r.id) : null; } catch (error) { salesFactsIssues[r.id] = error instanceof Error ? error.message : "CLIENT_SALES_SOURCES_INVALID"; }
                 return [r.id, facts];
             }));
-            const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, salesFacts, salesFactsIssues, salesFraming, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.filter(b=>this.sourceTypes.includes(b.document.documentType)).map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads.filter(h=>this.sourceTypes.includes(h.document_type)),
+            const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), runs, salesFacts, salesFactsIssues, salesFraming, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id,r.version])), imports: imports.batches.filter(b=>this.sourceTypes.includes(b.document.documentType)).map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads.filter(h=>this.sourceTypes.includes(h.document_type)),
                 sourcesCurrent,
                 ...(history && id ? { history: await repository.history(scope, id) } : {}) };
             if (Buffer.byteLength(JSON.stringify(response))>8*1024*1024) throw new ApiError("CLIENT_STATE_LIMIT","État trop volumineux pour cette recette.",413);
@@ -151,7 +152,7 @@ export class ClientsRuntime {
     async mission(request: Request, dossierId: string, pid: string, selection: MissionSelection = {}) {
         return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => {
             const { mission } = await this.missionData(tx, scope, selection);
-            return { actorId: actor.id, permissions: actor.grants[0].permissions, mission };
+            return { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission };
         });
     }
     async missionExport(request: Request, dossierId: string, pid: string, selection: MissionSelection, kind: ClientExportKind, expectedSnapshotHash: string) {

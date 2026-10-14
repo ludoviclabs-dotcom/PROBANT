@@ -117,6 +117,7 @@ export class DirectUploadService {
       idempotencyKey: input.idempotencyKey,
       parserVersion: input.parserVersion,
       requestId: input.requestId,
+      storageProvider: this.storage.provider,
       storageBucket: this.storage.bucket,
     });
 

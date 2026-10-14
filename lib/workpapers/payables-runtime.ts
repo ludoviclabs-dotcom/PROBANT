@@ -13,6 +13,7 @@ import type { PayablesCommand } from "./payables-commands";
 import { buildPayablesMission } from "./payables-mission";
 import type { MissionSelection } from "./client-mission";
 import { buildPayablesPackage } from "@/lib/evidence/payables-package";
+import { executionProfile } from "@/lib/runtime/profile";
 export class PayablesRuntime extends ClientsRuntime {
     protected override readonly procedureIds: readonly string[] = PAYABLE_PROCEDURES;
     protected override readonly sourceTypes: readonly string[] = PAYABLE_TYPES;
@@ -147,7 +148,7 @@ export class PayablesRuntime extends ClientsRuntime {
         const run = versions.find(r => r.id === mission.selectedRunId && r.version === mission.selectedVersion) ?? null;
         return { mission, run, imports: imports.batches };
     }
-    async payablesMission(request: Request, dossierId: string, pid: string, selection: MissionSelection = {}) { return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, mission: (await this.payableData(tx, scope, selection)).mission })); }
+    async payablesMission(request: Request, dossierId: string, pid: string, selection: MissionSelection = {}) { return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.payableData(tx, scope, selection)).mission })); }
     async payablesExport(request: Request, dossierId: string, pid: string, selection: MissionSelection, kind: "diagnostic" | "approved", expectedSnapshotHash: string) {
         const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => { const data = await this.payableData(tx, scope, selection); if (data.mission.hash !== expectedSnapshotHash)
             throw new Error("EXPORT_SNAPSHOT_CONFLICT"); return data; });

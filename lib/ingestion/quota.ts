@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { ApiError } from "@/lib/api/errors";
 import type { ProbantDatabase } from "@/lib/db/client";
@@ -132,10 +132,14 @@ export class DrizzleUploadQuotaStore implements UploadQuotaStore {
         byteCount: sql`greatest(${uploadQuotaCounters.byteCount} - ${bytes}, 0)`,
         updatedAt: new Date(),
       })
+      // Comparaisons typées : un fragment SQL brut passait la Date telle quelle au
+      // pilote, qui la refuse — tout rejeu d'une intention d'envoi échouait (C07).
       .where(
-        sql`${uploadQuotaCounters.organizationId} = ${organizationId}
-            and ${uploadQuotaCounters.windowKind} = ${kind}
-            and ${uploadQuotaCounters.windowStart} = ${start}`,
+        and(
+          eq(uploadQuotaCounters.organizationId, organizationId),
+          eq(uploadQuotaCounters.windowKind, kind),
+          eq(uploadQuotaCounters.windowStart, start),
+        ),
       );
   }
 }

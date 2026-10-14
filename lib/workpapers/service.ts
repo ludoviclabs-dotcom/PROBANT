@@ -16,12 +16,23 @@ import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import type { CalculationRegistry } from "./calculations";
 import { linkImportedEvidence } from "./evidence";
 import type { ImportBatch } from "./imports";
-import { assertScope, contentHash, validateRun, type ProcedureTemplate, type Population, type SelectionSet, type WorkpaperRun, type WorkpaperScope, type WorkpaperState, type WorkpaperNote, type NoteCitation } from "./model";
+import { assertScope, contentHash, validateRun, type Approval, type ProcedureTemplate, type Population, type SelectionSet, type WorkpaperRun, type WorkpaperScope, type WorkpaperState, type WorkpaperNote, type NoteCitation } from "./model";
 import { authorize, assertTransition, type Permission, type Principal } from "./policy";
 import type { WorkpaperRepository } from "./repository";
 import { validateSelectionSources } from "./selection";
 import { projectLockedWorkpaper } from "./projection";
 
+/**
+ * Review type recorded with an approval (C07), from the server identity only. OIDC and signed identities keep the
+ * historical shape (no `kind`: review by another identity).
+ */
+function approvalKind(actor: Principal, run: WorkpaperRun): Pick<Approval, "kind" | "reviewerName"> {
+  if (!actor.review) return {};
+  if (actor.review === "simulated_second_identity") return { kind: "simulated_second_identity" };
+  if (actor.id !== run.preparedBy) return { kind: "distinct_identity" };
+  if (!actor.displayName?.trim()) throw new Error("PERSONAL_REVIEWER_NAME_REQUIRED");
+  return { kind: "personal", reviewerName: actor.displayName };
+}
 /** Identity is supplied by the server session adapter, never the request body. */
 export type TrustedSession = () => Promise<Principal | null>;
 export const disabledSession: TrustedSession = async () => null;
@@ -293,7 +304,7 @@ export class WorkpaperService {
       const next: WorkpaperRun = { ...run, state: target, version: version + 1 };
       if (target === "awaiting_review") next.submittedHash = contentHash(run);
       if (target === "changes_requested") next.notes = [...run.notes, { id: `${run.id}:review:${version}`, kind: "judgment", text: note, amount: { kind: "not_applicable", reason: "Note de revue" }, authorId: actor.id, blocking: true }];
-      if (target === "approved") next.approval = { actorId: actor.id, snapshotHash: contentHash(run), note, at: this.clock(), version: next.version };
+      if (target === "approved") next.approval = { actorId: actor.id, snapshotHash: contentHash(run), note, at: this.clock(), version: next.version, ...approvalKind(actor, run) };
       return this.stamp(next, actor, target);
     });
   }

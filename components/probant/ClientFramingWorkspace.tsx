@@ -11,6 +11,8 @@ import { ClientReceivablesPanel } from "./ClientReceivablesPanel";
 import { ClientsSalesImportForm } from "./ClientsSalesImportForm";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 import { sameDraft, saveStateLabel, type SaveStatus } from "@/lib/workpapers/draft-state";
+import { approvalLabel, mayReviewOwnWork, type ReviewKind } from "@/lib/auth/review-kind";
+import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
 type SaveState = SaveStatus;
 /** Valeurs initiales du formulaire d'import : la base de comparaison du brouillon (C02, M20-UI-03). */
 const DEFAULT_COLUMNS = { key: "id", amount: "amount", date: "date", account: "account", party: "party", sheet: "" };
@@ -18,6 +20,7 @@ const DEFAULT_FORMAT = { delimiter: ";", decimal: ".", dateFormat: "ISO", sign: 
 type View = {
     actorId: string;
     permissions: string[];
+    reviewKind?: ReviewKind;
     runs: WorkpaperRun[];
     imports: (ImportBatch & { rowCount?: number })[];
     sourceHeads: {
@@ -109,7 +112,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const isSales = run?.template.id === "clients.sales";
     const serverSalesDraft = useMemo(() => run ? salesDraft(run) : null, [run]);
     const panelDraft = draftOverride && run && draftOverride.id === run.id ? draftOverride.draft : serverSalesDraft;
-    const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+    const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
     const current = run ? view?.sourcesCurrent[run.id] !== false : true;
     const editable = !!run && ["draft", "executed"].includes(run.state) && canPrepare && run.preparedBy === view?.actorId;
     const saving = status === "saving";
@@ -325,11 +328,11 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
       </section>}
       {run && <section hidden={!["all","review"].includes(sheetFilter)} className="space-y-3 rounded-xl border border-[var(--pb-border)] p-4"><h2 className="font-semibold">4. Soumission, revue et verrouillage</h2>
         {run.state === "executed" && canPrepare && <button className={controlClass} disabled={saving || !current || conclusion !== run.conclusion} onClick={() => action("submit")}>Soumettre cette version</button>}
-        {run.state === "awaiting_review" && canReview && <><label>Note de revue<textarea className={"block w-full " + controlClass} value={review} disabled={saving} onChange={e => { setReview(e.target.value); dirty(); }}/></label>
+        {run.state === "awaiting_review" && canReview && <><ReviewKindNotice kind={view.reviewKind}/><label>Note de revue<textarea className={"block w-full " + controlClass} value={review} disabled={saving} onChange={e => { setReview(e.target.value); dirty(); }}/></label>
           {(["approved", "changes_requested"] as const).map(decision => <button key={decision} className={controlClass} disabled={saving || !review.trim() || !current} onClick={() => action("review", { decision, text: review, submittedHash: run.submittedHash })}>{decision === "approved" ? (isSales ? "Approuver les travaux Clients" : "Approuver le cadrage") : "Demander une correction"}</button>)}</>}
-        {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version.</p>}
+        {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version, ou vous-même en relecture personnelle nommée si le profil local solo l’autorise.</p>}
         {run.state === "approved" && canReview && <button className={controlClass} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
-        {run.approval && <p>Décision de {run.approval.actorId} · {run.approval.at} · Version {run.approval.version}</p>}
+        {run.approval && <p>Décision : {approvalLabel(run.approval)} · Version {run.approval.version}</p>}
       </section>}
       <p><DossierContextAnchor href={"/cutoff?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Cut-off transversal · ventes et achats documentés</DossierContextAnchor> · <DossierContextAnchor href={"/payables?"+new URLSearchParams({dossierId,periodId:requested?.periodId??periodId(period)})}>Investigation Achats et fournisseurs</DossierContextAnchor></p>
           <WorkpaperPanel runs={run ? [run] : []} durable filter={sheetFilter} noteId={requested?.noteId}/>
