@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useRef, useLayoutEffect, useCallback } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback, useEffect, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { ChevronDown, Search, X, FileText, LayoutGrid } from "lucide-react";
 import type {
   SiloView,
@@ -53,6 +54,28 @@ const FAINT   = "var(--pb-text-faint)";
 const BORDER  = "#1c2430";
 const SURFACE = "#0b0e13";
 const SEP     = "#1a2029";
+
+/**
+ * Fenêtre à partir de laquelle le panneau de revue (406 px + 18 px d'écart) se range à droite de
+ * la liste : avec la navigation latérale (240 px) et les marges, la liste garde alors ≥ 684 px,
+ * soit un silo ouvert ≥ 620 px (seuil des connecteurs de SiloBody). En dessous, le panneau
+ * s'ouvre en tiroir. Doit rester égal aux variantes `min-[1400px]:` du corps de la page.
+ */
+const RAIL_DOCK_QUERY = "(min-width: 1400px)";
+
+/** Même patron que usePrefersReducedMotion ; sans matchMedia (jsdom), le panneau reste en tiroir. */
+function useRailDocked(): boolean {
+  const [docked, setDocked] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== "function") return;
+    const mq = window.matchMedia(RAIL_DOCK_QUERY);
+    setDocked(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setDocked(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return docked;
+}
 
 /* ── utilities ──────────────────────────────────────────────────────────────── */
 
@@ -215,6 +238,17 @@ function FilterDropdown({
     ? (selected.length === 1 ? items.find((i) => i.value === selected[0])?.label : `${selected.length} sél.`)
     : "Tous";
 
+  // Le menu s'ouvre vers la gauche quand il dépasserait le bord droit de la fenêtre (et tient à gauche).
+  const menuRef = useRef<HTMLDivElement>(null);
+  const [alignRight, setAlignRight] = useState(false);
+  useLayoutEffect(() => {
+    const menu = menuRef.current;
+    if (!open || !menu?.parentElement) { setAlignRight(false); return; }
+    const m = menu.getBoundingClientRect();
+    const anchor = menu.parentElement.getBoundingClientRect();
+    if (m.right > document.documentElement.clientWidth && anchor.right - m.width >= 0) setAlignRight(true);
+  }, [open]);
+
   return (
     <div style={{ position: "relative" }}>
       <button
@@ -235,9 +269,10 @@ function FilterDropdown({
       </button>
       {open && (
         <div
+          ref={menuRef}
           onMouseDown={(e) => e.stopPropagation()}
           style={{
-            position: "absolute", top: "calc(100% + 6px)", left: 0, zIndex: 60,
+            position: "absolute", top: "calc(100% + 6px)", ...(alignRight ? { right: 0 } : { left: 0 }), zIndex: 60,
             minWidth: 200, padding: 6, background: "#11151c",
             border: "1px solid #232b38", borderRadius: 11,
             boxShadow: "0 18px 44px -14px rgba(0,0,0,.7)",
@@ -564,6 +599,77 @@ function RailPanel({
   );
 }
 
+/* ── ReviewDrawer (panneau de revue en tiroir sous RAIL_DOCK_QUERY) ─────────── */
+
+const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex='-1'])";
+
+/**
+ * Tiroir modal à droite (pleine largeur sur mobile), même patron que FindingDrawer : voile,
+ * Échap, focus sur « Fermer » à l'ouverture ; Tab reste dans le tiroir. À la fermeture, le focus
+ * revient au bouton « Analyser » du constat (`data-finding-trigger`), quel que soit l'ouvreur :
+ * ligne signalée de la reconstruction (non focalisable) ou rail ancré retiré par un redimensionnement.
+ * Rendu dans document.body pour ne dépendre d'aucun ancêtre de la page.
+ */
+function ReviewDrawer({ findingId, title, onClose, children }: { findingId: string; title: string; onClose: () => void; children: ReactNode }) {
+  const panelRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const opener = document.activeElement instanceof HTMLElement && document.activeElement !== document.body ? document.activeElement : null;
+    closeRef.current?.focus();
+    return () => {
+      const trigger = [...document.querySelectorAll<HTMLElement>("[data-finding-trigger]")].find((el) => el.dataset.findingTrigger === findingId);
+      (trigger ?? (opener?.isConnected ? opener : null))?.focus();
+    };
+  }, [findingId]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") { onClose(); return; }
+      const panel = panelRef.current;
+      if (e.key !== "Tab" || !panel) return;
+      const focusables = [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)];
+      if (focusables.length === 0) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      const active = document.activeElement;
+      if (!panel.contains(active)) { e.preventDefault(); first.focus(); }
+      else if (e.shiftKey && active === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && active === last) { e.preventDefault(); first.focus(); }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  return createPortal(
+    <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 50, fontFamily: "'Inter', system-ui, sans-serif" }}>
+      <div data-review-backdrop aria-hidden onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.55)" }} />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label={`Constat : ${title}`}
+        style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 440, maxWidth: "100%", overflowY: "auto", background: "#0c1220", borderLeft: "1px solid #253045", boxShadow: "-24px 0 48px -24px rgba(0,0,0,.7)", animation: "pb-drawer-in 0.22s ease-out" }}
+      >
+        <div style={{ position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px 11px 18px", background: "#0c1220", borderBottom: `1px solid ${SEP}` }}>
+          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT }}>Panneau de revue</span>
+          <button
+            ref={closeRef}
+            type="button"
+            onClick={onClose}
+            aria-label="Fermer le panneau de revue"
+            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, border: "1px solid #232b38", background: "none", color: MUTED, cursor: "pointer" }}
+          >
+            <X size={15} />
+          </button>
+        </div>
+        <div style={{ padding: 18 }}>{children}</div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 /* ── SiloBody (Zone A | Zone B + connecteur flaggé→constat) ──────────────────── */
 
 interface ArrowPath { id: string; sx: number; sy: number; ex: number; ey: number; hex: string; label?: string }
@@ -592,16 +698,17 @@ function SiloBody({
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
   const [arrows, setArrows] = useState<ArrowPath[]>([]);
   const [dims, setDims] = useState({ w: 0, h: 0 });
-  const [wide, setWide] = useState(true);
+  // Une colonne tant que la largeur réelle n'est pas mesurée (jamais deux colonnes trop étroites).
+  const [wide, setWide] = useState(false);
 
   const compute = useCallback(() => {
     const cont = containerRef.current;
     if (!cont) return;
     const cr = cont.getBoundingClientRect();
     setDims({ w: cr.width, h: cr.height });
-    // Seuil d'affichage des connecteurs : sous ~620px les étiquettes
-    // d'annotation deviennent illisibles. 620 (et non 680) pour que la courbe
-    // reste visible à 1440px de viewport (colonne ≈ 656px avec le rail droit).
+    // Seuil d'affichage des connecteurs et des deux colonnes : sous ~620px les
+    // étiquettes d'annotation deviennent illisibles et chaque colonne passe sous
+    // ~300px. 620 (et non 680) pour que la courbe reste visible avec le rail droit.
     const isWide = cr.width >= 620;
     setWide(isWide);
     if (!isWide) { setArrows([]); return; }
@@ -641,7 +748,7 @@ function SiloBody({
   }, [compute]);
 
   return (
-    <div style={{ padding: "2px 18px 20px 38px" }}>
+    <div className="px-3.5 sm:pl-[38px] sm:pr-[18px]" style={{ paddingTop: 2, paddingBottom: 20 }}>
       {/* Le silo vitrine du rapprochement Clients porte l'ancre `bezier-link`
           de la visite guidée sur le CONTENEUR (toujours rendu quand le silo est
           ouvert, même quand les connecteurs sont masqués sous 620px) : le
@@ -653,7 +760,9 @@ function SiloBody({
         data-tour-flag={
           siloView.siloId === "rapprochement-clients" ? findingsToShow[0]?.severity : undefined
         }
-        style={{ position: "relative", display: "grid", gridTemplateColumns: "minmax(0,1.04fr) minmax(0,1fr)", gap: 26, alignItems: "start" }}
+        // Deux colonnes seulement si le silo mesure ≥ 620 px (avec la navigation à 768 px, il en
+        // fait ~420) ; sinon la reconstruction puis les constats.
+        style={{ position: "relative", display: "grid", gridTemplateColumns: wide ? "minmax(0,1.04fr) minmax(0,1fr)" : "minmax(0,1fr)", gap: wide ? 26 : 18, alignItems: "start" }}
       >
 
         {/* Connecteurs SVG (overlay, derrière le contenu) */}
@@ -748,7 +857,7 @@ function SiloBody({
                         <code style={{ marginLeft: 7, fontSize: 10, color: FAINT, fontFamily: "monospace" }}>{row.compte}</code>
                       )}
                     </td>
-                    <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
+                    <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
                       {eurRow(row.valeur)}
                     </td>
                   </tr>
@@ -796,6 +905,7 @@ function SiloBody({
                       )}
                     </div>
                     <button
+                      data-finding-trigger={f.id}
                       onClick={() => setSelId(isSelected ? null : f.id)}
                       style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isSelected ? fSev.hex : ACCENT, background: "none", border: "none", cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap", flexShrink: 0 }}
                     >
@@ -847,6 +957,8 @@ export function CloisonsWorkspace({
   });
   const [selId, setSelId] = useState<string | null>(null);
   const [decisions, setDecisions] = useState<Record<string, UserDecision>>({});
+  const railDocked = useRailDocked();
+  const closeReview = useCallback(() => setSelId(null), []);
 
   const [query, setQuery] = useState("");
   const [sevFilter, setSevFilter] = useState<string[]>([]);
@@ -908,7 +1020,8 @@ export function CloisonsWorkspace({
   return (
     <div
       onClick={() => ddOpen && setDdOpen(null)}
-      style={{ minHeight: "100%", background: "radial-gradient(1100px 560px at 84% -10%, #131a28 0%, #0a0d12 56%)", padding: "22px 26px 70px", fontFamily: "'Inter', system-ui, sans-serif" }}
+      className="px-4 sm:px-[26px]"
+      style={{ minHeight: "100%", background: "radial-gradient(1100px 560px at 84% -10%, #131a28 0%, #0a0d12 56%)", paddingTop: 22, paddingBottom: 70, fontFamily: "'Inter', system-ui, sans-serif" }}
     >
       <div style={{ maxWidth: 1680, margin: "0 auto" }}>
 
@@ -1057,11 +1170,11 @@ export function CloisonsWorkspace({
           </div>
         </div>
 
-        {/* ── BODY ── */}
-        <div style={{ display: "flex", gap: 18 }}>
+        {/* ── BODY ── liste pleine largeur ; panneau de revue rangé à droite dès RAIL_DOCK_QUERY. */}
+        <div className="flex flex-col gap-[18px] min-[1400px]:flex-row">
 
           {/* Accordion / Document view */}
-          <div style={{ flex: 1, minWidth: 0 }}>
+          <div className="min-w-0 min-[1400px]:flex-1">
             {vue === "document" && documentDisponible ? (
               <FinancialDocumentViewer docs={docs} />
             ) : (
@@ -1090,42 +1203,53 @@ export function CloisonsWorkspace({
                             style={{ borderRadius: 11, border: `1px solid ${isOpen ? "#253045" : "#1a2029"}`, background: isOpen ? "#0d1320" : "rgba(13,19,32,0.5)", overflow: "hidden", transition: "border-color .2s" }}
                           >
                             <button
+                              type="button"
+                              data-silo-row={siloView.siloId}
+                              aria-expanded={isOpen}
                               onClick={() => toggleSilo(siloView.siloId)}
-                              style={{ display: "flex", width: "100%", alignItems: "center", gap: 14, padding: "13px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const }}
+                              style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 14, padding: "13px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const }}
                             >
                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.2"
-                                style={{ flexShrink: 0, transition: "transform .2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>
+                                style={{ flexShrink: 0, marginTop: 3, transition: "transform .2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>
                                 <path d="m9 18 6-6-6-6" />
                               </svg>
-                              <div style={{ flex: 1, minWidth: 90 }}>
-                                <div style={{ fontSize: 13.5, fontWeight: 600, color: TEXT, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                                  {siloMeta?.label ?? siloView.siloId}
+                              {/* Libellé, puis gravité et effet : sur la même ligne quand la place le permet, à la ligne sinon. */}
+                              <div style={{ flex: 1, minWidth: 0, display: "flex", flexWrap: "wrap" as const, alignItems: "center", justifyContent: "space-between", columnGap: 14, rowGap: 8 }}>
+                                <div style={{ flex: "1 1 13rem", minWidth: 0 }}>
+                                  <div style={{ fontSize: 13.5, fontWeight: 600, color: TEXT, overflowWrap: "anywhere" as const }}>
+                                    {siloMeta?.label ?? siloView.siloId}
+                                  </div>
+                                  <div style={{ marginTop: 2, fontSize: 10.5, letterSpacing: ".02em", color: FAINT, fontFamily: "monospace", overflowWrap: "anywhere" as const }}>
+                                    {siloMeta?.comptes.join(" · ") ?? ""}
+                                  </div>
                                 </div>
-                                <div style={{ marginTop: 2, fontSize: 10.5, letterSpacing: ".02em", color: FAINT, fontFamily: "monospace" }}>
-                                  {siloMeta?.comptes.join(" · ") ?? ""}
+                                <div style={{ display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: "8px 14px" }}>
+                                  {sevStyle && findings.length > 0 && (
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 11px", borderRadius: 8, background: sevStyle.bg, whiteSpace: "nowrap" }}>
+                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: sevStyle.hex }} />
+                                      <span style={{ fontSize: 11.5, fontWeight: 600, color: sevStyle.hex }}>{sevStyle.label}</span>
+                                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
+                                      <span style={{ fontSize: 10.5, color: "#8a96a6", fontVariantNumeric: "tabular-nums" }}>{score}/100</span>
+                                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
+                                      <span style={{ fontSize: 10.5, color: "#8a96a6" }}>{findings.length} constat{findings.length > 1 ? "s" : ""}</span>
+                                    </span>
+                                  )}
+                                  {effects.items.length > 0 ? (
+                                    // Chaque poste reste insécable ; la liste des postes passe à la ligne entre deux postes.
+                                    <span title="Exposition initiale par poste et sens (projection partagée avec la Synthèse)" style={{ display: "inline-flex", flexWrap: "wrap" as const, justifyContent: "flex-end", columnGap: 6, minWidth: 94, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>
+                                      {effects.items.slice(0, 2).map((it, i) => (
+                                        <span key={it.key} style={{ whiteSpace: "nowrap" }}>{i > 0 ? " · " : ""}{effectItemLabel(it, true)}</span>
+                                      ))}
+                                      {effects.items.length > 2 && <span style={{ whiteSpace: "nowrap" }}>{` · +${effects.items.length - 2}`}</span>}
+                                      {effects.indeterminate > 0 && <span style={{ whiteSpace: "nowrap" }}> · indéterminé</span>}
+                                    </span>
+                                  ) : effects.indeterminate > 0 ? (
+                                    <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: "#e3bd4d", whiteSpace: "nowrap" }}>montant indéterminé</span>
+                                  ) : effects.eurSignals > 0 ? (
+                                    <span title="Écart mesuré en euros sans effet financier explicite : l'effet comptable reste inconnu" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: MUTED, whiteSpace: "nowrap" }}>effet non chiffré</span>
+                                  ) : null}
                                 </div>
                               </div>
-                              {sevStyle && findings.length > 0 && (
-                                <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 11px", borderRadius: 8, background: sevStyle.bg, whiteSpace: "nowrap" }}>
-                                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: sevStyle.hex }} />
-                                  <span style={{ fontSize: 11.5, fontWeight: 600, color: sevStyle.hex }}>{sevStyle.label}</span>
-                                  <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
-                                  <span style={{ fontSize: 10.5, color: "#8a96a6", fontVariantNumeric: "tabular-nums" }}>{score}/100</span>
-                                  <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
-                                  <span style={{ fontSize: 10.5, color: "#8a96a6" }}>{findings.length} constat{findings.length > 1 ? "s" : ""}</span>
-                                </span>
-                              )}
-                              {effects.items.length > 0 ? (
-                                <span title="Exposition initiale par poste et sens (projection partagée avec la Synthèse)" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
-                                  {effects.items.slice(0, 2).map((it) => effectItemLabel(it, true)).join(" · ")}
-                                  {effects.items.length > 2 ? ` · +${effects.items.length - 2}` : ""}
-                                  {effects.indeterminate > 0 ? " · indéterminé" : ""}
-                                </span>
-                              ) : effects.indeterminate > 0 ? (
-                                <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: "#e3bd4d", whiteSpace: "nowrap" }}>montant indéterminé</span>
-                              ) : effects.eurSignals > 0 ? (
-                                <span title="Écart mesuré en euros sans effet financier explicite : l'effet comptable reste inconnu" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: MUTED, whiteSpace: "nowrap" }}>effet non chiffré</span>
-                              ) : null}
                             </button>
 
                             {isOpen && (
@@ -1155,9 +1279,14 @@ export function CloisonsWorkspace({
             )}
           </div>
 
-          {/* Sticky rail */}
-          <aside style={{ position: "sticky", top: 16, width: 406, maxHeight: "calc(100vh - 90px)", overflowY: "auto", flexShrink: 0, alignSelf: "flex-start" }}>
-            {selectedFinding ? (
+          {/* Sticky rail — affiché seulement quand la place le permet ; sinon tiroir (ReviewDrawer). */}
+          <aside
+            data-review-rail
+            aria-label="Panneau de revue"
+            className="hidden min-[1400px]:block"
+            style={{ position: "sticky", top: 16, width: 406, maxHeight: "calc(100vh - 90px)", overflowY: "auto", flexShrink: 0, alignSelf: "flex-start" }}
+          >
+            {selectedFinding && railDocked ? (
               <div
                 key={selectedFinding.id}
                 style={{ padding: 18, borderRadius: 14, border: "1px solid #253045", background: "#0c1220" }}
@@ -1180,6 +1309,12 @@ export function CloisonsWorkspace({
           </aside>
         </div>
       </div>
+
+      {selectedFinding && !railDocked && (
+        <ReviewDrawer key={selectedFinding.id} findingId={selectedFinding.id} title={selectedFinding.titre} onClose={closeReview}>
+          <RailPanel key={selectedFinding.id} finding={selectedFinding} decisions={decisions} onDecision={handleDecision} />
+        </ReviewDrawer>
+      )}
     </div>
   );
 }

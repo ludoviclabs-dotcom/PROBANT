@@ -1,3 +1,70 @@
+# Handoff — Revue par cloison : liste des silos lisible à 390, 1024 et 1440 px (2026-10-14)
+
+**Base.** Défaut relevé sur `main` `663ceb1` et dans les captures du lot bordures (`bordures-captures/apres/cloisons-390-long.jpg`, `cloisons-1024.jpg`). L'affichage C05 à préserver (`data-effects-summary`, « Résultat − 145 000 € », `cloisons-effects.test.tsx`, `e2e/c05-effets-partages.spec.ts`) n'existait au départ que sur la PR #79, alors ouverte : branche `claude/cloisons-silos-lisibles` **empilée** sur `origin/claude/risk-incidence-deduplication-2a5d3f` (départ `a392393`, rebasée sur `38a698d` — correctif de schéma de la revue Codex — en cours de lot, sans conflit). Worktree `blissful-nash-5afb47`, checkout propre au départ. Un seul fichier applicatif modifié : `components/probant/CloisonsWorkspace.tsx`. La PR #79 a depuis été fusionnée (`main` `df94c1f`, arbre identique à `38a698d`) : la PR de ce lot cible `main`. Aucune fusion, aucun déploiement manuel.
+
+## Cause
+
+| Défaut | Où | Effet mesuré (build de production, dossier démo) |
+|---|---|---|
+| Panneau de revue `width: 406; flexShrink: 0` dans un corps `display: flex` | corps de `CloisonsWorkspace` | zone utile 338 px à 390, 732 px à 1024 ; il restait 32 px et 306 px à la liste ; à 390 le panneau débordait : `<main>` défilait 450 / 390 (le document restait à 390 car `<main>` défile dans son cadre) |
+| Ligne de silo entièrement insécable (libellé en ellipse, puce de gravité, effet `minWidth: 94`, tous `nowrap`) | bouton de ligne | ≈ 453 px incompressibles rognés par le cadre `overflow: hidden` : 28 lignes sur 28 à 390 et 1024 (« Immobilisat… », « 1 co… ») |
+| Silo ouvert en deux colonnes quelle que soit la largeur | `SiloBody` | cartes de constat de 110 px (1024) et 28 px (390), titre passé sous « Analyser » (6 / 6) ; montants coupés sur trois lignes (« 40 / 000 / € », `formatEur` produit des espaces sécables) |
+| Menu de filtre ancré à gauche | `FilterDropdown` | sonde à 1024 sur le build intermédiaire : menu « Nature » ouvert → `<main>` 837 / 784 ; la barre d'outils n'ayant pas changé, défaut antérieur par déduction (non mesuré sur la base) |
+
+## Changements (`components/probant/CloisonsWorkspace.tsx`)
+
+- **Corps** : liste pleine largeur, panneau de revue rangé à droite seulement à partir de 1400 px de fenêtre (`RAIL_DOCK_QUERY`, classes `min-[1400px]:`) ; la liste garde alors ≥ 684 px, donc un silo ouvert ≥ 620 px et ses connecteurs. En dessous, l'invite « Aucun constat sélectionné » disparaît et « Analyser » ouvre le **tiroir** `ReviewDrawer` (même patron que `FindingDrawer` : voile, `role="dialog"`, `aria-modal`, `pb-drawer-in`, rendu dans `document.body`) : focus sur « Fermer le panneau de revue », Tab / Maj+Tab restent dans le tiroir, Échap, voile ou Fermer referment et rendent le focus au bouton « Analyser » du constat (`data-finding-trigger`), y compris quand le tiroir a été ouvert depuis la ligne signalée de la reconstruction (non focalisable) ou après un redimensionnement depuis le rail ancré (revue Codex PR #80). Le contenu reste le `RailPanel` existant (mêmes décisions locales, aucun calcul ajouté). Marges latérales 16 px sous 640 px.
+- **Ligne de silo** : libellé et comptes passent à la ligne (`overflowWrap: anywhere`) ; puce de gravité et effet forment un groupe qui suit le libellé quand la place le permet et passe dessous sinon ; chaque poste d'effet C05 (« Résultat − 145 000 € ») reste insécable, la liste des postes passe à la ligne entre deux postes ; « montant indéterminé » et « effet non chiffré » inchangés. `aria-expanded`, `type="button"`, `data-silo-row`.
+- **Silo ouvert** : deux colonnes seulement quand le silo mesure ≥ 620 px (même mesure et même seuil que les connecteurs), sinon la reconstruction puis les constats ; une colonne tant que la largeur n'est pas mesurée. Un point de rupture `sm:` (640 px de fenêtre) laissait ≈ 200 px par colonne à 768 px, navigation visible (revue Codex PR #80). Montants de la reconstruction insécables.
+- **Filtres** : le menu s'ouvre vers la gauche s'il dépasserait le bord droit de la fenêtre (et tient à gauche).
+- Charte graphite/indigo et palette du composant conservées ; animations existantes inchangées, celle du tiroir neutralisée par la règle globale `prefers-reduced-motion`.
+
+## Mesures avant / après (Chromium, build de production, dossier démo)
+
+« Avant » : build de `a392393` (identique à la base de départ) ; « après » : build de la branche. Relevés JSON et captures dans `docs/probant-lots/cloisons-captures/{avant,apres}/`.
+
+| Largeur | Phase | `<main>` scroll / client | Largeur des 28 lignes | Lignes rognées | Cartes sous « Analyser » | Largeur d'une carte | axe serious |
+|---|---|---|---|---|---|---|---|
+| 1440 | avant | 1200 / 1200 | 722 px | 0 | 0 / 6 | 314 px | 0 |
+| 1440 | après | 1200 / 1200 | 722 px | 0 | 0 / 6 | 314 px | 0 |
+| 1024 | avant | 784 / 784 | 306 px (contenu 453) | 28 | 6 / 6 | 110 px | 0 |
+| 1024 | après | 784 / 784 | 730 px | 0 | 0 / 6 | 318 px | 0 |
+| 390 | avant | **450 / 390** | **32 px** (contenu 453) | 28 | 6 / 6 | 28 px | 0 |
+| 390 | après | 390 / 390 | 356 px | 0 | 0 / 6 | 328 px | 0 |
+
+Document : aucun débordement global avant comme après (`<main>` absorbait le débordement). Filtres ouverts (sonde puis spec) : aucun débordement à 390, 1024, 1440 après le lot.
+
+## Tests exécutés (local, 2026-10-14, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `e2e/cloisons-mise-en-page.spec.ts` phase « avant » (build de la base) | relevés et captures enregistrés, assertions non jouées par construction |
+| `e2e/cloisons-mise-en-page.spec.ts` phase « après » à 1440, 1024, 768 et 390 : liste lisible (débordements, lignes rognées, cartes, texte des silos ouverts dans leur cadre, largeur, axe non aggravé, ancre de la visite et connecteur à 1024 / 1440, effets C05 sur les lignes), filtres ouverts, panneau ancré (1440, puis passage au tiroir par redimensionnement) ou tiroir au clavier (1024, 768, 390, ouverture par « Analyser » et par la ligne signalée), mouvement réduit | 13 réussis / 13 |
+| `e2e/c05-effets-partages.spec.ts` (Synthèse, Cloisons, Risques × 390 / 1024 / 1440) | 9 / 9 (captures redirigées hors du dépôt) |
+| `demo-journey`, `accessibility` (8 pages, dont cloisons), `partial-coverage` | tout vert sauf « la couverture partielle est affichée telle quelle », qui lit `/dashboard/synthese` avant chargement : échecs intermittents (12 / 12 puis 11 / 12 en relances × 3) — défaut de délai du spec, antérieur, hors `/dashboard/cloisons` |
+| `components/probant/__tests__/cloisons-effects.test.tsx` (C05) | 1 / 1 |
+| `components/probant/__tests__/cloisons-review-drawer.test.tsx` (tiroir, piège de focus, retour du focus y compris depuis la ligne signalée, voile, `aria-expanded`) | 4 / 4 |
+| Suite unitaire complète (`--pool=forks`) | 1 635 réussis, 0 échec ; 48 ignorés (8 fichiers de recettes PostgreSQL « durable », sans base locale : **non vérifiés** ici) |
+| Typecheck | OK |
+| Lint des fichiers touchés | 0 erreur ; 1 avertissement antérieur (`ChevronDown` inutilisé) |
+| Build de production (`next build`) | OK, 180 pages générées |
+| Sonde ponctuelle (non versionnée, build intermédiaire avec la nouvelle mise en page, avant le correctif des menus) : menus de filtre et vue « Document annoté » | « Nature » ouvert à 1024 → `<main>` 837 / 784 (d'où le correctif, ensuite couvert par le spec) ; « Document annoté » : aucun débordement à 390, 1024, 1440 |
+
+## Limites et maturité
+
+- Le point d'ancrage (1400 px) est une requête sur la **fenêtre**, calée sur la navigation latérale de 240 px (`md` et plus) ; une requête de conteneur aurait suivi la largeur réelle, mais `container-type` impose une containment dont l'effet sur l'empilement des menus et du spotlight de la visite guidée n'a pas été évalué : écartée, la page n'utilisant que des points de rupture de fenêtre. Si la navigation change de largeur, revoir la constante.
+- En mode tiroir, le voile masque la liste : la ligne signalée et son connecteur ne sont pas visibles en même temps que le panneau (compromis d'un tiroir modal). Pas de geste de balayage pour fermer.
+- Lecteur d'écran : rôles et noms posés (`dialog`, `aria-modal`, `aria-label`, `aria-expanded`) ; **non vérifié** avec NVDA / VoiceOver.
+- Captures C05 (`docs/probant-lots/c05-captures/cloisons-entete-390.jpg`) non régénérées : elles montrent l'ancienne marge de 26 px à 390 ; le spec C05 passe et ses captures ont été redirigées hors du dépôt pour ne pas modifier les preuves de la PR #79.
+- Hors périmètre, inchangés : bloc « DEMO SA / SIREN » de l'en-tête aligné à droite sous le titre à 390 et 1024 ; champ de recherche sans anneau de focus (`outline: none`, antérieur) ; import `ChevronDown` inutilisé (avertissement lint antérieur) ; vue « Document annoté » (`FinancialDocumentViewer`) non retravaillée (sonde : aucun débordement aux trois largeurs).
+- `e2e/partial-coverage.spec.ts` « la couverture partielle est affichée telle quelle » lit le texte de `/dashboard/synthese` sans attendre le chargement : un échec isolé observé (« Lecture du dossier sélectionné… »), 12 / 12 en relance ; défaut du spec, antérieur et hors lot.
+
+## Dépendances du lot suivant
+
+- Aucune : la PR #79 est fusionnée dans `main` (`df94c1f`).
+
+---
+
 # Handoff — Mission C05, second passage : projection des effets partagée (2026-10-14)
 
 **Base.** `main` `663ceb1` (fusion de la PR #78 : C05 premier passage). Branche locale `claude/risk-incidence-deduplication-2a5d3f`, worktree `quizzical-boyd-13e46a`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 fusionnés depuis. Contrat mis à jour : [docs/mission-c05/CONTRAT_EFFETS.md](../mission-c05/CONTRAT_EFFETS.md) (§0 « Une seule projection »). Aucun push, aucun déploiement.

@@ -1,0 +1,359 @@
+{
+  "document": {
+    "scrollWidth": 1024,
+    "clientWidth": 1024
+  },
+  "main": {
+    "scrollWidth": 784,
+    "clientWidth": 784
+  },
+  "rows": [
+    {
+      "label": "Immobilisations incorporelles",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Immobilisations incorporelles",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Immobilisations corporelles",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 345,
+      "clipped": [
+        "Immobilisations corporelles",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Immobilisations financières",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Immobilisations financières",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Stocks & en-cours",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 345,
+      "clipped": [
+        "Stocks & en-cours",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Créances clients",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Créances clients",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Charges constatées d'avance",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 478,
+      "clipped": [
+        "Charges constatées d'avance",
+        "1 constat",
+        "Résultat + 18 000 €"
+      ]
+    },
+    {
+      "label": "Autres créances & trésorerie",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Autres créances & trésorerie",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement créances clients",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement créances clients",
+        "5 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement stocks",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement stocks",
+        "3 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement immobilisations",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement immobilisations",
+        "3 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement bancaire",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement bancaire",
+        "2 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Capitaux propres",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Capitaux propres",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Provisions pour risques et charges",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 497,
+      "clipped": [
+        "Provisions pour risques et charges",
+        "1 constat",
+        "Résultat − 145 000 €"
+      ]
+    },
+    {
+      "label": "Dettes financières",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 345,
+      "clipped": [
+        "Dettes financières",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Dettes fournisseurs",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Dettes fournisseurs",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Dettes fiscales & sociales",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 361,
+      "clipped": [
+        "Dettes fiscales & sociales",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Produits constatés d'avance",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Produits constatés d'avance",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement fournisseurs",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement fournisseurs",
+        "3 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement capitaux propres",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement capitaux propres",
+        "2 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Chiffre d'affaires & production",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 486,
+      "clipped": [
+        "Chiffre d'affaires & production",
+        "1 constat",
+        "Résultat − 312 000 €"
+      ]
+    },
+    {
+      "label": "Achats & charges externes",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 345,
+      "clipped": [
+        "Achats & charges externes",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Charges de personnel",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 361,
+      "clipped": [
+        "Charges de personnel",
+        "1 constat"
+      ]
+    },
+    {
+      "label": "Dotations amortissements & provisions",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Dotations amortissements & provisions",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Résultat financier",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Résultat financier",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Résultat exceptionnel",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Résultat exceptionnel",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement paie",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 460,
+      "clipped": [
+        "Rapprochement paie",
+        "2 constats",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Engagements hors bilan",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 453,
+      "clipped": [
+        "Engagements hors bilan",
+        "1 constat",
+        "effet non chiffré"
+      ]
+    },
+    {
+      "label": "Rapprochement TVA & fiscalité",
+      "width": 306,
+      "clientWidth": 306,
+      "scrollWidth": 461,
+      "clipped": [
+        "Rapprochement TVA & fiscalité",
+        "2 constats",
+        "effet non chiffré"
+      ]
+    }
+  ],
+  "cards": [
+    {
+      "title": "§",
+      "width": 110,
+      "overlapping": [
+        "Frais de développement activés sans conditions démontrées"
+      ]
+    },
+    {
+      "title": "≈",
+      "width": 110,
+      "overlapping": [
+        "Écart de périmètre — BERNARD & Cie"
+      ]
+    },
+    {
+      "title": "≈",
+      "width": 110,
+      "overlapping": [
+        "Écart de périmètre — DURAND SA"
+      ]
+    },
+    {
+      "title": "≈",
+      "width": 110,
+      "overlapping": [
+        "Écart de rapprochement — LEROY SAS"
+      ]
+    },
+    {
+      "title": "§",
+      "width": 110,
+      "overlapping": [
+        "Écart d'antériorité — DUPONT SA"
+      ]
+    },
+    {
+      "title": "§",
+      "width": 110,
+      "overlapping": [
+        "Écart d'antériorité — PETIT SA"
+      ]
+    }
+  ],
+  "axeSerious": {}
+}

@@ -1,0 +1,251 @@
+{
+  "document": {
+    "scrollWidth": 1024,
+    "clientWidth": 1024
+  },
+  "main": {
+    "scrollWidth": 784,
+    "clientWidth": 784
+  },
+  "rows": [
+    {
+      "label": "Immobilisations incorporelles",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Immobilisations corporelles",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Immobilisations financières",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Stocks & en-cours",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Créances clients",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Charges constatées d'avance",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Autres créances & trésorerie",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement créances clients",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement stocks",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement immobilisations",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement bancaire",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Capitaux propres",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Provisions pour risques et charges",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Dettes financières",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Dettes fournisseurs",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Dettes fiscales & sociales",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Produits constatés d'avance",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement fournisseurs",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement capitaux propres",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Chiffre d'affaires & production",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Achats & charges externes",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Charges de personnel",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Dotations amortissements & provisions",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Résultat financier",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Résultat exceptionnel",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement paie",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Engagements hors bilan",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    },
+    {
+      "label": "Rapprochement TVA & fiscalité",
+      "width": 730,
+      "clientWidth": 730,
+      "scrollWidth": 730,
+      "clipped": []
+    }
+  ],
+  "cards": [
+    {
+      "title": "§",
+      "width": 318,
+      "overlapping": []
+    },
+    {
+      "title": "≈",
+      "width": 318,
+      "overlapping": []
+    },
+    {
+      "title": "≈",
+      "width": 318,
+      "overlapping": []
+    },
+    {
+      "title": "≈",
+      "width": 318,
+      "overlapping": []
+    },
+    {
+      "title": "§",
+      "width": 318,
+      "overlapping": []
+    },
+    {
+      "title": "§",
+      "width": 318,
+      "overlapping": []
+    }
+  ],
+  "bodies": [
+    {
+      "silo": "Immobilisations incorporelles",
+      "clipped": []
+    },
+    {
+      "silo": "Rapprochement créances clients",
+      "clipped": []
+    }
+  ],
+  "axeSerious": {}
+}
