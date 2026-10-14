@@ -34,6 +34,9 @@
 import type { Finding, FauxPositifRisk } from "@/lib/canonical-model/finding";
 import type { AuditCycle } from "@/lib/audit-cycles/types";
 import type { MaterialityThresholds } from "@/lib/audit/materiality";
+import { isEurSignalWithoutEffect, projectExposure, restrictExposure, type ScopedExposure } from "@/lib/synthesis/exposure";
+import { scopedEffectItems } from "@/lib/synthesis/effect-labels";
+import type { ExposureDimension } from "@/lib/synthesis/types";
 import type {
   AxisScore,
   CriticityBand,
@@ -59,18 +62,17 @@ function clamp(n: number, lo: number, hi: number): number {
   return n;
 }
 
-/**
- * Incidence chiffrée d'un constat (C05) : UNIQUEMENT son effet financier explicite, en euros.
- * Un écart |constaté − seuil| en EUR n'est pas un impact comptable : il reste un signal,
- * sans incidence monétaire inférée (`isEurSignalWithoutEffect`).
- */
-export function explicitEffectEur(f: Finding): number {
-  return f.financialEffect ? f.financialEffect.amountCents / 100 : 0;
-}
+/** Signal mesuré en EUR sans effet explicite (défini avec la projection partagée) : priorité qualitative, effet comptable inconnu. */
+export { isEurSignalWithoutEffect };
 
-/** Signal mesuré en EUR sans effet explicite : influe sur la priorité qualitative, effet comptable inconnu. */
-export function isEurSignalWithoutEffect(f: Finding): boolean {
-  return !f.financialEffect && f.mesure.unite === "EUR" && f.mesure.constate !== f.mesure.seuil;
+/**
+ * Lecture des effets d'un ensemble de constats dans la projection PARTAGÉE avec la Synthèse
+ * (`lib/synthesis/exposure`). Sans projection fournie, elle est construite sur ces seuls constats
+ * (statut porté) : mêmes règles, aucun moteur parallèle.
+ */
+export function riskEffects(findings: Finding[], exposure?: Pick<ExposureDimension, "clusters">): ScopedExposure {
+  const source = exposure ?? projectExposure(findings, "risk-mapping").exposure;
+  return restrictExposure(source, findings.map((f) => f.id));
 }
 
 /**
@@ -87,18 +89,25 @@ function fauxPositifFiabilite(f: Finding): number {
   return f.fauxPositifRisk ? FP_FIABILITE[f.fauxPositifRisk] : FP_FIABILITE.moyen;
 }
 
+const eurLabel = (cents: number) => `${Math.round(cents / 100).toLocaleString("fr-FR")} €`;
+
 /**
  * Gravité (100 % auto). `0.55·gSeverity + 0.35·gIncidence + 0.10·gSignal`.
  *   gSeverity  = 100·ΣWSEV / (ΣWSEV + K_SEV)
- *   gIncidence = 100·clamp(Σ effets explicites (EUR) / significativité, 0, 3) / 3
- *   gSignal    = 100·n / (n + K_DENS), n = signaux EUR sans effet explicite (priorité
- *                qualitative seulement : aucun montant n'en est inféré)
+ *   gIncidence = 100·clamp(E / significativité, 0, 3) / 3, où E est l'exposition initiale du
+ *                POSTE ET SENS le plus exposé dans la projection partagée avec la Synthèse
+ *                (répétitions exactes comptées une fois, versions remplacées et constats écartés
+ *                exclus) : les postes et les sens ne sont jamais additionnés entre eux.
+ *   gSignal    = 100·n / (n + K_DENS), n = signaux à effet comptable inconnu : signaux EUR sans
+ *                effet explicite + groupes d'effets indéterminés (conflit, chevauchement). Priorité
+ *                qualitative seulement : aucun montant n'en est inféré.
  * Sans base de matérialité, la composante incidence est neutralisée et un
  * driver le signale (aucune base inventée). Indice interne, jamais une probabilité calibrée.
  */
 export function scoreGravite(
   findings: Finding[],
   materiality: MaterialityThresholds | null,
+  exposure?: Pick<ExposureDimension, "clusters">,
 ): AxisScore {
   const drivers: RiskDriver[] = [];
 
@@ -118,9 +127,10 @@ export function scoreGravite(
     });
   }
 
-  let gIncidence = 0;
+  const effects = riskEffects(findings, exposure);
   const eurSignals = findings.filter(isEurSignalWithoutEffect);
-  const gSignal = eurSignals.length > 0 ? (100 * eurSignals.length) / (eurSignals.length + K_DENS) : 0;
+  const unknownCount = eurSignals.length + effects.indeterminateClusters.length;
+  const gSignal = unknownCount > 0 ? (100 * unknownCount) / (unknownCount + K_DENS) : 0;
   if (eurSignals.length > 0) {
     drivers.push({
       label: "Signaux EUR sans effet explicite (incidence comptable inconnue)",
@@ -130,20 +140,41 @@ export function scoreGravite(
       findingIds: eurSignals.map((f) => f.id),
     });
   }
+  if (effects.indeterminateClusters.length > 0) {
+    const groups = effects.indeterminateClusters;
+    drivers.push({
+      label: "Effets à montant indéterminé (conflit ou chevauchement)",
+      detail:
+        `${groups.length} groupe(s) d'effets explicites sans agrégation déterminée (` +
+        groups.map((c) => `${c.findingIds.join(" / ")} : bornes ${eurLabel(c.boundsCents.minCents)} à ${eurLabel(c.boundsCents.maxCents)}`).join(" ; ") +
+        ") : aucun montant retenu, priorité qualitative seulement, arbitrage à documenter.",
+      findingIds: [...new Set(groups.flatMap((c) => c.findingIds))].sort(),
+    });
+  }
+
+  let gIncidence = 0;
+  const exposed = scopedEffectItems(effects);
   if (materiality && materiality.significativite > 0) {
-    const incFindings = findings.filter((f) => explicitEffectEur(f) > 0);
-    const incidence = incFindings.reduce((acc, f) => acc + explicitEffectEur(f), 0);
-    const ratio = clamp(incidence / materiality.significativite, 0, 3);
-    gIncidence = (100 * ratio) / 3;
-    if (incFindings.length > 0) {
+    if (exposed.length > 0) {
+      // Poste et sens le plus exposé ; à égalité, l'ordre canonique des postes (déterministe).
+      const top = exposed.reduce((a, b) => (b.initialCents > a.initialCents ? b : a));
+      const rawRatio = top.initialCents / 100 / materiality.significativite;
+      const ratio = clamp(rawRatio, 0, 3);
+      gIncidence = (100 * ratio) / 3;
+      const contributing = [...new Set(effects.clusters
+        .filter((c) => c.status === "determined" && c.reviewStage !== "dismissed")
+        .flatMap((c) => c.findingIds))].sort();
       drivers.push({
         label: "Effets financiers explicites vs seuil de signification",
         detail:
-          `Σ effets explicites ${Math.round(incidence).toLocaleString("fr-FR")} € ` +
-          `contre seuil ${materiality.significativite.toLocaleString("fr-FR")} € ` +
-          `(${materiality.source}) — ${(ratio * 100).toFixed(0)} % du seuil ` +
-          `(plafonné à 300 %). Même projection d'effets que la Synthèse.`,
-        findingIds: incFindings.map((f) => f.id),
+          `Poste et sens le plus exposé : ${top.label}, exposition initiale ${eurLabel(top.initialCents)} ` +
+          `contre seuil ${materiality.significativite.toLocaleString("fr-FR")} € (${materiality.source}) — ` +
+          `${(rawRatio * 100).toFixed(0)} % du seuil${rawRatio > 3 ? " (contribution à l'indice plafonnée à 300 %)" : ""}. ` +
+          (exposed.length > 1
+            ? `Autres postes et sens, non additionnés : ${exposed.filter((it) => it !== top).map((it) => `${it.label} ${eurLabel(it.initialCents)}`).join(" ; ")}. `
+            : "") +
+          "Même projection d'effets que la Synthèse : répétitions exactes comptées une fois, versions remplacées et constats écartés exclus.",
+        findingIds: contributing,
       });
     }
   } else {
@@ -307,7 +338,7 @@ export function scoreDetectabilite(findings: Finding[]): AxisScore {
   if (depasse.length > 0) {
     drivers.push({
       label: "Dépassement de seuil confirmé",
-      detail: `${depasse.length} constat(s) au-dessus du seuil de signification.`,
+      detail: `${depasse.length} constat(s) dont l'écart mesuré atteint le seuil de signification (signal de détection, pas une anomalie chiffrée).`,
       findingIds: depasse.map((f) => f.id),
     });
   }
@@ -480,8 +511,9 @@ export function scoreCycle(
   findings: Finding[],
   materiality: MaterialityThresholds | null,
   adjustment?: RiskAdjustment,
+  exposure?: Pick<ExposureDimension, "clusters">,
 ): CycleRiskScore {
-  const gravite = scoreGravite(findings, materiality);
+  const gravite = scoreGravite(findings, materiality, exposure);
   const probabiliteAuto = scoreProbabilite(cycle, findings);
   const detectabiliteAuto = scoreDetectabilite(findings);
   const exposition = scoreExposition(cycle);

@@ -15,6 +15,8 @@ import { FEC_COLUMNS } from "@/lib/canonical-model/fec";
 import { CLOISONS } from "@/lib/canonical-model/taxonomy";
 import type { Societe } from "@/lib/canonical-model";
 import { formatCents } from "@/lib/synthesis/money";
+import { restrictExposure } from "@/lib/synthesis/exposure";
+import { EFFECT_TARGET_LABEL, effectStageLabel, scopedEffectItems } from "@/lib/synthesis/effect-labels";
 import type { SynthesisSnapshot } from "@/lib/synthesis/types";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import { resolveAssertions } from "@/lib/audit/assertions";
@@ -333,40 +335,57 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
     sourceRefs: [`${NEP_500_SOURCE.title}, ${NEP_500_SOURCE.section} — ${NEP_500_SOURCE.organisme}, ${NEP_500_SOURCE.url} (lu le ${NEP_500_SOURCE.consultedOn})`],
   };
 
-  /* ── Waterfall d'exposition ──────────────────────────────────────────── */
+  /* ── Waterfall d'exposition : un pont par poste et sens, puis l'effet sur le résultat ── */
+  // Chaque pont se réconcilie au centime : détecté − répétitions − versions − hors agrégat − écarté = initial ;
+  // initial − en attente − corrigé = non corrigé (proposé + résiduel). Aucun montant n'est additionné entre
+  // postes ni entre sens ; seule la fin « effet sur le résultat » signe les sens du poste résultat (objet explicite).
   const e = s.exposure;
-  const undetermined = e.clusters.filter((c) => c.status !== "determined");
-  const undeterminedCents = e.exposureBoundsCents.maxCents - e.determinedExposureCents;
   const resultNet = e.netByTarget.find((n) => n.target === "resultat");
   const otherTargets = e.netByTarget.filter((n) => n.target !== "resultat");
-  const steps: WaterfallStep[] = [
-    { id: "gross", label: "Exposition brute détectée", amountCents: e.grossDetectedExposureCents, kind: "start" },
-    { id: "repeats", label: "Répétitions exactes (comptées une fois)", amountCents: -e.exactRepeatsCents, kind: "delta", note: "même identité économique et même contenu" },
-    ...(e.supersededVersionsCents
-      ? [{ id: "superseded", label: "Versions d'évaluation remplacées", amountCents: -e.supersededVersionsCents, kind: "delta" as const, note: "succession de versions démontrée : seule la dernière version compte" }]
-      : []),
-    ...(undetermined.length
-      ? [{ id: "undetermined", label: `Groupes indéterminés (${undetermined.length}) hors agrégat`, amountCents: -undeterminedCents, kind: "delta" as const, note: `conflits ou chevauchements sans allocation : bornes totales ${formatCents(e.exposureBoundsCents.minCents)} à ${formatCents(e.exposureBoundsCents.maxCents)}, détail conservé` }]
-      : []),
-    { id: "determined", label: "Exposition déterminée", amountCents: e.determinedExposureCents, kind: "subtotal" },
-    { id: "dismissed", label: "Constats écartés en revue", amountCents: -e.dismissedExposureCents, kind: "delta" },
-    { id: "pending", label: "En attente d'arbitrage", amountCents: -e.pendingReviewExposureCents, kind: "delta", note: "ni confirmé ni écarté — hors ajustement à ce stade" },
-    { id: "proposed-resultat", label: "Ajustement proposé — résultat (signé)", amountCents: resultNet?.proposedSignedCents ?? 0, kind: "subtotal", note: otherTargets.length ? `${otherTargets.map((n) => `${n.target} ${formatCents(n.proposedSignedCents)}`).join(", ")} : autres postes, non additionnés` : "augmentation +, diminution − ; aucun autre poste ajusté" },
-    { id: "tax", label: `Effet d'impôt — résultat (${resultNet ? (resultNet.taxStatus === "known" ? "connu" : resultNet.taxStatus === "partial" ? "partiellement connu" : "inconnu") : "aucun ajustement"})`, amountCents: resultNet && resultNet.taxStatus === "unknown" ? null : -(resultNet?.taxKnownCents ?? 0), kind: "delta", note: resultNet && resultNet.taxStatus !== "known" ? "au moins un ajustement du résultat sans incidence fiscale établie (taux ou qualification absents)" : "taux explicite et qualification fiscale pour chaque effet du résultat" },
-    { id: "net", label: "Effet net sur le résultat après impôt", amountCents: resultNet ? resultNet.netAfterKnownTaxCents : 0, kind: "total", note: resultNet && resultNet.netAfterKnownTaxCents === null ? `inconnu ; sous-total partiel sur les seuls effets qualifiés : ${formatCents(resultNet.partialNetKnownSubsetCents)}` : undefined },
-  ];
+  const clusterById = new Map(e.clusters.map((c) => [c.clusterId, c]));
+  /** Déduction affichée : jamais de zéro négatif (« −0,00 € »). */
+  const neg = (cents: number) => (cents === 0 ? 0 : -cents);
+  const steps: WaterfallStep[] = [];
+  for (const st of e.stages) {
+    const group = effectStageLabel(st);
+    const key = `${st.target}-${st.direction}`;
+    const add = (step: Omit<WaterfallStep, "group">) => steps.push({ ...step, id: `${key}-${step.id}`, group });
+    add({ id: "detected", label: "Effets explicites détectés", amountCents: st.detectedCents, kind: "start" });
+    if (st.exactRepeatsCents) add({ id: "repeats", label: "Répétitions exactes (comptées une fois)", amountCents: neg(st.exactRepeatsCents), kind: "delta", note: "même identité économique et même contenu" });
+    if (st.supersededCents) add({ id: "superseded", label: "Versions d'évaluation remplacées", amountCents: neg(st.supersededCents), kind: "delta", note: "succession de versions démontrée : seule la dernière version compte" });
+    if (st.undeterminedCents) {
+      const groups = st.indeterminateClusterIds.map((id) => clusterById.get(id)!);
+      add({ id: "undetermined", label: `Groupes indéterminés (${groups.length}) hors agrégat`, amountCents: neg(st.undeterminedCents), kind: "delta", note: `conflit ou chevauchement sans allocation, détail conservé : ${groups.map((c) => `${c.findingIds.join(" / ")} bornes ${formatCents(c.boundsCents.minCents)} à ${formatCents(c.boundsCents.maxCents)}`).join(" ; ")}` });
+    }
+    add({ id: "dismissed", label: "Constats écartés en revue", amountCents: neg(st.dismissedCents), kind: "delta" });
+    add({ id: "initial", label: "Exposition initiale", amountCents: st.initialCents, kind: "subtotal" });
+    add({ id: "pending", label: "En attente d'arbitrage", amountCents: neg(st.pendingCents), kind: "delta", note: "ni confirmé ni écarté — hors ajustement à ce stade" });
+    add({ id: "corrected", label: "Correction comptabilisée", amountCents: neg(st.correctedCents), kind: "delta", note: "hors anomalies non corrigées" });
+    add({ id: "uncorrected", label: "Anomalies non corrigées", amountCents: st.proposedCents + st.residualCents, kind: "subtotal", note: `ajustement proposé ${formatCents(st.proposedCents)} + anomalie résiduelle après correction partielle ${formatCents(st.residualCents)}` });
+  }
+  const RESULT_GROUP = "Effet sur le résultat";
+  const taxLabel = resultNet ? (resultNet.taxStatus === "known" ? "connu" : resultNet.taxStatus === "partial" ? "partiellement connu" : "inconnu") : "aucun ajustement";
+  steps.push({ id: "uncorrected-resultat", group: RESULT_GROUP, label: "Anomalies non corrigées — résultat (signé)", amountCents: resultNet?.uncorrectedSignedCents ?? 0, kind: "start", note: `augmentations +, diminutions − du seul poste résultat${otherTargets.length ? ` ; ${otherTargets.map((n) => `${EFFECT_TARGET_LABEL[n.target]} ${formatCents(n.uncorrectedSignedCents)}`).join(", ")} : autres postes, non additionnés` : ""}` });
+  steps.push({ id: "tax", group: RESULT_GROUP, label: `Effet d'impôt — résultat (${taxLabel})`, amountCents: resultNet && resultNet.taxStatus === "unknown" ? null : neg(resultNet?.taxKnownCents ?? 0), kind: "delta", note: !resultNet ? "aucun ajustement proposé ni anomalie résiduelle sur le résultat" : resultNet.taxStatus !== "known" ? "au moins un ajustement du résultat sans incidence fiscale établie (taux ou qualification absents)" : "taux explicite et qualification fiscale pour chaque effet du résultat" });
+  steps.push({ id: "net", group: RESULT_GROUP, label: "Effet net sur le résultat après impôt", amountCents: resultNet ? resultNet.netAfterKnownTaxCents : 0, kind: "total", note: resultNet && resultNet.netAfterKnownTaxCents === null ? `inconnu ; sous-total partiel sur les seuls effets qualifiés : ${formatCents(resultNet.partialNetKnownSubsetCents)}` : undefined });
+  const undeterminedCount = e.clusters.filter((c) => c.status !== "determined").length;
+  const bridgeSummary = e.stages.length
+    ? e.stages.map((st) => `${effectStageLabel(st)} : détecté ${formatCents(st.detectedCents)}, exposition initiale ${formatCents(st.initialCents)}, anomalies non corrigées ${formatCents(st.proposedCents + st.residualCents)}${st.indeterminateClusterIds.length ? ` (${st.indeterminateClusterIds.length} groupe(s) indéterminé(s) hors agrégat)` : ""}`).join(" ; ")
+    : "Aucun effet financier explicite";
+  const netSummary = resultNet ? (resultNet.netAfterKnownTaxCents !== null ? formatCents(resultNet.netAfterKnownTaxCents) : "inconnu") : formatCents(0);
   const waterfall: SynthesisDatasets["waterfall"] = {
     id: "exposure-waterfall",
-    title: "De l'exposition brute à l'effet net",
-    summary: `Exposition brute ${formatCents(e.grossDetectedExposureCents)}, répétitions exactes ${formatCents(e.exactRepeatsCents)}, déterminée ${formatCents(e.determinedExposureCents)}${e.aggregationStatus === "indeterminate" ? ` (bornes totales ${formatCents(e.exposureBoundsCents.minCents)} à ${formatCents(e.exposureBoundsCents.maxCents)}, ${undetermined.length} groupe(s) à arbitrer)` : ""}, écartée ${formatCents(e.dismissedExposureCents)}, en attente ${formatCents(e.pendingReviewExposureCents)}. Ajustement proposé sur le résultat ${formatCents(resultNet?.proposedSignedCents ?? 0)}, effet d'impôt sur le résultat ${resultNet ? (resultNet.taxStatus === "known" ? formatCents(resultNet.taxKnownCents) : resultNet.taxStatus === "partial" ? "partiellement connu" : "inconnu") : "sans objet"}, net après impôt ${resultNet && resultNet.netAfterKnownTaxCents !== null ? formatCents(resultNet.netAfterKnownTaxCents) : "inconnu"}. ${e.findingsWithoutEffect.length} constat(s) sans effet financier explicite sont hors de ce graphique.`,
+    title: "De l'exposition détectée à l'effet net",
+    summary: `${bridgeSummary}. Postes et sens jamais additionnés entre eux${undeterminedCount ? ` ; ${undeterminedCount} groupe(s) à arbitrer` : ""}. Effet sur le résultat : anomalies non corrigées ${formatCents(resultNet?.uncorrectedSignedCents ?? 0)}, effet d'impôt ${resultNet ? (resultNet.taxStatus === "known" ? formatCents(resultNet.taxKnownCents) : taxLabel) : "sans objet"}, net après impôt ${netSummary}. ${e.findingsWithoutEffect.length} constat(s) sans effet financier explicite sont hors de ce graphique.`,
     columns: [
+      { key: "groupe", label: "Poste et sens" },
       { key: "etape", label: "Étape" },
       { key: "montant", label: "Montant", unit: "€", align: "right" },
       { key: "note", label: "Note" },
     ],
     rows: steps.map((st) => ({
       id: st.id,
-      cells: { etape: st.label, montant: st.amountCents === null ? "inconnu" : formatCents(st.amountCents), note: st.note ?? "" },
+      cells: { groupe: st.group ?? "", etape: st.label, montant: st.amountCents === null ? "inconnu" : formatCents(st.amountCents), note: st.note ?? "" },
       emphasis: st.kind === "total" ? "positive" : st.kind === "subtotal" ? "muted" : undefined,
     })),
     steps,
@@ -375,7 +394,7 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
       "exposure.netByTarget",
     ],
     methodology:
-      "Montants en centimes entiers issus du moteur de Synthèse. Seuls les constats portant un effet financier explicite contribuent. Répétitions exactes comptées une fois ; même identité à contenus distincts retenue à sa dernière version démontrée, sinon conflit ; écritures partiellement communes sans allocation : indéterminé avec bornes, hors agrégat. Le net n'est établi que si chaque effet porte un taux explicite et une qualification fiscale ; sinon il est inconnu et un sous-total partiel est nommé. Les postes ne sont jamais additionnés entre eux.",
+      "Montants en centimes entiers issus de la projection partagée des effets (lib/synthesis/exposure), la même que lisent la cartographie des risques et la revue par cloison. Seuls les constats portant un effet financier explicite contribuent. Un pont par poste et par sens : répétitions exactes comptées une fois ; même identité à contenus distincts retenue à sa dernière version démontrée, sinon conflit ; écritures partiellement communes sans allocation : indéterminé, hors agrégat, bornes et détail conservés ; une correction comptabilisée n'alimente jamais les anomalies non corrigées. Seul le poste résultat est signé (augmentations moins diminutions) pour l'effet net ; le net n'est établi que si chaque effet porte un taux explicite et une qualification fiscale, sinon il est inconnu et un sous-total partiel est nommé.",
   };
 
   /* ── Revue ───────────────────────────────────────────────────────────── */
@@ -399,23 +418,28 @@ export function buildSynthesisDatasets(inputs: BuildInputs): SynthesisDatasets {
   const concentration: VisualizationDataset = {
     id: "finding-concentration",
     title: "Concentration des constats et de l'exposition",
-    summary: `Répartition des ${s.risk.totalFindings} constats et de l'exposition dédupliquée par cloison.`,
+    summary: `Répartition des ${s.risk.totalFindings} constats par cloison et exposition initiale par poste et sens (projection partagée : un groupe commun à deux cloisons figure dans chacune, les lignes ne s'additionnent pas).`,
     columns: [
       { key: "cloison", label: "Cloison" },
       ...SEVERITIES.map((sev) => ({ key: sev, label: SEVERITY_LABEL[sev], align: "right" as const })),
-      { key: "exposition", label: "Exposition", unit: "€", align: "right" },
+      { key: "exposition", label: "Exposition initiale (poste, sens)", align: "right" },
     ],
     rows: Object.entries(s.risk.matrix)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([clo, row]) => ({
-        id: clo,
-        cells: {
-          cloison: cloisonLabel(clo),
-          ...Object.fromEntries(SEVERITIES.map((sev) => [sev, row?.[sev] ?? 0])),
-          exposition: formatCents(s.exposure.byCloison[clo as keyof typeof s.exposure.byCloison] ?? 0),
-        },
-        emphasis: (row?.bloquant ?? 0) > 0 ? "critical" : undefined,
-      })),
+      .map(([clo, row]) => {
+        const scoped = restrictExposure(s.exposure, findings.filter((f) => f.cloison === clo).map((f) => f.id));
+        const items = scopedEffectItems(scoped).map((it) => `${EFFECT_TARGET_LABEL[it.target]} ${it.sign} ${formatCents(it.initialCents)}`);
+        if (scoped.indeterminateClusters.length) items.push(`${scoped.indeterminateClusters.length} groupe(s) indéterminé(s)`);
+        return {
+          id: clo,
+          cells: {
+            cloison: cloisonLabel(clo),
+            ...Object.fromEntries(SEVERITIES.map((sev) => [sev, row?.[sev] ?? 0])),
+            exposition: items.length ? items.join(" · ") : "—",
+          },
+          emphasis: (row?.bloquant ?? 0) > 0 ? ("critical" as const) : undefined,
+        };
+      }),
     sourceMetricIds: ["risk.heuristicSeverityIndex", "exposure.determinedExposureCents"],
   };
 

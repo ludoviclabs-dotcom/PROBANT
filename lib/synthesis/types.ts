@@ -136,9 +136,16 @@ export interface ExposureClusterMember {
   contentFingerprint: string;
   amountCents: number;
   direction: EffectDirection;
+  /** Poste de l'effet porté par ce membre (le pont par poste et sens se lit membre par membre). */
+  target: EffectTarget;
+  /** Cloison du constat porteur. */
+  cloison: CloisonId;
   evaluationVersion: number | null;
   role: MemberRole;
 }
+
+/** Étape de revue du représentant d'un groupe déterminé (dernier événement, sinon statut porté). */
+export type EffectReviewStage = "dismissed" | "pending" | "proposed" | "corrected";
 
 export interface ExposureClusterView {
   clusterId: string;
@@ -153,16 +160,38 @@ export interface ExposureClusterView {
   boundsCents: { minCents: number; maxCents: number };
   /** Constat dont le statut de revue gouverne le groupe (représentant retenu), ou null si indéterminé. */
   retainedFindingId: string | null;
+  /** Étape de revue du représentant retenu ; null si le groupe n'est pas déterminé. */
+  reviewStage: EffectReviewStage | null;
+  /** Part comptabilisée du montant retenu (statut corrigé ; sans détail : l'effet entier) ; null sinon. */
+  correctedCents: number | null;
   reason?: string;
   members: ExposureClusterMember[];
 }
 
 export type AmountStatus = "known" | "partial" | "unknown";
 
-/** Étapes de l'effet pour un poste et un sens : initial détecté, proposé, corrigé, résiduel. */
+/**
+ * Pont de l'effet pour UN poste et UN sens, de la détection à l'anomalie non corrigée.
+ * Invariants (centimes) :
+ *   détecté − répétitions exactes − versions remplacées − hors agrégat = déterminé ;
+ *   déterminé − écarté = initial ; initial = en attente + proposé + corrigé + résiduel.
+ * Jamais additionné entre postes ni entre sens.
+ */
 export interface EffectStage {
   target: EffectTarget;
   direction: EffectDirection;
+  /** Effets explicites détectés, avant toute déduplication. */
+  detectedCents: number;
+  /** Répétitions exactes (même identité, même contenu) : comptées une fois. */
+  exactRepeatsCents: number;
+  /** Versions d'évaluation remplacées par une succession démontrée. */
+  supersededCents: number;
+  /** Contenus des groupes en conflit ou à chevauchement : hors agrégat (bornes dans les groupes). */
+  undeterminedCents: number;
+  /** Groupes déterminés (avant revue). */
+  determinedCents: number;
+  /** Groupes déterminés écartés en revue. */
+  dismissedCents: number;
   /** Exposition initiale déterminée (hors constats écartés). */
   initialCents: number;
   /** Encore en attente d'arbitrage. */
@@ -209,8 +238,14 @@ export interface TaxIncidenceInterface {
   pendingFindingIds: string[];
 }
 
+/**
+ * Les champs scalaires ci-dessous (brut, répétitions, versions, déterminé, bornes, revu, écarté, en
+ * attente) sont des VOLUMES en valeur absolue, tous postes et sens confondus : contrôles de cohérence
+ * du pipeline, tracés, jamais présentés comme un montant comptable. Les vues et exports lisent
+ * `stages` (par poste et sens) et `netByTarget` (par poste).
+ */
 export interface ExposureDimension {
-  /** Somme brute des effets explicites détectés (avant toute déduplication). */
+  /** Somme brute des effets explicites détectés (avant toute déduplication) — volume, tous postes. */
   grossDetectedExposureCents: number;
   /** Montant des répétitions exactes écartées (même identité et même contenu). */
   exactRepeatsCents: number;
@@ -232,8 +267,7 @@ export interface ExposureDimension {
   tax: TaxEffectBlock;
   netByTarget: NetEffectByTarget[];
   taxIncidence: TaxIncidenceInterface;
-  /** Exposition déterminée ventilée par cloison. */
-  byCloison: Partial<Record<CloisonId, number>>;
+  /** Groupes d'effets ; un périmètre (cycle, silo, cloison) se lit par `restrictExposure`. */
   clusters: ExposureClusterView[];
   /** Constats SANS effet financier explicite — exclus, jamais présumés. Les signaux EUR y restent. */
   findingsWithoutEffect: string[];

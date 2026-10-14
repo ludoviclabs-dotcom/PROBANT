@@ -1,3 +1,63 @@
+# Handoff — Mission C05, second passage : projection des effets partagée (2026-10-14)
+
+**Base.** `main` `663ceb1` (fusion de la PR #78 : C05 premier passage). Branche locale `claude/risk-incidence-deduplication-2a5d3f`, worktree `quizzical-boyd-13e46a`, checkout propre au départ. Écart avec la base du diagnostic `ab8f991` : C00 à C05 fusionnés depuis. Contrat mis à jour : [docs/mission-c05/CONTRAT_EFFETS.md](../mission-c05/CONTRAT_EFFETS.md) (§0 « Une seule projection »). Aucun push, aucun déploiement.
+
+## Écarts constatés sur la base actuelle (C05 déjà fusionné)
+
+| Écart | Où | Effet |
+|---|---|---|
+| Incidence inférée `Σ |constaté − seuil|` encore affichée, calculée dans React | `CloisonsWorkspace.tsx` (`computeExpo`) : « Exposition cumulée 2,29 M€ » et un montant par silo | l'écran de revue racontait une autre histoire financière que la Synthèse |
+| Incidence inférée encore exportable | `DossierCounts.incidenceParCloison` (`computeCounts`, paquet de revue) ; `findingFinancialIncidence` (code mort) | idem, dans un type public |
+| Projection non partagée | `lib/risk-mapping/scoring.ts`, `aggregate.ts` : somme des `financialEffect` par constat | répétitions exactes et versions remplacées comptées deux fois, conflits et chevauchements additionnés, constats écartés inclus, postes et sens additionnés ; le driver affichait pourtant « Même projection d'effets que la Synthèse » |
+| Chiffre unique tous postes | waterfall (« Exposition brute / déterminée »), concentration (`byCloison`), note §5 | actif, passif et résultat, augmentations et diminutions dans un même montant |
+| Pont non réconcilié | waterfall : conflit 100 / 120 → 220 − 120 = 100 ≠ déterminé 0 ; correction partielle → proposé 0, impôt −100, net 300 | la lecture en cascade ne tombait pas juste |
+| Affichage | « − Constats écartés en revue  -0,00 € » (zéro négatif), double signe sur les déductions, note fiscale « taux explicite… » sans ajustement, rapport au seuil affiché plafonné (« 300 % du seuil (plafonné à 300 %) » pour 457 %) | lisibilité |
+
+## Changements
+
+**Projection unique** — `lib/synthesis/exposure.ts` : `projectExposure` (déplacement sans changement de règles de la section 4 du moteur : collecte, déduplication, étapes, fiscalité, net), `projectSnapshotExposure`, `reviewStatusMap`, `restrictExposure` (périmètre = groupes touchés, aucun recalcul), `summarizeStages` (pont par poste et sens lu membre par membre), `isEurSignalWithoutEffect`, ensembles de statuts (`CLOSED_REVIEW` y vit, le moteur le réexporte). Membres porteurs du poste et de la cloison ; groupes déterminés porteurs de `reviewStage` et `correctedCents`. `EffectStage` complété (détecté, répétitions, versions, hors agrégat, déterminé, écarté) ; invariants au centime documentés et testés. `byCloison` supprimé. Politique d'agrégation 2.1.0 (une répétition exacte aux décisions divergentes garde son rôle `exact_repeat`), moteur 1.2.0, schéma du snapshot 2.0.0 (structure d'`exposure` incompatible avec 1.0.0 ; revue Codex PR #79). `lib/synthesis/effect-labels.ts` : libellés partagés des postes et sens.
+
+**Risques** — `scoring.ts` : gravité sur l'exposition initiale du **poste et sens le plus exposé** de la projection partagée (rapport exact au seuil affiché, contribution plafonnée à 300 %), autres postes listés non additionnés ; groupes indéterminés en driver « Effets à montant indéterminé » (bornes, aucun montant) et dans la composante qualitative ; `explicitEffectEur` supprimé ; driver de détectabilité reformulé (« écart mesuré… signal de détection, pas une anomalie chiffrée »). `aggregate.ts` : une projection pour tous les cycles, agrégat de page `effects` (projection du dossier entier) au lieu de `totalIncidenceEur`. `RiskMappingView.tsx` : transmet `projectSnapshotExposure(snapshot)`.
+
+**Vues et exports** — `build-datasets.ts` : waterfall en ponts par poste et sens + « Effet sur le résultat » (anomalies non corrigées signées → impôt → net), réconciliés ; concentration « Exposition initiale (poste, sens) » ; aucun zéro négatif. `ExposureWaterfall.tsx` : intertitre par pont, lignes continues, déductions en valeur absolue (signe dans le libellé). `note.ts` §5 : pont par poste et sens en 12 colonnes, plus d'agrégat tous postes. `CloisonsWorkspace.tsx` / `ActiveCloisons.tsx` : en-tête « Exposition initiale par poste et sens » (+ groupes indéterminés, + signaux EUR sans effet chiffré), lignes de silo « Résultat − 145 000 € », « montant indéterminé » ou « effet non chiffré ». `dossier.ts`, `legacy-exposure-policy.ts` : incidence inférée supprimée.
+
+## Routes et interactions visibles
+
+- `/dashboard/synthese` : waterfall « De l'exposition détectée à l'effet net » (Résultat · diminution 457 000 €, Résultat · augmentation 18 000 €, effet sur le résultat 0 € tant que rien n'est arbitré), concentration par poste et sens, note §5.
+- `/dashboard/cloisons` : en-tête et lignes de silo (plus d'« Exposition cumulée »).
+- `/dashboard/risques` : panneau d'un cycle, axe Gravité (ex. Provisions : « Poste et sens le plus exposé : Résultat · diminution, exposition initiale 145 000 € contre seuil 31 700 € (ISA 320) — 457 % du seuil (contribution à l'indice plafonnée à 300 %) »).
+
+## Tests exécutés (local, 2026-10-14, données synthétiques)
+
+| Vérification | Résultat |
+|---|---|
+| `lib/synthesis/__tests__/effects-c05-shared.test.ts` (recette indépendante, projection partagée) | 15 réussis / 15 |
+| `components/probant/__tests__/cloisons-effects.test.tsx` | 1 / 1 |
+| Suites synthèse, visualisation, risques, composants de Synthèse, dossier | 204 réussis / 204 (19 fichiers) |
+| Suite unitaire complète (`--pool=forks`) | 1 632 réussis, 0 échec ; 48 ignorés (8 fichiers de recettes PostgreSQL « durable », sans base locale : **non vérifiés** ici, la CI fait foi) |
+| Typecheck | OK |
+| Lint | 0 erreur, 7 avertissements préexistants hors lot |
+| `e2e/c05-effets-partages.spec.ts` (Synthèse, Cloisons, Risques × 390 / 1024 / 1440) sur `next dev` | 9 / 9 serveur chaud ; premier passage à froid : 4 échecs de délai (« Lecture du dossier sélectionné… »), pas d'assertion fausse |
+| Build de production (`next build`) | OK, 180 pages générées |
+| Sur le build de production : `c05-effets-partages` (× 3 largeurs), `demo-journey`, `accessibility`, `c00-layout`, `c02-finition`, `c03-assertions` | 47 réussis / 47 (captures C02/C03 redirigées hors du dépôt, captures C05 régénérées) |
+
+
+## Limites et maturité
+
+- Un groupe commun à deux périmètres (cycles, silos, cloisons) figure dans chacun : les sous-totaux de périmètres ne s'additionnent pas ; seul le dossier entier est dédupliqué globalement (dit dans les résumés des vues).
+- La gravité retient l'exposition initiale, corrections comprises (l'erreur a existé) ; ce n'est pas une vue d'anomalies non corrigées. Choix interne, non normatif.
+- Le poste et sens le plus exposé comme objet de la gravité est un choix d'indice interne (heuristique, jamais une probabilité calibrée), qui évite d'additionner les deux jambes d'une même écriture.
+- L'allocation par ligne d'écriture n'est toujours pas modélisée (chevauchements indéterminés) ; la différence temporaire attend C10 (`taxIncidence`).
+- Le journal de clôture (Mission 19, `closing-evaluate.ts`) totalise des anomalies sans poste ni sens : modèle distinct, non touché.
+- Défaut de mise en page antérieur, non corrigé ici : à 390 et 1024 px, la colonne des silos de la revue par cloison est écrasée par le panneau de détail (déjà visible dans les captures du 13/10) ; tâche distincte proposée.
+
+## Dépendances du lot suivant
+
+- C10 : brancher `taxIncidence` et, le cas échéant, l'impôt des postes de bilan.
+- Producteurs d'effets : `economicIdentity`, `evaluationVersion` / `supersedesFindingId`, `correction`, `taxQualification`.
+
+---
+
 # Handoff — Mission C05 : incidence du risque, effets et doublons (2026-10-14)
 
 **Base.** `main` `3b02468`. Branche locale `claude/c05-effets-doublons`, worktree `cockpit-fiscalite-dashboard-1c1ba9`. Contrat : [docs/mission-c05/CONTRAT_EFFETS.md](../mission-c05/CONTRAT_EFFETS.md). Aucun déploiement.

@@ -18,13 +18,13 @@
 import type { DossierSnapshot } from "@/lib/canonical-model";
 import type { Finding, Severity, FindingFamily } from "@/lib/canonical-model/finding";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
-import { reviewEventsDigest, statusAfterReviewEvents } from "@/lib/dossier/review";
+import { reviewEventsDigest } from "@/lib/dossier/review";
 import { canonicalCompare, canonicalJson, sha256Hex } from "./canonical";
-import { applyRatePct, sumCents } from "./money";
 import {
   AGGREGATION_POLICY,
-  collectEffects,
-  deduplicateEffects,
+  CLOSED_REVIEW,
+  projectExposure,
+  reviewStatusMap,
 } from "./exposure";
 import type {
   AdmissibilityDimension,
@@ -33,13 +33,6 @@ import type {
   CoveragePopulation,
   CoveragePopulationStatus,
   EvidenceBlock,
-  ExposureDimension,
-  EffectStage,
-  EffectTarget,
-  EffectDirection,
-  AmountStatus,
-  TaxEffectBlock,
-  NetEffectByTarget,
   Limitation,
   ReviewDimension,
   RiskDimension,
@@ -47,9 +40,10 @@ import type {
   Verdict,
 } from "./types";
 
-export const SYNTHESIS_SCHEMA_VERSION = "1.0.0";
-export const SYNTHESIS_ENGINE_VERSION = "1.1.0";
-export const SYNTHESIS_POLICY_VERSION = "2.0.0";
+/** 2.0.0 (C05, second passage) : `exposure.byCloison` retiré ; `EffectStage` (pont), membres (poste, cloison) et groupes (étape de revue) enrichis. */
+export const SYNTHESIS_SCHEMA_VERSION = "2.0.0";
+export const SYNTHESIS_ENGINE_VERSION = "1.2.0";
+export const SYNTHESIS_POLICY_VERSION = "2.1.0";
 
 /**
  * Seuils de la politique de couverture. Bornes exactes documentées :
@@ -58,11 +52,8 @@ export const SYNTHESIS_POLICY_VERSION = "2.0.0";
  */
 export const COVERAGE_SUBSTANTIAL_MIN = 0.95;
 
-/** Statuts de revue considérés comme clos (alignés sur lib/dossier/review). */
-/** Statuts de revue qui ferment un constat (partagé avec le registre des cycles). */
-export const CLOSED_REVIEW = new Set([
-  "valide", "ecarte", "corrige", "confirmed", "dismissed", "corrected", "superseded",
-]);
+/** Statuts de revue qui ferment un constat — définis avec la projection des effets, partagés avec le registre des cycles. */
+export { CLOSED_REVIEW };
 
 export interface SynthesisOptions {
   /** Horloge injectée — ISO 8601. Jamais de Date.now() dans le moteur. */
@@ -200,9 +191,7 @@ export function buildSynthesisSnapshot(
 
   // Statut de revue de chaque constat (dernier événement, sinon statut porté
   // par le constat) — calculé une fois, partagé par Risk, Exposure et Review.
-  const statusOf = new Map<string, string>(
-    findings.map((f) => [f.id, statusAfterReviewEvents(f, input.reviewEvents)]),
-  );
+  const statusOf = reviewStatusMap(findings, input.reviewEvents);
 
   /* ── 3. Risk ───────────────────────────────────────────────────────────── */
   const bySeverity = Object.fromEntries(SEVERITIES.map((s) => [s, 0])) as Record<Severity, number>;
@@ -268,125 +257,10 @@ export function buildSynthesisSnapshot(
       "HEURISTIQUE historique 100·W/(W+52), conservée comme signal subordonné. N'est jamais le verdict.",
   });
 
-  /* ── 4. Exposure (C05) ────────────────────────────────────────────────── */
-  const { records, withoutEffect } = collectEffects(findings, input.dossier.fecFingerprint, statusOf);
-  const dedup = deduplicateEffects(records);
-  const recordOf = new Map(records.map((r) => [r.findingId, r]));
-  const DISMISSED_REVIEW = new Set(["ecarte", "dismissed", "superseded"]);
-  const CORRECTED_REVIEW = new Set(["corrige", "corrected"]);
-  const PROPOSED_REVIEW = new Set(["valide", "confirmed"]);
-  const signed = (cents: number, direction: EffectDirection) => (direction === "decrease" ? -cents : cents);
-
-  const reviewedParts: number[] = [];
-  const dismissedParts: number[] = [];
-  const pendingParts: number[] = [];
-  const stageMap = new Map<string, EffectStage>();
-  const stageOf = (target: EffectTarget, direction: EffectDirection): EffectStage => {
-    const key = `${target}|${direction}`;
-    let st = stageMap.get(key);
-    if (!st) {
-      st = { target, direction, initialCents: 0, pendingCents: 0, proposedCents: 0, correctedCents: 0, residualCents: 0, indeterminateClusterIds: [] };
-      stageMap.set(key, st);
-    }
-    return st;
-  };
-  /** Effets d'ajustement (proposés ou résiduels après correction partielle) soumis à l'incidence fiscale. */
-  const adjustments: { findingId: string; target: EffectTarget; signedCents: number; proposed: boolean }[] = [];
-
-  for (const cluster of dedup.clusters) {
-    if (cluster.status !== "determined" || cluster.retainedFindingId === null) {
-      // Indéterminé ou en conflit : aucun montant n'alimente une étape ; le détail et les bornes restent dans le cluster.
-      const dirs = new Set(cluster.members.map((m) => m.direction));
-      for (const d of dirs) stageOf(cluster.target, d).indeterminateClusterIds.push(cluster.clusterId);
-      continue;
-    }
-    const r = recordOf.get(cluster.retainedFindingId)!;
-    const amount = cluster.retainedCents ?? 0;
-    const allClosed = cluster.findingIds.every((id) => CLOSED_REVIEW.has(statusOf.get(id) ?? "en_attente"));
-    if (allClosed) reviewedParts.push(amount);
-    const st = statusOf.get(r.findingId) ?? "en_attente";
-    if (DISMISSED_REVIEW.has(st)) {
-      dismissedParts.push(amount);
-      continue;
-    }
-    const stage = stageOf(cluster.target, r.effect.direction);
-    stage.initialCents += amount;
-    if (CORRECTED_REVIEW.has(st)) {
-      const corrected = r.effect.correction?.amountCents ?? amount;
-      stage.correctedCents += corrected;
-      const residual = amount - corrected;
-      stage.residualCents += residual;
-      if (residual > 0) adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(residual, r.effect.direction), proposed: false });
-    } else if (PROPOSED_REVIEW.has(st)) {
-      stage.proposedCents += amount;
-      adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(amount, r.effect.direction), proposed: true });
-    } else if (!CLOSED_REVIEW.has(st)) {
-      pendingParts.push(amount);
-      stage.pendingCents += amount;
-    }
-  }
-  const stages = [...stageMap.values()].sort((a, b) => canonicalCompare(`${a.target}|${a.direction}`, `${b.target}|${b.direction}`));
-
-  // Incidence fiscale : taux explicite ET qualification fiscale. Un taux sans qualification ne valide aucun net ;
-  // une différence temporaire attend le moteur fiscal (C10) ; sans taux, inconnu.
-  const taxKnown: { findingId: string; target: EffectTarget; taxCents: number }[] = [];
-  const taxUnknown: { findingId: string; reason: string }[] = [];
-  for (const a of adjustments) {
-    const e = recordOf.get(a.findingId)!.effect;
-    const q = e.taxQualification;
-    if (q === "non_deductible" || q === "reclassification") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: 0 });
-    else if (q === "deductible" && e.taxRatePct !== undefined) taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: applyRatePct(a.signedCents, e.taxRatePct) });
-    else if (q === "temporary_difference") taxUnknown.push({ findingId: a.findingId, reason: "différence temporaire : incidence fiscale à calculer par le moteur fiscal (scénario avant/après), non disponible" });
-    else if (e.taxRatePct === undefined) taxUnknown.push({ findingId: a.findingId, reason: "taux d'impôt absent : incidence fiscale inconnue" });
-    else taxUnknown.push({ findingId: a.findingId, reason: "taux explicite sans qualification fiscale (déductibilité non établie) : aucun net validé" });
-  }
-  const taxStatusOf = (known: number, unknown: number): AmountStatus => (unknown === 0 ? "known" : known === 0 ? "unknown" : "partial");
-  const tax: TaxEffectBlock = {
-    status: adjustments.length === 0 ? "known" : taxStatusOf(taxKnown.length, taxUnknown.length),
-    knownCents: sumCents(taxKnown.map((t) => t.taxCents), "effet d'impôt connu"),
-    knownFindingIds: taxKnown.map((t) => t.findingId),
-    unknown: taxUnknown,
-  };
-  const targets = [...new Set(adjustments.map((a) => a.target))].sort(canonicalCompare);
-  const netByTarget: NetEffectByTarget[] = targets.map((target) => {
-    const mine = adjustments.filter((a) => a.target === target);
-    const knownIds = new Set(taxKnown.filter((t) => t.target === target).map((t) => t.findingId));
-    const unknownCount = mine.filter((a) => !knownIds.has(a.findingId)).length;
-    const taxStatus = taxStatusOf(knownIds.size, unknownCount);
-    const uncorrectedSignedCents = sumCents(mine.map((a) => a.signedCents), `anomalies non corrigées ${target}`);
-    const proposedSignedCents = sumCents(mine.filter((a) => a.proposed).map((a) => a.signedCents), `ajustement proposé ${target}`);
-    const knownTax = sumCents(taxKnown.filter((t) => t.target === target).map((t) => t.taxCents), `impôt connu ${target}`);
-    const knownSubset = sumCents(mine.filter((a) => knownIds.has(a.findingId)).map((a) => a.signedCents), `sous-ensemble connu ${target}`);
-    return {
-      target,
-      proposedSignedCents,
-      uncorrectedSignedCents,
-      taxStatus,
-      taxKnownCents: knownTax,
-      netAfterKnownTaxCents: taxStatus === "known" ? uncorrectedSignedCents - knownTax : null,
-      partialNetKnownSubsetCents: knownSubset - knownTax,
-    };
-  });
-
-  const exposure: ExposureDimension = {
-    grossDetectedExposureCents: dedup.grossCents,
-    exactRepeatsCents: dedup.exactRepeatsCents,
-    supersededVersionsCents: dedup.supersededVersionsCents,
-    determinedExposureCents: dedup.determinedCents,
-    exposureBoundsCents: dedup.boundsCents,
-    aggregationStatus: dedup.status,
-    reviewedExposureCents: sumCents(reviewedParts, "exposition revue"),
-    dismissedExposureCents: sumCents(dismissedParts, "exposition écartée"),
-    pendingReviewExposureCents: sumCents(pendingParts, "exposition en attente"),
-    stages,
-    tax,
-    netByTarget,
-    taxIncidence: { provider: "none", method: "before_after_is_scenario", pendingFindingIds: taxUnknown.map((t) => t.findingId) },
-    byCloison: dedup.byCloison,
-    clusters: dedup.clusters,
-    findingsWithoutEffect: withoutEffect,
-    policy: AGGREGATION_POLICY,
-  };
+  /* ── 4. Exposure (C05) — projection partagée (lib/synthesis/exposure) ── */
+  const { exposure, records, dedup, adjustments, taxKnown, taxUnknown } = projectExposure(findings, input.dossier.fecFingerprint, statusOf);
+  const withoutEffect = exposure.findingsWithoutEffect;
+  const tax = exposure.tax;
   trace.push({
     metricId: "exposure.determinedExposureCents",
     formulaId: "exposure-identity-pipeline",
@@ -421,7 +295,7 @@ export function buildSynthesisSnapshot(
       taxStatus: tax.status,
     },
     excludedItems: taxUnknown.map((t) => ({ id: t.findingId, reason: t.reason })),
-    output: netByTarget.map((n) => `${n.target}: proposé ${n.proposedSignedCents}, non corrigé ${n.uncorrectedSignedCents}, net ${n.netAfterKnownTaxCents ?? "inconnu"} (${n.taxStatus})`).join(" ; ") || "aucun ajustement",
+    output: exposure.netByTarget.map((n) => `${n.target}: proposé ${n.proposedSignedCents}, non corrigé ${n.uncorrectedSignedCents}, net ${n.netAfterKnownTaxCents ?? "inconnu"} (${n.taxStatus})`).join(" ; ") || "aucun ajustement",
     unit: "cents",
     rounding: "effet d'impôt arrondi au centime par effet (applyRatePct)",
     explanation:

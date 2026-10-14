@@ -185,8 +185,6 @@ export interface DossierCounts {
   parStatut: { en_attente: number; valide: number; ecarte: number };
   bloquantesAdmissibilite: number;
   totalFindings: number;
-  /** Incidence potentielle estimÃ©e (somme |Ã©cart EUR|) par cloison. */
-  incidenceParCloison: Partial<Record<CloisonId, number>>;
 }
 
 export function allFindings(d: Dossier): Finding[] {
@@ -207,17 +205,11 @@ export function computeCounts(d: Dossier): DossierCounts {
     internal: 0,
   };
   const parStatut = { en_attente: 0, valide: 0, ecarte: 0 };
-  const incidenceParCloison: Partial<Record<CloisonId, number>> = {};
 
   for (const f of findings) {
     parSeverite[f.severity]++;
     parFamille[f.family]++;
     parStatut[f.statutRevue]++;
-    if (f.mesure.unite === "EUR") {
-      const ecart = Math.abs(f.mesure.constate - f.mesure.seuil);
-      incidenceParCloison[f.cloison] =
-        (incidenceParCloison[f.cloison] ?? 0) + ecart;
-    }
   }
 
   return {
@@ -226,7 +218,6 @@ export function computeCounts(d: Dossier): DossierCounts {
     parStatut,
     bloquantesAdmissibilite: d.admissibilite.length,
     totalFindings: findings.length,
-    incidenceParCloison,
   };
 }
 

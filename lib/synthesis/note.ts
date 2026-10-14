@@ -10,6 +10,7 @@
  */
 
 import type { Societe } from "@/lib/canonical-model";
+import { EFFECT_TARGET_LABEL as TARGET_LABELS } from "./effect-labels";
 import { formatCents } from "./money";
 import type { SynthesisSnapshot, Limitation } from "./types";
 
@@ -20,7 +21,6 @@ const SEVERITY_LABELS: [string, string][] = [
   ["informatif", "informatif(s)"],
 ];
 
-const TARGET_LABELS: Record<string, string> = { resultat: "Résultat", bilan_actif: "Bilan — actif", bilan_passif: "Bilan — passif", capitaux_propres: "Capitaux propres", presentation: "Présentation" };
 
 const LIMITATION_LABEL: Record<Limitation["code"], string> = {
   limited_upload_comparison: "Comparaison limitée aux documents fournis",
@@ -122,21 +122,14 @@ export function generateSynthesisNote(
     } contributeur(s), ${s.exposure.findingsWithoutEffect.length} constat(s) sans effet chiffré (exclus, listés en trace).`,
   );
   push();
-  push(`| Agrégat | Montant |`);
-  push(`|---|---|`);
-  push(`| Exposition brute détectée | ${formatCents(s.exposure.grossDetectedExposureCents)} |`);
-  push(`| Répétitions exactes (comptées une fois) | ${formatCents(s.exposure.exactRepeatsCents)} |`);
-  push(`| Exposition déterminée | ${formatCents(s.exposure.determinedExposureCents)}${s.exposure.aggregationStatus === "indeterminate" ? ` (bornes totales ${formatCents(s.exposure.exposureBoundsCents.minCents)} à ${formatCents(s.exposure.exposureBoundsCents.maxCents)})` : ""} |`);
-  push(`| Exposition revue | ${formatCents(s.exposure.reviewedExposureCents)} |`);
+  push(`Pont par poste et par sens (centimes exacts ; jamais additionnés entre postes ni entre sens) : détecté − répétitions exactes − versions remplacées − hors agrégat − écarté = initial ; initial = en attente + proposé + corrigé + résiduel.`);
   push();
-  push(`Effets par poste et par sens (jamais additionnés entre postes) :`);
-  push();
-  push(`| Poste | Sens | Initial | En attente | Proposé | Corrigé | Résiduel |`);
-  push(`|---|---|---|---|---|---|---|`);
+  push(`| Poste | Sens | Détecté | Répétitions exactes | Versions remplacées | Hors agrégat (indéterminé) | Écarté | Initial | En attente | Proposé | Corrigé | Résiduel |`);
+  push(`|---|---|---|---|---|---|---|---|---|---|---|---|`);
   for (const st of s.exposure.stages) {
-    push(`| ${TARGET_LABELS[st.target]} | ${st.direction === "increase" ? "augmentation" : "diminution"} | ${formatCents(st.initialCents)} | ${formatCents(st.pendingCents)} | ${formatCents(st.proposedCents)} | ${formatCents(st.correctedCents)} | ${formatCents(st.residualCents)}${st.indeterminateClusterIds.length ? ` (+ ${st.indeterminateClusterIds.length} groupe(s) indéterminé(s))` : ""} |`);
+    push(`| ${TARGET_LABELS[st.target]} | ${st.direction === "increase" ? "augmentation" : "diminution"} | ${formatCents(st.detectedCents)} | ${formatCents(st.exactRepeatsCents)} | ${formatCents(st.supersededCents)} | ${formatCents(st.undeterminedCents)}${st.indeterminateClusterIds.length ? ` (${st.indeterminateClusterIds.length} groupe(s))` : ""} | ${formatCents(st.dismissedCents)} | ${formatCents(st.initialCents)} | ${formatCents(st.pendingCents)} | ${formatCents(st.proposedCents)} | ${formatCents(st.correctedCents)} | ${formatCents(st.residualCents)} |`);
   }
-  if (s.exposure.stages.length === 0) push(`| — | — | — | — | — | — | — |`);
+  if (s.exposure.stages.length === 0) push(`| — | — | — | — | — | — | — | — | — | — | — | — |`);
   push();
   for (const n of s.exposure.netByTarget) {
     push(

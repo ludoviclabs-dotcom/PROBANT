@@ -8,12 +8,6 @@ export const LEGACY_EXPOSURE_WEIGHTS: Record<Severity, number> = {
   informatif: 0.5,
 };
 
-export function findingFinancialIncidence(finding: Finding): number {
-  return finding.mesure.unite === "EUR"
-    ? Math.abs(finding.mesure.constate - finding.mesure.seuil)
-    : 0;
-}
-
 export function computeLegacyExposureIndex(findings: Finding[]): number {
   const weighted = findings.reduce(
     (sum, finding) => sum + LEGACY_EXPOSURE_WEIGHTS[finding.severity],

@@ -24,23 +24,52 @@
  *
  * Les agrégats déterminés sont tenus par poste et par sens ; ils ne sont jamais
  * additionnés entre actif, passif et résultat.
+ *
+ * PROJECTION PARTAGÉE (C05) : `projectExposure` est l'unique calcul des effets. La Synthèse,
+ * la cartographie des risques, la revue par cloison et les exports le lisent ; un périmètre
+ * (cycle, silo, cloison) se lit par `restrictExposure`, sans recalcul ni moteur parallèle.
  */
 
+import type { DossierSnapshot } from "@/lib/canonical-model";
 import type { Finding, FinancialEffect } from "@/lib/canonical-model/finding";
 import type { CloisonId } from "@/lib/canonical-model/taxonomy";
-import { assertCents, sumCents } from "./money";
+import { statusAfterReviewEvents } from "@/lib/dossier/review";
+import { applyRatePct, assertCents, sumCents } from "./money";
 import { canonicalCompare, stableHash } from "./canonical";
 import type {
   AggregationPolicy,
+  AmountStatus,
   EffectDirection,
+  EffectReviewStage,
+  EffectStage,
   EffectTarget,
   ExposureClusterMember,
   ExposureClusterView,
+  ExposureDimension,
+  NetEffectByTarget,
+  TaxEffectBlock,
 } from "./types";
+
+/** Statuts de revue par étape (alignés sur lib/dossier/review). */
+export const DISMISSED_REVIEW = new Set(["ecarte", "dismissed", "superseded"]);
+export const CORRECTED_REVIEW = new Set(["corrige", "corrected"]);
+export const PROPOSED_REVIEW = new Set(["valide", "confirmed"]);
+/** Statuts de revue qui ferment un constat (partagé avec le moteur et le registre des cycles). */
+export const CLOSED_REVIEW = new Set([
+  "valide", "ecarte", "corrige", "confirmed", "dismissed", "corrected", "superseded",
+]);
+
+/** Étape de revue d'un statut : écarté, corrigé (comptabilisé), proposé (validé), sinon en attente. */
+export function reviewStageOf(status: string): EffectReviewStage {
+  if (DISMISSED_REVIEW.has(status)) return "dismissed";
+  if (CORRECTED_REVIEW.has(status)) return "corrected";
+  if (PROPOSED_REVIEW.has(status)) return "proposed";
+  return "pending";
+}
 
 export const AGGREGATION_POLICY: AggregationPolicy = {
   policyId: "probant-exposure-aggregation",
-  version: "2.0.0",
+  version: "2.1.0",
   exactRepeatRule: "count_once",
   sameIdentityDistinctContentRule: "version_chain_or_conflict",
   overlapRule: "indeterminate_with_bounds",
@@ -62,6 +91,14 @@ export interface EffectRecord {
   identity: string;
   /** Empreinte de contenu. */
   contentFingerprint: string;
+}
+
+/**
+ * Signal mesuré en EUR SANS effet explicite : l'écart au seuil n'est pas un impact comptable. Il peut
+ * peser sur la priorité qualitative (risques), jamais sur un montant : son effet comptable reste inconnu.
+ */
+export function isEurSignalWithoutEffect(f: Finding): boolean {
+  return !f.financialEffect && f.mesure.unite === "EUR" && f.mesure.constate !== f.mesure.seuil;
 }
 
 /** Identité économique : explicite si l'effet la porte, sinon dérivée des attributs du sous-jacent. */
@@ -152,8 +189,6 @@ export interface DeduplicationResult {
   boundsCents: { minCents: number; maxCents: number };
   status: "determined" | "indeterminate";
   clusters: ExposureClusterView[];
-  /** Ventilation par cloison de l'exposition déterminée. */
-  byCloison: Partial<Record<CloisonId, number>>;
   /** Contributions écartées (répétitions exactes, versions remplacées). Les conflits et chevauchements ne sont pas écartés : ils sont indéterminés. */
   excluded: { id: string; reason: string }[];
 }
@@ -164,6 +199,8 @@ const member = (r: EffectRecord, role: ExposureClusterMember["role"]): ExposureC
   contentFingerprint: r.contentFingerprint,
   amountCents: r.effect.amountCents,
   direction: r.effect.direction,
+  target: r.effect.target,
+  cloison: r.cloison,
   evaluationVersion: r.effect.evaluationVersion ?? null,
   role,
 });
@@ -232,9 +269,11 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     };
     // ── Étape 2 : contenus distincts sous la même identité ───────────────────
     if (reviewConflict) {
+      // Les répétitions gardent leur rôle (contenu identique, montant compté une fois) ; c'est la décision
+      // de revue qui est en conflit : le groupe n'a aucun représentant retenu.
       for (const c of contents) members.push(member(c, "conflicting"));
       const amounts = contents.map((c) => c.effect.amountCents);
-      nodes.push({ ...base, direction: new Set(contents.map((c) => c.effect.direction)).size > 1 ? "mixed" : sample.effect.direction, retained: null, minCents: Math.min(...amounts), maxCents: Math.max(...amounts), members: members.map((m) => (m.role === "exact_repeat" ? { ...m, role: "conflicting" as const } : m)), conflictReason: reviewConflict });
+      nodes.push({ ...base, direction: new Set(contents.map((c) => c.effect.direction)).size > 1 ? "mixed" : sample.effect.direction, retained: null, minCents: Math.min(...amounts), maxCents: Math.max(...amounts), members, conflictReason: reviewConflict });
       continue;
     }
     if (contents.length === 1) {
@@ -282,7 +321,6 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
   for (const n of nodes) { const root = find(n.identity); components.set(root, [...(components.get(root) ?? []), n]); }
 
   const clusters: ExposureClusterView[] = [];
-  const byCloison: Partial<Record<CloisonId, number>> = {};
   const determinedParts: number[] = [];
   const minParts: number[] = [];
   const maxParts: number[] = [];
@@ -302,12 +340,13 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     if (soleRetained) {
       const r = soleRetained;
       determinedParts.push(r.effect.amountCents);
-      byCloison[r.cloison] = (byCloison[r.cloison] ?? 0) + r.effect.amountCents;
-      clusters.push({ ...base, status: "determined", retainedCents: r.effect.amountCents, boundsCents: { minCents, maxCents }, retainedFindingId: r.findingId });
+      const reviewStage = reviewStageOf(r.reviewStatus);
+      const correctedCents = reviewStage === "corrected" ? (r.effect.correction?.amountCents ?? r.effect.amountCents) : null;
+      clusters.push({ ...base, status: "determined", retainedCents: r.effect.amountCents, boundsCents: { minCents, maxCents }, retainedFindingId: r.findingId, reviewStage, correctedCents });
       continue;
     }
     if (sorted.length === 1) {
-      clusters.push({ ...base, status: "conflict", retainedCents: null, boundsCents: { minCents, maxCents }, retainedFindingId: null, reason: sorted[0].conflictReason, members: members.map((m) => ({ ...m })) });
+      clusters.push({ ...base, status: "conflict", retainedCents: null, boundsCents: { minCents, maxCents }, retainedFindingId: null, reviewStage: null, correctedCents: null, reason: sorted[0].conflictReason, members: members.map((m) => ({ ...m })) });
       continue;
     }
     const reason = direction === "mixed"
@@ -319,6 +358,8 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
       retainedCents: null,
       boundsCents: { minCents, maxCents },
       retainedFindingId: null,
+      reviewStage: null,
+      correctedCents: null,
       reason: sorted.some((n) => n.conflictReason) ? `${reason} ; un membre est lui-même en conflit` : reason,
       members: members.map((m) => (m.role === "retained" ? { ...m, role: "overlapping" } : m)),
     });
@@ -333,7 +374,207 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     boundsCents: { minCents: sumCents(minParts, "borne basse"), maxCents: sumCents(maxParts, "borne haute") },
     status: clusters.every((c) => c.status === "determined") ? "determined" : "indeterminate",
     clusters,
-    byCloison,
     excluded,
   };
+}
+
+/* ── Pont par poste et sens ───────────────────────────────────────────────── */
+
+const emptyStage = (target: EffectTarget, direction: EffectDirection): EffectStage => ({
+  target, direction,
+  detectedCents: 0, exactRepeatsCents: 0, supersededCents: 0, undeterminedCents: 0, determinedCents: 0, dismissedCents: 0,
+  initialCents: 0, pendingCents: 0, proposedCents: 0, correctedCents: 0, residualCents: 0,
+  indeterminateClusterIds: [],
+});
+
+/**
+ * Pont par poste et sens d'un ensemble de groupes, lu membre par membre (rôle) puis groupe par groupe
+ * (étape de revue du représentant). Même fonction pour le dossier entier et pour un périmètre : un
+ * périmètre ne recalcule rien, il ne fait que choisir des groupes.
+ */
+export function summarizeStages(clusters: readonly ExposureClusterView[]): EffectStage[] {
+  const map = new Map<string, EffectStage>();
+  const at = (target: EffectTarget, direction: EffectDirection) => {
+    const key = `${target}|${direction}`;
+    let st = map.get(key);
+    if (!st) map.set(key, (st = emptyStage(target, direction)));
+    return st;
+  };
+  for (const c of clusters) {
+    for (const m of c.members) {
+      const st = at(m.target, m.direction);
+      st.detectedCents += m.amountCents;
+      if (m.role === "exact_repeat") st.exactRepeatsCents += m.amountCents;
+      else if (m.role === "superseded") st.supersededCents += m.amountCents;
+      else if (m.role === "retained") st.determinedCents += m.amountCents;
+      else {
+        st.undeterminedCents += m.amountCents;
+        if (!st.indeterminateClusterIds.includes(c.clusterId)) st.indeterminateClusterIds.push(c.clusterId);
+      }
+    }
+    if (c.status !== "determined" || c.retainedFindingId === null || c.retainedCents === null) continue;
+    const retained = c.members.find((m) => m.findingId === c.retainedFindingId && m.role === "retained")!;
+    const st = at(retained.target, retained.direction);
+    const amount = c.retainedCents;
+    if (c.reviewStage === "dismissed") { st.dismissedCents += amount; continue; }
+    st.initialCents += amount;
+    if (c.reviewStage === "corrected") {
+      const corrected = c.correctedCents ?? amount;
+      st.correctedCents += corrected;
+      st.residualCents += amount - corrected;
+    } else if (c.reviewStage === "proposed") st.proposedCents += amount;
+    else st.pendingCents += amount;
+  }
+  for (const st of map.values()) st.indeterminateClusterIds.sort(canonicalCompare);
+  return [...map.values()].sort((a, b) => canonicalCompare(`${a.target}|${a.direction}`, `${b.target}|${b.direction}`));
+}
+
+/** Lecture d'un périmètre (cycle, silo, cloison) dans la projection partagée. */
+export interface ScopedExposure {
+  /** Pont par poste et sens des groupes touchant le périmètre (chaque groupe compté une fois). */
+  stages: EffectStage[];
+  /** Groupes en conflit ou à chevauchement touchant le périmètre : aucun montant retenu, bornes conservées. */
+  indeterminateClusters: ExposureClusterView[];
+  /** Tous les groupes touchant le périmètre. */
+  clusters: ExposureClusterView[];
+}
+
+/**
+ * Restreint la projection aux groupes dont au moins un membre appartient au périmètre. Un groupe
+ * commun à deux périmètres figure dans chacun : les sous-totaux de périmètres ne s'additionnent pas,
+ * seul le dossier entier est dédupliqué globalement.
+ */
+export function restrictExposure(exposure: Pick<ExposureDimension, "clusters">, findingIds: Iterable<string>): ScopedExposure {
+  const ids = new Set(findingIds);
+  const clusters = exposure.clusters.filter((c) => c.findingIds.some((id) => ids.has(id)));
+  return {
+    stages: summarizeStages(clusters),
+    indeterminateClusters: clusters.filter((c) => c.status !== "determined"),
+    clusters,
+  };
+}
+
+/* ── Projection complète : déduplication, étapes, fiscalité, net ─────────── */
+
+/** Effet d'ajustement soumis à l'incidence fiscale : proposé, ou résiduel après correction partielle. */
+export interface EffectAdjustment {
+  findingId: string;
+  target: EffectTarget;
+  signedCents: number;
+  proposed: boolean;
+}
+
+export interface ExposureProjection {
+  exposure: ExposureDimension;
+  records: EffectRecord[];
+  dedup: DeduplicationResult;
+  adjustments: EffectAdjustment[];
+  taxKnown: { findingId: string; target: EffectTarget; taxCents: number }[];
+  taxUnknown: { findingId: string; reason: string }[];
+}
+
+const signed = (cents: number, direction: EffectDirection) => (direction === "decrease" ? -cents : cents);
+
+/**
+ * Projection unique des effets financiers explicites (C05). `statusOf` : statut de revue de chaque
+ * constat (dernier événement, sinon statut porté). Invariante à l'ordre d'entrée.
+ */
+export function projectExposure(
+  findings: Finding[],
+  sourceDocument: string,
+  statusOf?: ReadonlyMap<string, string>,
+): ExposureProjection {
+  const { records, withoutEffect } = collectEffects(findings, sourceDocument, statusOf);
+  const dedup = deduplicateEffects(records);
+  const recordOf = new Map(records.map((r) => [r.findingId, r]));
+  const stages = summarizeStages(dedup.clusters);
+
+  const reviewedParts: number[] = [];
+  const dismissedParts: number[] = [];
+  const pendingParts: number[] = [];
+  const adjustments: EffectAdjustment[] = [];
+  for (const cluster of dedup.clusters) {
+    if (cluster.status !== "determined" || cluster.retainedFindingId === null || cluster.retainedCents === null) continue;
+    const r = recordOf.get(cluster.retainedFindingId)!;
+    const amount = cluster.retainedCents;
+    if (cluster.findingIds.every((id) => CLOSED_REVIEW.has(recordOf.get(id)?.reviewStatus ?? "en_attente"))) reviewedParts.push(amount);
+    if (cluster.reviewStage === "dismissed") dismissedParts.push(amount);
+    else if (cluster.reviewStage === "pending") pendingParts.push(amount);
+    else if (cluster.reviewStage === "proposed") adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(amount, r.effect.direction), proposed: true });
+    else if (cluster.reviewStage === "corrected") {
+      const residual = amount - (cluster.correctedCents ?? amount);
+      if (residual > 0) adjustments.push({ findingId: r.findingId, target: cluster.target, signedCents: signed(residual, r.effect.direction), proposed: false });
+    }
+  }
+
+  // Incidence fiscale : taux explicite ET qualification fiscale. Un taux sans qualification ne valide aucun net ;
+  // une différence temporaire attend le moteur fiscal (C10) ; sans taux, inconnu.
+  const taxKnown: ExposureProjection["taxKnown"] = [];
+  const taxUnknown: ExposureProjection["taxUnknown"] = [];
+  for (const a of adjustments) {
+    const e = recordOf.get(a.findingId)!.effect;
+    const q = e.taxQualification;
+    if (q === "non_deductible" || q === "reclassification") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: 0 });
+    else if (q === "deductible" && e.taxRatePct !== undefined) taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: applyRatePct(a.signedCents, e.taxRatePct) });
+    else if (q === "temporary_difference") taxUnknown.push({ findingId: a.findingId, reason: "différence temporaire : incidence fiscale à calculer par le moteur fiscal (scénario avant/après), non disponible" });
+    else if (e.taxRatePct === undefined) taxUnknown.push({ findingId: a.findingId, reason: "taux d'impôt absent : incidence fiscale inconnue" });
+    else taxUnknown.push({ findingId: a.findingId, reason: "taux explicite sans qualification fiscale (déductibilité non établie) : aucun net validé" });
+  }
+  const taxStatusOf = (known: number, unknown: number): AmountStatus => (unknown === 0 ? "known" : known === 0 ? "unknown" : "partial");
+  const tax: TaxEffectBlock = {
+    status: adjustments.length === 0 ? "known" : taxStatusOf(taxKnown.length, taxUnknown.length),
+    knownCents: sumCents(taxKnown.map((t) => t.taxCents), "effet d'impôt connu"),
+    knownFindingIds: taxKnown.map((t) => t.findingId),
+    unknown: taxUnknown,
+  };
+  const targets = [...new Set(adjustments.map((a) => a.target))].sort(canonicalCompare);
+  const netByTarget: NetEffectByTarget[] = targets.map((target) => {
+    const mine = adjustments.filter((a) => a.target === target);
+    const knownIds = new Set(taxKnown.filter((t) => t.target === target).map((t) => t.findingId));
+    const unknownCount = mine.filter((a) => !knownIds.has(a.findingId)).length;
+    const taxStatus = taxStatusOf(knownIds.size, unknownCount);
+    const uncorrectedSignedCents = sumCents(mine.map((a) => a.signedCents), `anomalies non corrigées ${target}`);
+    const proposedSignedCents = sumCents(mine.filter((a) => a.proposed).map((a) => a.signedCents), `ajustement proposé ${target}`);
+    const knownTax = sumCents(taxKnown.filter((t) => t.target === target).map((t) => t.taxCents), `impôt connu ${target}`);
+    const knownSubset = sumCents(mine.filter((a) => knownIds.has(a.findingId)).map((a) => a.signedCents), `sous-ensemble connu ${target}`);
+    return {
+      target,
+      proposedSignedCents,
+      uncorrectedSignedCents,
+      taxStatus,
+      taxKnownCents: knownTax,
+      netAfterKnownTaxCents: taxStatus === "known" ? uncorrectedSignedCents - knownTax : null,
+      partialNetKnownSubsetCents: knownSubset - knownTax,
+    };
+  });
+
+  const exposure: ExposureDimension = {
+    grossDetectedExposureCents: dedup.grossCents,
+    exactRepeatsCents: dedup.exactRepeatsCents,
+    supersededVersionsCents: dedup.supersededVersionsCents,
+    determinedExposureCents: dedup.determinedCents,
+    exposureBoundsCents: dedup.boundsCents,
+    aggregationStatus: dedup.status,
+    reviewedExposureCents: sumCents(reviewedParts, "exposition revue"),
+    dismissedExposureCents: sumCents(dismissedParts, "exposition écartée"),
+    pendingReviewExposureCents: sumCents(pendingParts, "exposition en attente"),
+    stages,
+    tax,
+    netByTarget,
+    taxIncidence: { provider: "none", method: "before_after_is_scenario", pendingFindingIds: taxUnknown.map((t) => t.findingId) },
+    clusters: dedup.clusters,
+    findingsWithoutEffect: withoutEffect,
+    policy: AGGREGATION_POLICY,
+  };
+  return { exposure, records, dedup, adjustments, taxKnown, taxUnknown };
+}
+
+/** Statut de revue de chaque constat : dernier événement, sinon statut porté par le constat. */
+export function reviewStatusMap(findings: Finding[], reviewEvents: DossierSnapshot["reviewEvents"]): Map<string, string> {
+  return new Map(findings.map((f) => [f.id, statusAfterReviewEvents(f, reviewEvents)]));
+}
+
+/** Projection d'un DossierSnapshot : mêmes entrées que la Synthèse, donc mêmes groupes et mêmes montants. */
+export function projectSnapshotExposure(snapshot: Pick<DossierSnapshot, "findings" | "reviewEvents" | "dossier">): ExposureProjection {
+  return projectExposure(snapshot.findings, snapshot.dossier.fecFingerprint, reviewStatusMap(snapshot.findings, snapshot.reviewEvents));
 }
