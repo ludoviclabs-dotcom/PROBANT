@@ -9,7 +9,7 @@ Date : 14 octobre 2026. Comparaison et choix : [COMPARAISON.md](COMPARAISON.md).
 - `dossierId` et `periodId` ;
 - facultativement `capitauxId` et `capitauxVersion`, `equityId` et `equityVersion`.
 
-**Lecture.** Chaque feuille est lue par son propre runtime : son drapeau, sa session, ses droits, sa transaction et sa version exacte. Un refus de session ou de droit refuse toute la lecture. Une chaîne fermée ou indisponible est signalée, et ses décisions ne sont jamais réputées absentes. La vue n’écrit rien.
+**Lecture.** Chaque feuille est lue par son propre runtime : son drapeau, sa session, ses droits, sa transaction et sa version exacte. Un refus de session ou de droit refuse toute la lecture. Tout refus d’autorisation, y compris d’un dossier hors du périmètre de la session (`DOSSIER_NOT_FOUND`, 403), refuse la lecture avec son statut. Une chaîne fermée ou indisponible est signalée, et ses décisions ne sont jamais réputées absentes. La vue n’écrit rien.
 
 `lib/workpapers/capitaux-parcours.ts` (`buildParcours`) lit le résultat figé de chaque feuille, sans recalcul à partir des sources :
 
@@ -67,7 +67,7 @@ Garde-fous :
 
 - **Ligne remplacée.** Une ligne remplacée par une décision prise au plus tard à la clôture prend le statut `superseded`. Elle reste visible, mais n’est ni testée ni comptée.
 - **Décision en vigueur.** Elle reprend les écritures et les règlements des lignes qu’elle remplace. L’écart vaut comptabilisé de la chaîne − voté en vigueur.
-- **Amendement après la clôture.** Une modification décidée après la clôture ne change pas la décision en vigueur à la clôture ; elle est signalée.
+- **Amendement après la clôture.** Une modification décidée après la clôture ne change pas la décision en vigueur à la clôture, même si elle déclare un effet dans l’exercice. Elle est datée par sa décision (« postérieure à la clôture ») : un signal visible, hors comparaison, paiement, repères légaux et décomptes du parcours unique.
 
 ### 2.2 Paiement de la décision en vigueur
 

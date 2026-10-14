@@ -94,6 +94,13 @@ D-EXC-2 reprend la chaîne :
 
 Contrôle « décisions » : 6 lignes rapprochées sur 7, D-CAP attendant son PV. D-EXC-1 est exclue avec son motif.
 
+**Variante (amendement décidé après la clôture).** D-EXC-2 est décidée le 10/02/2027 avec un effet déclaré au 10/07/2026, sans écriture dans l’exercice ; le règlement de 30 date du 20/02/2027 :
+
+- autres réserves 200 + 146 − 50 = **296** ; capitaux propres **1 610** ;
+- D-EXC-1 reste en vigueur : comptabilisé −50, voté −50, écart 0. Elle est votée et non payée, reste **50** : le règlement porte sur la modification ;
+- D-EXC-2 est postérieure à la clôture (`not_expected`) : ni paiement comparé, ni décision comptée dans le parcours unique (exclusion dénombrée) ;
+- distributions de l’exercice pour les repères légaux : 120 + 50 = **170**.
+
 **Variante (même registre sans la colonne d’amendement).** D-EXC-1 concorde à −50. D-EXC-2 donne 20 comptabilisés − (−30) votés = **+50**, en `amount_divergent`. C’est l’« avant » corrigé.
 
 ### Classe d’instrument incertaine

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { parcoursHandler, type ParcoursRuntimes } from "../capitaux-parcours-http";
 import { parcoursViewSchema } from "../capitaux-parcours";
+import { AuthorizationDenied } from "@/lib/auth/principal";
 import { c09CapitauxRun, c09LegacyRun, c09Scope } from "./capitaux-c09-fixtures";
 
 /** C09 — the single journey reads each procedure through its own runtime: flags, sessions and exact versions are theirs. */
@@ -45,6 +46,9 @@ describe("C09 — lecture serveur du parcours unique", () => {
   it("session ou droit refusé par un runtime : toute la lecture est refusée (401 / 403)", async () => {
     expect((await parcoursHandler((await runtimes(ENABLED, { equity: new Error("SESSION_INVALID") })).r)(request())).status).toBe(401);
     expect((await parcoursHandler((await runtimes(ENABLED, { capitaux: new Error("WORKPAPER_FORBIDDEN") })).r)(request())).status).toBe(403);
+    // A dossier outside the session scope is refused by the shared authorizer (ApiError 403): never degraded into an unavailable journey.
+    const denied = await parcoursHandler((await runtimes(ENABLED, { equity: new AuthorizationDenied("DOSSIER_NOT_FOUND", "Dossier introuvable.", 403) })).r)(request());
+    expect([denied.status, (await denied.json()).error]).toEqual([403, "DOSSIER_NOT_FOUND"]);
   });
   it("un parcours indisponible n’efface pas l’autre : il est signalé, ses décisions ne sont pas réputées absentes", async () => {
     const view = parcoursViewSchema.parse(await (await parcoursHandler((await runtimes(ENABLED, { equity: new Error("Connection terminated") })).r)(request())).json());

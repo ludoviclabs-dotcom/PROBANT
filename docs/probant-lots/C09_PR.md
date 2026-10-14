@@ -63,7 +63,7 @@ Détail et choix internes : `docs/mission-c09/CONTRAT.md` § 3 et § 4.
 
 ## Validation
 
-- **Recette C09** (`capitaux-c09.test.ts`, 17 cas). Attendus posés à la main dans `docs/recette/c09/RECETTE.md`. Les six cas du prompt sont couverts :
+- **Recette C09** (`capitaux-c09.test.ts`, 18 cas). Attendus posés à la main dans `docs/recette/c09/RECETTE.md`. Les six cas du prompt sont couverts :
   - affectation sans mouvement global ;
   - distribution votée non payée ;
   - pièce absente ;
@@ -71,9 +71,9 @@ Détail et choix internes : `docs/mission-c09/CONTRAT.md` § 3 et § 4.
   - décision amendée ;
   - classe d’instrument incertaine.
 
-  Plus les variantes (registre sans colonne d’amendement, divergence entre parcours, PV ambigu, feuille 1.0.0 lue puis révisée au runtime avec refus 409 des autres commandes, anticipation sans pièce).
+  Plus les variantes (registre sans colonne d’amendement, divergence entre parcours, PV ambigu, feuille 1.0.0 lue puis révisée au runtime avec refus 409 des autres commandes, amendement décidé après la clôture, anticipation sans pièce).
 - **Modules purs** : présentation et repères légaux, 19 cas (`capitaux-presentation.test.ts`, `capitaux-legal.test.ts`).
-- **Route unique** : 5 cas (`capitaux-parcours-http.test.ts`) — drapeaux, 401 et 403, version exacte, parcours indisponible.
+- **Route unique** : 5 cas (`capitaux-parcours-http.test.ts`) — drapeaux, 401 et 403 (dont un dossier hors périmètre, `DOSSIER_NOT_FOUND`), version exacte, parcours indisponible.
 - **Suites existantes** : `/capitaux-propres` 52 cas (attendus chiffrés de la Mission 11 inchangés), registres et dossier 152 cas.
 - **Suite unitaire complète** (`--project unit --pool=forks`) : 1 739/1 739, sans test ignoré.
 - **Recettes PostgreSQL** (projet `durable`, base jetable locale PostgreSQL 17.11) : 51/51, sans test ignoré.

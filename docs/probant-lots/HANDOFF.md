@@ -51,7 +51,7 @@ Voir `docs/mission-c09/COMPARAISON.md`, `docs/mission-c09/CONTRAT.md` et `docs/p
 
 ## Vérifié
 
-- **Recette C09** : 17/17 (garde de règle au runtime comprise), attendus posés à la main (`docs/recette/c09/RECETTE.md`).
+- **Recette C09** : 18/18 (garde de règle au runtime et amendement postérieur à la clôture compris), attendus posés à la main (`docs/recette/c09/RECETTE.md`).
 - **Modules purs** : 19/19.
 - **Route du parcours** : 5/5.
 - **Suites `/capitaux-propres` existantes** : 52/52, attendus Mission 11 inchangés hors texte juridique.

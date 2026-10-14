@@ -112,7 +112,9 @@ function capitauxTraces(scope: ParcoursInput["scope"], jr: JourneyRun): { traces
   const r: EquityResult | null = equityResultOf(jr.run);
   if (!r || !r.decisions) return { traces: [], excluded: [] };
   const v2 = r.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION, ruleVersion = jr.run.template.rule?.version ?? jr.run.template.version;
-  const lines = r.decisions.filter(d => d.inScope && d.status !== "superseded");
+  // Post-closing amendments are signals of the sheet, not decisions of the period: the decision they target stays the one counted.
+  const postClosing = (d: NonNullable<EquityResult["decisions"]>[number]) => !!d.amends && d.decisionDate > r.closingDate;
+  const lines = r.decisions.filter(d => d.inScope && d.status !== "superseded" && !postClosing(d));
   const key = (d: typeof lines[number]) => d.paymentGroup ?? d.decisionId + " · " + (d.pv.resolution ? "résolution " + d.pv.resolution : EQ_DECISION_TYPE_LABELS[d.type]);
   const groups = [...new Set(lines.map(key))];
   const traces = groups.map(k => {
@@ -135,8 +137,9 @@ function capitauxTraces(scope: ParcoursInput["scope"], jr: JourneyRun): { traces
       amendments, href: capitauxHref(scope, jr.run, "D:" + first.lineId),
     };
   });
-  const excludedAfp = r.decisions.filter(d => !d.inScope).length, superseded = r.decisions.filter(d => d.status === "superseded").length;
-  return { traces, excluded: [...(excludedAfp ? [{ reason: "Lignes de décision des autres fonds propres (hors capitaux propres)", count: excludedAfp }] : []), ...(superseded ? [{ reason: "Lignes remplacées par une décision ultérieure (historique d’amendement, non comptées)", count: superseded }] : [])] };
+  const excludedAfp = r.decisions.filter(d => !d.inScope).length, superseded = r.decisions.filter(d => d.status === "superseded").length, late = r.decisions.filter(d => d.inScope && postClosing(d)).length;
+  return { traces, excluded: [...(excludedAfp ? [{ reason: "Lignes de décision des autres fonds propres (hors capitaux propres)", count: excludedAfp }] : []), ...(superseded ? [{ reason: "Lignes remplacées par une décision ultérieure (historique d’amendement, non comptées)", count: superseded }] : []),
+    ...(late ? [{ reason: "Modifications décidées après la clôture (signal postérieur, non comptées pour l’exercice)", count: late }] : [])] };
 }
 
 /** /equity result (rule 1.0.0, « equity-result-1 » of equity-dossier): only the fields read here are validated. */

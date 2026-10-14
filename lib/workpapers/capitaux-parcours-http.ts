@@ -26,7 +26,8 @@ async function journey(procedure: ParcoursProcedure, enabled: boolean, read: () 
   try { return { availability: "ready", runs: journeyRuns(procedure, await read(), exact) }; }
   catch (error) {
     const code = error instanceof ApiError ? error.code : error instanceof Error ? error.message : "";
-    if (AUTH.test(code)) throw error;
+    // Any authorization denial (session, permission, dossier outside the scope) refuses the whole read with its own status.
+    if ((error instanceof ApiError && (error.status === 401 || error.status === 403)) || AUTH.test(code)) throw error;
     // A sheet that does not exist yet is not an outage: the journey is simply empty.
     if (/WORKPAPER_NOT_FOUND|WORKPAPER_VERSION_NOT_FOUND/.test(code)) return { availability: "ready", code, runs: [] };
     return { availability: "unavailable", code: /^[A-Z][A-Z0-9_]*$/.test(code) ? code : "DURABLE_UNAVAILABLE", runs: [] };
@@ -47,6 +48,7 @@ export function parcoursHandler(runtimes: ParcoursRuntimes) {
     try { return Response.json(await readParcours(request, runtimes), { headers }); }
     catch (error) {
       if (error instanceof z.ZodError) return Response.json({ error: "PARCOURS_QUERY_INVALID" }, { status: 400, headers });
+      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) return Response.json({ error: error.code }, { status: error.status, headers });
       const code = error instanceof ApiError ? error.code : error instanceof Error ? error.message : "";
       const status = /SESSION_INVALID|AUTHENTICATION_REQUIRED|UNAUTHORIZED/.test(code) ? 401 : /FORBIDDEN/.test(code) ? 403 : /QUERY_INVALID/.test(code) ? 400 : 503;
       return Response.json({ error: status === 503 ? "PARCOURS_UNAVAILABLE" : code }, { status, headers });

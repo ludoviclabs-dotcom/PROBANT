@@ -73,6 +73,31 @@ describe("C09 — règle Capitaux propres 1.1.0 sur le dossier de recette", () =
     expect(decision(result, "D-EXC-2")).toMatchObject({ status: "amount_divergent", booked: eur("20.00"), difference: eur("50.00") });
   });
 
+  it("amendement décidé après la clôture (effet déclaré dans l’exercice) : signal postérieur, la décision d’origine reste en vigueur, comparée et comptée seule", async () => {
+    // Variante posée à la main : D-EXC-2 décidée le 10/02/2027 (AGE-2027-02), effet déclaré au 10/07/2026, sans écriture dans l’exercice ;
+    // autres réserves 200 + 146 − 50 = 296 à la clôture ; capitaux propres 1 610 ; règlement de 30 le 20/02/2027 rattaché à D-EXC-2.
+    const texts = {
+      eq_entries: C09_CSV.eq_entries.split("\n").filter(l => !l.startsWith("E07;")).join("\n"),
+      eq_balances: C09_CSV.eq_balances.replace("B13;316.00;", "B13;296.00;"),
+      eq_decisions: C09_CSV.eq_decisions.replace(/^D-EXC-2;.*$/m, "D-EXC-2;-30.00;2027-02-10;AGE-2027-02;distribution;autres_reserves;2026-07-10;AGE;PV-AGE-2026-07;1;1;x;Distribution exceptionnelle (rectifiée après clôture);D-EXC-1"),
+      eq_payments: C09_CSV.eq_payments.replace("P01;30.00;2026-07-20;", "P01;30.00;2027-02-20;"),
+    };
+    const { run, result } = await c09CapitauxRun({ texts, readLines: [...C09_READ_LINES, "D-EXC-1"] });
+    expect(result.totals.closing).toEqual(eur("1610.00"));
+    expect(decision(result, "D-EXC-1")).toMatchObject({ status: "matched", supersededBy: null, booked: eur("-50.00"), difference: eur("0.00"), paymentState: { status: "unpaid", remainingAtReview: eur("50.00") } });
+    const late = decision(result, "D-EXC-2");
+    expect(late).toMatchObject({ status: "not_expected", timing: "after_closing", amends: "D-EXC-1", chain: [], paymentGroup: null, paymentState: null, payment: eur("30.00"), entryIds: [] });
+    expect(late.statusMeaning).toContain("décidée le 2027-02-10, après la clôture");
+    expect(result.legal!.items[1].computed[0].value).toEqual(eur("170.00"));
+    expect(result.exceptions.map(e => [e.code, e.targetId])).toEqual([["PV_MISSING", "D-CAP"]]);
+    const view = buildParcours({ scope: { dossierId: c09Scope.dossierId, periodId: c09Scope.periodId }, journeys: {
+      "capitaux_propres.review": { availability: "ready", runs: [{ run, sourcesCurrent: true, lineageCurrent: true }] },
+      "equity.review": { availability: "ready", runs: [] } } });
+    expect(view.decisions.some(d => d.traces.some(tr => tr.decisionRefs.includes("D-EXC-2")))).toBe(false);
+    expect(view.totals.byType.find(b => b.type === "distribution")).toEqual({ type: "distribution", label: "Distributions", count: 2, magnitude: eur("170.00") });
+    expect(view.totals.exclusions).toContainEqual({ reason: "Modifications décidées après la clôture (signal postérieur, non comptées pour l’exercice)", count: 1 });
+  });
+
   it("amendements incohérents refusés avec leur localisation, jamais résolus par le montant", async () => {
     const replace = (row: string) => C09_CSV.eq_decisions.replace(/^D-EXC-2;.*$/m, row);
     const cases: [string, string][] = [

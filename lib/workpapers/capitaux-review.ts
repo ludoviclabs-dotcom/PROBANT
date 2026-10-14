@@ -274,6 +274,10 @@ export function evaluateEquity(scope: WorkpaperScope, period: AccountingPeriod, 
   };
   const compatible = (e: EqEntry, d: EqDecisionLine) => d.component === e.component && (d.type === "autre_decision" || d.type === e.nature);
   const timingOf = (date: string) => date < period.startDate ? "before_period" as const : date > period.closingDate ? "after_closing" as const : "in_period" as const;
+  // An amendment decided after the closing is a post-closing signal, whatever effect date it declares: the decision it targets stays in force
+  // at closing and is the only one compared, settled and counted for the period.
+  const postClosing = (line: EqDecisionLine) => !!line.amends && line.value.date > period.closingDate;
+  const lineTiming = (line: EqDecisionLine) => postClosing(line) ? "after_closing" as const : timingOf(line.effectDate);
   const lineState = allInScopeLines.map(line => {
     const pv = pvOf(facts, line), page = pv && line.page && line.page <= pv.pageCount ? pv.pages.find(p => p.page === line.page)! : null;
     const reading = work.readings.find(r => r.lineId === line.lineId), readingValid = !!reading && !!pv && !!page && reading.importId === pv.importId && reading.page === line.page;
@@ -281,14 +285,15 @@ export function evaluateEquity(scope: WorkpaperScope, period: AccountingPeriod, 
     const chain = chainOf(line), refs = new Set([line.lineId, ...chain.map(c => c.lineId)]);
     const entries = facts.entries.filter(e => e.decisionRef !== null && refs.has(e.decisionRef) && compatible(e, line));
     const payments = (facts.payments ?? []).filter(p => refs.has(p.decisionRef));
-    return { line, pv, page, reading, readingValid, entries, payments, chain, timing: timingOf(line.effectDate) };
+    return { line, pv, page, reading, readingValid, entries, payments, chain, timing: lineTiming(line) };
   });
   // Settlement per decision (decision id + resolution, or type when no resolution is transcribed): voted magnitude of the lines calling for a payment.
   const SETTLED = ["distribution", "augmentation_capital"];
   const groupKey = (l: EqDecisionLine) => l.decisionId + " · " + (l.resolution ? "résolution " + l.resolution : EQ_DECISION_TYPE_LABELS[l.type]);
   const groupPayment = new Map<string, PaymentState>();
-  for (const key of [...new Set(lineState.map(s => groupKey(s.line)))]) {
-    const members = lineState.filter(s => groupKey(s.line) === key), settled = members.filter(s => SETTLED.includes(s.line.type));
+  const settledLines = lineState.filter(s => !postClosing(s.line));
+  for (const key of [...new Set(settledLines.map(s => groupKey(s.line)))]) {
+    const members = settledLines.filter(s => groupKey(s.line) === key), settled = members.filter(s => SETTLED.includes(s.line.type));
     const magnitude = settled.reduce((s, m) => { const v = cents(m.line.value.amount); return s + (v < 0n ? -v : v); }, 0n);
     groupPayment.set(key, paymentState({ voted: settled.length ? money(magnitude) : null, payments: [...new Map(members.flatMap(m => m.payments).map(p => [p.paymentId, { id: p.paymentId, amount: p.value.amount, date: p.value.date }])).values()],
       sourcePresent: facts.payments !== null, applies: settled.length > 0, closingDate: period.closingDate, asOfDate: period.asOfDate }));
@@ -333,13 +338,13 @@ export function evaluateEquity(scope: WorkpaperScope, period: AccountingPeriod, 
     const status = facts.decisions === null ? (requires || e.decisionRef ? "source_missing" as const : "not_required" as const)
       : !e.decisionRef ? (requires ? "without_decision" as const : "not_required" as const)
       : !line ? "unknown_decision" as const : !compatible(e, line) ? "mismatch" as const : "matched" as const;
-    const decisionTiming = line && status === "matched" ? timingOf(line.effectDate) : "in_period";
+    const decisionTiming = line && status === "matched" ? lineTiming(line) : "in_period";
     const effectStatus = timingOf(e.effectDate) !== "in_period" || decisionTiming !== "in_period" ? "outside_period" as const : "in_period" as const;
     const what = `${e.entryId} (${EQ_COMPONENT_LABELS[e.component]}, ${EQ_NATURE_LABELS[e.nature]}, ${e.value.amount.amount} EUR au ${e.value.date})`;
     if (status === "without_decision") add("ENTRY_WITHOUT_DECISION", "entries", e.component, e.entryId, `Écriture ${what} sans référence de décision.`, known(e.value.amount), [e.proof.id]);
     if (status === "unknown_decision") add("ENTRY_WITHOUT_DECISION", "entries", e.component, e.entryId, `Écriture ${what} : décision citée « ${e.decisionRef} » absente du registre.`, known(e.value.amount), [e.proof.id]);
     if (status === "mismatch") add("ENTRY_DECISION_MISMATCH", "entries", e.component, e.entryId, `Écriture ${what} : la décision « ${e.decisionRef} » vise ${EQ_COMPONENT_LABELS[line!.component]} (${EQ_DECISION_TYPE_LABELS[line!.type]}).`, known(e.value.amount), [e.proof.id, line!.proof.id]);
-    if (effectStatus === "outside_period") add("EFFECT_OUTSIDE_PERIOD", "entries", e.component, e.entryId, `Écriture ${what} : effet au ${decisionTiming !== "in_period" ? line!.effectDate + " selon la décision " + line!.lineId : e.effectDate}, hors de l’exercice ${period.startDate} → ${period.closingDate}.`, known(e.value.amount), [e.proof.id, ...(line && status === "matched" ? [line.proof.id] : [])]);
+    if (effectStatus === "outside_period") add("EFFECT_OUTSIDE_PERIOD", "entries", e.component, e.entryId, (line && status === "matched" && postClosing(line) ? `Écriture ${what} : la décision ${line.lineId} qui la porte a été prise le ${line.value.date}, après la clôture du ${period.closingDate}.` : `Écriture ${what} : effet au ${decisionTiming !== "in_period" ? line!.effectDate + " selon la décision " + line!.lineId : e.effectDate}, hors de l’exercice ${period.startDate} → ${period.closingDate}.`), known(e.value.amount), [e.proof.id, ...(line && status === "matched" ? [line.proof.id] : [])]);
     return { ...base, inScope: true, decisionStatus: status, effectStatus };
   });
   if (facts.decisions === null) {
@@ -353,7 +358,7 @@ export function evaluateEquity(scope: WorkpaperScope, period: AccountingPeriod, 
   const decisionsResult: EquityResult["decisions"] = facts.decisions === null ? null : facts.decisions.map(line => {
     const s = lineState.find(x => x.line.lineId === line.lineId);
     const pvBase = { pieceRef: line.minutesRef, resolution: line.resolution, extract: line.extract };
-    const base = { lineId: line.lineId, decisionId: line.decisionId, type: line.type, component: line.component, organ: line.organ, label: line.label, voted: line.value.amount, decisionDate: line.value.date, effectDate: line.effectDate, timing: timingOf(line.effectDate),
+    const base = { lineId: line.lineId, decisionId: line.decisionId, type: line.type, component: line.component, organ: line.organ, label: line.label, voted: line.value.amount, decisionDate: line.value.date, effectDate: line.effectDate, timing: lineTiming(line),
       amends: line.amends, supersededBy: replacedBy.get(line.lineId)?.lineId ?? null };
     if (!inScope(line.component)) return { ...base, inScope: false, pv: { ...pvBase, status: "missing" as const, importId: null, documentVersionId: null, fileName: null, sha256: null, title: null, page: line.page, pageCount: null, proofId: null },
       reading: { status: "not_possible" as const, text: null, authorId: null, authoredAt: null, documentVersionId: null, page: null }, booked: { kind: "not_applicable" as const, reason: EQ_EXCLUSIONS[line.component]! }, entryIds: [], payment: { kind: "not_applicable" as const, reason: "Exclue" }, paymentIds: [],
@@ -392,9 +397,9 @@ export function evaluateEquity(scope: WorkpaperScope, period: AccountingPeriod, 
       status = difference.kind !== "known" ? "reading_required" : cents(difference.value) !== 0n ? "amount_divergent" : "matched";
       if (status === "amount_divergent" && difference.kind === "known") add("AMOUNT_DIVERGENT", "decisions", line.component, line.lineId, `Décision ${what} : comptabilisé ${booked.kind === "known" ? booked.value.amount : "?"} − voté ${line.value.amount.amount} = ${difference.value.amount} EUR (PV « ${line.minutesRef} » page ${line.page}).`, difference, proofIds);
     }
-    const chainText = s.chain.length ? ` Remplace ${s.chain.map(c => c.lineId).join(" → ")} : écritures et règlements de ces lignes rapprochés ici.` : line.amends && !replacedBy.has(line.amends) ? ` Modifie ${line.amends} après la clôture : la décision en vigueur à la clôture reste ${line.amends}.` : "";
+    const chainText = s.chain.length ? ` Remplace ${s.chain.map(c => c.lineId).join(" → ")} : écritures et règlements de ces lignes rapprochés ici.` : postClosing(line) ? ` Modification de ${line.amends} décidée le ${line.value.date}, après la clôture (effet déclaré au ${line.effectDate}) : signal postérieur, non compté pour l’exercice ; la décision en vigueur à la clôture reste ${line.amends}.` : "";
     return { ...base, inScope: true, pv, reading, booked, entryIds: s.entries.map(e => e.entryId), payment, paymentIds: s.payments.map(p => p.paymentId), difference, status, statusMeaning: EQ_DECISION_TEXT[status].meaning + chainText, proofIds,
-      chain: s.chain.map(c => c.lineId), paymentGroup: groupKey(line), paymentState: groupPayment.get(groupKey(line)) ?? null };
+      chain: s.chain.map(c => c.lineId), paymentGroup: postClosing(line) ? null : groupKey(line), paymentState: postClosing(line) ? null : groupPayment.get(groupKey(line)) ?? null };
   });
   const paymentsResult: EquityResult["payments"] = facts.payments === null ? null : facts.payments.map(p => {
     const linked = (facts.decisions ?? []).some(d => d.lineId === p.decisionRef);
