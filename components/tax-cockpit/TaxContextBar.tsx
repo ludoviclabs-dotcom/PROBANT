@@ -11,9 +11,12 @@ import { DossierContextLink as Link } from "@/components/probant/DossierContextL
 import { useEffect, useId, useRef, useState } from "react";
 import { Check, Fingerprint, Upload } from "lucide-react";
 import { track } from "@/lib/analytics/track";
-import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION, decrireReferentiel } from "@/lib/referentiel/edition";
 import { formatIsoDate, type StepperStep, type TaxCockpitSummary } from "@/lib/tax/cockpit";
 import { BODY, C, MONO, SANS, TONE } from "./fiscal-style";
+
+/** Registre chargé sur ce poste : les moteurs fiscaux (lib/tax) ne le lisent pas. */
+const REGISTRE = decrireReferentiel(REFERENTIEL_VERSION);
 
 export function TaxContextBar({
   summary,
@@ -247,8 +250,10 @@ export function TaxContextBar({
                   ))
                 : "aucun"}
             </PopRow>
-            <PopRow term="Référentiel">
-              v.{REFERENTIEL_VERSION} · snapshot généré le {summary.generatedAt.slice(0, 10)}
+            <PopRow term="Snapshot fiscal">généré le {summary.generatedAt.slice(0, 10)}</PopRow>
+            <PopRow term="Registre normatif">
+              {REGISTRE.libelle} · les moteurs fiscaux ne lisent pas ce registre
+              <span style={{ display: "block", marginTop: 4, fontFamily: BODY, fontSize: 11.5, lineHeight: 1.5, color: C.muted }}>{REGISTRE.detail}</span>
             </PopRow>
           </dl>
           <p style={{ margin: "12px 0 0", fontSize: 11.5, lineHeight: 1.6, color: C.muted }}>

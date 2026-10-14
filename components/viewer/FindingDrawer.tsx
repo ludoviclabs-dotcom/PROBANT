@@ -213,9 +213,11 @@ export function FindingDrawer({
               <span className="font-semibold text-[var(--pb-accent)]">
                 {f.source.ref}
               </span>
-              <span className="text-[var(--pb-text-faint)]">
-                · v.{f.source.effectiveDate}
-              </span>
+              {f.source.effectiveDate && (
+                <span className="text-[var(--pb-text-faint)]">
+                  · v.{f.source.effectiveDate}
+                </span>
+              )}
               <Link
                 href="/normatif/sources"
                 className="ml-auto inline-flex items-center gap-1 text-[11px] text-[var(--pb-text-faint)] hover:text-[var(--pb-accent)]"

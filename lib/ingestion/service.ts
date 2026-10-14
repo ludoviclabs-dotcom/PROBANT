@@ -14,7 +14,7 @@ import { sha256Stream } from "@/lib/evidence/hash";
 import { readIngestionLimits } from "@/lib/ingestion/limits";
 import type { FecEntry } from "@/lib/canonical-model";
 import type { ParsedFec } from "@/lib/fec/parser";
-import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION } from "@/lib/referentiel/edition";
 import { buildSnapshotFromFecDepot } from "@/lib/dossier";
 import {
   PostgresDossierRepository,
