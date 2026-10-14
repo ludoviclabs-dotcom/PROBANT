@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 /**
  * Parcours 4 — dossier partiel.
@@ -16,6 +16,29 @@ const CONCLUSIONS_EXCESSIVES = [
   /\bcertifi(?:é|ons|cation) sans réserve\b/iu,
   /\bimage fidèle\b/iu,
 ];
+
+/**
+ * Titre propre à chaque route. Le dossier sélectionné est lu côté client : tant
+ * qu'il ne l'est pas, le tableau de bord n'affiche rien ou « Lecture du dossier
+ * sélectionné… ». Lire `body` avant ce titre testerait l'écran de chargement,
+ * et une assertion négative y passerait sans rien vérifier.
+ */
+const ROUTES = [
+  { route: "/dashboard/synthese", heading: { name: "Synthèse", level: 1 } },
+  { route: "/dashboard/risques", heading: { name: "Cartographie des risques", level: 1 } },
+  { route: "/dashboard/cloisons", heading: { name: "Revue par cloison", level: 1 } },
+  { route: "/dashboard/dossier", heading: { name: "Dossier & preuve", level: 2 } },
+  {
+    route: "/dashboard/fiscalite",
+    heading: { name: "Couverture des contrôles et lignes à traiter", level: 2 },
+  },
+] as const;
+
+async function gotoLoaded(page: Page, { route, heading }: (typeof ROUTES)[number]) {
+  await page.goto(route);
+  await expect(page.getByRole("heading", heading), `${route} n'a pas fini de charger`).toBeVisible();
+  await expect(page.getByText("Lecture du dossier sélectionné…")).toHaveCount(0);
+}
 
 test.describe("parcours dossier partiel", () => {
   test("les limitations sont visibles et chiffrées", async ({ page }) => {
@@ -36,7 +59,7 @@ test.describe("parcours dossier partiel", () => {
   });
 
   test("la couverture partielle est affichée telle quelle", async ({ page }) => {
-    await page.goto("/dashboard/synthese");
+    await gotoLoaded(page, ROUTES[0]);
     const body = await page.locator("body").innerText();
     // La couverture est exprimée en pourcentage ; on vérifie qu'elle est
     // présente et qu'elle n'est pas silencieusement arrondie à 100 %.
@@ -44,14 +67,9 @@ test.describe("parcours dossier partiel", () => {
   });
 
   test("aucune conclusion excessive n'est formulée", async ({ page }) => {
-    for (const route of [
-      "/dashboard/synthese",
-      "/dashboard/risques",
-      "/dashboard/cloisons",
-      "/dashboard/dossier",
-      "/dashboard/fiscalite",
-    ]) {
-      await page.goto(route);
+    for (const entry of ROUTES) {
+      const { route } = entry;
+      await gotoLoaded(page, entry);
       const body = await page.locator("body").innerText();
       for (const pattern of CONCLUSIONS_EXCESSIVES) {
         expect(body, `${route} formule une conclusion excessive : ${pattern}`).not.toMatch(
