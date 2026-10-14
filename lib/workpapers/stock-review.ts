@@ -2,11 +2,11 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ImportBatch } from "./imports";
 import type { NoteCitation, WorkpaperScope } from "./model";
 import type { Principal } from "./policy";
-import { formatQuantity, ST_CATEGORY_EXCLUSIONS, ST_LIMITATIONS, ST_METHOD_TEXT, ST_SITE_NOT_VISITED, ST_STATUSES, stockResultSchema, stockWorkSchema, type StockCitation, type StockCitationInput, type StockDraft, type StockResult, type StockStatus, type StockUnitResult, type StockWork } from "./stock-contract";
+import { formatQuantity, ST_CATEGORY_EXCLUSIONS, ST_LIMITATIONS, ST_METHOD_TEXT, ST_SITE_NOT_VISITED, ST_STATUSES, STOCK_RESULT_SCHEMA_VERSION, stockResultSchema, stockWorkSchema, type StockCitation, type StockCitationInput, type StockDraft, type StockResult, type StockStatus, type StockUnitResult, type StockWork } from "./stock-contract";
 import { buildStockFacts, type StFact, type StUnitFact } from "./stock-sources";
-import { valueStocks } from "./stock-valuation";
+import { lineBasis, valueStocks } from "./stock-valuation";
 import { reviewStockValue } from "./stock-value-review";
-import { formatCents, ST_COST_METHOD_LABELS, ST_REVIEW_LIMITATIONS, ST_REVIEW_METHOD_TEXT, ST_VALUE_LIMITATIONS, ST_VALUE_METHOD_TEXT } from "./stock-contract";
+import { formatCents, ST_COST_BASIS_LABELS, ST_COST_METHOD_LABELS, ST_REVIEW_LIMITATIONS, ST_REVIEW_METHOD_TEXT, ST_VALUE_LIMITATIONS, ST_VALUE_METHOD_TEXT } from "./stock-contract";
 import { money } from "@/lib/canonical-model/money";
 
 export * from "./stock-contract";
@@ -112,7 +112,7 @@ export function evaluateStocks(scope: WorkpaperScope, period: AccountingPeriod, 
   for (const e of exceptions) {
     const v = e.unitId ? quantityValue.get(e.unitId) : undefined;
     if (e.code !== "QUANTITY_DIFFERENCE" || !v) continue;
-    e.message += " Valorisé " + formatCents(String(v.cents), { signed: true }) + " au coût documenté de " + formatCents(v.cost.quantity) + " (" + (ST_COST_METHOD_LABELS[v.cost.method] ?? v.cost.method) + (v.cost.pieceRef ? ", " + v.cost.pieceRef : "") + ") : écart potentiel.";
+    e.message += " Valorisé " + formatCents(String(v.cents), { signed: true }) + " au coût documenté de " + formatCents(v.cost.quantity) + " (" + (ST_COST_METHOD_LABELS[v.cost.method] ?? v.cost.method) + (v.cost.pieceRef ? ", " + v.cost.pieceRef : "") + (e.unitId && lineBasis(v.cost, units.find(u => u.unitId === e.unitId)!.lot) === "reference_fallback" ? ", " + ST_COST_BASIS_LABELS.reference_fallback.toLowerCase() : "") + ") : écart potentiel.";
     e.amount = { kind: "known", value: money(v.cents) };
   }
   exceptions.push(...valueExceptions);
@@ -121,7 +121,7 @@ export function evaluateStocks(scope: WorkpaperScope, period: AccountingPeriod, 
   exceptions.push(...reviewExceptions);
   const evidence = [...new Map([...facts.units.flatMap(u => [...u.counts, ...(u.system ? [u.system] : []), ...u.movements]), ...(facts.costs ?? []), ...(facts.ledger ?? []), ...(facts.values ?? [])].map(f => [f.proof.id, f.proof])).values()];
   return stockResultSchema.parse({
-    schemaVersion: "stocks-result-2", valuation, valueReview, scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
+    schemaVersion: STOCK_RESULT_SCHEMA_VERSION, valuation, valueReview, scope, runId, closingDate: closing, convention: { sameDay: w.sameDay, instructions: w.instructions }, coverage: facts.coverage,
     sites: facts.sites.map(s => ({ site: s.site, countDate: s.countDate, visited: !!visited.get(s.site), countLines: s.countLines, systemLines: s.systemLines, units: units.filter(u => u.site === s.site).length })),
     units, references, totals, exceptions, evidence,
     method: [ST_METHOD_TEXT, ...(valuation ? [ST_VALUE_METHOD_TEXT] : []), ...(valueReview ? [ST_REVIEW_METHOD_TEXT] : [])].join(" "),

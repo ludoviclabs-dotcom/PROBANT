@@ -23,6 +23,14 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(MODULE_MANIFEST.find(m => m.id === "outside-stocks")!.label).toBe("Stocks · atelier");
     expect(CAPABILITY_REGISTRY.find(c => c.id === "informatique")!.exclusions).toContain("Pas de moteur ITGC");
   });
+  it("C08 : la capacité Stocks dit coûts déclarés et revue bornée, jamais un inventaire physique complet", () => {
+    const stocks = CAPABILITY_REGISTRY.find(c => c.id === "stocks")!, text = [stocks.modes.local_persistent.scope, ...stocks.requiredSources, ...stocks.exclusions].join(" ");
+    expect(stocks.modes.local_persistent.scope).toContain("Aucun inventaire physique certifié");
+    expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
+    expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
+    expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
+    expect(capabilityReadModel({}).registryVersion).toBe("1.1.0");
+  });
   it("does not turn activated configuration into execution or authorization", () => {
     const env = { PROBANT_STOCKS_DURABLE: "disposable", DATABASE_URL: "configured" };
     expect(configuredProcedures(env)["stocks.count"]).toEqual({ activated: true, databaseConfigured: true });

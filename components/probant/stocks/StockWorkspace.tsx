@@ -4,7 +4,7 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
-import { formatCents, formatQuantity, ST_STATUS_KIND, ST_UNCERTAINTY_CODES, type StockDraft, type StockResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, formatQuantity, ST_STATUS_KIND, ST_UNCERTAINTY_CODES, STOCK_RULE_VERSION, type StockDraft, type StockResult } from "@/lib/workpapers/stock-contract";
 import { CompensationView, StockGrid, type StockFilters, type StockGridHandle } from "./StockGrid";
 import { StockValuationView } from "./StockValuationView";
 import { StockValueReviewView } from "./StockValueReviewView";
@@ -40,8 +40,10 @@ export function StockWorkspace({ initialDossierId = "", initialPeriodValue = emp
   const run = view?.runs.find(r => r.id === activeId) ?? null, result = useMemo(() => resultOf(run), [run]);
   const unit = result?.units.find(u => u.unitId === selected) ?? null;
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
+  // A sheet established under an earlier rule stays readable; the server refuses every command on it except a revision.
+  const ruleCurrent = !run || run.template.rule?.version === STOCK_RULE_VERSION;
   const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
-  const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state);
+  const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ruleCurrent && ["draft", "ready", "executed"].includes(run.state);
   const saving = status === "saving";
   const endpoint = (imports = false) => "/api/workpapers/stocks" + (imports ? "/imports" : "") + "?" + new URLSearchParams({ dossierId, periodId: pid });
   // The context (case, site, lot, filters, view) lives in the URL: returning to the sheet restores it.
@@ -138,6 +140,7 @@ export function StockWorkspace({ initialDossierId = "", initialPeriodValue = emp
     {view && <>
       {!run && <section className={styles.card}><h2>Feuille Stocks de l’exercice</h2><p className={styles.muted}>Aucune feuille : qualifiez les sources (comptage, théorique, mouvements, pièces) puis créez la feuille.</p>
         {canPrepare && <button type="button" className={styles.primary} disabled={saving || !period.startDate} onClick={() => void mutate({ command: "create", period })}>Créer la feuille Stocks</button>}</section>}
+      {run && !ruleCurrent && <p role="alert" className={styles.notice} data-tone="danger">Feuille établie avec la règle Stocks {run.template.rule?.version ?? run.template.version}, programme {STOCK_RULE_VERSION} : résultat périmé (revue de valeur non bornée à la valeur comptable, quantité non rapprochée et repli de coût non signalés), consultable tel qu’il a été figé. Aucune exécution, conclusion, soumission, revue ni verrouillage n’est possible sur cette version. {canPrepare && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision (règle {STOCK_RULE_VERSION})</button>}</p>}
       {run && !current && <p role="alert" className={styles.notice} data-tone="danger">Travail périmé : une source (comptage, théorique, mouvements ou pièces) a été remplacée ou ajoutée après le gel. Les résultats affichés portent sur les versions figées. {canPrepare && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision sur les sources courantes</button>}</p>}
       {run ? <>
         <div role="tablist" aria-label="Sections de la feuille" className={styles.tabs}>{TABS.map((t, i) => <button key={t.id} ref={el => { tabRefs.current[t.id] = el; }} role="tab" id={"st-tab-" + t.id} aria-controls={"st-panel-" + t.id} aria-selected={tab === t.id} tabIndex={tab === t.id ? 0 : -1} onKeyDown={e => onTabKey(e, i)} onClick={() => setTab(t.id)}>{t.label}{counts[t.id] !== null && <span>{counts[t.id]}</span>}</button>)}</div>
@@ -185,10 +188,10 @@ export function StockWorkspace({ initialDossierId = "", initialPeriodValue = emp
                 {editable && run.state === "executed" && <><label>Conclusion de la préparation<textarea value={conclusion} disabled={saving} onChange={e => setConclusion(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" disabled={saving || !conclusion.trim()} onClick={() => action("conclude", { text: conclusion })}>Enregistrer la conclusion</button>
                     <button type="button" className={styles.primary} disabled={saving || !run.conclusion || openNotes.length > 0} onClick={() => action("submit")}>Soumettre à la revue</button>{openNotes.length > 0 && <span className={styles.muted}>{plural(openNotes.length, "point bloquant ouvert", "points bloquants ouverts")}</span>}</div></>}
-                {canReview && run.state === "awaiting_review" && <><ReviewKindNotice kind={view?.reviewKind}/><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
+                {canReview && ruleCurrent && run.state === "awaiting_review" && <><ReviewKindNotice kind={view?.reviewKind}/><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" className={styles.primary} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "approved", submittedHash: run.submittedHash, text: reviewText })}>Approuver cette version</button>
                     <button type="button" className={styles.danger} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "changes_requested", submittedHash: run.submittedHash, text: reviewText })}>Demander une correction</button></div></>}
-                {canReview && run.state === "approved" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("lock")}>Verrouiller la version approuvée</button>}
+                {canReview && ruleCurrent && run.state === "approved" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("lock")}>Verrouiller la version approuvée</button>}
                 {run.state === "awaiting_review" && !canReview && <p className={styles.muted}>Revue attendue par une autre identité autorisée.</p>}
                 {canPrepare && ["locked", "approved", "changes_requested"].includes(run.state) && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision</button>}
                 <p className={styles.muted}>Une revue documentée ne vaut ni opinion sur les comptes ni certification de la présence physique. Une suite verte sur données synthétiques n’autorise aucune mission réelle.</p>

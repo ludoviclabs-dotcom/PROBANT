@@ -53,10 +53,13 @@
 .sub{display:block;font-size:11px;color:var(--muted,#8a99af);font-weight:400}
 .meterCell{min-width:120px}
 .valueTable{min-width:760px}
-.reviewTable{min-width:1180px}
-.reviewTable td:nth-child(n+2):nth-child(-n+8){text-align:right}
-.reviewTable td:last-child{min-width:240px}
-.reviewTable tbody th{min-width:210px}
+.reviewTable{min-width:900px}
+.reviewTable td{text-align:right;min-width:84px}
+.reviewTable .sub{white-space:normal}
+/* Doubled class: wins over the page rule that keeps header cells on one line. */
+.reviewTable.reviewTable thead th{white-space:normal;vertical-align:bottom}
+.reviewTable tbody th{min-width:160px;max-width:210px}
+.reviewTable td:nth-of-type(-n+2){max-width:150px}
 .valueTable td:nth-child(n+2):nth-child(-n+4),.valueTable th:nth-child(n+2):nth-child(-n+4){text-align:right}
 .valueLine{font-size:11px;font-variant-numeric:tabular-nums;color:#ffd27a}
 /* In the side panel the bridge stacks label and value above a full-width track, so every bar stays visible. */

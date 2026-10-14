@@ -3,7 +3,8 @@ import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliati
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
 import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, type CapabilityCycleId } from "./procedures";
 export * from "./procedures";
-export const CAPABILITY_REGISTRY_VERSION = "1.0.0";
+/** 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory. */
+export const CAPABILITY_REGISTRY_VERSION = "1.1.0";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -15,7 +16,7 @@ const sources: Record<CapabilityCycleId, string[]> = {
   achats: ["Grand livre Fournisseurs", "Auxiliaire et balance âgée", "Factures, prestations et paiements ultérieurs"],
   tresorerie: ["Grand livre bancaire", "Relevés bancaires", "Éléments en transit et apurement"],
   immobilisations: ["Registre des immobilisations", "Grand livre", "Mouvements, mise en service et méthode documentée"],
-  stocks: ["Inventaire compté", "Mouvements intercalaires", "Coûts, droits et justification de valeur"],
+  stocks: ["Feuilles de comptage transcrites et état théorique à la clôture", "Mouvements intercalaires (quantités)", "Coûts unitaires déclarés par pièce (méthode indiquée)", "Hypothèses de valeur citées, dépréciations comptabilisées et comptes 39"],
   provisions: ["Registre des risques", "Grand livre", "Pièces d’estimation, événements et annexe"],
   capitaux_propres: ["Grand livre", "Décisions et PV", "Mouvements et règlements"],
   participations: ["Droits et titres", "Distributions", "Dossier de valeur et méthode approuvée"],
@@ -28,12 +29,17 @@ const sources: Record<CapabilityCycleId, string[]> = {
 const exclusions: Record<CapabilityCycleId, string[]> = {
   clients: ["Aucune perte ou dépréciation déduite de l’âge seul"], achats: ["La sélection ne prouve pas l’exhaustivité des dettes absentes"],
   tresorerie: ["Caisse et VMP hors feuille bancaire"], immobilisations: ["Existence physique et valeur non certifiées"],
-  stocks: ["Présence physique non certifiée", "Stocks de tiers distincts", "Aucune dépréciation automatique"],
+  stocks: ["Comptage transcrit : présence physique et exhaustivité de l’inventaire non certifiées", "Stocks de tiers et consignations présentés à part", "Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions",
+    "Aucune dépréciation ni provision automatique (complément au-delà de la valeur comptable : à qualifier)"],
   provisions: ["Aucune issue juridique déduite", "Pièces confidentielles selon droits serveur"],
   capitaux_propres: ["Deux procédures distinctes, aucune conclusion juridique"], participations: ["DCF complet et classement automatique absents"],
   fiscal: ["Aucune liquidation ou conformité déclarée", "TVA mensuelle distincte de l’exercice IS"],
   paie: ["Paie complète et lecture native DSN absentes", "Accès RH réel bloqué"], exceptionnel: ["Qualification humaine par événement"],
   transversal: ["Aucune opinion générée", "Cut-off : fait générateur documenté requis"], informatique: ["Pas de moteur ITGC", "Travaux manuels possibles dans le programme de clôture"],
+};
+/** Local scope stated per cycle when the generic wording would overstate or blur what the sheet establishes. */
+const localScopes: Partial<Record<CapabilityCycleId, string>> = {
+  stocks: "Feuille versionnée : quantités comptées transcrites et passage à la clôture, coûts déclarés (non reconstitués), revue de valeur bornée à la valeur comptable avec estimation partielle si la quantité n’est pas rapprochée ; activation locale et accès autorisé requis. Aucun inventaire physique certifié.",
 };
 const journalCycles = CAPABILITY_CYCLE_IDS.map(id => {
   const reconciliation = RECONCILIATION_DEFINITIONS.find(c => c.id === reconciliationIds[id]);
@@ -44,7 +50,7 @@ const journalCycles = CAPABILITY_CYCLE_IDS.map(id => {
     modes: {
       historical: { implemented: !!reconciliation, scope: "Rapprochement générique / constats historiques ; pas une feuille de mission exécutée", route: "/dashboard/cloisons" },
       scenario: { implemented: workshops.length > 0, scope: workshops.length ? workshops.map(w => w.maturity).join(" ; ") : "Absent de l’atelier pédagogique", route: "/dashboard/tests#cycle-demo-title" },
-      local_persistent: { implemented: procedures.length > 0 || id === "transversal", scope: procedures.length ? "Feuilles versionnées existantes ; activation locale et accès autorisé requis" : id === "transversal" || id === "informatique" ? "Programme manuel de clôture ; aucun moteur ITGC" : "Pas de store durable pour cette feuille" },
+      local_persistent: { implemented: procedures.length > 0 || id === "transversal", scope: localScopes[id] ?? (procedures.length ? "Feuilles versionnées existantes ; activation locale et accès autorisé requis" : id === "transversal" || id === "informatique" ? "Programme manuel de clôture ; aucun moteur ITGC" : "Pas de store durable pour cette feuille") },
     }, workshops };
 });
 /** Historical financial debts have a generic reconciliation, but no durable cycle engine. No new journal enum is introduced. */

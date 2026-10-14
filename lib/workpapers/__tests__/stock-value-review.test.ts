@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { previewImport, type ImportBatch } from "../imports";
 import type { WorkpaperScope } from "../model";
 import type { Principal } from "../policy";
-import { evaluateStocks, stampStockWork, stockOutcome, type StockResult } from "../stock-review";
+import { evaluateStocks, isLegacyValueReview, stampStockWork, stockOutcome, type StockResult, type StockValueReview } from "../stock-review";
 import { assertStockBatch, buildStockFacts, StockSourceError, type StockSourceType } from "../stock-sources";
 import { ST_CSV, stMapping, stPeriod, stScope, SYSTEM_ROWS, systemCsv, VALUE_ROWS, valueCsv } from "./stock-fixtures";
 
@@ -23,21 +23,27 @@ function run(batches: ImportBatch[]): StockResult {
   return evaluateStocks(stScope, stPeriod, batches, "run-st", work);
 }
 const r7 = async () => run(await sources({ ...ST_CSV }));
-const unit = (r: StockResult, id: string) => r.valueReview!.units.find(u => u.unitId === id)!;
+const review = (r: StockResult): StockValueReview => { const v = r.valueReview!; if (isLegacyValueReview(v)) throw new Error("Revue 1.0.0 inattendue"); return v; };
+const unit = (r: StockResult, id: string) => review(r).units.find(u => u.unitId === id)!;
 
 describe("ST-1531 revue de valeur — hypothèses citées, écart indicatif, aucune dépréciation proposée", () => {
   it("REF-C : (8,00 − (6,00 − 0,50)) × 50 = 125,00 € d’écart indicatif contre 150,00 € comptabilisés — différence −25,00 € à apprécier", async () => {
     const r = await r7(), c = unit(r, "REF-C|ENTREPOT-NORD|");
-    expect(c).toMatchObject({ status: "gap", costCents: "800", unitGapCents: "250", systemQuantity: "5000", indicativeGapCents: "12500", bookedCents: "15000", differenceCents: "-2500",
+    expect(c).toMatchObject({ status: "gap", cost: { unitCostCents: "800", basis: "reference" }, quantity: { theoretical: "5000", used: "5000", basis: "reconciled" }, economicGapCents: "12500", carryingCents: "40000",
+      assetImpairmentCents: "12500", excessCents: "0", bookedCents: "15000", differenceCents: "-2500",
       hypothesis: { sellingPriceCents: "600", exitCostsCents: "50", currentValueCents: "550", pieceRef: "FV-901", kind: "Prix de vente postérieur à la clôture", fileName: "st_value.csv", row: 3 } });
+    // The stated value (410,00) differs from 50 × 8,00: the judgment basis says so before any conclusion.
+    expect(c.judgmentBasis).toContain("valeur théorique déclarée 410,00 € : écart de prix à expliquer avant de conclure");
     const e = r.exceptions.find(x => x.id === "VREV:REF-C|ENTREPOT-NORD|")!;
     expect(e).toMatchObject({ code: "VALUE_REVIEW_DIFFERENCE", amount: { kind: "known", value: { amount: "-25.00" } } });
     expect(e.message).toContain("l’outil ne propose ni ne comptabilise aucune dépréciation");
   });
   it("REF-A et REF-D au-dessus du coût : aucun écart ; l’ancienneté du dernier mouvement de REF-D (355 jours) n’entraîne aucun calcul", async () => {
     const r = await r7();
-    expect(unit(r, "REF-A|ENTREPOT-NORD|L1")).toMatchObject({ status: "no_gap", unitGapCents: "0", indicativeGapCents: "0", differenceCents: "0" });
-    expect(unit(r, "REF-D|ENTREPOT-SUD|")).toMatchObject({ status: "no_gap", indicativeGapCents: "0", rotation: { lastMovement: "2026-01-10", days: 355 } });
+    // REF-A: 98 counted for 100 — the quantity is not reconciled, but a value above cost leaves no gap on either quantity.
+    expect(unit(r, "REF-A|ENTREPOT-NORD|L1")).toMatchObject({ status: "no_gap", economicGapCents: "0", assetImpairmentCents: "0", differenceCents: "0",
+      quantity: { theoretical: "10000", reconstituted: "9800", basis: "theoretical_unreconciled" }, alternative: { quantity: "9800", carryingCents: "117600", economicGapCents: "0" } });
+    expect(unit(r, "REF-D|ENTREPOT-SUD|")).toMatchObject({ status: "no_gap", economicGapCents: "0", quantity: { basis: "reconciled" }, rotation: { lastMovement: "2026-01-10", days: 355 } });
     expect(r.exceptions.some(e => e.unitId === "REF-D|ENTREPOT-SUD|")).toBe(false);
   });
   it("dépréciation comptabilisée sans hypothèse (REF-E Nord) ; références non revues listées ; cadrage des comptes 39 : 150,00 − 170,00 = −20,00 €", async () => {
@@ -45,9 +51,18 @@ describe("ST-1531 revue de valeur — hypothèses citées, écart indicatif, auc
     expect(unit(r, "REF-E|ENTREPOT-NORD|L7")).toMatchObject({ status: "booked_without_hypothesis", bookedCents: "2000" });
     expect(r.exceptions.find(e => e.id === "VHYP:REF-E|ENTREPOT-NORD|L7")).toMatchObject({ code: "VALUE_HYPOTHESIS_MISSING", amount: { kind: "unknown" } });
     expect(unit(r, "REF-H|ENTREPOT-NORD|").status).toBe("not_reviewed");
-    expect(r.valueReview!.totals).toEqual({ reviewed: 3, notReviewed: 5, indicativeGapCents: "12500", bookedCents: "17000", ledgerDepreciationCents: "15000", depreciationFramingDifferenceCents: "-2000" });
+    expect(review(r).totals).toEqual({
+      units: { tested: 8, complete: 3, partial: 0, incomplete: 0, bookedWithoutHypothesis: 1, notReviewed: 4, excluded: 6, ownershipMismatch: 1 },
+      complete: { economicGapCents: "12500", assetImpairmentCents: "12500", excessCents: "0" }, partial: { economicGapCents: "0", assetImpairmentCents: "0", excessCents: "0" },
+      // Not reviewed at documented cost: REF-B 120 × 0,30 + REF-E Sud 17 × 4,00 + REF-E Nord 20 × 4,00 = 184,00 ; REF-G (absent du théorique) et REF-H (sans coût) inconnus.
+      notReviewedCostCents: "18400", notReviewedUnknown: 2,
+      excluded: [{ group: "consignment_out", units: 1, statedValueCents: "36000", unknownValues: 0 }, { group: "excluded", units: 1, statedValueCents: "3000", unknownValues: 0 },
+        { group: "in_transit", units: 1, statedValueCents: "45000", unknownValues: 0 }, { group: "ownership_mismatch", units: 1, statedValueCents: "180000", unknownValues: 0 },
+        { group: "site_not_visited", units: 1, statedValueCents: "100000", unknownValues: 0 }, { group: "third_party", units: 1, statedValueCents: null, unknownValues: 1 },
+        { group: "work_in_progress", units: 1, statedValueCents: "25000", unknownValues: 0 }],
+      bookedCents: "17000", ledgerDepreciationCents: "15000", depreciationFramingDifferenceCents: "-2000" });
     expect(r.exceptions.find(e => e.id === "DEPR:TOTAL")).toMatchObject({ code: "DEPRECIATION_FRAMING_DIFFERENCE", amount: { kind: "known", value: { amount: "-20.00" } } });
-    expect(r.valueReview!.units.some(u => u.unitId === "REF-F|ENTREPOT-NORD|")).toBe(false);
+    expect(review(r).units.some(u => u.unitId === "REF-F|ENTREPOT-NORD|")).toBe(false);
   });
   it("issue : 17 exceptions et incertitudes ; méthode et limites de la revue présentes ; sans hypothèses, la revue n’est pas lancée", async () => {
     const r = await r7();
@@ -60,10 +75,10 @@ describe("ST-1531 revue de valeur — hypothèses citées, écart indicatif, auc
   });
   it("hypothèse dans une autre unité ou coût absent : revue incomplète, jamais un écart nul", async () => {
     const carton = run(await sources({ ...ST_CSV, st_value: valueCsv(VALUE_ROWS.map(v => v[0] === "V02" ? [...v.slice(0, 3), "carton", ...v.slice(4)] : v)) }));
-    expect(unit(carton, "REF-C|ENTREPOT-NORD|")).toMatchObject({ status: "unit_incompatible", indicativeGapCents: null });
+    expect(unit(carton, "REF-C|ENTREPOT-NORD|")).toMatchObject({ status: "unit_incompatible", economicGapCents: null, assetImpairmentCents: null });
     const { st_costs: _c, ...noCosts } = ST_CSV; void _c;
     const r = run(await sources(noCosts));
-    expect(unit(r, "REF-C|ENTREPOT-NORD|")).toMatchObject({ status: "cost_missing", indicativeGapCents: null });
+    expect(unit(r, "REF-C|ENTREPOT-NORD|")).toMatchObject({ status: "cost_missing", economicGapCents: null, assetImpairmentCents: null });
     expect(r.exceptions.find(e => e.id === "VREV:REF-C|ENTREPOT-NORD|")!.code).toBe("VALUE_REVIEW_INCOMPLETE");
   });
 });

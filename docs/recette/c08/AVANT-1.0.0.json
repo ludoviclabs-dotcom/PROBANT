@@ -1,0 +1,146 @@
+{
+  "base": "c5e717b",
+  "schemaVersion": "stocks-result-2",
+  "units": {
+    "REF-N": {
+      "unitId": "REF-N|ENTREPOT-NORD|",
+      "hypothesis": {
+        "importId": "import-44c10f2a120ffee15fb758d106bad28265c2cebe3daef8a93af4526610da4357",
+        "rowId": "row-070da82e647a5faa62faa1366f2c7a64e5747a4b4bf0d325ece4aa05e1666b94",
+        "documentVersionId": "source-3739621c0bce12b3835b229dc0381712f0e85654ddc3d53586cc7cd281d7500b",
+        "fileName": "st_value.csv",
+        "row": 2,
+        "date": "2027-01-15",
+        "sellingPriceCents": "200",
+        "exitCostsCents": "500",
+        "currentValueCents": "-300",
+        "kind": "Devis ou offre",
+        "pieceRef": "DEV-N",
+        "justification": "Offre de reprise à 2,00 € l’unité, enlèvement et transport facturés 5,00 € l’unité",
+        "lot": ""
+      },
+      "costCents": "1000",
+      "systemQuantity": "1000",
+      "unitGapCents": "1300",
+      "indicativeGapCents": "13000",
+      "bookedCents": "0",
+      "differenceCents": "13000",
+      "rotation": {
+        "lastMovement": "2026-02-10",
+        "days": 324
+      },
+      "status": "gap"
+    },
+    "REF-Q": {
+      "unitId": "REF-Q|ENTREPOT-NORD|",
+      "hypothesis": {
+        "importId": "import-44c10f2a120ffee15fb758d106bad28265c2cebe3daef8a93af4526610da4357",
+        "rowId": "row-03e57d170a1d9fdaa3436965ee851f2abfae49fac23a0a92634b5064a05ca7bd",
+        "documentVersionId": "source-3739621c0bce12b3835b229dc0381712f0e85654ddc3d53586cc7cd281d7500b",
+        "fileName": "st_value.csv",
+        "row": 7,
+        "date": "2027-01-15",
+        "sellingPriceCents": "400",
+        "exitCostsCents": "0",
+        "currentValueCents": "400",
+        "kind": "Prix de vente postérieur à la clôture",
+        "pieceRef": "FV-Q",
+        "justification": "Ventes de janvier 2027 à 4,00 € l’unité",
+        "lot": ""
+      },
+      "costCents": "500",
+      "systemQuantity": "1000",
+      "unitGapCents": "100",
+      "indicativeGapCents": "1000",
+      "bookedCents": "0",
+      "differenceCents": "1000",
+      "rotation": null,
+      "status": "gap"
+    },
+    "REF-L L2": {
+      "unitId": "REF-L|ENTREPOT-NORD|L2",
+      "hypothesis": {
+        "importId": "import-44c10f2a120ffee15fb758d106bad28265c2cebe3daef8a93af4526610da4357",
+        "rowId": "row-9fc4daf7aea024f484b075d81a75f5d4c052ee75414011f086cfc6cbdbf1af55",
+        "documentVersionId": "source-3739621c0bce12b3835b229dc0381712f0e85654ddc3d53586cc7cd281d7500b",
+        "fileName": "st_value.csv",
+        "row": 6,
+        "date": "2027-01-15",
+        "sellingPriceCents": "300",
+        "exitCostsCents": "0",
+        "currentValueCents": "300",
+        "kind": "Tarif ou liste de prix",
+        "pieceRef": "TAR-L",
+        "justification": "Tarif du câble, tous lots confondus",
+        "lot": ""
+      },
+      "costCents": "400",
+      "systemQuantity": "2000",
+      "unitGapCents": "100",
+      "indicativeGapCents": "2000",
+      "bookedCents": "2000",
+      "differenceCents": "0",
+      "rotation": null,
+      "status": "gap"
+    }
+  },
+  "valuationCostL2": {
+    "importId": "import-b11b8295d5f764fa36fb881d5510be599ad281fbfbe42eef8dcf347c6f215412",
+    "rowId": "row-a1e7843c8f185db6f562048c933dfda3f3602fe281c98714481fcc639539a40c",
+    "documentVersionId": "source-d3dba194ffbc9b6559360adbb0aee7715ac3982081ace313bb5fb63636c78785",
+    "fileName": "st_costs.csv",
+    "row": 6,
+    "date": "2026-12-05",
+    "unitCostCents": "400",
+    "uomLabel": "unite",
+    "method": "Coût moyen pondéré (PCG art. 213-34)",
+    "pieceRef": "FA-L",
+    "lot": ""
+  },
+  "totals": {
+    "reviewed": 7,
+    "notReviewed": 2,
+    "indicativeGapCents": "26500",
+    "bookedCents": "12500",
+    "ledgerDepreciationCents": "12500",
+    "depreciationFramingDifferenceCents": "0"
+  },
+  "exceptions": [
+    {
+      "id": "QTY:REF-Q|ENTREPOT-NORD|",
+      "code": "QUANTITY_DIFFERENCE",
+      "amount": {
+        "kind": "known",
+        "value": {
+          "amount": "-20.00",
+          "currency": "EUR"
+        }
+      },
+      "message": "Clôture reconstituée 6 unite ; théorique 10 unite ; écart −4 unite. Écart arithmétique à expliquer, non validé comme anomalie. Valorisé −20,00 € au coût documenté de 5,00 € (Coût moyen pondéré (PCG art. 213-34), FA-Q) : écart potentiel."
+    },
+    {
+      "id": "VREV:REF-N|ENTREPOT-NORD|",
+      "code": "VALUE_REVIEW_DIFFERENCE",
+      "amount": {
+        "kind": "known",
+        "value": {
+          "amount": "130.00",
+          "currency": "EUR"
+        }
+      },
+      "message": "Coût 10,00 € ; valeur actuelle selon l’hypothèse −3,00 € (Devis ou offre, DEV-N) ; écart indicatif 13,00 € × 10 unite = 130,00 € ; dépréciation comptabilisée 0,00 € ; différence +130,00 €. Jugement humain motivé et cité requis : l’outil ne propose ni ne comptabilise aucune dépréciation."
+    },
+    {
+      "id": "VREV:REF-Q|ENTREPOT-NORD|",
+      "code": "VALUE_REVIEW_DIFFERENCE",
+      "amount": {
+        "kind": "known",
+        "value": {
+          "amount": "10.00",
+          "currency": "EUR"
+        }
+      },
+      "message": "Coût 5,00 € ; valeur actuelle selon l’hypothèse 4,00 € (Prix de vente postérieur à la clôture, FV-Q) ; écart indicatif 1,00 € × 10 unite = 10,00 € ; dépréciation comptabilisée 0,00 € ; différence +10,00 €. Jugement humain motivé et cité requis : l’outil ne propose ni ne comptabilise aucune dépréciation."
+    }
+  ]
+}

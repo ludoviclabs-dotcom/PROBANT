@@ -5,6 +5,8 @@ La mission est livrée en trois sous-lots séquentiels, chacun proposé dans une
 2. **coûts et cadrage** — livré (sous-lot 2, PR empilée sur le sous-lot 1) ;
 3. **revue de valeur** — livré (sous-lot 3, PR empilée sur le sous-lot 2).
 
+Le lot C08 (14/10/2026) fait passer la règle en 1.1.0 : revue de valeur bornée à la valeur comptable, quantité retenue explicite, coûts déclarés et repli signalés, totaux par population (section « C08 » en fin de document).
+
 Ce document décrit les trois sous-lots.
 
 ## Problème utilisateur
@@ -252,3 +254,90 @@ Voir `docs/mission15/RECETTE.md`, dont tous les montants sont calculés à la ma
 - **sous-lot 1** : 15 unités, 9 testées, 6 exclues avec motif, 9 exceptions ou incertitudes ;
 - **sous-lot 2** : 14 exceptions ou incertitudes, dont l'écart potentiel de −24,00 € sur REF-A ;
 - **sous-lot 3** : 17 exceptions ou incertitudes, dont la différence de −25,00 € à apprécier sur REF-C.
+
+## C08 — règle 1.1.0 : valeur bornée, quantité retenue, coûts déclarés et périmètre (14/10/2026)
+
+### Cause
+
+La règle 1.0.0 calculait l'écart indicatif comme (coût documenté − valeur actuelle selon l'hypothèse) × quantité théorique, puis le comparait tel quel à la dépréciation comptabilisée. Exécutée sur le dossier de recette C08 (`docs/recette/c08/AVANT-1.0.0.json`, moteur de `c5e717b`), elle montre quatre défauts :
+
+1. **Écart non borné.** Coûts de sortie supérieurs au prix : coût 10 €, prix 2 €, sortie 5 €, 10 unités. L'écart indicatif vaut 130 € pour une valeur au coût de 100 €, et la note porte une différence connue de +130 € comme si toute la somme était une dépréciation.
+2. **Quantité non rapprochée.** 6 unités comptées pour 10 au théorique : la règle 1.0.0 produisait une estimation sur 10, présentée comme complète, avec une différence connue.
+3. **Repli de coût invisible.** Un lot sans coût propre recevait le coût de la ligne sans lot de la référence sans que le résultat le dise.
+4. **Totaux sans population.** Un seul total indicatif, sans les exclusions (tiers, sites non visités, écarts de propriété) ni la part non revue.
+
+### Comparaison (règle 1.1.0, méthode interne)
+
+Pour une unité revue, sur la quantité retenue *q*, au coût documenté *c*, avec la valeur actuelle *v* = prix estimé − coûts de sortie (art. 214-6). *v* peut être négative : elle est conservée telle quelle, jamais remplacée par zéro.
+
+| Montant | Formule | Usage |
+|---|---|---|
+| Comparaison économique brute | *E* = (*c* − *v*) × *q* si *v* < *c*, sinon 0 | affichée |
+| Valeur comptable de référence | *C* = *q* × *c* | borne |
+| Perte de valeur de l'actif | *A* = min(*E*, *C*) | **seule** comparée à la dépréciation comptabilisée |
+| Complément | *X* = *E* − *A* | obligation éventuelle distincte à qualifier : ni dépréciation, ni provision, ni montant connu sur la note |
+
+Chaque arrondi applique la convention existante (centime, demi-centime loin de zéro). Le contrat de résultat refuse une perte supérieure à la valeur comptable, un complément incohérent ou une différence qui ne vaut pas *A* − dépréciation comptabilisée.
+
+### Quantité retenue
+
+La quantité retenue est la quantité théorique, celle que porte la comptabilité. Elle est **rapprochée** lorsque la quantité reconstituée à la clôture (comptée ± mouvements intercalaires) lui est égale (statut `matched`). Dans les autres cas, l'estimation est **partielle** (`gap_partial`) : écart de quantité, référence non comptée, mouvements incomplets ou unités de comptage différentes. Elle est alors présentée aussi sur la quantité reconstituée lorsque celle-ci est connue. L'incertitude `VALUE_QUANTITY_UNRESOLVED` est levée, et l'estimation n'entre pas dans le total complet. Une valeur au moins égale au coût ne dépend pas de la quantité : elle reste sans écart. Une référence absente du théorique (`not_in_system`) n'a pas de quantité comptabilisée à apprécier.
+
+Le résultat expose, pour chaque unité, les quantités théorique, comptée (avec la date), reconstituée, l'écart, la quantité retenue et sa base. Il expose aussi une **base de jugement** rédigée côté serveur : coût, méthode, pièce, date et repli éventuel ; hypothèse, nature, pièce, date et formule ; quantité et base ; valeur comptable de référence et, s'il y a lieu, écart avec la valeur théorique déclarée.
+
+### Coûts : capacité et repli
+
+- **Capacité.** Le coût est **déclaré** par la pièce citée, avec la méthode indiquée par la source (CUMP, PEPS, identification spécifique, coût standard, prix de détail). L'outil ne le reconstitue pas. Le PCG définit le coût des biens interchangeables à partir du coût des stocks à l'arrêté précédent et du coût d'entrée des achats et productions de l'exercice (art. 213-34, 214-26). Une reconstitution exigerait donc le stock d'ouverture valorisé, les entrées valorisées et les sorties de l'exercice. Les sources Stocks ne les portent pas : `st_movements` ne couvre que la période intercalaire, et seulement en quantités ; `st_costs` porte un coût par référence et lot. **Aucun sous-lot de reconstitution n'est ajouté.** Les libellés de méthode le disent (« déclaré — non reconstitué ») et le résultat 1.1.0 porte `capacity: "declared"`.
+- **Repli.** Le coût retenu est celui du lot ; à défaut, la ligne de la référence sans lot. Il ne vient jamais d'un autre lot ni d'une autre référence. Le résultat porte la base du coût : `lot`, `reference` (unité sans lot) ou `reference_fallback` (lot sans coût propre). Cette dernière est affichée à la valorisation, dans la revue, dans la base de jugement et dans l'interface. Le même marquage s'applique à l'hypothèse de valeur. Ce repli est un **choix interne**, distinct de l'art. 214-24 (cas exceptionnels où le coût ne peut être déterminé), que l'outil n'applique pas.
+
+### Totaux et populations
+
+La revue porte le décompte des unités testées : complètes, partielles, incomplètes, dépréciées sans hypothèse et non revues. Elle porte aussi les unités hors revue, par motif : stock de tiers, consignations, transit, en-cours, références exclues, sites non visités, écarts de propriété. Pour chaque motif, elle donne la valeur déclarée connue et le nombre de valeurs inconnues. Une valeur inconnue n'est jamais un zéro.
+
+Chacun des montants *E*, *A* et *X* est totalisé séparément pour l'estimation complète et pour l'estimation partielle. La part non revue est valorisée au coût documenté quand il est connu ; sinon, elle est décomptée comme inconnue. Le sous-lot coûts porte sa population : testées, valorisées, de valeur inconnue, non testées, et valeur portée pour des biens non détenus. Stock propre et stock de tiers, références, sites et lots, mouvements intercalaires, comptes 39 et écarts bruts et nets sont inchangés.
+
+### Codes ajoutés
+
+| Code | Nature | Montant |
+|---|---|---|
+| `VALUE_QUANTITY_UNRESOLVED` | incertitude (non concluant) | inconnu |
+| `VALUE_EXCESS_TO_QUALIFY` | exception à qualifier (note bloquante, résolution citée) | inconnu : le complément économique n'est pas l'estimation d'une sortie de ressources (art. 321-2) |
+
+### Versions
+
+Règle, gabarit et programme passent en **1.1.0**, et le résultat en `stocks-result-3`. Les résultats `stocks-result-1` et `stocks-result-2` restent lisibles, avec leur revue au format 1.0.0. Une feuille établie en 1.0.0 reste consultable et marquée périmée. Toute commande autre que la révision y est refusée (`ST_RULE_REPLACED_REVISION_REQUIRED`, 409), dont l'exécution, la note, la conclusion, la soumission, la revue et le verrouillage. La révision adopte la règle 1.1.0 ; la version 1.0.0 et ses preuves restent dans l'historique.
+
+### Sources consultées (14/10/2026)
+
+**Plan comptable général**, règlement ANC n° 2014-03, version consolidée au 1er janvier 2026. Fichier officiel ANC `PCG--1er-janvier-2026.pdf` (183 pages), SHA-256 `b9e7a732cea2f16d46df6d34b0dd8fa3e75e2791d0a2c1ff06204bdb3ff2766e`, identique à l'édition `pcg-2026-01-01` du résolveur C04. Il a été lu par extraction du texte (pypdf) dans un dossier isolé. Nature : **norme comptable**. Pour une période ouverte le 01/01/2026, c'est le texte applicable selon le résolveur C04. Les dates d'effet propres à chaque article ne figurent pas dans la version consolidée et ne sont pas établies ici.
+
+| Article | Contenu lu | Usage dans l'outil |
+|---|---|---|
+| 213-33, 213-34, 213-35, 214-26 | Méthodes de coût ; coût des biens interchangeables à partir du stock d'arrêté précédent et des entrées de l'exercice | Méthode déclarée affichée ; fonde la capacité « déclaré, non reconstitué » |
+| 214-5 | La dépréciation constate que la valeur actuelle est devenue inférieure à la valeur nette comptable | Perte de valeur de l'actif comparée à la dépréciation |
+| 214-6 | Valeur brute, VNC (brute − amortissements − dépréciations), valeur actuelle, valeur vénale nette des coûts de sortie | Valeur actuelle de l'hypothèse ; borne de l'actif |
+| 214-15, 214-16 | Test de dépréciation sur indice ; indices dont l'obsolescence | Rotation affichée comme indice, jamais calculée |
+| 214-22 | Évaluation des stocks à la clôture ; prix et perspectives de vente ; position globale : dépréciation des actifs en perte latente et **provision pour risque pour le solde** | Hypothèse de valeur ; la répartition de la position globale est citée comme cohérence, **non appliquée** |
+| 214-23 | Contrat de vente ferme | Non modélisé |
+| 214-24 | Cas exceptionnels de coût indéterminable | Non appliqué ; distinct du repli interne |
+| 321-1, 321-2 | Passif : obligation envers un tiers, sortie de ressources probable ou certaine sans contrepartie ; estimation = sortie pour éteindre l'obligation | Qualification du complément ; montant non assimilé |
+| 321-5, 322-1, 322-2, 322-8 | Provision ; critères de comptabilisation à la clôture | Qualification humaine, jamais automatique |
+| 322-9 | Une perte sur un contrat est provisionnée dès qu'elle devient probable | Piste de qualification |
+| 321-6, 322-5 | Passif éventuel : non comptabilisé, mentionné en annexe | Piste de qualification |
+| 322-12 | Les pertes d'exploitation futures, hors définition d'un passif, ne sont pas provisionnées | Piste de qualification |
+
+**Règlement ANC n° 2026-03** (fichier homologué publié par l'ANC, SHA-256 `59330e81ee5ab37c59fc919778130e61e6b18f2eaf87898b4984f02d5e8e0bd2`, identique au résolveur C04). Il s'applique aux exercices ouverts à compter du 01/01/2027, avec anticipation possible. Son art. 1er (points 1 à 10, lus) modifie les articles 121-5, 221-6 et 222-1, remplace le chapitre I du titre V, abroge la section « Contrats à long terme » du titre VI et modifie l'art. 621-11 et des comptes. **Il ne modifie aucun des articles ci-dessus.** Pour un exercice ouvert en 2027, ces articles sont à relire dans la prochaine édition consolidée.
+
+### Choix internes (non attribués à la norme) et justification
+
+| Choix | Justification |
+|---|---|
+| Borne de l'actif à *q* × *c* | La dépréciation constate une valeur actuelle inférieure à la VNC (214-5) ; la VNC est la valeur brute diminuée des dépréciations (214-6). Au-delà de la valeur brute, l'élément aurait une valeur économique négative, ce qui relève de la définition d'un passif (321-1), non d'une dépréciation d'actif. |
+| Base au coût documenté plutôt qu'à la valeur théorique déclarée | Même base que la comparaison ; un écart avec la valeur déclarée relève de l'écart de prix, signalé dans la base de jugement, à expliquer avant de conclure |
+| Complément présenté « à qualifier », montant inconnu sur la note | Son traitement dépend d'une obligation envers un tiers et d'une sortie probable (321-1, 322-1, 322-2, 322-9), sinon d'un passif éventuel (321-6, 322-5) ou d'une perte future non provisionnée (322-12). L'estimation d'un passif est la sortie nécessaire pour éteindre l'obligation (321-2), pas le complément économique. |
+| Quantité retenue = théorique, rapprochée seulement si la reconstituée l'égale | Une différence de quantité non résolue ne doit pas produire d'estimation complète silencieuse |
+| Repli du coût et de l'hypothèse sur la ligne sans lot de la référence | Pratique courante d'une liste de coûts par référence ; rendu visible, jamais étendu à un autre lot ou une autre référence |
+
+### Recette
+
+Voir `docs/recette/c08/RECETTE.md` : attendus calculés à la main ; coût absent, unité différente, lot sans coût propre avec repli, quantité partielle, stock de tiers valorisé, valeur négative, dépréciation déjà comptabilisée et absence de revue.

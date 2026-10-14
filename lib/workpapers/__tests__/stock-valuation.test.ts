@@ -34,7 +34,7 @@ describe("ST-1521 coûts — cas de référence calculés à la main", () => {
     expect(a).toMatchObject({ costStatus: "documented", cost: { unitCostCents: "1200", pieceRef: "FA-501", fileName: "st_costs.csv", row: 2 }, quantityDifferenceValueCents: "-2400", expectedValueCents: "117600", recalculatedSystemValueCents: "120000", systemValueCents: "120000", priceDifferenceCents: "0" });
     const e = r.exceptions.find(x => x.id === "QTY:REF-A|ENTREPOT-NORD|L1")!;
     expect(e.amount).toEqual({ kind: "known", value: { amount: "-24.00", currency: "EUR" } });
-    expect(e.message).toContain("Valorisé −24,00 € au coût documenté de 12,00 € (Coût moyen pondéré (PCG art. 213-34), FA-501) : écart potentiel.");
+    expect(e.message).toContain("Valorisé −24,00 € au coût documenté de 12,00 € (Coût moyen pondéré déclaré (PCG art. 213-34, 214-26) — non reconstitué, FA-501) : écart potentiel.");
     expect(e.message).toContain("non validé comme anomalie");
   });
   it("écart de prix : REF-C 410,00 € au théorique pour 50 × 8,00 € = 400,00 € — écart +10,00 €", async () => {
@@ -82,7 +82,7 @@ describe("ST-1522 cadrage état valorisé ↔ grand livre et propriété", () =>
     expect(r.exceptions.find(e => e.id === "FRAME:321000")).toMatchObject({ code: "FRAMING_DIFFERENCE", amount: { kind: "known", value: { amount: "10.00" } } });
     expect(r.exceptions.find(e => e.id === "NOTOWN:REF-F|ENTREPOT-NORD|")).toMatchObject({ code: "VALUE_ON_NOT_OWNED", amount: { kind: "known", value: { amount: "1800.00" } } });
     expect(r.valuation!.totals).toMatchObject({ systemValueCents: "427400", ledgerCents: "428400", priceDifferenceNetCents: "1000" });
-    expect(acc("371000").methods).toEqual(["Coût moyen pondéré (PCG art. 213-34)", "Premier entré, premier sorti (PCG art. 213-34)"]);
+    expect(acc("371000").methods).toEqual(["Coût moyen pondéré déclaré (PCG art. 213-34, 214-26) — non reconstitué", "Premier entré, premier sorti déclaré (PCG art. 213-34, 214-26) — non reconstitué"]);
   });
   it("compte valorisé absent du grand livre : cadrage incomplet, jamais réputé nul ; compte au grand livre sans ligne théorique : écart", async () => {
     const r = run(await sources({ ...ST_CSV, st_value: undefined, st_ledger: ledgerCsv([...LEDGER_ROWS.filter(l => l[0] !== "331000"), ["355000", "500,00", "2026-12-31", "Produits finis"]]) }));
@@ -101,7 +101,7 @@ describe("ST-1522 cadrage état valorisé ↔ grand livre et propriété", () =>
   });
   it("issue et décompte : 14 exceptions et incertitudes, exceptions détectées", async () => {
     const r = run(await valued());
-    expect(r.schemaVersion).toBe("stocks-result-2");
+    expect(r.schemaVersion).toBe("stocks-result-3");
     expect(r.exceptions).toHaveLength(14);
     expect(r.exceptions.filter(e => ["PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "COST_MISSING"].includes(e.code)).map(e => e.code).sort()).toEqual(["COST_MISSING", "FRAMING_DIFFERENCE", "NET_COMPENSATED_VALUE", "PRICE_DIFFERENCE", "VALUE_ON_NOT_OWNED"]);
     expect(stockOutcome(r)).toBe("exceptions_detected");
