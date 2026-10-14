@@ -8,6 +8,7 @@ import {
   runRules,
   splitAdmissibilite,
 } from "../runner";
+import type { Rule } from "../types";
 
 function finding(
   controlStage: NonNullable<Finding["controlStage"]>,
@@ -115,6 +116,28 @@ describe("stages des contrôles", () => {
       mesure: { constate: 1 },
       source: { ref: "PCG art. 1031-1" },
     });
+  });
+
+  it("un constat d'exécution ne présente pas l'identifiant du registre comme date d'effet", () => {
+    const failing: Rule = {
+      id: "R-TEST-ERR",
+      family: "internal",
+      version: "1.0.0",
+      cloison: "journaux",
+      severity: "informatif",
+      controlStage: "accounting_review",
+      titre: "Règle en erreur",
+      run() {
+        throw new Error("panne simulée");
+      },
+    };
+    const parsed = parseFec("");
+    const [error] = runRules(
+      { parsed, entries: [], nomFichier: "x.txt", siren: null, referentielVersion: "ed2-cf23de34ea7f" },
+      [failing],
+    );
+
+    expect(error).toMatchObject({ id: "R-TEST-ERR#error", source: { ref: "R-TEST-ERR", effectiveDate: "" } });
   });
 });
 

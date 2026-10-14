@@ -21,6 +21,24 @@ describe("C09 — versions datées des articles du code de commerce", () => {
     expect(articleVersion("L225-248", "2023-03-11")!.label).toContain("loi n° 2023-171");
     expect(articleVersion("L227-1", "2019-07-20")).toBeNull();
   });
+  it("L226-1 (SCA) : quatre versions lues, bornées aux dates d’entrée en vigueur affichées par Légifrance", () => {
+    // Attendus relevés sur Légifrance le 14/10/2026 (page de chaque version), pas sur le moteur.
+    const cases: [string, string, string][] = [
+      ["2000-09-21", "version du 21/09/2000 au 23/05/2019 (ord. n° 2000-912", "LEGIARTI000006226526/2000-09-21"],
+      ["2019-05-23", "version du 21/09/2000 au 23/05/2019", "LEGIARTI000006226526/2000-09-21"],
+      ["2019-05-24", "version du 24/05/2019 au 31/12/2020 (loi n° 2019-486 du 22/05/2019, art. 101)", "LEGIARTI000038612806/2019-05-24"],
+      ["2020-12-31", "version du 24/05/2019 au 31/12/2020", "LEGIARTI000038612806/2019-05-24"],
+      ["2021-01-01", "version du 01/01/2021 au 25/05/2023 (ord. n° 2020-1142 du 16/09/2020, art. 4)", "LEGIARTI000042340113/2021-01-01"],
+      ["2023-05-25", "version du 01/01/2021 au 25/05/2023", "LEGIARTI000042340113/2021-01-01"],
+      ["2023-05-26", "version en vigueur depuis le 26/05/2023 (ord. n° 2023-393 du 24/05/2023, art. 12)", "LEGIARTI000047591354"],
+    ];
+    for (const [date, label, url] of cases) {
+      const v = articleVersion("L226-1", date)!;
+      expect(v.label).toContain(label);
+      expect(v.url.endsWith(url)).toBe(true);
+    }
+    expect(articleVersion("L226-1", "2000-09-20")).toBeNull();
+  });
 });
 
 describe("C09 — repères légaux : calculs arithmétiques, signaux à examiner, jamais de conclusion", () => {
@@ -47,6 +65,28 @@ describe("C09 — repères légaux : calculs arithmétiques, signaux à examiner
   it("forme non documentée : rien n’est calculé comme applicable ; autre forme : L232-10 et L223-42 / L225-248 non visés", () => {
     expect(legalMarkers(base({ socialForm: null })).items.map(i => [i.applies, i.signal.kind])).toEqual([["inconnu", "non_calcule"], ["inconnu", "non_calcule"], ["inconnu", "non_calcule"]]);
     expect(legalMarkers(base({ socialForm: "autre" })).items.map(i => i.applies)).toEqual(["non", "inconnu", "non"]);
+  });
+  it("SCA, capitaux propres 400 pour un capital 1 000 : L225-248 cité par le renvoi de L226-1 al. 2, rapport et signal identiques à ceux d’une SA", () => {
+    const sca = legalMarkers(base({ socialForm: "sca" })).items[2], sa = legalMarkers(base({ socialForm: "sa" })).items[2];
+    expect(sca.articles.map(a => a.label)).toEqual([
+      "C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171 du 09/03/2023, art. 14)",
+      "C. com. art. L226-1, version en vigueur depuis le 26/05/2023 (ord. n° 2023-393 du 24/05/2023, art. 12)",
+    ]);
+    expect(sca.applies).toBe("oui");
+    expect(sca.appliesReason).toBe("SCA : art. L225-248, applicable par le renvoi de l’art. L226-1 al. 2 (non exclu, dans la mesure de sa compatibilité avec le chapitre VI).");
+    expect([sca.computed, sca.signal]).toEqual([sa.computed, sa.signal]);
+    expect(sca.signal.kind).toBe("a_examiner");
+    // The SA keeps a single article and its 1.1.0 wording: only the SCA changes under rule 1.1.1.
+    expect(sa.articles.map(a => a.label)).toEqual(["C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171 du 09/03/2023, art. 14)"]);
+    expect(sa.appliesReason).toBe("Société par actions : art. L225-248.");
+  });
+  it("SCA clôturant le 31/12/2020 : versions de L225-248 (2000) et de L226-1 (loi 2019-486) applicables à cette date", () => {
+    const sca = legalMarkers(base({ socialForm: "sca", period: { startDate: "2020-01-01", closingDate: "2020-12-31", asOfDate: "2021-03-31" } })).items[2];
+    expect(sca.articles.map(a => a.label)).toEqual([
+      "C. com. art. L225-248, version du 21/09/2000 au 10/03/2023 (ord. n° 2000-912)",
+      "C. com. art. L226-1, version du 24/05/2019 au 31/12/2020 (loi n° 2019-486 du 22/05/2019, art. 101)",
+    ]);
+    expect(sca.applies).toBe("oui");
   });
   it("SAS clôturant avant le 21/07/2019 : renvoi de L227-1 non relu → rapport non apprécié", () => {
     const old = legalMarkers(base({ socialForm: "sas", period: { startDate: "2018-07-01", closingDate: "2019-06-30", asOfDate: "2019-09-30" } })).items[2];

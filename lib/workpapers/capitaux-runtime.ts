@@ -6,11 +6,11 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { buildEquityMissionPackage, type EquityExportKind } from "@/lib/evidence/capitaux-mission-package";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { EQUITY_RULE, EQUITY_TEMPLATE, EquityRegistry } from "./capitaux-adapter";
+import { EQUITY_TEMPLATE, EquityRegistry } from "./capitaux-adapter";
 import type { EquityCitationInput, EquityCommand } from "./capitaux-commands";
 import { buildEquityMission, type EquityMissionSelection } from "./capitaux-mission";
 import { previewMinutes } from "./capitaux-minutes";
-import { EQ_UNCERTAINTY_CODES, capitauxWorkSchema, stampEquityWork, type EquityResult } from "./capitaux-review";
+import { EQ_UNCERTAINTY_CODES, capitauxRuleReplaced, capitauxWorkSchema, stampEquityWork, type EquityResult, type EquityWork } from "./capitaux-review";
 import { assertEquityBatch, buildEquityFacts, equityFactsView, equityHeadKey, equityPopulationExclusions, equitySourcesCurrent, EquitySourceError, type EquityFactsView, type EquityMinutesForm, type EquityTabularType } from "./capitaux-sources";
 import { EquityImports, EquityWorkpaperRepository, type EquityDatabase, type EquityTx } from "./capitaux-store";
 import { previewImport, type ImportBatch, type ImportMapping } from "./imports";
@@ -176,7 +176,9 @@ export class EquityRuntime {
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (current.capitauxWork) capitauxWorkSchema.parse(current.capitauxWork);
       // A sheet of a replaced rule is read, never continued: only a revision (which adopts the current template) is allowed.
-      if (command.command !== "revise" && current.template.rule?.version !== EQUITY_RULE.version) throw new Error("EQ_RULE_REPLACED_REVISION_REQUIRED");
+      if (command.command !== "revise" && capitauxRuleReplaced(current)) throw new Error("EQ_RULE_REPLACED_REVISION_REQUIRED");
+      // A 1.1.0 sheet stays current for its declared form only: declaring an SCA there needs the 1.1.1 revision first.
+      const ruleCovers = <W extends EquityWork>(work: W): W => { if (capitauxRuleReplaced({ template: current.template, capitauxWork: work })) throw new Error("EQ_RULE_REPLACED_REVISION_REQUIRED"); return work; };
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion;
       let run: WorkpaperRun;
@@ -190,7 +192,7 @@ export class EquityRuntime {
           const population = freezePopulation(scope, batches, "decision_movement", actor), exclusions = equityPopulationExclusions(facts);
           const selectedIds = population.items.map(i => i.id).filter(i => !exclusions.some(e => e.id === i));
           if (!selectedIds.length) throw new Error("EQ_NO_ITEM_IN_SCOPE");
-          run = await service.configureCapitaux(scope, id, v, stampEquityWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, actor, at }));
+          run = await service.configureCapitaux(scope, id, v, ruleCovers(stampEquityWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, actor, at })));
           const selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les écritures de l’exercice et toutes les lignes de décision des composantes de capitaux propres ; autres fonds propres exclus avec motif (présentés à part)", requestedSize: selectedIds.length, selectedIds, exclusions }, actor);
           run = await service.attachInputs(scope, id, run.version, population, selection);
           for (const batch of batches) run = await service.addEvidence(scope, id, run.version, batch.id, batch.rows[0].id, "Source Capitaux propres figée");
@@ -199,7 +201,7 @@ export class EquityRuntime {
         case "configure": {
           if (!current.population || !current.capitauxWork) throw new Error("EQ_FROZEN_INPUTS_REQUIRED");
           const batches = current.importIds.map(i => imports.get(scope, i, actor));
-          run = await service.configureCapitaux(scope, id, v, stampEquityWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, actor, at, previous: current.capitauxWork })); break;
+          run = await service.configureCapitaux(scope, id, v, ruleCovers(stampEquityWork({ scope, period: current.period, runId: id, imports: batches, draft: command.draft, actor, at, previous: current.capitauxWork }))); break;
         }
         case "execute": {
           if (!current.capitauxWork) throw new Error("EQ_WORK_REQUIRED");

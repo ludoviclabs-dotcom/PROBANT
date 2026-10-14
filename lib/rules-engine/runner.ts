@@ -42,7 +42,8 @@ export function runRules(
         source: {
           ref: rule.id,
           citation: "—",
-          effectiveDate: ctx.referentielVersion,
+          // Aucun texte n'est cité : l'identifiant du registre n'est pas une date d'effet.
+          effectiveDate: "",
         },
         comptesConcernes: [],
         lignesSource: [],

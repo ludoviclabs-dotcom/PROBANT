@@ -4,6 +4,7 @@ import { Download, ArrowRight, ShieldCheck } from "lucide-react";
 import { PageHeader } from "@/components/probant/PageHeader";
 import { SeverityBadge, FamilyBadge } from "@/components/probant/Badges";
 import { useActiveDossierSnapshot } from "@/lib/dossier/client";
+import { ReferentielEdition } from "@/components/referentiel/ReferentielEdition";
 
 export default function DossierPage() {
   const snapshot = useActiveDossierSnapshot();
@@ -47,8 +48,8 @@ export default function DossierPage() {
       >
         <ShieldCheck className="h-5 w-5 shrink-0 text-[var(--pb-accent)]" />
         <span>
-          Dossier <span className="tnum text-[var(--pb-text)]">{d.id}</span> ·
-          référentiel v.{d.referentielVersion} · empreinte FEC{" "}
+          Dossier <span className="tnum text-[var(--pb-text)]">{d.id}</span> ·{" "}
+          référentiel <ReferentielEdition identifiant={d.referentielVersion} /> · empreinte FEC{" "}
           <span className="tnum">{d.fecFingerprint.slice(0, 12)}</span> · généré
           le {new Date(d.createdAt).toLocaleString("fr-FR")}
         </span>

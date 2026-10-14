@@ -9,6 +9,7 @@ import {
   ActiveDossierProvider,
   useActiveDossierSnapshot,
 } from "@/lib/dossier/client";
+import { ReferentielEdition } from "@/components/referentiel/ReferentielEdition";
 
 const SOURCE_LABEL = {
   demo: "Demo",
@@ -78,7 +79,7 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
                 Référentiel
               </div>
               <div className="tnum font-semibold text-[var(--pb-text)]">
-                v.{dossier.referentielVersion}
+                <ReferentielEdition identifiant={dossier.referentielVersion} align="right" />
               </div>
             </div>
           </div>

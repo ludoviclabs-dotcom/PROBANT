@@ -413,7 +413,7 @@ export function LibrarySection({
           <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "20px 12px 4px" }}>
             <span style={{ flex: 1, height: 1, background: "rgba(230,237,246,.08)" }} />
             <span style={{ fontFamily: MONO, fontSize: 11, letterSpacing: ".04em", color: "#5c6b82" }}>
-              {`fin · ${plural(filtered.length, "entrée", "entrées")} · référentiel v.${version}`}
+              {`fin · ${plural(filtered.length, "entrée", "entrées")} · référentiel ${version}`}
             </span>
             <span style={{ flex: 1, height: 1, background: "rgba(230,237,246,.08)" }} />
           </div>
@@ -422,7 +422,7 @@ export function LibrarySection({
         {filtered.length === 0 && (
           <div style={{ padding: "48px 12px", textAlign: "center" }}>
             <p style={{ margin: 0, fontSize: 15, color: "#a9b6c9" }}>
-              {`Aucun texte ne correspond — ${sources.length} sources dans le référentiel v.${version}`}
+              {`Aucun texte ne correspond — ${sources.length} sources dans le référentiel ${version}`}
             </p>
             <button
               type="button"

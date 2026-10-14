@@ -13,6 +13,7 @@ export function ActiveCloisons() {
   const meta = {
     label: activeDossier.societe.raisonSociale,
     exercice: activeDossier.societe.exercice,
+    referentiel: activeDossier.referentielVersion,
     siren: sirenRenseigne(activeDossier.societe.siren),
     sourceKind: snapshot.sourceKind,
   };

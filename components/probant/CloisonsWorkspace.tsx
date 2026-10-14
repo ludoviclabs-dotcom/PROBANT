@@ -21,6 +21,7 @@ import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentVi
 import { isEurSignalWithoutEffect, restrictExposure } from "@/lib/synthesis/exposure";
 import { EFFECT_TARGET_LABEL, scopedEffectItems, type ScopedEffectItem } from "@/lib/synthesis/effect-labels";
 import type { ExposureDimension } from "@/lib/synthesis/types";
+import { decrireReferentiel } from "@/lib/referentiel/edition";
 import { libelleSiren } from "@/lib/dossier/siren";
 
 /* ── types ──────────────────────────────────────────────────────────────────── */
@@ -486,7 +487,7 @@ function RailPanel({
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
               </svg>
               <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: ACCENT }}>{finding.source.ref}</span>
-              <span style={{ fontFamily: "monospace", fontSize: 9.5, color: FAINT }}>v.{finding.source.effectiveDate}</span>
+              {finding.source.effectiveDate && <span style={{ fontFamily: "monospace", fontSize: 9.5, color: FAINT }}>v.{finding.source.effectiveDate}</span>}
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.2"
                 style={{ marginLeft: "auto", transition: "transform .2s", transform: showSource ? "rotate(90deg)" : "rotate(0deg)" }}>
                 <path d="m9 18 6-6-6-6" />
@@ -949,8 +950,9 @@ export function CloisonsWorkspace({
   exposure,
 }: {
   silos: SiloView[];
-  /** `siren` : `null` s'il n'est pas renseigné (jamais des zéros) ; `sourceKind` : origine du dossier actif. */
-  meta: { label: string; exercice: string; siren: string | null; sourceKind: DossierSourceKind };
+  /** `referentiel` : identifiant d'édition porté par le dossier (`referentielVersion`) ;
+   *  `siren` : `null` s'il n'est pas renseigné (jamais des zéros) ; `sourceKind` : origine du dossier actif. */
+  meta: { label: string; exercice: string; referentiel: string; siren: string | null; sourceKind: DossierSourceKind };
   scenario?: ScenarioInfo | null;
   /** Projection des effets partagée avec la Synthèse (lib/synthesis/exposure). */
   exposure: Pick<ExposureDimension, "clusters">;
@@ -1069,7 +1071,7 @@ export function CloisonsWorkspace({
               </div>
               <div style={{ marginTop: 5, fontSize: 9.5, color: FAINT, fontVariantNumeric: "tabular-nums" }}>
                 {scenario ? `${scenario.secteur} · ${scenario.forme} · ` : `${libelleSiren(meta.siren)} · `}
-                Exercice {meta.exercice} · Réf. v.2024-01-01
+                Exercice {meta.exercice} · Réf. {decrireReferentiel(meta.referentiel).libelle}
               </div>
             </div>
           </div>

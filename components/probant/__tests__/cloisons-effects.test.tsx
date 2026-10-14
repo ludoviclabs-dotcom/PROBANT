@@ -26,7 +26,7 @@ it("en-tête et lignes de silo : exposition initiale par poste et sens, jamais u
   const { container } = render(
     <CloisonsWorkspace
       silos={snapshot.dossier.silos}
-      meta={{ label: snapshot.dossier.societe.raisonSociale, exercice: snapshot.dossier.societe.exercice, siren: snapshot.dossier.societe.siren, sourceKind: snapshot.sourceKind }}
+      meta={{ label: snapshot.dossier.societe.raisonSociale, exercice: snapshot.dossier.societe.exercice, referentiel: snapshot.dossier.referentielVersion, siren: snapshot.dossier.societe.siren, sourceKind: snapshot.sourceKind }}
       exposure={projectSnapshotExposure(snapshot).exposure}
     />,
   );

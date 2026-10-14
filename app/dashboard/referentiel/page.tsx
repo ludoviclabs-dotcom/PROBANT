@@ -1,4 +1,5 @@
-import { REFERENTIEL_VERSION, SEUILS_INTERNES, SOURCES } from "@/lib/referentiel/sources";
+import { SEUILS_INTERNES, SOURCES } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION, decrireReferentiel } from "@/lib/referentiel/edition";
 import { ReferentielWorkspace } from "@/components/referentiel/ReferentielWorkspace";
 
 export default function ReferentielPage() {
@@ -12,5 +13,7 @@ export default function ReferentielPage() {
     { label: "Seuil faisceau", value: `${SEUILS_INTERNES.faisceauSeuilSignaux} signaux` },
   ];
 
-  return <ReferentielWorkspace sources={sources} seuils={seuils} version={REFERENTIEL_VERSION} />;
+  const edition = decrireReferentiel(REFERENTIEL_VERSION);
+
+  return <ReferentielWorkspace sources={sources} seuils={seuils} version={edition.libelle} versionDetail={edition.detail} />;
 }

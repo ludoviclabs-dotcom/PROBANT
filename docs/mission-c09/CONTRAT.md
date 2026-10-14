@@ -38,16 +38,18 @@ Chaque décision économique porte :
 Garde-fous :
 
 - **Aucun rapprochement par montant.** Le montant ne sert qu’à signaler une divergence.
-- **Décision de référence.** Une décision reliée prend ses montants dans la feuille cible 1.1.0, puis dans `/capitaux-propres` 1.0.0, puis dans `/equity`.
+- **Décision de référence.** Une décision reliée prend ses montants dans la feuille cible (contrat `capitaux-result-2`, règle 1.1.0 ou 1.1.1), puis dans `/capitaux-propres` 1.0.0, puis dans `/equity`.
 - **Totaux.** Ils ne portent que sur les décisions comptées : nombre par type, effet voté par famille, paiements. Les exclusions sont dénombrées avec leur motif.
 
-## 2. Règle `capitaux_propres.review` 1.1.0
+## 2. Règle `capitaux_propres.review` 1.1.1
 
 **Versions.**
 
-- Règle, gabarit et programme en 1.1.0 ; résultat `capitaux-result-2` ; travail `equity-2`.
+- Règle, gabarit et programme en 1.1.1 ; résultat `capitaux-result-2` ; travail `equity-2`.
+- **1.1.1 (14/10/2026).** Pour une SCA, le repère « moitié du capital » cite L225-248 par le renvoi de L226-1 (al. 2), comme la SAS par celui de L227-1. Pour toute autre forme, ou sans forme déclarée, le résultat est identique à celui de la règle 1.1.0.
+- **Seuls les travaux concernés sont périmés.** Une feuille 1.1.0 reste à jour, exécutable et poursuivable, sauf si sa forme déclarée est une SCA. Déclarer une SCA sur une feuille 1.1.0 exige d’abord la révision. Le registre de calcul garde la règle 1.1.0, et la refuse pour une SCA.
 - Un résultat 1.0.0 reste lisible tel qu’enregistré, mais ne peut pas être produit.
-- Sur une feuille 1.0.0, toute commande autre que la révision est refusée (`EQ_RULE_REPLACED_REVISION_REQUIRED`, HTTP 409). La révision adopte le gabarit 1.1.0.
+- Sur une feuille 1.0.0, ou 1.1.0 déclarée en SCA, toute commande autre que la révision est refusée (`EQ_RULE_REPLACED_REVISION_REQUIRED`, HTTP 409). La révision adopte le gabarit 1.1.1.
 
 ### 2.1 Décision amendée
 
@@ -118,7 +120,7 @@ La forme sociale est déclarée (SARL, SA, SAS, SCA, autre ou non documentée), 
 |---|---|---|---|---|
 | Réserve légale | L232-10 (SARL et sociétés par actions) | Résultat d’ouverture ; report à nouveau débiteur d’ouverture ; base repère ; 1/20 de cette base et 1/10 du capital en fractions exactes ; réserve d’ouverture ; affectation votée à la réserve légale | « À examiner » si l’affectation votée est inférieure au 1/20 de la base et que la réserve reste sous le 1/10 du capital | Notions légales de bénéfice et de pertes antérieures, réserves statutaires, nullité, capital à retenir |
 | Distribution | L232-11 (depuis le 04/01/2003) | Distributions en vigueur à effet dans l’exercice ; capitaux propres de clôture ; capital + réserve légale + écarts de réévaluation à la clôture. Une composante non fournie est exclue et nommée. | « À examiner » si les capitaux propres de clôture sont inférieurs à ce repère | Bénéfice distribuable, réserves indisponibles statutaires, postes de réserves désignés, acomptes (L232-12), dividende fictif |
-| Moitié du capital | L223-42 (SARL) ; L225-248 (SA, SCA ; SAS par le renvoi de L227-1) | Capitaux propres et capital de clôture, rapport exact | « À examiner » si les capitaux propres sont inférieurs à la moitié du capital. **Aucune alerte de dissolution, aucun délai calculé.** | Capitaux propres retenus pour ce test, approbation des comptes, délai de 4 mois, décision, publicité, reconstitution ou réduction, seuil fixé par décret, sauvegarde ou redressement, disposition transitoire de la loi 2023-171 |
+| Moitié du capital | L223-42 (SARL) ; L225-248 (SA ; SCA par le renvoi de L226-1, règle 1.1.1 ; SAS par le renvoi de L227-1) | Capitaux propres et capital de clôture, rapport exact | « À examiner » si les capitaux propres sont inférieurs à la moitié du capital. **Aucune alerte de dissolution, aucun délai calculé.** | Capitaux propres retenus pour ce test, approbation des comptes, délai de 4 mois, décision, publicité, reconstitution ou réduction, seuil fixé par décret, sauvegarde ou redressement, disposition transitoire de la loi 2023-171 |
 
 ## 3. Sources lues
 
@@ -141,8 +143,12 @@ La forme sociale est déclarée (SARL, SA, SAS, SCA, autre ou non documentée), 
 | L232-12 | Depuis le 21/09/2000 | Lu dans la même section | Acomptes, cités comme « reste juridique » |
 | L223-42 | Du 05/08/2003 au 10/03/2023 (loi 2003-721) | `LEGIARTI000047292166` à date | Moitié du capital (SARL) |
 | L223-42 | Depuis le 11/03/2023 (loi 2023-171, art. 14) | `LEGIARTI000047292166` | Moitié du capital (SARL) |
-| L225-248 | Du 21/09/2000 au 10/03/2023 | `LEGIARTI000047292156` à date | Moitié du capital (SA, SCA, SAS) |
-| L225-248 | Depuis le 11/03/2023 (loi 2023-171, art. 14) | `LEGIARTI000047292156` | Moitié du capital (SA, SCA, SAS) |
+| L225-248 | Du 21/09/2000 au 10/03/2023 | `LEGIARTI000047292156` à date | Moitié du capital (SA ; SCA et SAS par renvoi) |
+| L225-248 | Depuis le 11/03/2023 (loi 2023-171, art. 14) | `LEGIARTI000047292156` | Moitié du capital (SA ; SCA et SAS par renvoi) |
+| L226-1 | Du 21/09/2000 au 23/05/2019 (ord. 2000-912, codification de l’art. 251 de la loi 66-537) | `LEGIARTI000006226526` | Renvoi des SCA aux règles des SA, hors L225-17 à L225-93 |
+| L226-1 | Du 24/05/2019 au 31/12/2020 (loi 2019-486, art. 101) | `LEGIARTI000038612806` | Idem, hors aussi L236-6 al. 3 |
+| L226-1 | Du 01/01/2021 au 25/05/2023 (ord. 2020-1142, art. 4) | `LEGIARTI000042340113` | Idem, hors aussi L22-10-3 à L22-10-30 |
+| L226-1 | Depuis le 26/05/2023 (ord. 2023-393, art. 12) | `LEGIARTI000047591354` | Idem, hors L236-17 au lieu de L236-6 al. 3 ; aucune version n’exclut L225-248 |
 | L227-1 | Du 21/07/2019 au 25/05/2023 | `LEGIARTI000048535177` à date | Renvoi des SAS aux règles des SA |
 | L227-1 | Du 26/05/2023 au 31/12/2024 | `LEGIARTI000048535177` à date | Renvoi des SAS aux règles des SA |
 | L227-1 | Depuis le 01/01/2025 | `LEGIARTI000048535177` | Renvoi des SAS aux règles des SA |

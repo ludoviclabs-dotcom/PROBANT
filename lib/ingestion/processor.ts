@@ -3,7 +3,7 @@ import "server-only";
 import { buildSnapshotFromFecDepot } from "@/lib/dossier/snapshot-builder";
 import { computeDossierSnapshotHash } from "@/lib/dossier/snapshot-state";
 import { FEC_STREAM_PARSER_VERSION, FecStreamError, parseFecStream } from "@/lib/fec/stream-parser";
-import { REFERENTIEL_VERSION } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION } from "@/lib/referentiel/edition";
 import { ALL_REGISTRIES, runRules, splitAdmissibilite } from "@/lib/rules-engine";
 import {
   ContentSignatureError,

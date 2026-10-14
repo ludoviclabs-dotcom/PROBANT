@@ -4,9 +4,11 @@ import type {
   ReconstitutedStatement,
   SiloView,
 } from "@/lib/canonical-model";
-import { REFERENTIEL_VERSION, SOURCES } from "@/lib/referentiel/sources";
+import { SOURCES } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION } from "@/lib/referentiel/edition";
 import { computeMateriality } from "@/lib/audit/materiality";
 import { buildAllRapprochementSilos } from "@/lib/rapprochement/demo";
+import { articleVersion } from "@/lib/workpapers/capitaux-legal";
 
 /**
  * Dataset de démonstration — société fictive DEMO SA.
@@ -24,6 +26,14 @@ const FECT = REFERENTIEL_VERSION;
  * risques et la visite guidée — pour que le seuil affiché soit partout le même.
  */
 export const DEMO_MATERIALITY_BASIS = { chiffreAffaires: 6_340_000 } as const;
+
+/**
+ * Libellé daté de C. com. art. L225-248 pour une clôture donnée : version retenue par le
+ * moteur C09 (repères légaux), partagée par les constats « moitié du capital » des démos.
+ */
+export function articleL225248At(closingDate: string): string {
+  return articleVersion("L225-248", closingDate)?.label ?? `C. com. art. L225-248 : version applicable au ${closingDate} non relue`;
+}
 
 function stmt(s: ReconstitutedStatement): ReconstitutedStatement {
   return s;
@@ -587,23 +597,23 @@ const findCP: Finding = {
   ruleVersion: "1.0.0",
   cloison: "bilan-passif",
   siloId: "capitaux-propres",
-  titre: "Capitaux propres inférieurs à la moitié du capital",
+  titre: "Capitaux propres inférieurs à la moitié du capital — à examiner",
   constat:
-    "Après imputation du résultat déficitaire, les capitaux propres ressortent à 220 000 € pour un capital social de 500 000 €, soit en deçà de la moitié du capital, sans trace de consultation de l'assemblée.",
+    "Après imputation du résultat déficitaire, les capitaux propres ressortent à 220 000 € pour un capital social de 500 000 €, sous la moitié du capital (250 000 €). Le dossier de démonstration ne documente aucune décision de l'assemblée sur cette situation.",
   explication:
-    "Lorsque les capitaux propres deviennent inférieurs à la moitié du capital, une AG doit être consultée dans les quatre mois et la situation régularisée sous deux exercices. L'information et la procédure doivent être tracées (continuité d'exploitation également concernée).",
+    `Pour une SA, ${articleL225248At("2024-12-31")}, retenu à la date de clôture du 31/12/2024, vise les capitaux propres devenus inférieurs à la moitié du capital du fait de pertes constatées dans les documents comptables. PROBANT relève le rapport et signale la situation à examiner, y compris au regard de la continuité d'exploitation : il ne conclut ni à une irrégularité ni à une dissolution, et ne calcule aucun délai. Approbation des comptes, décision de l'assemblée générale extraordinaire, publicité, reconstitution ou réduction du capital relèvent d'une appréciation juridique.`,
   mesure: { constate: 220000, seuil: 250000, unite: "EUR", libelle: "capitaux propres vs ½ capital" },
   source: SOURCES.CCOM_CAPITAL,
   comptesConcernes: ["101", "106", "119", "129"],
   lignesSource: [],
-  faisceau: ["report à nouveau négatif", "résultat déficitaire", "aucune AG tracée"],
+  faisceau: ["report à nouveau négatif", "résultat déficitaire", "aucune décision de l'assemblée documentée (source absente, non une conclusion)"],
   annotation: "CP 220 k€ < 250 k€ (½ capital)",
   cibleRowId: "cp-total",
   preuve: [
     { etape: "Source", detail: "Grand-livre classes 10-12" },
     { etape: "Transformation", detail: "Capital 500 k€ + réserves + RAN + résultat" },
-    { etape: "Règle", detail: "Perte de la moitié du capital (C. com. L.225-248)" },
-    { etape: "Résultat", detail: "CP 220 k€ < seuil 250 k€" },
+    { etape: "Règle", detail: `${articleL225248At("2024-12-31")} — repère : capitaux propres inférieurs à la moitié du capital` },
+    { etape: "Résultat", detail: "CP 220 k€ < 250 k€ (½ capital) — signal à examiner ; aucune alerte de dissolution, aucun délai calculé" },
   ],
   statutRevue: "en_attente",
 };

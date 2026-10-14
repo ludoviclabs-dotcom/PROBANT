@@ -4,7 +4,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { knownAmountSchema, moneySchema, type WorkpaperRun } from "./model";
 import { equityResultOf } from "./capitaux-mission";
-import { CAPITAUX_RESULT_SCHEMA_VERSION, CAPITAUX_RULE_VERSION, EQ_DECISION_TEXT, type EquityResult } from "./capitaux-review";
+import { CAPITAUX_RESULT_SCHEMA_VERSION, CAPITAUX_RULE_VERSION, capitauxRuleReplaced, EQ_DECISION_TEXT, type EquityResult } from "./capitaux-review";
 import { EQ_COMPONENT_LABELS, EQ_DECISION_TYPE_LABELS, EQ_DECISION_TYPES, type EqComponent, type EqDecisionType } from "./capitaux-sources";
 import { PAYMENT_STATUS_LABELS, paymentState, paymentStateSchema, type PaymentState } from "./capitaux-payment";
 import { presentationSchema } from "./capitaux-presentation";
@@ -13,7 +13,7 @@ import { EQUITY_FAMILY_LABELS, EQUITY_STATUS } from "./equity-program";
 
 /**
  * Parcours Capitaux propres unique (C09). One read-only view over the two historical procedures:
- *  - `capitaux_propres.review` (/capitaux-propres, tables eq_*, rule 1.1.0 for new work; 1.0.0 results read as they are);
+ *  - `capitaux_propres.review` (/capitaux-propres, tables eq_*, rule 1.1.1 for new work; a 1.1.0 sheet stays current unless declared SCA; 1.0.0 results read as they are);
  *  - `equity.review` (/equity, shared clients_* tables, rule 1.0.0, kept readable and continuable).
  * Nothing is recomputed from the sources and no review is rewritten: the adapter reads the frozen results
  * of each sheet at its exact version. An economic decision linked to both procedures counts once:
@@ -104,7 +104,7 @@ function bookedOf(values: KnownAmount[]): KnownAmount {
 const query = (scope: ParcoursInput["scope"], extra: Record<string, string>) => new URLSearchParams({ dossierId: scope.dossierId, periodId: scope.periodId, ...extra }).toString();
 const capitauxHref = (scope: ParcoursInput["scope"], run: WorkpaperRun, item?: string) => "/capitaux-propres?" + query(scope, { id: run.id, version: String(run.version), ...(item ? { item } : {}) });
 const equityHref = (scope: ParcoursInput["scope"], run: WorkpaperRun, event?: string) => "/equity?" + query(scope, { id: run.id, version: String(run.version), tab: "tests", ...(event ? { event } : {}) });
-const staleOf = (jr: JourneyRun, ruleCurrent: boolean) => [...(!jr.sourcesCurrent ? ["Source remplacée ou ajoutée depuis le gel : révision requise."] : []), ...(!jr.lineageCurrent ? ["Version antérieure demandée par lien : une version plus récente existe."] : []), ...(!ruleCurrent ? ["Règle remplacée : version consultable, révision requise pour poursuivre."] : [])];
+const staleOf = (jr: JourneyRun, ruleVersion: string, ruleReplaced: string | null) => [...(!jr.sourcesCurrent ? ["Source remplacée ou ajoutée depuis le gel : révision requise."] : []), ...(!jr.lineageCurrent ? ["Version antérieure demandée par lien : une version plus récente existe."] : []), ...(ruleReplaced ? [`Règle remplacée (${ruleVersion}) : ${ruleReplaced} Version consultable, révision requise pour poursuivre.`] : [])];
 
 const SEVERITY = ["without_entry", "amount_divergent", "effect_outside_period", "reading_required", "matched", "not_expected", "prior_period", "excluded", "superseded"];
 /** /capitaux-propres: decision lines in force grouped by decision and resolution (or type), superseded lines carried as amendment history. */
@@ -189,7 +189,7 @@ function decisionOf(traces: ParcoursTrace[], correspondence: ParcoursDecision["c
 
 export const PARCOURS_TRANSITION = [
   "Entrée unique du cycle : /capitaux-propres/parcours. Les deux feuilles d’origine restent accessibles à leur version exacte depuis chaque décision, avec le contexte du dossier.",
-  "Travaux nouveaux : feuille /capitaux-propres (règle 1.1.0). Elle porte le registre typé des décisions (organe, résolution, PV par pièce), les amendements, le paiement par décision, la présentation des autres fonds propres et les repères légaux.",
+  `Travaux nouveaux : feuille /capitaux-propres (règle ${CAPITAUX_RULE_VERSION} ; une feuille 1.1.0 reste à jour sauf pour une SCA). Elle porte le registre typé des décisions (organe, résolution, PV par pièce), les amendements, le paiement par décision, la présentation des autres fonds propres et les repères légaux.`,
   "Parcours historique /equity : lisible et poursuivable à sa règle 1.0.0 ; ses revues, versions et pièces restent dans ses tables (clients_*). Aucune revue n’est réécrite ni migrée.",
   "Migration éventuelle (lot ultérieur, non réalisée) : correspondance documentée equity_balances → eq_balances, equity_ledger → eq_entries, equity_variation → eq_variation, equity_decisions → eq_decisions, equity_payments → eq_payments, equity_minutes / equity_acts → eq_minutes ; identifiants et versions d’origine conservés en référence, nouvelle feuille créée en révision, jamais par écrasement.",
 ];
@@ -217,9 +217,9 @@ export function buildParcours(input: ParcoursInput): ParcoursView {
   const journeys = PARCOURS_PROCEDURES.map(procedure => {
     const j = input.journeys[procedure];
     const runs = j.runs.map(jr => {
-      const ruleVersion = jr.run.template.rule?.version ?? jr.run.template.version, ruleCurrent = procedure === "equity.review" || ruleVersion === CAPITAUX_RULE_VERSION;
+      const ruleVersion = jr.run.template.rule?.version ?? jr.run.template.version, ruleReplaced = procedure === "equity.review" ? null : capitauxRuleReplaced(jr.run), ruleCurrent = !ruleReplaced;
       const extracted = procedure === "capitaux_propres.review" ? capitauxTraces(scope, jr) : equityTraces(scope, jr);
-      const staleReasons = staleOf(jr, ruleCurrent);
+      const staleReasons = staleOf(jr, ruleVersion, ruleReplaced);
       extracted.traces.forEach(t => all.push({ ...t, stale: staleReasons.length > 0, staleReasons }));
       exclusions.push(...extracted.excluded);
       const resultSchema = jr.run.result?.execution === "completed" ? String((jr.run.result.result as { schemaVersion?: unknown })?.schemaVersion ?? "inconnu") : null;
@@ -229,7 +229,7 @@ export function buildParcours(input: ParcoursInput): ParcoursView {
         synthesisHref: procedure === "capitaux_propres.review" ? "/capitaux-propres/synthese?" + query(scope, { rootId: jr.run.rootId, id: jr.run.id, version: String(jr.run.version) }) : "/equity/synthesis?" + query(scope, { id: jr.run.id, version: String(jr.run.version) }) };
     }).sort((a, b) => a.rootId < b.rootId ? -1 : a.rootId > b.rootId ? 1 : b.revision - a.revision);
     return { procedure, label: PARCOURS_PROCEDURE_LABELS[procedure], role: procedure === "capitaux_propres.review" ? "cible" as const : "historique" as const, availability: j.availability, code: j.code ?? null,
-      note: procedure === "capitaux_propres.review" ? "Parcours cible des travaux nouveaux (règle 1.1.0)." : "Parcours historique : lisible et poursuivable, sans migration.", runs };
+      note: procedure === "capitaux_propres.review" ? `Parcours cible des travaux nouveaux (règle ${CAPITAUX_RULE_VERSION}).` : "Parcours historique : lisible et poursuivable, sans migration.", runs };
   });
 
   // Correspondence by PV identity: same bytes (SHA-256) and same page, at most one decision per sheet.
@@ -282,26 +282,28 @@ export function buildParcours(input: ParcoursInput): ParcoursView {
     remainingAtReview: sumKnown(settledDecisions.map(d => d.payment!.remainingAtReview), "Reste à payer inconnu pour une décision"), unpaid: settledDecisions.filter(d => d.payment!.status === "unpaid").length };
   const merged = new Map<string, number>(); exclusions.forEach(e => merged.set(e.reason, (merged.get(e.reason) ?? 0) + e.count));
 
-  // Framing, other-equity presentation and legal markers: from the reference /capitaux-propres sheet of rule 1.1.0.
+  // Framing, other-equity presentation and legal markers: from the reference /capitaux-propres sheet of the capitaux-result-2 contract,
+  // a sheet whose rule still applies first (a 1.1.0 SCA sheet lacks the renvoi of L226-1).
   const framingRun = input.journeys["capitaux_propres.review"].runs.filter(jr => equityResultOf(jr.run)?.schemaVersion === CAPITAUX_RESULT_SCHEMA_VERSION)
-    .sort((a, b) => Number(b.lineageCurrent) - Number(a.lineageCurrent) || Number(b.sourcesCurrent) - Number(a.sourcesCurrent) || b.run.revision - a.run.revision)[0];
+    .sort((a, b) => Number(!capitauxRuleReplaced(b.run)) - Number(!capitauxRuleReplaced(a.run)) || Number(b.lineageCurrent) - Number(a.lineageCurrent) || Number(b.sourcesCurrent) - Number(a.sourcesCurrent) || b.run.revision - a.run.revision)[0];
   const framingResult = framingRun ? equityResultOf(framingRun.run) : null;
   const framing = framingRun && framingResult?.presentation && framingResult.legal && framingResult.framing
     ? { runId: framingRun.run.id, version: framingRun.run.version, socialFormLabel: framingResult.framing.socialFormLabel, presentation: framingResult.presentation, legal: framingResult.legal } : null;
+  const framingRule = framingRun ? framingRun.run.template.rule?.version ?? framingRun.run.template.version : null, framingReplaced = framingRun ? capitauxRuleReplaced(framingRun.run) : null;
 
   return parcoursViewSchema.parse({
     schemaVersion: PARCOURS_SCHEMA_VERSION, scope, journeys, decisions,
     totals: { counted: counted.length, linked: decisions.filter(d => d.correspondence.startsWith("linked")).length, toReconcile: decisions.filter(d => d.correspondence === "to_reconcile").length,
       divergent: decisions.filter(d => d.correspondence === "linked_divergent").length, traces: all.length, byType, effectsByFamily, settlements,
       exclusions: [...merged].map(([reason, count]) => ({ reason, count })) },
-    framing, framingReason: framing ? "Cadre, présentation et repères de la feuille /capitaux-propres en règle 1.1.0." : "Aucune feuille /capitaux-propres exécutée en règle 1.1.0 : présentation des autres fonds propres et repères légaux non établis.",
+    framing, framingReason: framing ? `Cadre, présentation et repères de la feuille /capitaux-propres en règle ${framingRule}${framingReplaced ? ` ; règle remplacée pour cette feuille : ${framingReplaced} Repères à réviser.` : "."}` : "Aucune feuille /capitaux-propres exécutée en règle 1.1.0 ou 1.1.1 : présentation des autres fonds propres et repères légaux non établis.",
     transition: PARCOURS_TRANSITION,
     limitations: [
       "Vue en lecture seule : chaque montant provient du résultat figé d’une feuille à sa version ; aucun calcul n’est refait depuis les sources et aucune revue n’est réécrite.",
       "Deux feuilles ne désignent la même décision que si elles citent le même PV (empreinte SHA-256 identique) à la même page ; une décision n’est jamais rapprochée d’une autre par son montant.",
       "Une correspondance ambiguë est listée « à rapprocher » et exclue des totaux, plutôt que comptée deux fois.",
       "Le parcours historique ne qualifie pas le type des décisions : ses décisions seules restent « non typées ».",
-      "Aucune conclusion juridique ; les repères légaux et la présentation des autres fonds propres viennent de la feuille de règle 1.1.0.",
+      "Aucune conclusion juridique ; les repères légaux et la présentation des autres fonds propres viennent de la feuille /capitaux-propres de référence (règle 1.1.0 ou 1.1.1).",
     ],
   });
 }
