@@ -1,6 +1,6 @@
 # Handoff — Revue par cloison : liste des silos lisible à 390, 1024 et 1440 px (2026-10-14)
 
-**Base.** Défaut relevé sur `main` `663ceb1` et dans les captures du lot bordures (`bordures-captures/apres/cloisons-390-long.jpg`, `cloisons-1024.jpg`). L'affichage C05 à préserver (`data-effects-summary`, « Résultat − 145 000 € », `cloisons-effects.test.tsx`, `e2e/c05-effets-partages.spec.ts`) n'existe que sur la PR #79, ouverte et non fusionnée : branche locale `claude/cloisons-silos-lisibles` **empilée** sur `origin/claude/risk-incidence-deduplication-2a5d3f` (départ `a392393`, rebasée sur `38a698d` — correctif de schéma de la revue Codex — en cours de lot, sans conflit). Worktree `blissful-nash-5afb47`, checkout propre au départ. Un seul fichier applicatif modifié : `components/probant/CloisonsWorkspace.tsx`. Aucun push, aucun déploiement.
+**Base.** Défaut relevé sur `main` `663ceb1` et dans les captures du lot bordures (`bordures-captures/apres/cloisons-390-long.jpg`, `cloisons-1024.jpg`). L'affichage C05 à préserver (`data-effects-summary`, « Résultat − 145 000 € », `cloisons-effects.test.tsx`, `e2e/c05-effets-partages.spec.ts`) n'existait au départ que sur la PR #79, alors ouverte : branche `claude/cloisons-silos-lisibles` **empilée** sur `origin/claude/risk-incidence-deduplication-2a5d3f` (départ `a392393`, rebasée sur `38a698d` — correctif de schéma de la revue Codex — en cours de lot, sans conflit). Worktree `blissful-nash-5afb47`, checkout propre au départ. Un seul fichier applicatif modifié : `components/probant/CloisonsWorkspace.tsx`. La PR #79 a depuis été fusionnée (`main` `df94c1f`, arbre identique à `38a698d`) : la PR de ce lot cible `main`. Aucune fusion, aucun déploiement manuel.
 
 ## Cause
 
@@ -61,7 +61,7 @@ Document : aucun débordement global avant comme après (`<main>` absorbait le d
 
 ## Dépendances du lot suivant
 
-- La PR #79 doit être fusionnée avant (ou avec) ce lot ; une fois fusionnée, la PR de ce lot se recible sur `main` sans changement.
+- Aucune : la PR #79 est fusionnée dans `main` (`df94c1f`).
 
 ---
 
