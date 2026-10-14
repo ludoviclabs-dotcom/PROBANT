@@ -30,7 +30,7 @@ export function buildAccessibleEvidenceHtml(report: CanonicalEvidenceExport): st
     esc(finding.family),
     `<code>${esc(finding.ruleId)}@${esc(finding.ruleVersion)}</code>`,
     esc(finding.source.ref),
-    esc(finding.source.effectiveDate),
+    esc(finding.source.effectiveDate || "sans objet"),
   ]);
   const eventRows = report.reviewEvents.map((event) => [
     `<code>${esc(event.id)}</code>`,

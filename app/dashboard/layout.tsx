@@ -9,6 +9,7 @@ import {
   ActiveDossierProvider,
   useActiveDossierSnapshot,
 } from "@/lib/dossier/client";
+import { decrireReferentiel } from "@/lib/referentiel/edition";
 
 const SOURCE_LABEL = {
   demo: "Demo",
@@ -19,6 +20,7 @@ const SOURCE_LABEL = {
 function DashboardChrome({ children }: { children: React.ReactNode }) {
   const snapshot = useActiveDossierSnapshot();
   const dossier = snapshot.dossier;
+  const referentiel = decrireReferentiel(dossier.referentielVersion);
   // Tiroir de navigation (< md) : fermé par défaut ; ouvert, il garde le focus
   // et le reste de la page est inerte (voir components/probant/useNavDrawer.ts).
   const { open: navOpen, close: closeNav, toggle: toggleNav, navRef, toggleRef } = useNavDrawer();
@@ -73,12 +75,12 @@ function DashboardChrome({ children }: { children: React.ReactNode }) {
             </div>
           </div>
           <div className="ml-auto flex items-center gap-4 text-[11px] text-[var(--pb-text-muted)]">
-            <div className="text-right">
+            <div className="text-right" title={referentiel.detail}>
               <div className="text-[10px] uppercase tracking-wide text-[var(--pb-text-faint)]">
                 Référentiel
               </div>
               <div className="tnum font-semibold text-[var(--pb-text)]">
-                v.{dossier.referentielVersion}
+                {referentiel.libelle}
               </div>
             </div>
           </div>

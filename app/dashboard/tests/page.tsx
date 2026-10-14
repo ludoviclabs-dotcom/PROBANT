@@ -87,7 +87,7 @@ export default function TestsPage() {
               <dt className="font-semibold text-[var(--pb-text)]">Population</dt>
               <dd className="tnum min-w-0 text-[var(--pb-text-muted)]">{p.population.silo} · comptes {p.population.accounts.join(", ") || "—"}{p.population.sourceLines ? ` · ${p.population.sourceLines} ligne${p.population.sourceLines > 1 ? "s" : ""} source` : ""}</dd>
               <dt className="font-semibold text-[var(--pb-text)]">Source du constat</dt>
-              <dd className="min-w-0 text-[var(--pb-text-muted)]">{p.sourceOfFinding.url ? <a className="pbz-focusable text-[var(--pb-accent)] underline decoration-1 underline-offset-2 hover:decoration-2" href={p.sourceOfFinding.url} target="_blank" rel="noreferrer">{p.sourceOfFinding.ref}</a> : p.sourceOfFinding.ref} · en vigueur au {p.sourceOfFinding.effectiveDate}</dd>
+              <dd className="min-w-0 text-[var(--pb-text-muted)]">{p.sourceOfFinding.url ? <a className="pbz-focusable text-[var(--pb-accent)] underline decoration-1 underline-offset-2 hover:decoration-2" href={p.sourceOfFinding.url} target="_blank" rel="noreferrer">{p.sourceOfFinding.ref}</a> : p.sourceOfFinding.ref}{p.sourceOfFinding.effectiveDate && ` · en vigueur au ${p.sourceOfFinding.effectiveDate}`}</dd>
               <dt className="font-semibold text-[var(--pb-text)]">Procédure</dt>
               <dd className="min-w-0">
                 <span className={cn("font-semibold", p.status === "to_define" ? "text-[var(--pb-warn-bright)]" : "text-[var(--pb-text)]")}>{p.title}</span>

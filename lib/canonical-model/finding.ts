@@ -141,7 +141,10 @@ export interface SourceNormative {
   ref: string;
   /** Citation textuelle du texte applicable. */
   citation: string;
-  /** Date d'effet de la version du texte appliquée. */
+  /**
+   * Date d'effet de la version du texte appliquée ; chaîne vide lorsqu'aucun
+   * texte n'est cité (constat d'exécution d'une règle).
+   */
   effectiveDate: string;
   /** URL ou identifiant de la source si disponible. */
   url?: string;

@@ -4,7 +4,8 @@ import type {
   ReconstitutedStatement,
   SiloView,
 } from "@/lib/canonical-model";
-import { REFERENTIEL_VERSION, SOURCES } from "@/lib/referentiel/sources";
+import { SOURCES } from "@/lib/referentiel/sources";
+import { REFERENTIEL_VERSION } from "@/lib/referentiel/edition";
 import { computeMateriality } from "@/lib/audit/materiality";
 import { buildAllRapprochementSilos } from "@/lib/rapprochement/demo";
 

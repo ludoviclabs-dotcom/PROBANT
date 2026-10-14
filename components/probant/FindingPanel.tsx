@@ -118,9 +118,11 @@ export const FindingPanel = forwardRef<
         >
           <ScrollText className="h-3.5 w-3.5 shrink-0 text-[var(--pb-accent)]" />
           <span className="font-semibold text-[var(--pb-accent)]">{f.source.ref}</span>
-          <span className="text-[var(--pb-text-faint)]">
-            · v.{f.source.effectiveDate}
-          </span>
+          {f.source.effectiveDate && (
+            <span className="text-[var(--pb-text-faint)]">
+              · v.{f.source.effectiveDate}
+            </span>
+          )}
           {showSource ? (
             <ChevronDown className="ml-auto h-3.5 w-3.5 text-[var(--pb-text-faint)]" />
           ) : (

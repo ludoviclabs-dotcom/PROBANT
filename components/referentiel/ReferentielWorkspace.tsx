@@ -23,13 +23,16 @@ export function ReferentielWorkspace({
   sources,
   seuils,
   version,
+  versionDetail,
   libraryVariant = "recueil",
   clampCitations = true,
   showStrata = true,
 }: {
   sources: SourceNormative[];
   seuils: SeuilParam[];
+  /** Libellé de l'édition du registre (« éd. N »), jamais une date. */
   version: string;
+  versionDetail: string;
   libraryVariant?: LibraryVariant;
   clampCitations?: boolean;
   showStrata?: boolean;
@@ -94,7 +97,7 @@ export function ReferentielWorkspace({
               Référentiel normatif
             </h2>
             <span
-              title="Version du socle normatif — dates d'effet réelles des textes cités"
+              title={versionDetail}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -110,7 +113,7 @@ export function ReferentielWorkspace({
                 cursor: "help",
               }}
             >
-              <span style={{ height: 6, width: 6, borderRadius: 999, background: DD }} />v.{version}
+              <span style={{ height: 6, width: 6, borderRadius: 999, background: DD }} />{version}
             </span>
           </div>
           <p
@@ -125,7 +128,7 @@ export function ReferentielWorkspace({
             }}
           >
             <span
-              title={`Sources normatives versionnées dans le référentiel v.${version}`}
+              title={`Sources normatives du référentiel ${version}`}
               style={{ fontFamily: MONO, fontSize: 16, fontWeight: 600, color: "#e6edf6", cursor: "help" }}
             >
               {total}

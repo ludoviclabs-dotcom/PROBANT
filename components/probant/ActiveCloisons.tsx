@@ -11,6 +11,7 @@ export function ActiveCloisons() {
   const meta = {
     label: activeDossier.societe.raisonSociale,
     exercice: activeDossier.societe.exercice,
+    referentiel: activeDossier.referentielVersion,
   };
   // Même projection des effets que la Synthèse et la cartographie des risques (C05).
   const exposure = useMemo(() => projectSnapshotExposure(snapshot).exposure, [snapshot]);

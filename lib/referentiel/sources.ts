@@ -4,7 +4,8 @@ import type { SourceNormative, SourceTheme } from "@/lib/canonical-model";
  * Référentiel normatif versionné.
  *
  * IMPORTANT : ce registre est la SEULE source de vérité des références et
- * citations utilisées par le moteur. Il est versionné (REFERENTIEL_VERSION)
+ * citations utilisées par le moteur. Il est versionné par éditions
+ * (lib/referentiel/edition.ts : toute modification ajoute une édition)
  * et doit être revu avant toute mise en production — en particulier les
  * seuils chiffrés externes (catégories d'entreprises, nomination CAC, etc.)
  * qui doivent être confrontés au Code de commerce et à ses décrets en vigueur.
@@ -12,8 +13,6 @@ import type { SourceNormative, SourceTheme } from "@/lib/canonical-model";
  * Les citations sont des paraphrases fidèles destinées à l'affichage ; elles
  * ne se substituent pas au texte officiel opposable.
  */
-
-export const REFERENTIEL_VERSION = "2024-01-01";
 
 type SourceKey =
   | "LPF_A47A1"
