@@ -40,7 +40,8 @@ import type {
   Verdict,
 } from "./types";
 
-export const SYNTHESIS_SCHEMA_VERSION = "1.0.0";
+/** 2.0.0 (C05, second passage) : `exposure.byCloison` retiré ; `EffectStage` (pont), membres (poste, cloison) et groupes (étape de revue) enrichis. */
+export const SYNTHESIS_SCHEMA_VERSION = "2.0.0";
 export const SYNTHESIS_ENGINE_VERSION = "1.2.0";
 export const SYNTHESIS_POLICY_VERSION = "2.1.0";
 

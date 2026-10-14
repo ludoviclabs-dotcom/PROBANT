@@ -43,6 +43,8 @@ Règles (politique `probant-exposure-aggregation` v2.1.0 ; 2.0.0 au premier pass
 | Sens opposés dans un même groupe | aucune compensation | cluster `indeterminate`, direction `mixed`, bornes sans netting |
 | Identités distinctes sans écriture commune | indépendants | clusters `determined`, additionnés par poste et sens |
 
+Schéma du `SynthesisSnapshot` 2.0.0 (changement incompatible : `byCloison` retiré, champs obligatoires ajoutés aux étapes, membres et groupes ; revue Codex PR #79).
+
 Le maximum n'est jamais présenté comme une somme comptable. Les scalaires `grossDetectedExposureCents`, `determinedExposureCents`, `exposureBoundsCents`, `reviewedExposureCents`… sont des **volumes en valeur absolue, tous postes et sens confondus** : contrôles de cohérence du pipeline, tracés, jamais affichés comme un montant ; aucune vue ni aucun export ne les présente plus (second passage). `byCloison`, qui additionnait postes et sens d'une même cloison, est supprimé.
 
 ## 3. Étapes de l'effet, par poste et par sens

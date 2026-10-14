@@ -15,7 +15,7 @@
 
 ## Changements
 
-**Projection unique** — `lib/synthesis/exposure.ts` : `projectExposure` (déplacement sans changement de règles de la section 4 du moteur : collecte, déduplication, étapes, fiscalité, net), `projectSnapshotExposure`, `reviewStatusMap`, `restrictExposure` (périmètre = groupes touchés, aucun recalcul), `summarizeStages` (pont par poste et sens lu membre par membre), `isEurSignalWithoutEffect`, ensembles de statuts (`CLOSED_REVIEW` y vit, le moteur le réexporte). Membres porteurs du poste et de la cloison ; groupes déterminés porteurs de `reviewStage` et `correctedCents`. `EffectStage` complété (détecté, répétitions, versions, hors agrégat, déterminé, écarté) ; invariants au centime documentés et testés. `byCloison` supprimé. Politique d'agrégation 2.1.0 (une répétition exacte aux décisions divergentes garde son rôle `exact_repeat`), moteur 1.2.0. `lib/synthesis/effect-labels.ts` : libellés partagés des postes et sens.
+**Projection unique** — `lib/synthesis/exposure.ts` : `projectExposure` (déplacement sans changement de règles de la section 4 du moteur : collecte, déduplication, étapes, fiscalité, net), `projectSnapshotExposure`, `reviewStatusMap`, `restrictExposure` (périmètre = groupes touchés, aucun recalcul), `summarizeStages` (pont par poste et sens lu membre par membre), `isEurSignalWithoutEffect`, ensembles de statuts (`CLOSED_REVIEW` y vit, le moteur le réexporte). Membres porteurs du poste et de la cloison ; groupes déterminés porteurs de `reviewStage` et `correctedCents`. `EffectStage` complété (détecté, répétitions, versions, hors agrégat, déterminé, écarté) ; invariants au centime documentés et testés. `byCloison` supprimé. Politique d'agrégation 2.1.0 (une répétition exacte aux décisions divergentes garde son rôle `exact_repeat`), moteur 1.2.0, schéma du snapshot 2.0.0 (structure d'`exposure` incompatible avec 1.0.0 ; revue Codex PR #79). `lib/synthesis/effect-labels.ts` : libellés partagés des postes et sens.
 
 **Risques** — `scoring.ts` : gravité sur l'exposition initiale du **poste et sens le plus exposé** de la projection partagée (rapport exact au seuil affiché, contribution plafonnée à 300 %), autres postes listés non additionnés ; groupes indéterminés en driver « Effets à montant indéterminé » (bornes, aucun montant) et dans la composante qualitative ; `explicitEffectEur` supprimé ; driver de détectabilité reformulé (« écart mesuré… signal de détection, pas une anomalie chiffrée »). `aggregate.ts` : une projection pour tous les cycles, agrégat de page `effects` (projection du dossier entier) au lieu de `totalIncidenceEur`. `RiskMappingView.tsx` : transmet `projectSnapshotExposure(snapshot)`.
 
@@ -38,7 +38,8 @@
 | Typecheck | OK |
 | Lint | 0 erreur, 7 avertissements préexistants hors lot |
 | `e2e/c05-effets-partages.spec.ts` (Synthèse, Cloisons, Risques × 390 / 1024 / 1440) sur `next dev` | 9 / 9 serveur chaud ; premier passage à froid : 4 échecs de délai (« Lecture du dossier sélectionné… »), pas d'assertion fausse |
-| Même parcours et parcours existants sur le build de production | **non exécutés au moment de la PR** : le contrôle « E2E Playwright · axe » de la CI fait foi |
+| Build de production (`next build`) | OK, 180 pages générées |
+| Sur le build de production : `c05-effets-partages` (× 3 largeurs), `demo-journey`, `accessibility`, `c00-layout`, `c02-finition`, `c03-assertions` | 47 réussis / 47 (captures C02/C03 redirigées hors du dépôt, captures C05 régénérées) |
 
 
 ## Limites et maturité
