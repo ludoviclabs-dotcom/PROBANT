@@ -22,6 +22,8 @@
 .recalc[data-status=computed],.support[data-status=matched]{color:var(--ok,#3ccf7a);background:var(--ok-bg,#0f2417)}
 .recalc[data-status=blocked],.support[data-status=missing]{color:var(--danger,#ff7b72);background:var(--danger-bg,#2a1416)}
 .recalc[data-status=not_applicable],.recalc[data-status=excluded]{color:var(--muted,#8a99af);border-style:dashed}
+.plan{display:inline-block;max-width:100%;border-radius:10px;padding:1px 9px;font-size:12px;font-weight:600;line-height:18px;border:1px solid currentColor;white-space:normal;color:#9aa9c2}
+.plan[data-state=unchanged]{color:#b9c6ff}.plan[data-state=revised],.plan[data-state=impaired],.plan[data-state=base_changed]{color:var(--warn,#f0a63a)}.plan[data-state=unknown]{color:var(--muted,#8a99af);border-style:dashed}
 .support[data-status=amount_difference],.support[data-status=date_difference]{color:var(--warn,#f0a63a);background:var(--warn-bg,#2a1d0c)}
 .num{font-variant-numeric:tabular-nums;text-align:right!important}
 .coverage{font-variant-numeric:tabular-nums;min-width:150px}

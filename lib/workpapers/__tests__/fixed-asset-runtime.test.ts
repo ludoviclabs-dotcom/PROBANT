@@ -54,7 +54,7 @@ describe("FA-1004 chaîne serveur : import → population figée → exécution 
   it("refuse les sources invalides avec code et localisateur ; actif inconnu refusé au gel", async () => {
     expect(await h.preview("fa_register", FA_CSV.fa_register.replace("L02;20.00", "L02;-20.00"))).toMatchObject({ status: 422, body: { error: "FA_MOVEMENT_SIGN_INVALID", locator: { row: 3, column: "montant" } } });
     expect(await h.preview("fa_register", FA_CSV.fa_register.replace("L18;30.00;2024-01-01;A-003;;Logiciels;brut;ouverture;en_service;2051;standard", "L18;30.00;2024-01-01;A-003;;Logiciels;brut;ouverture;en_service;2051;leasing"))).toMatchObject({ status: 422, body: { error: "FA_TREATMENT_INVALID", locator: { row: 19, column: "traitement", value: "leasing" } } });
-    const ids = await h.importAll({ fa_parameters: FA_CSV.fa_parameters + "\nP-999;0.00;2020-01-01;Z-999;;LIN-2024;60;12;12" });
+    const ids = await h.importAll({ fa_parameters: FA_CSV.fa_parameters + "\nP-999;0.00;2020-01-01;Z-999;;LIN-2024;60;12;12;" });
     const run = await h.ok({ command: "create", period: faPeriod });
     expect(await h.command({ command: "freeze", id: run.id, expectedVersion: run.version, importIds: Object.values(ids), draft: faDraft() })).toMatchObject({ status: 422, body: { error: "FA_ASSET_UNKNOWN", locator: { row: 6, value: "Z-999" } } });
     expect((await h.read()).body.factsIssues[run.id]).toMatchObject({ code: "FA_ASSET_UNKNOWN" });

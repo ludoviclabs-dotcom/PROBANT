@@ -1,7 +1,7 @@
 "use client";
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from "react";
 import type { Money } from "@/lib/canonical-model/money";
-import { FA_RECALC_TEXT, FA_SUPPORT_TEXT, type FixedAssetResult, type FixedAssetUnitResult } from "@/lib/workpapers/fixed-asset-review";
+import { FA_PLAN_STATE_TEXT, FA_RECALC_TEXT, FA_SUPPORT_TEXT, type FixedAssetResult, type FixedAssetUnitResult } from "@/lib/workpapers/fixed-asset-review";
 import type { FaTable } from "@/lib/workpapers/fixed-asset-sources";
 import type { SourceLocator } from "@/lib/workpapers/model";
 import { dateFr, eur, knownLabel, locatorText, MOVEMENT_LABELS, STATUS_LABELS, TABLE_LABELS, TREATMENT_LABELS } from "./format";
@@ -42,6 +42,8 @@ export const AssetDetailPanel = forwardRef<AssetDetailHandle, Props>(function As
   const r = unit?.recalculation;
   const pieceRef = (pieceId: string) => fact?.supports.find(s => s.pieceId === pieceId) ?? null;
   const serviceProof = r?.inputs.inServiceDate ? fact?.supports.find(s => s.kind === "mise_en_service" && s.date === r.inputs.inServiceDate) ?? null : null;
+  const plan = r?.plan, priorLine = fact?.lines.find(l => l.table === "amortization" && l.movement === "opening") ?? null;
+  const capText = !plan?.annuity ? "Non calculé" : r?.status !== "computed" ? "Non appliqué : dotation attendue inconnue" : plan.ended ? "Plan échu avant l’ouverture : dotation attendue 0" : plan.capApplied ? "Appliqué : annuité ramenée au montant amortissable restant" : "Non atteint : annuité inférieure ou égale au restant";
   return <aside className={styles.detail} data-open="true" aria-label="Détail et source" onKeyDown={close}>
     <h2 ref={heading} tabIndex={-1}>{base.unitId} — {base.label}</h2>
     <p className={styles.muted}>{base.family} · <span className={fa.chip} data-status={base.status}>{STATUS_LABELS[base.status]}</span> · traitement {TREATMENT_LABELS[base.treatment] ?? base.treatment} · compte {fact?.accounts[table] ?? "—"}</p>
@@ -86,11 +88,26 @@ export const AssetDetailPanel = forwardRef<AssetDetailHandle, Props>(function As
         <dt>Mise en service</dt><dd>{r.inputs.inServiceDate ? dateFr(r.inputs.inServiceDate) : "Source requise"}</dd>
         <dt>Arrondi</dt><dd>Au centime, demi supérieur</dd>
       </dl>
+      <h4>Plan et segment</h4>
+      {plan ? <>
+        <dl>
+          <dt>État du plan</dt><dd><span className={fa.plan} data-state={plan.state}>{FA_PLAN_STATE_TEXT[plan.state].label}</span><span className={styles.meaning}>{FA_PLAN_STATE_TEXT[plan.state].meaning}</span></dd>
+          <dt>Segment</dt><dd>{plan.segment ? <>{dateFr(plan.segment.start)} → {plan.segment.end ? dateFr(plan.segment.end) : "fin non établie"}<span className={styles.meaning}>{plan.segment.origin === "in_service" ? "Plan d’origine, depuis la mise en service" : "Segment révisé déclaré par les paramètres"}{plan.ended ? " · plan échu avant l’ouverture" : plan.endsInPeriod ? " · dernière annuité dans l’exercice" : plan.startsInPeriod ? " · première annuité dans l’exercice" : ""}</span></> : "Non établi"}</dd>
+          <dt>Cumul d’amortissement d’ouverture</dt><dd className={fa.num}>{plan.priorAccumulated ? eur(plan.priorAccumulated) : "Source requise"}</dd>
+          <dt>Montant amortissable</dt><dd className={fa.num}>{plan.amortizable ? eur(plan.amortizable) : "Non calculé"}</dd>
+          <dt>Restant à l’ouverture</dt><dd className={fa.num}>{plan.remaining ? eur(plan.remaining) : "Non calculé"}</dd>
+          <dt>Annuité × prorata</dt><dd className={fa.num}>{plan.annuity ? eur(plan.annuity) : "Non calculée"}</dd>
+          <dt>Plafond</dt><dd>{capText}</dd>
+        </dl>
+        {plan.inconsistency && <p className={styles.notice} data-tone="danger" role="note">Cumul incohérent avec le plan : {plan.inconsistency.message}</p>}
+        {plan.priorAccumulated && <SourceBox source={priorLine} view={view} dossierId={dossierId} periodId={periodId} title="Cumul d’ouverture — registre, tableau Amortissements"/>}
+      </> : r.plan === null ? <p className={styles.muted}>Aucun plan examiné : {r.reason}</p>
+        : <p className={styles.notice} role="note">Résultat établi par une version antérieure du recalcul : base restante, cumul antérieur et fin de plan non contrôlés. Créez une révision pour l’exécuter avec la règle courante.</p>}
       <h4>Formule</h4>
       <p className={fa.formula}>{result?.formula}</p>
       <h4>Résultat</h4>
       <dl>
-        <dt>Dotation recalculée</dt><dd className={fa.num}>{knownLabel(r.recalculated)}</dd>
+        <dt>Dotation attendue (recalculée)</dt><dd className={fa.num}>{knownLabel(r.recalculated)}</dd>
         <dt>Dotation comptabilisée</dt><dd className={fa.num}>{knownLabel(r.booked)}</dd>
         <dt>Écart comptabilisé − recalculé</dt><dd className={fa.num}><strong>{r.difference.kind === "known" ? eur(r.difference.value, { signed: true }) : knownLabel(r.difference)}</strong></dd>
       </dl>

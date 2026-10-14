@@ -139,7 +139,7 @@ describe("Immobilisations — recette Mission 10 sur sources qualifiées", () =>
     expect(await refusal(previewFa("fa_register", FA_CSV.fa_register.replace("L18;30.00;2024-01-01;A-003;;Logiciels;brut", "L18;30.00;2024-01-01;A-003;;Logiciels;stock")).then(b => import("../fixed-asset-sources").then(m => m.assertFixedAssetBatch(b, faPeriod))))).toBe("FA_TABLE_INVALID@19");
     const unknownAsset = await faSources({ fa_support: FA_CSV.fa_support + "\nFAC-999;5.00;2024-05-01;Z-999;;acquisition;Pièce d’un autre registre" });
     expect(await refusal(Promise.resolve().then(() => buildFixedAssetFacts(faScope, faPeriod, unknownAsset, RUN)))).toBe("FA_ASSET_UNKNOWN@9");
-    expect(await refusal(previewFa("fa_parameters", FA_CSV.fa_parameters.replace(";60;12;12\nP-003", ";60;13;12\nP-003")).then(b => import("../fixed-asset-sources").then(m => m.assertFixedAssetBatch(b, faPeriod))))).toBe("FA_PRORATA_INVALID@2");
+    expect(await refusal(previewFa("fa_parameters", FA_CSV.fa_parameters.replace(";60;12;12;\nP-003", ";60;13;12;\nP-003")).then(b => import("../fixed-asset-sources").then(m => m.assertFixedAssetBatch(b, faPeriod))))).toBe("FA_PRORATA_INVALID@2");
     expect(await refusal(previewFa("fa_parameters", FA_CSV.fa_parameters.replace("P-005;50.00", "P-005;-50.00")).then(b => import("../fixed-asset-sources").then(m => m.assertFixedAssetBatch(b, faPeriod))))).toBe("FA_RESIDUAL_NEGATIVE@5");
   });
 

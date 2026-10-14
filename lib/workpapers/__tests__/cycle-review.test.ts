@@ -13,5 +13,5 @@ it("contrôle le scope de droite même sans preuve à gauche", () => {
   expect(() => compareSupported(context, { ...value, evidence: [] }, { ...value, evidence: [{ ...proof, scope: { ...scope, dossierId: "SYN-OTHER" } }] })).toThrow();
 });
 it("amortissement non calculable entre bases incompatibles", () => {
-  expect(recalculateDepreciation(context, { kind: "linear", method: { id: "SYN", version: "1", source: "fixture synthétique", from: period.startDate, to: period.closingDate, approvedBy: "SYN", synthetic: true }, cost: value, residual: { ...value, basis: "TTC" }, inServiceDate: period.startDate, durationMonths: 60, prorata: { numerator: "1", denominator: "1", evidence: [proof] }, rounding: "half_up_cent" }).kind).toBe("unknown");
+  expect(recalculateDepreciation(context, { kind: "linear", method: { id: "SYN", version: "1", source: "fixture synthétique", from: period.startDate, to: period.closingDate, approvedBy: "SYN", synthetic: true }, cost: value, residual: { ...value, basis: "TTC" }, priorAccumulated: { ...value, date: period.startDate }, inServiceDate: period.startDate, durationMonths: 60, prorata: { numerator: "1", denominator: "1", evidence: [proof] }, rounding: "half_up_cent" }).kind).toBe("unknown");
 });
