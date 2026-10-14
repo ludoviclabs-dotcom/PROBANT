@@ -6,10 +6,12 @@
  * du dossier : distribution par bande de criticité, cycles les plus critiques,
  * moyennes de composite par famille.
  *
- * L'incidence chiffrée en EUR (C05 : effets financiers EXPLICITES seulement, jamais un
- * écart au seuil) est dédupliquée par `finding.id` au niveau page : un même constat
- * rattaché à plusieurs cycles ne compte qu'une fois (pas de double comptage). Les signaux
- * EUR sans effet sont comptés à part, sans montant.
+ * Les effets chiffrés (C05 : effets financiers EXPLICITES seulement, jamais un écart au
+ * seuil) viennent de la projection PARTAGÉE avec la Synthèse (`lib/synthesis/exposure`) :
+ * répétitions exactes comptées une fois, versions remplacées et constats écartés exclus,
+ * conflits et chevauchements indéterminés, effets tenus par poste et par sens. Le total de
+ * page est la projection du dossier entier (un constat rattaché à plusieurs cycles ne compte
+ * qu'une fois) ; les signaux EUR sans effet sont comptés à part, sans montant.
  *
  * Fonctions PURES : aucun import React ni `fs`, aucun `Date.now()`.
  */
@@ -18,8 +20,10 @@ import type { Finding } from "@/lib/canonical-model/finding";
 import type { AuditCycle, CycleFamily } from "@/lib/audit-cycles/types";
 import type { MaterialityThresholds } from "@/lib/audit/materiality";
 import type { CriticityBand, CycleRiskScore, RiskAdjustmentMap } from "./types";
+import { projectExposure, type ScopedExposure } from "@/lib/synthesis/exposure";
+import type { ExposureDimension } from "@/lib/synthesis/types";
 import { attachFindingsToCycles } from "./attach";
-import { explicitEffectEur, isEurSignalWithoutEffect, scoreCycle } from "./scoring";
+import { isEurSignalWithoutEffect, riskEffects, scoreCycle } from "./scoring";
 
 /** Distribution du nombre de cycles par bande de criticité. */
 export type BandDistribution = Record<CriticityBand, number>;
@@ -45,8 +49,11 @@ export interface RiskPageAggregates {
   evaluatedCycleCount: number;
   /** Nombre de cycles « non évalués » (ni constat ni standard obligatoire). */
   unevaluatedCycleCount: number;
-  /** Somme des effets financiers EXPLICITES (EUR), dédupliquée par `finding.id` — jamais un écart au seuil. */
-  totalIncidenceEur: number;
+  /**
+   * Effets financiers EXPLICITES du dossier, lus dans la projection partagée avec la Synthèse :
+   * pont par poste et sens, groupes indéterminés à part. Aucun chiffre unique tous postes.
+   */
+  effects: ScopedExposure;
   /** Signaux EUR sans effet explicite : priorité qualitative, incidence comptable inconnue. */
   eurSignalsWithoutEffect: string[];
   /** Constats rattachés à aucun cycle (jamais perdus). */
@@ -62,14 +69,19 @@ export function buildCycleScores(
   findings: Finding[],
   materiality: MaterialityThresholds | null,
   adjustments: RiskAdjustmentMap,
+  exposure?: Pick<ExposureDimension, "clusters">,
 ): CycleRiskScore[] {
   const { byCycle } = attachFindingsToCycles(cycles, findings);
+  // Une projection pour tout le dossier, lue cycle par cycle : un même groupe d'effets est jugé
+  // identiquement dans chaque cycle qu'il touche (aucune déduplication locale divergente).
+  const shared = exposure ?? projectExposure(findings, "risk-mapping").exposure;
   return cycles.map((cycle) =>
     scoreCycle(
       cycle,
       byCycle.get(cycle.slug) ?? [],
       materiality,
       adjustments[cycle.slug],
+      shared,
     ),
   );
 }
@@ -93,6 +105,7 @@ export function buildPageAggregates(
   scores: CycleRiskScore[],
   findings: Finding[],
   topN = 8,
+  exposure?: Pick<ExposureDimension, "clusters">,
 ): RiskPageAggregates {
   const distribution = emptyDistribution();
   for (const s of scores) {
@@ -131,17 +144,11 @@ export function buildPageAggregates(
 
   const { unattached } = attachFindingsToCycles(cycles, findings);
 
-  // Déduplication de l'incidence par finding.id : un constat rattaché à
-  // plusieurs cycles ne compte qu'une fois dans le total page.
-  const seen = new Set<string>();
-  let totalIncidenceEur = 0;
-  const eurSignalsWithoutEffect: string[] = [];
-  for (const f of findings) {
-    if (seen.has(f.id)) continue;
-    seen.add(f.id);
-    totalIncidenceEur += explicitEffectEur(f);
-    if (isEurSignalWithoutEffect(f)) eurSignalsWithoutEffect.push(f.id);
-  }
+  // Un constat rattaché à plusieurs cycles ne compte qu'une fois : le total page est la
+  // projection du dossier entier, pas la somme des cycles.
+  const unique = [...new Map(findings.map((f) => [f.id, f])).values()];
+  const effects = riskEffects(unique, exposure);
+  const eurSignalsWithoutEffect = unique.filter(isEurSignalWithoutEffect).map((f) => f.id);
 
   return {
     distribution,
@@ -149,7 +156,7 @@ export function buildPageAggregates(
     familyAverages,
     evaluatedCycleCount: scores.filter((s) => s.findingCount > 0).length,
     unevaluatedCycleCount: distribution.non_évalué,
-    totalIncidenceEur,
+    effects,
     eurSignalsWithoutEffect,
     unattachedFindings: unattached,
   };

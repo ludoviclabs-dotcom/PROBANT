@@ -60,6 +60,8 @@ export interface WaterfallStep {
   amountCents: number | null;
   kind: "start" | "delta" | "subtotal" | "total";
   note?: string;
+  /** Pont auquel appartient l'étape (« Résultat · diminution », « Effet sur le résultat ») : jamais additionné à un autre. */
+  group?: string;
 }
 
 /** Item du niveau décision (DecisionHeader). */

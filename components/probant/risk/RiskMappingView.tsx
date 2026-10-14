@@ -21,6 +21,7 @@ import {
   type HistoricalExercise,
 } from "@/lib/risk-mapping";
 import { track } from "@/lib/analytics/track";
+import { projectSnapshotExposure } from "@/lib/synthesis/exposure";
 import { cn } from "@/lib/utils";
 import { RiskMatrixHeatmap } from "./RiskMatrixHeatmap";
 import { RiskFlowGraph } from "./RiskFlowGraph";
@@ -152,6 +153,13 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
     [activeSnapshot.findings],
   );
 
+  // Projection des effets PARTAGÉE avec la Synthèse (mêmes constats, mêmes événements de revue,
+  // même document source) : la gravité lit les mêmes groupes et les mêmes montants par poste et sens.
+  const exposure = useMemo(
+    () => projectSnapshotExposure(activeSnapshot).exposure,
+    [activeSnapshot],
+  );
+
   const materiality = useMemo(
     () => computeMateriality(
       activeSnapshot.calculationContext.materialityBasis ?? { chiffreAffaires: 0 },
@@ -186,8 +194,8 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   // celui-ci ne doit jamais montrer de drivers/constats calculés sur un seuil
   // simulé.
   const realScores = useMemo(
-    () => buildCycleScores(cycles, findings, materiality, adjustments),
-    [cycles, findings, materiality, adjustments],
+    () => buildCycleScores(cycles, findings, materiality, adjustments, exposure),
+    [cycles, findings, materiality, adjustments, exposure],
   );
 
   // Scores affichés dans la matrice/les vues agrégées : recalculés avec le
@@ -196,9 +204,9 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   const scores = useMemo(
     () =>
       simulatedMateriality
-        ? buildCycleScores(cycles, findings, activeMateriality, adjustments)
+        ? buildCycleScores(cycles, findings, activeMateriality, adjustments, exposure)
         : realScores,
-    [simulatedMateriality, cycles, findings, activeMateriality, adjustments, realScores],
+    [simulatedMateriality, cycles, findings, activeMateriality, adjustments, realScores, exposure],
   );
 
   // Cycles dont la bande de criticité change entre seuil réel et seuil simulé
@@ -217,8 +225,8 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   }, [simulatedMateriality, realScores, scores]);
 
   const aggregates = useMemo(
-    () => buildPageAggregates(cycles, scores, findings),
-    [cycles, scores, findings],
+    () => buildPageAggregates(cycles, scores, findings, undefined, exposure),
+    [cycles, scores, findings, exposure],
   );
 
   const graph = useMemo(() => {

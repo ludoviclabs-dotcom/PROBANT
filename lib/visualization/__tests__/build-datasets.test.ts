@@ -39,15 +39,24 @@ describe("aucune divergence graphique / snapshot", () => {
     const byId = Object.fromEntries(datasets.waterfall.steps.map((s) => [s.id, s.amountCents]));
     const e = synthesis.exposure;
     const res = e.netByTarget.find((n) => n.target === "resultat");
-    expect(byId.gross).toBe(e.grossDetectedExposureCents);
-    expect(byId.repeats).toBe(-e.exactRepeatsCents);
-    expect(byId.determined).toBe(e.determinedExposureCents);
-    expect(byId.dismissed).toBe(-e.dismissedExposureCents);
-    expect(byId.pending).toBe(-e.pendingReviewExposureCents);
-    expect(byId["proposed-resultat"]).toBe(res?.proposedSignedCents ?? 0);
-    expect(byId.tax).toBe(res && res.taxStatus === "unknown" ? null : -(res?.taxKnownCents ?? 0));
-    expect(byId.superseded ?? -e.supersededVersionsCents).toBe(-e.supersededVersionsCents);
+    for (const st of e.stages) {
+      const k = `${st.target}-${st.direction}`;
+      expect(byId[`${k}-detected`]).toBe(st.detectedCents);
+      expect(byId[`${k}-dismissed`]).toBe(0 - st.dismissedCents);
+      expect(byId[`${k}-initial`]).toBe(st.initialCents);
+      expect(byId[`${k}-pending`]).toBe(0 - st.pendingCents);
+      expect(byId[`${k}-corrected`]).toBe(0 - st.correctedCents);
+      expect(byId[`${k}-uncorrected`]).toBe(st.proposedCents + st.residualCents);
+    }
+    // Démo : trois effets indépendants sur le résultat, tous en attente (145 000 + 312 000 en diminution, 18 000 en augmentation).
+    expect(byId["resultat-decrease-detected"]).toBe(45_700_000);
+    expect(byId["resultat-increase-detected"]).toBe(1_800_000);
+    expect(byId["resultat-decrease-pending"]).toBe(-45_700_000);
+    expect(byId["uncorrected-resultat"]).toBe(res?.uncorrectedSignedCents ?? 0);
+    expect(byId.tax).toBe(res && res.taxStatus === "unknown" ? null : 0 - (res?.taxKnownCents ?? 0));
     expect(byId.net).toBe(res ? res.netAfterKnownTaxCents : 0);
+    // Aucune étape n'additionne deux postes ou deux sens : chaque étape appartient à un seul pont.
+    expect(datasets.waterfall.steps.every((st) => typeof st.group === "string" && st.group.length > 0)).toBe(true);
   });
 
   it("waterfall : dédupliqué = écartés + en attente + revus-validés (ventilation exhaustive)", () => {
@@ -83,9 +92,12 @@ describe("aucune divergence graphique / snapshot", () => {
       const matrixRow = synthesis.risk.matrix[row.id as keyof typeof synthesis.risk.matrix];
       expect(row.cells.bloquant).toBe(matrixRow?.bloquant ?? 0);
       expect(row.cells.majeur).toBe(matrixRow?.majeur ?? 0);
-      expect(row.cells.exposition).toBe(
-        formatCents(synthesis.exposure.byCloison[row.id as keyof typeof synthesis.exposure.byCloison] ?? 0),
-      );
+      const expected: Record<string, string> = {
+        "bilan-passif": `Résultat − ${formatCents(14_500_000)}`,
+        "bilan-actif": `Résultat + ${formatCents(1_800_000)}`,
+        resultat: `Résultat − ${formatCents(31_200_000)}`,
+      };
+      expect(row.cells.exposition).toBe(expected[row.id] ?? "—");
     }
   });
 
@@ -214,8 +226,8 @@ describe("grand volume", () => {
       0,
     );
     expect(heatTotal).toBe(1000);
-    expect(datasets.waterfall.steps.find((s) => s.id === "gross")?.amountCents).toBe(
-      synthesis.exposure.grossDetectedExposureCents,
-    );
+    // Σ (1 000 + i) pour i < 1 000 = 1 499 500 centimes, un seul pont (résultat · augmentation).
+    expect(datasets.waterfall.steps.find((s) => s.id === "resultat-increase-detected")?.amountCents).toBe(1_499_500);
+    expect(datasets.waterfall.steps.find((s) => s.id === "resultat-increase-initial")?.amountCents).toBe(1_499_500);
   });
 });

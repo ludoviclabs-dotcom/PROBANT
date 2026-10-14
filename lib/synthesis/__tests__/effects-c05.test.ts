@@ -31,7 +31,8 @@ describe("signal sans effet", () => {
     expect(g.drivers.some((d) => d.label.startsWith("Effets financiers explicites"))).toBe(false);
     // Le signal pèse sur la priorité (driver, composante qualitative) mais n'ajoute aucun euro.
     const agg = buildPageAggregates([], buildCycleScores([], [f], null, {}), [f]);
-    expect(agg.totalIncidenceEur).toBe(0);
+    expect(agg.effects.stages).toEqual([]);
+    expect(agg.effects.indeterminateClusters).toEqual([]);
     expect(agg.eurSignalsWithoutEffect).toEqual(["f-sig"]);
   });
 });
@@ -259,14 +260,21 @@ describe("invariance, double comptage, cohérence des vues", () => {
     const societe = { raisonSociale: "TEST SA", siren: "000000000", exercice: "2024", dateCloture: "20241231" };
     const datasets = buildSynthesisDatasets({ synthesis, societe, findings: snapshot.findings, admissibilityFindings: snapshot.admissibilityFindings, dossier: snapshot });
     const byId = Object.fromEntries(datasets.waterfall.steps.map((st) => [st.id, st.amountCents]));
-    expect(byId.determined).toBe(synthesis.exposure.determinedExposureCents);
-    expect(byId.repeats).toBe(-synthesis.exposure.exactRepeatsCents);
-    expect(byId.undetermined).toBe(-(synthesis.exposure.exposureBoundsCents.maxCents - synthesis.exposure.determinedExposureCents));
+    // Attendus posés à la main : 10 000 + 10 000 (répétition) + 5 000 + 7 000 (chevauchement L2/L3–L3/L4) détectés.
+    expect(byId["resultat-increase-detected"]).toBe(32_000);
+    expect(byId["resultat-increase-repeats"]).toBe(-10_000);
+    expect(byId["resultat-increase-undetermined"]).toBe(-12_000);
+    expect(byId["resultat-increase-initial"]).toBe(10_000);
+    expect(byId["resultat-increase-uncorrected"]).toBe(10_000);
+    expect(byId["uncorrected-resultat"]).toBe(10_000);
+    expect(byId.tax).toBe(-2_500);
+    expect(byId.net).toBe(7_500);
     expect(byId.net).toBe(resultNet(synthesis)!.netAfterKnownTaxCents);
     const decision = datasets.decision.items.find((i) => i.id === "exposition-validee")!;
     expect(decision.value).toContain("100,00");
     const note = generateSynthesisNote(synthesis, societe);
-    expect(note).toContain("Exposition déterminée");
+    expect(note).not.toContain("Exposition déterminée");
+    expect(note).toContain("| Résultat | augmentation | 320,00 € | 100,00 € | 0,00 € | 120,00 € (1 groupe(s)) | 0,00 € | 100,00 € | 0,00 € | 100,00 € | 0,00 € | 0,00 € |");
     expect(note).toContain("groupe(s) d'effets non déterminés");
     expect(note).toMatch(/net après impôt 75,00/);
   });

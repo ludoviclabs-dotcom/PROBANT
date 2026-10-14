@@ -16,6 +16,9 @@ import {
   SEVERITY_ORDER,
 } from "@/lib/canonical-model";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
+import { isEurSignalWithoutEffect, restrictExposure } from "@/lib/synthesis/exposure";
+import { EFFECT_TARGET_LABEL, scopedEffectItems, type ScopedEffectItem } from "@/lib/synthesis/effect-labels";
+import type { ExposureDimension } from "@/lib/synthesis/types";
 
 /* ── types ──────────────────────────────────────────────────────────────────── */
 
@@ -112,10 +115,30 @@ function computeScore(findings: Finding[]): number {
   return ({ bloquant: 96, majeur: 72, mineur: 44, informatif: 20 } as Record<Severity, number>)[worst];
 }
 
-function computeExpo(findings: Finding[]): number {
-  return findings
-    .filter((f) => f.mesure.unite === "EUR")
-    .reduce((s, f) => s + Math.abs(f.mesure.constate - f.mesure.seuil), 0);
+/**
+ * Effets d'un périmètre lus dans la projection PARTAGÉE avec la Synthèse (C05) : exposition
+ * initiale par poste et sens, groupes indéterminés, signaux EUR sans effet. Aucun montant n'est
+ * inféré d'un écart au seuil, aucun poste n'est additionné à un autre.
+ */
+interface EffectsView {
+  items: ScopedEffectItem[];
+  indeterminate: number;
+  eurSignals: number;
+}
+
+function effectsOf(exposure: Pick<ExposureDimension, "clusters">, findings: Finding[]): EffectsView {
+  const scoped = restrictExposure(exposure, findings.map((f) => f.id));
+  return {
+    items: scopedEffectItems(scoped),
+    indeterminate: scoped.indeterminateClusters.length,
+    eurSignals: findings.filter(isEurSignalWithoutEffect).length,
+  };
+}
+
+/** « Résultat − 312 000 € » : le poste, le sens, le montant — jamais une somme de postes. */
+function effectItemLabel(it: ScopedEffectItem, short = false): string {
+  const target = short && it.target !== "resultat" ? EFFECT_TARGET_LABEL[it.target].replace("Bilan — ", "") : EFFECT_TARGET_LABEL[it.target];
+  return `${target} ${it.sign} ${compactEur(it.initialCents / 100)}`;
 }
 
 /** 5 segments ; n remplis selon le risque de faux positif (faible 4, moyen 3, élevé 2). */
@@ -803,10 +826,13 @@ export function CloisonsWorkspace({
   silos,
   meta,
   scenario = null,
+  exposure,
 }: {
   silos: SiloView[];
   meta: { label: string; exercice: string };
   scenario?: ScenarioInfo | null;
+  /** Projection des effets partagée avec la Synthèse (lib/synthesis/exposure). */
+  exposure: Pick<ExposureDimension, "clusters">;
 }) {
   const docs = useMemo(() => buildStatementDocuments(silos, meta), [silos, meta]);
   const documentDisponible = docs.length > 0;
@@ -836,7 +862,7 @@ export function CloisonsWorkspace({
     return counts;
   }, [allFindings]);
 
-  const totalExpo = useMemo(() => computeExpo(allFindings), [allFindings]);
+  const totalEffects = useMemo(() => effectsOf(exposure, allFindings), [exposure, allFindings]);
 
   const groups = useMemo(() => groupByCloison(silos), [silos]);
 
@@ -937,12 +963,21 @@ export function CloisonsWorkspace({
                 <span style={{ fontSize: 11, color: MUTED }}>{SEV[s].label}</span>
               </div>
             ))}
-            {totalExpo > 0 && (
+            {(totalEffects.items.length > 0 || totalEffects.indeterminate > 0 || totalEffects.eurSignals > 0) && (
               <>
                 <span style={{ width: 1, height: 14, background: "#222a36" }} />
-                <div style={{ display: "flex", alignItems: "baseline", gap: 7 }}>
-                  <span style={{ fontSize: 11, color: MUTED }}>Exposition cumulée</span>
-                  <span style={{ fontSize: 13, fontWeight: 600, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>{compactEur(totalExpo)}</span>
+                <div data-effects-summary style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" as const }}>
+                  <span style={{ fontSize: 11, color: MUTED }}>Exposition initiale par poste et sens</span>
+                  {totalEffects.items.map((it) => (
+                    <span key={it.key} style={{ fontSize: 13, fontWeight: 600, color: "#cdd6e2", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{effectItemLabel(it)}</span>
+                  ))}
+                  {totalEffects.items.length === 0 && <span style={{ fontSize: 12, color: MUTED }}>aucun effet chiffré</span>}
+                  {totalEffects.indeterminate > 0 && (
+                    <span style={{ fontSize: 11, color: "#e3bd4d" }}>{totalEffects.indeterminate} groupe{totalEffects.indeterminate > 1 ? "s" : ""} indéterminé{totalEffects.indeterminate > 1 ? "s" : ""}</span>
+                  )}
+                  {totalEffects.eurSignals > 0 && (
+                    <span style={{ fontSize: 11, color: MUTED }}>· {totalEffects.eurSignals} {totalEffects.eurSignals > 1 ? "signaux" : "signal"} EUR sans effet chiffré</span>
+                  )}
                 </div>
               </>
             )}
@@ -1046,7 +1081,7 @@ export function CloisonsWorkspace({
                         const filtered = filterFindings(findings);
                         const worst = worstSev(findings);
                         const score = computeScore(findings);
-                        const expo = computeExpo(findings);
+                        const effects = effectsOf(exposure, findings);
                         const sevStyle = worst ? SEV[worst] : null;
 
                         return (
@@ -1080,11 +1115,17 @@ export function CloisonsWorkspace({
                                   <span style={{ fontSize: 10.5, color: "#8a96a6" }}>{findings.length} constat{findings.length > 1 ? "s" : ""}</span>
                                 </span>
                               )}
-                              {expo > 0 && (
-                                <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>
-                                  {compactEur(expo)}
+                              {effects.items.length > 0 ? (
+                                <span title="Exposition initiale par poste et sens (projection partagée avec la Synthèse)" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>
+                                  {effects.items.slice(0, 2).map((it) => effectItemLabel(it, true)).join(" · ")}
+                                  {effects.items.length > 2 ? ` · +${effects.items.length - 2}` : ""}
+                                  {effects.indeterminate > 0 ? " · indéterminé" : ""}
                                 </span>
-                              )}
+                              ) : effects.indeterminate > 0 ? (
+                                <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: "#e3bd4d", whiteSpace: "nowrap" }}>montant indéterminé</span>
+                              ) : effects.eurSignals > 0 ? (
+                                <span title="Écart mesuré en euros sans effet financier explicite : l'effet comptable reste inconnu" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: MUTED, whiteSpace: "nowrap" }}>effet non chiffré</span>
+                              ) : null}
                             </button>
 
                             {isOpen && (
