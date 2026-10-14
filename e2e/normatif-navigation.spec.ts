@@ -67,6 +67,6 @@ test("filtres : enchaînements qui figeaient la liste, y compris « Tous » depu
   await expectCyclesList(page, /\/normatif\/cycles\?famille=ACTIF_IMMOBILISE$/);
   for (const href of steps) {
     await page.locator(`main a[href='${href}']`).first().click();
-    await expectCyclesList(page, new RegExp(`${href.replace(/[?]/g, "\\?")}$`));
+    await expectCyclesList(page, new RegExp(`${href.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`));
   }
 });
