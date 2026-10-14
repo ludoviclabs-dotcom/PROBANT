@@ -2,6 +2,14 @@
 
 **Base.** Worktree `probant-analysis-setup-41121f`, branche `claude/competent-borg-3d6941`, SHA de départ `ff3f9fb` (`main` après la PR #84 C08), checkout propre. Le module Normatif n'avait pas bougé depuis son introduction (`fb43c8e`). Fichiers applicatifs modifiés : `app/normatif/layout.tsx`, `components/normatif/CycleSidebar.tsx`, `app/normatif/sources/[slug]/page.tsx`, `components/normatif/IFRSvsPCGPanel.tsx`. La demande citait `NormatifSidebar` ; le composant réel s'appelle `CycleSidebar`. Aucun contenu modifié, aucun merge ni déploiement.
 
+**Validation sur l'arbre intégré (`f206fd6` + ce lot, fusion `0a9ac6a`, suivie de `9187912`).** Les mesures avant/après ci-dessous ont été faites sur `ff3f9fb`. La PR #85 (C09) est arrivée dans `main` entre-temps. Une fois `main` fusionné, tout a été rejoué sur le build de production de l'arbre intégré :
+- les trois specs du lot : 52/52 ;
+- la suite e2e complète : 277 réussis, 5 ignorés (profil local C07 et FEC persistant, faute de variables d'environnement : non vérifiés), 1 échec ;
+- la suite unitaire (`--pool=forks`) : 1 741 réussis et 51 ignorés (recettes PostgreSQL). Le pool par défaut est sorti en erreur de segmentation, comme déjà constaté dans ce dépôt ;
+- typecheck OK, lint sans erreur (7 avertissements de la base).
+
+Le seul échec, `e2e/tax-release-gate.spec.ts`, est **antérieur à ce lot**. Sur un build de `f206fd6` seul, dans un worktree détaché, il échoue 3 fois sur 18 exécutions. Le test dépose la balance juste après le clic « Nouveau dossier », sans attendre la navigation, et la vérification d'URL est déjà vraie avant le clic. Ce défaut est laissé hors lot.
+
 ## Cause
 
 | Défaut | Où | Effet mesuré (Chromium, build de production de `ff3f9fb`, 390 × 900) |
