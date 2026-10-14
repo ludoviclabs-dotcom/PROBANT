@@ -15,6 +15,7 @@ import { periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } f
 import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
+import { executionProfile } from "@/lib/runtime/profile";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024 };
@@ -34,7 +35,7 @@ export class StockRuntime {
     return identity;
   }
   private actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
-    return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
+    return { id: identity.subject, ...(identity.reviewKind ? { review: identity.reviewKind, displayName: identity.displayName } : {}), grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
   }
   private async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: StockTx, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
     const identity = await this.identity(request, dossierId, permission);
@@ -84,7 +85,7 @@ export class StockRuntime {
       for (const b of imports.batches.filter(b => b.approval)) (versions[b.document.documentType] ??= []).push({ importId: b.id, documentVersionId: b.document.id, fileName: b.document.fileName, sha256: b.document.byteHash, approvedAt: b.approval!.at,
         current: heads.some(h => h.document_type === b.document.documentType && h.import_id === b.id) });
       for (const list of Object.values(versions)) list.sort((a, b) => a.approvedAt < b.approvedAt ? -1 : a.approvedAt > b.approvedAt ? 1 : a.importId < b.importId ? -1 : 1);
-      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, sourcesCurrent, expectedSources: stockHeads.map(h => h.import_id).sort(), lineageCurrent, versions,
+      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), runs, sourcesCurrent, expectedSources: stockHeads.map(h => h.import_id).sort(), lineageCurrent, versions,
         currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
         imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, ROWS_SENT[b.document.documentType as StockSourceType] ?? 0), rowCount: b.rows.length })), sourceHeads: heads, ...(history && id ? { history: await repository.history(scope, id) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("ST_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);

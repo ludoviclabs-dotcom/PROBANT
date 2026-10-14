@@ -2,11 +2,12 @@ import type { ClosingEvaluation, JournalLine, ProcedureStatus, StepState } from 
 import type { PieceVersion } from "@/lib/workpapers/closing-journal";
 import type { ResolvedCitation } from "@/lib/workpapers/closing-contract";
 import { formatCents } from "@/lib/workpapers/stock-contract";
+import type { ExecutionProfile } from "@/lib/runtime/profile";
 
 export { dateFr, plural } from "../fiscal/format";
 /** Server response of GET /api/workpapers/closing: the browser renders the evaluation, it never recomputes a state, a count or an amount. */
 export interface ClosingView {
-  actorId: string; permissions: ("read" | "prepare" | "review" | "sign" | "download")[]; closingAuthority: boolean; dossierId: string; periodId: string;
+  actorId: string; executionProfile?: ExecutionProfile; permissions: ("read" | "prepare" | "review" | "sign" | "download")[]; closingAuthority: boolean; dossierId: string; periodId: string;
   seq: number; headHash: string; hashNotice: string; pieces: PieceVersion[]; evaluation: ClosingEvaluation; journal: JournalLine[];
 }
 export type ClosingTab = "programme" | "pieces" | "anomalies" | "revue" | "cloture" | "journal";
@@ -20,7 +21,7 @@ export const stampFr = (iso: string) => new Date(iso).toLocaleString("fr-FR", { 
 export const euros = (amount: string) => { const [whole, cents = "00"] = amount.replace("-", "").split("."); return formatCents((amount.startsWith("-") ? "-" : "") + (BigInt(whole) * 100n + BigInt(cents.padEnd(2, "0"))).toString()); };
 export const citationText = (c: ResolvedCitation) => c.label + " · v" + c.version + (c.page ? " · p. " + c.page : "") + (c.zone ? " · " + c.zone : "");
 const MESSAGES: Record<string, string> = {
-  CL_DURABLE_DISABLED: "Dossier de clôture durable fermé : réservé à la recette jetable (drapeau désactivé ou production).",
+  CL_DURABLE_DISABLED: "Dossier de clôture durable fermé sur ce serveur : profil personnel local (npm run local:start) ou recette jetable requis.",
   CL_DURABLE_UNAVAILABLE: "Service indisponible. Aucune donnée n’a été modifiée ; réessayez.",
   CL_STALE_SEQ: "Le journal a avancé depuis votre lecture (autre action enregistrée) : rechargez avant de reprendre.",
   CL_FILE_NOT_OPENED: "Ouvrez d’abord le dossier : entité et exercice.",

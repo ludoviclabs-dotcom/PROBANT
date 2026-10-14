@@ -7,6 +7,7 @@ import { FA_UNCERTAINTY_CODES } from "@/lib/workpapers/fixed-asset-review";
 import { dateFr, eur, fixedAssetFailureMessage, knownLabel, STATE_LABELS, TABLE_LABELS } from "./format";
 import styles from "../cash/cash.module.css";
 import fa from "./fixed-assets.module.css";
+import { executionProfileLabel, type ExecutionProfile } from "@/lib/runtime/profile";
 
 type ExportFormat = "html" | "pdf" | "json" | "manifest" | "exceptions_csv" | "decisions_csv" | "procedures_csv" | "sources_csv";
 const CSV = [{ id: "exceptions_csv", label: "Exceptions" }, { id: "decisions_csv", label: "Décisions" }, { id: "procedures_csv", label: "Procédures" }, { id: "sources_csv", label: "Index des sources" }] as const;
@@ -14,7 +15,7 @@ const FILTERS: { id: FixedAssetMissionFilter; label: string }[] = [{ id: "all", 
 export function FixedAssetMissionSynthesis({ initialDossierId = "", initialPeriodId = "", initialRootId = "", initialRunId = "", initialVersion }: { initialDossierId?: string; initialPeriodId?: string; initialRootId?: string; initialRunId?: string; initialVersion?: number }) {
   const [dossier, setDossier] = useState(initialDossierId), [period, setPeriod] = useState(initialPeriodId), [scope, setScope] = useState({ dossierId: initialDossierId, periodId: initialPeriodId });
   const [selection] = useState<{ rootId?: string; id?: string; version?: number }>(initialRunId && initialVersion ? { rootId: initialRootId || undefined, id: initialRunId, version: initialVersion } : initialRootId ? { rootId: initialRootId } : {});
-  const [view, setView] = useState<{ actorId: string; permissions: string[]; mission: FixedAssetMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<FixedAssetMissionFilter>("all"), [exporting, setExporting] = useState(false);
+  const [view, setView] = useState<{ actorId: string; permissions: string[]; executionProfile?: ExecutionProfile; mission: FixedAssetMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<FixedAssetMissionFilter>("all"), [exporting, setExporting] = useState(false);
   const load = useCallback(async () => {
     if (!scope.dossierId || !scope.periodId) return;
     setLoading(true); setError("");
@@ -45,7 +46,7 @@ export function FixedAssetMissionSynthesis({ initialDossierId = "", initialPerio
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing/synthesis">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie/synthese">Procédures de mission · Trésorerie</DossierContextAnchor><span aria-current="page">Procédures de mission · Immobilisations</span><DossierContextAnchor href="/capitaux-propres/synthese">Procédures de mission · Capitaux propres (PV versionnés)</DossierContextAnchor></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse Immobilisations</h1><p className={styles.muted}>Programme fermé : ponts des mouvements, cadrage registre → GL, pièces et recalcul documenté. Les compteurs viennent du programme, jamais du nombre d’anomalies.</p></div>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)}</p><h1>Revue et Synthèse Immobilisations</h1><p className={styles.muted}>Programme fermé : ponts des mouvements, cadrage registre → GL, pièces et recalcul documenté. Les compteurs viennent du programme, jamais du nombre d’anomalies.</p></div>
       <DossierContextAnchor href={m ? fixedAssetSheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all") : "/immobilisations"}>Ouvrir la feuille Immobilisations</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>
       <label>Dossier<DossierScopedInput required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>

@@ -17,6 +17,7 @@ import { periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
+import { executionProfile } from "@/lib/runtime/profile";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 24 * 1024 * 1024, response: 8 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -31,7 +32,7 @@ export class CashRuntime {
     return identity;
   }
   private actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
-    return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
+    return { id: identity.subject, ...(identity.reviewKind ? { review: identity.reviewKind, displayName: identity.displayName } : {}), grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
   }
   private async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: CashTx, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
     const identity = await this.identity(request, dossierId, permission);
@@ -79,7 +80,7 @@ export class CashRuntime {
         try { facts[r.id] = batches.some(b => b.document.documentType === "cash_ledger") && batches.some(b => b.document.documentType === "cash_statement") && batches.some(b => b.document.documentType === "cash_erb") ? cashFactsView(buildCashFacts(scope, r.period, batches, r.id)) : null; }
         catch (error) { facts[r.id] = null; factsIssues[r.id] = error instanceof CashSourceError ? { code: error.code, locator: error.locator } : { code: error instanceof Error ? error.message : "CASH_SOURCES_INVALID" }; }
       }
-      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, facts, factsIssues, sourcesCurrent, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
+      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), runs, facts, factsIssues, sourcesCurrent, lineageCurrent, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
         imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads, ...(history && id ? { history: await repository.history(scope, id) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("CASH_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);
       return response;
@@ -94,7 +95,7 @@ export class CashRuntime {
     return { mission, run: versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null, imports: imports.batches };
   }
   async mission(request: Request, dossierId: string, pid: string, selection: CashMissionSelection = {}) {
-    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, mission: (await this.missionData(tx, scope, selection)).mission }));
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.missionData(tx, scope, selection)).mission }));
   }
   async missionExport(request: Request, dossierId: string, pid: string, selection: CashMissionSelection, kind: CashExportKind, expectedSnapshotHash: string) {
     const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

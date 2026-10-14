@@ -8,6 +8,8 @@ export interface SessionRecord {
   readonly id: string;
   readonly userId: string;
   readonly subject: string;
+  /** Émetteur de l'identité (OIDC ou `probant-local:<profil>`), lu depuis `users.external_subject`. */
+  readonly issuer?: string;
   readonly organizationId: string;
   readonly roles: readonly ProbantRole[];
   readonly acr: string | null;
@@ -39,6 +41,12 @@ export interface SessionStore {
   touch(id: string, idleExpiresAtEpochSeconds: number): Promise<void>;
   revoke(id: string): Promise<void>;
   deleteExpired(nowEpochSeconds: number): Promise<number>;
+}
+
+/** `external_subject` vaut `issuer|subject` (voir `create`) : l'émetteur en est le préfixe. */
+function issuerOf(externalSubject: string, subject: string): string | undefined {
+  const suffix = "|" + subject;
+  return externalSubject.endsWith(suffix) ? externalSubject.slice(0, -suffix.length) : undefined;
 }
 
 function toSeconds(date: Date): number {
@@ -106,6 +114,7 @@ export class DrizzleSessionStore implements SessionStore {
         id,
         userId: user.id,
         subject: input.subject,
+        issuer: input.issuer,
         organizationId: input.organizationId,
         roles: input.roles,
         acr: input.acr,
@@ -123,8 +132,9 @@ export class DrizzleSessionStore implements SessionStore {
   ): Promise<SessionRecord | null> {
     const now = new Date(nowEpochSeconds * 1_000);
     const rows = await this.db
-      .select()
+      .select({ session: authSessions, externalSubject: users.externalSubject })
       .from(authSessions)
+      .innerJoin(users, eq(users.id, authSessions.userId))
       .where(
         and(
           eq(authSessions.tokenSha256, digest),
@@ -134,12 +144,14 @@ export class DrizzleSessionStore implements SessionStore {
         ),
       )
       .limit(1);
-    const row = rows[0];
-    if (!row) return null;
+    const found = rows[0];
+    if (!found) return null;
+    const row = found.session;
     return {
       id: row.id,
       userId: row.userId,
       subject: row.subject,
+      issuer: issuerOf(found.externalSubject, row.subject),
       organizationId: row.organizationId,
       roles: normalizeRoles(row.roles),
       acr: row.acr,
@@ -190,6 +202,7 @@ export class InMemorySessionStore implements SessionStore {
       id: randomUUID(),
       userId: randomUUID(),
       subject: input.subject,
+      issuer: input.issuer,
       organizationId: input.organizationId,
       roles: input.roles,
       acr: input.acr,

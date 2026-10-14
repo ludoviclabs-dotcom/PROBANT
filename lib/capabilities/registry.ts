@@ -1,3 +1,4 @@
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliation-definitions";
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
 import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, type CapabilityCycleId } from "./procedures";
@@ -69,7 +70,7 @@ export const PROCEDURE_ACTIVATION: Record<string, string> = {
 };
 /** Configuration is never evidence of execution, authorization or successful connectivity. */
 export function configuredProcedures(env: Record<string, string | undefined>) {
-  return Object.fromEntries(ENGINE_PROCEDURES.map(p => [p.id, { activated: env.VERCEL_ENV !== "production" && env[PROCEDURE_ACTIVATION[p.id]] === "disposable", databaseConfigured: !!env.DATABASE_URL?.trim() }]));
+  return Object.fromEntries(ENGINE_PROCEDURES.map(p => [p.id, { activated: durableChainEnabled(env, PROCEDURE_ACTIVATION[p.id]), databaseConfigured: !!env.DATABASE_URL?.trim() }]));
 }
 /** Workflow navigation is separate from cycle capability; these routes consume the same dossier context. */
 export const WORKFLOW_ROUTES = [

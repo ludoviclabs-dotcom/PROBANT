@@ -1,4 +1,5 @@
 import { ApiError } from "@/lib/api/errors";
+import type { ReviewKind } from "./review-kind";
 import { hasPermission, type Permission, type ProbantRole } from "./roles";
 
 /**
@@ -23,7 +24,14 @@ export interface AuthenticatedPrincipal {
    * déduite de cette valeur.
    */
   readonly dossierIds: readonly string[] | null;
-  readonly authenticationMethod: "oidc-session" | "signed-gateway-context";
+  readonly authenticationMethod: "oidc-session" | "signed-gateway-context" | "local-session";
+  /**
+   * Type de relecture que porterait une décision de revue de cette identité
+   * (C07), décidé par le serveur. Absent : relecture par une autre identité.
+   */
+  readonly reviewKind?: ReviewKind;
+  /** Nom affiché d'une identité locale, consigné avec une relecture personnelle. */
+  readonly displayName?: string;
   readonly amr: readonly string[];
   readonly acr: string | null;
   readonly mfaSatisfied: boolean;

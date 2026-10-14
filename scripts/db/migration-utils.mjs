@@ -106,3 +106,18 @@ export function validateMigrations() {
   return { errors, migrationFiles: ups, tables: schema };
 }
 
+/**
+ * Migration body with its ledger insert in the same transaction. Files wrapped
+ * in BEGIN;/COMMIT; get the insert just before their COMMIT; the historical
+ * unwrapped files run as one simple query, i.e. one implicit transaction,
+ * with the insert appended. An interruption (power cut, killed process) then
+ * leaves a file either applied and recorded, or not applied at all — never
+ * applied but unrecorded, which a non-idempotent file could not replay.
+ */
+/** @param {string} name @param {string} body @returns {string} */
+export function atomicMigration(name, body) {
+  if (!/^\d{4}_[A-Za-z0-9_.-]+\.sql$/u.test(name)) throw new Error(`Unexpected migration name: ${name}`);
+  const record = `INSERT INTO _probant_migrations (name) VALUES ('${name}');`;
+  if (/COMMIT;\s*$/u.test(body)) return body.replace(/COMMIT;\s*$/u, `${record}\nCOMMIT;\n`);
+  return `${body.trimEnd().replace(/;?$/u, ";")}\n${record}\n`;
+}

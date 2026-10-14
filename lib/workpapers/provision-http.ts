@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { ApiError } from "@/lib/api/errors";
 import { provisionApprovalSchema, provisionCommandSchema, provisionPeriodSchema } from "./provision-commands";
 import type { ProvisionRuntime } from "./provision-runtime";
@@ -11,7 +12,7 @@ const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableProvisions(env: Record<string, string | undefined> = process.env) {
-  if (env.VERCEL_ENV === "production" || env.PROBANT_PROVISIONS_DURABLE !== "disposable") throw new ApiError("PV_DURABLE_DISABLED", "Le registre Provisions durable est réservé à la recette jetable.", 503);
+  if (!durableChainEnabled(env, "PROBANT_PROVISIONS_DURABLE")) throw new ApiError("PV_DURABLE_DISABLED", "Le registre Provisions durable est réservé à la recette jetable ou au profil personnel local.", 503);
 }
 export function provisionFailureStatus(code: string) {
   return /SESSION_INVALID|AUTHENTICATION_REQUIRED/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404

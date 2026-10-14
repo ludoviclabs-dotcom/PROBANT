@@ -83,7 +83,7 @@ function buildFrameProjection(scope: WorkpaperScope, versions: WorkpaperRun[], i
   const exceptionCount = comparisons.reduce((sum, c) => sum + c.rows.filter(r => r.exception).length, 0);
   const incomplete = comparisons.some(c => !c.complete);
   const stale = staleReasons.length > 0;
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   const resultLabel = !run?.result ? "Non exécuté" : run.result.execution !== "completed" ? "Calcul bloqué ou en échec" : exceptionCount ? "Exceptions maintenues" : incomplete ? "Cadrage partiel — incertitudes" : "Aucun écart détecté sur le périmètre testé";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
   const before = run ? versions.filter(v => v.id === run.id && v.version <= run.version && v.state === "awaiting_review").sort((a, b) => b.version - a.version)[0] : undefined;
@@ -191,7 +191,7 @@ function buildSalesProjection(scope: WorkpaperScope, versions: WorkpaperRun[], i
   if (linked?.importIds.some(id => !heads.some(h => h.import_id === id))) staleReasons.push("Une source du cadrage lié a été remplacée.");
   if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Clients et ventes diffère du programme.");
   const stale = staleReasons.length > 0;
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   const resultLabel = !run?.result ? "Non exécuté" : !sales || run.result.execution !== "completed" ? "Calcul Clients bloqué ou contrat invalide" : sales.exceptions.length ? "Exceptions maintenues" : "Travaux documentés sur le périmètre testé — incertitudes à apprécier";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
   const comparisons: FrameProjection["procedure"]["comparisons"] = definition.tests.map(test => {

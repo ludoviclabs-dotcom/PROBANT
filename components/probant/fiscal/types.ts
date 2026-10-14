@@ -1,9 +1,11 @@
 import type { ImportBatch } from "@/lib/workpapers/imports";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
+import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { ExecutionProfile } from "@/lib/runtime/profile";
 
 /** Read response of /api/workpapers/fiscal: server state and results only; nothing is recomputed in the browser. */
 export interface FiscalView {
-  actorId: string; permissions: string[]; runs: WorkpaperRun[];
+  actorId: string; permissions: string[]; reviewKind?: ReviewKind; executionProfile?: ExecutionProfile; runs: WorkpaperRun[];
   sourcesCurrent: Record<string, boolean>; expectedSources: Record<string, string[]>; currentVersions?: Record<string, number>; lineageCurrent?: Record<string, { id: string; version: number; revision: number }>;
   versions: Record<string, { importId: string; documentVersionId: string; fileName: string; sha256: string; approvedAt: string; current: boolean }[]>;
   imports: (ImportBatch & { rowCount?: number })[]; sourceHeads: { document_type: string; import_id: string }[];

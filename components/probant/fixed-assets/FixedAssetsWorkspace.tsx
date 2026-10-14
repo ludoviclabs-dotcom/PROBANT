@@ -16,6 +16,9 @@ import { dateFr, eur, fixedAssetFailureMessage, knownLabel, plural, SOURCE_TYPE_
 import type { BridgeFilter, FixedAssetView } from "./types";
 import styles from "../cash/cash.module.css";
 import fa from "./fixed-assets.module.css";
+import { approvalLabel, mayReviewOwnWork } from "@/lib/auth/review-kind";
+import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
+import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 type Tab = "population" | "tests" | "exceptions" | "pieces" | "revue";
@@ -49,7 +52,7 @@ export function FixedAssetsWorkspace({ initialDossierId = "", initialPeriodValue
   const familyUnits = useMemo(() => units.filter(u => u.family === activeFamily), [units, activeFamily]);
   const server = useMemo(() => run?.fixedAssetWork ? fixedAssetDraftFromWork(run.fixedAssetWork) : null, [run]);
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
-  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
   const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state) && !!run.population;
   const dirty = !!draft && !!run?.population && JSON.stringify(draft) !== JSON.stringify(server);
   const saving = status === "saving";
@@ -162,7 +165,7 @@ export function FixedAssetsWorkspace({ initialDossierId = "", initialPeriodValue
 
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><span aria-current="page">Procédures de mission · Immobilisations</span><DossierContextAnchor href="/capitaux-propres">Procédures de mission · Capitaux propres (PV versionnés)</DossierContextAnchor></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Immobilisations — mouvements et recalcul documenté</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Immobilisations — mouvements et recalcul documenté</h1>
       <p className={styles.muted}>Ponts Brut, Amortissements et Dépréciations séparés, par famille et par actif ; cadrage registre → GL ; recalcul sur méthode et paramètres documentés. Aucune conclusion de valeur ni d’existence physique.</p></div>
       <DossierContextAnchor href={"/immobilisations/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse Immobilisations</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
@@ -173,7 +176,7 @@ export function FixedAssetsWorkspace({ initialDossierId = "", initialPeriodValue
     <div className={styles.context} aria-label="Contexte du dossier">
       <span>Dossier <strong>{dossierId || "—"}</strong></span><span>Organisation <strong>{run?.scope.organizationId ?? "—"}</strong></span>
       <span>Exercice <strong>{period.startDate ? dateFr(period.startDate) + " → " + dateFr(period.closingDate) : "—"}</strong> · revue <strong>{period.asOfDate ? dateFr(period.asOfDate) : "—"}</strong></span>
-      <span>Mode <strong>réel — recette jetable</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
+      <span>Mode <strong>réel — {executionProfileLabel(view?.executionProfile)}</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
       <span>Feuille <strong>{run ? `r${run.revision} · v${run.version} · ${STATE_LABELS[run.state] ?? run.state}` : "—"}</strong></span>
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{status === "idle" && dirty ? "Méthodes modifiées — non sauvegardées" : SAVE_LABELS[status]}</span>
     </div>
@@ -290,12 +293,12 @@ export function FixedAssetsWorkspace({ initialDossierId = "", initialPeriodValue
       {tab === "revue" && <div role="tabpanel" id="fa-panel-revue" aria-labelledby="fa-tab-revue" className={styles.main}>
         <section className={styles.card} aria-labelledby="fa-review-title"><h2 id="fa-review-title">Soumission, revue et verrouillage</h2>
           {!run ? <p className={styles.muted}>Aucune feuille.</p> : <>
-            <p>État : <strong>{STATE_LABELS[run.state] ?? run.state}</strong> · préparateur réel {run.preparedBy}{run.approval ? " · approuvé par " + run.approval.actorId + " le " + new Date(run.approval.at).toLocaleString("fr-FR") : ""}</p>
+            <p>État : <strong>{STATE_LABELS[run.state] ?? run.state}</strong> · préparateur réel {run.preparedBy}{run.approval ? " · " + approvalLabel(run.approval) : ""}</p>
             {openNotes.length > 0 && <p className={styles.notice}>{plural(openNotes.length, "point bloquant", "points bloquants")} à documenter avant approbation (onglet Exceptions).</p>}
             {run.state === "executed" && canPrepare && <button type="button" className={styles.primary} disabled={saving || !current || conclusion !== (run.conclusion ?? "")} onClick={() => action("submit")}>Soumettre cette version</button>}
-            {run.state === "awaiting_review" && canReview && <><label>Note de revue<textarea value={reviewText} onChange={e => setReviewText(e.target.value)}/></label>
+            {run.state === "awaiting_review" && canReview && <><ReviewKindNotice kind={view?.reviewKind}/><label>Note de revue<textarea value={reviewText} onChange={e => setReviewText(e.target.value)}/></label>
               <div className={styles.actions}>{(["approved", "changes_requested"] as const).map(d => <button key={d} type="button" className={d === "approved" ? styles.primary : undefined} disabled={saving || !reviewText.trim() || !current} onClick={() => action("review", { decision: d, text: reviewText, submittedHash: run.submittedHash })}>{d === "approved" ? "Approuver la revue des immobilisations" : "Demander une correction"}</button>)}</div></>}
-            {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version.</p>}
+            {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version, ou vous-même en relecture personnelle nommée si le profil local solo l’autorise.</p>}
             {run.state === "approved" && canReview && <button type="button" className={styles.primary} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
             {canPrepare && <div className={styles.actions}><button type="button" className={styles.danger} disabled={saving} onClick={() => action("revise")}>Créer une nouvelle révision</button><span className={styles.muted}>L’ancienne version et ses décisions restent consultables.</span></div>}
             <p className={styles.muted}>Une revue documentée ne vaut pas conformité des comptes. Les exceptions restent dans le résultat.</p>

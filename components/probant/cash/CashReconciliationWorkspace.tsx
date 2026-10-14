@@ -17,6 +17,9 @@ import { cashFailureMessage, dateFr, eur, knownLabel, plural, SOURCE_TYPE_LABELS
 import { displayAccounts, draftNotes, serverDraft } from "./view-model";
 import type { CashKind, CashView, PanelTarget } from "./types";
 import styles from "./cash.module.css";
+import { approvalLabel, mayReviewOwnWork } from "@/lib/auth/review-kind";
+import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
+import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 type Tab = "population" | "tests" | "exceptions" | "pieces" | "revue";
@@ -46,7 +49,7 @@ export function CashReconciliationWorkspace({ initialDossierId = "", initialPeri
   const account = accounts.find(a => a.accountId === accountId) ?? accounts.find(a => a.inScope) ?? accounts[0] ?? null;
   const server = useMemo(() => serverDraft(run?.cashWork), [run]);
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
-  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
   const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state) && !!run.population;
   const dirty = !!draft && JSON.stringify(draft) !== JSON.stringify(server);
   const saving = status === "saving";
@@ -164,7 +167,7 @@ export function CashReconciliationWorkspace({ initialDossierId = "", initialPeri
 
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing">Procédures de mission · Clients</DossierContextAnchor><span aria-current="page">Procédures de mission · Trésorerie</span><DossierContextAnchor href="/immobilisations">Procédures de mission · Immobilisations</DossierContextAnchor><DossierContextAnchor href="/capitaux-propres">Procédures de mission · Capitaux propres (PV versionnés)</DossierContextAnchor></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Trésorerie — pont bancaire et apurement</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Trésorerie — pont bancaire et apurement</h1>
       <p className={styles.muted}>Relevé + suspens de l’ERB → GL, compte par compte ; apurement des suspens sur les relevés postérieurs. Aucune opinion automatique.</p></div>
       <DossierContextAnchor href={"/tresorerie/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse Trésorerie</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
@@ -175,7 +178,7 @@ export function CashReconciliationWorkspace({ initialDossierId = "", initialPeri
     <div className={styles.context} aria-label="Contexte du dossier">
       <span>Dossier <strong>{dossierId || "—"}</strong></span><span>Organisation <strong>{run?.scope.organizationId ?? "—"}</strong></span>
       <span>Période <strong>{period.startDate ? dateFr(period.startDate) + " → " + dateFr(period.closingDate) : "—"}</strong> · revue <strong>{period.asOfDate ? dateFr(period.asOfDate) : "—"}</strong></span>
-      <span>Mode <strong>réel — recette jetable</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
+      <span>Mode <strong>réel — {executionProfileLabel(view?.executionProfile)}</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
       <span>Feuille <strong>{run ? `r${run.revision} · v${run.version} · ${STATE_LABELS[run.state] ?? run.state}` : "—"}</strong></span>
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{status === "idle" && dirty ? "Brouillon d’apurement non sauvegardé" : SAVE_LABELS[status]}</span>
     </div>
@@ -282,12 +285,12 @@ export function CashReconciliationWorkspace({ initialDossierId = "", initialPeri
       {tab === "revue" && <div role="tabpanel" id="cash-panel-revue" aria-labelledby="cash-tab-revue" className={styles.main}>
         <section className={styles.card} aria-labelledby="cash-review-title"><h2 id="cash-review-title">Soumission, revue et verrouillage</h2>
           {!run ? <p className={styles.muted}>Aucune feuille.</p> : <>
-            <p>État : <strong>{STATE_LABELS[run.state] ?? run.state}</strong> · préparateur réel {run.preparedBy}{run.approval ? " · approuvé par " + run.approval.actorId + " le " + new Date(run.approval.at).toLocaleString("fr-FR") : ""}</p>
+            <p>État : <strong>{STATE_LABELS[run.state] ?? run.state}</strong> · préparateur réel {run.preparedBy}{run.approval ? " · " + approvalLabel(run.approval) : ""}</p>
             {openNotes.length > 0 && <p className={styles.notice}>{openNotes.length} point(s) bloquant(s) à documenter avant approbation (onglet Exceptions).</p>}
             {run.state === "executed" && canPrepare && <button type="button" className={styles.primary} disabled={saving || !current || conclusion !== (run.conclusion ?? "")} onClick={() => action("submit")}>Soumettre cette version</button>}
-            {run.state === "awaiting_review" && canReview && <><label>Note de revue<textarea value={reviewText} onChange={e => setReviewText(e.target.value)}/></label>
+            {run.state === "awaiting_review" && canReview && <><ReviewKindNotice kind={view?.reviewKind}/><label>Note de revue<textarea value={reviewText} onChange={e => setReviewText(e.target.value)}/></label>
               <div className={styles.actions}>{(["approved", "changes_requested"] as const).map(d => <button key={d} type="button" className={d === "approved" ? styles.primary : undefined} disabled={saving || !reviewText.trim() || !current} onClick={() => action("review", { decision: d, text: reviewText, submittedHash: run.submittedHash })}>{d === "approved" ? "Approuver le pont et l’apurement" : "Demander une correction"}</button>)}</div></>}
-            {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version.</p>}
+            {run.state === "awaiting_review" && !canReview && <p>Une autre identité autorisée doit revoir cette version, ou vous-même en relecture personnelle nommée si le profil local solo l’autorise.</p>}
             {run.state === "approved" && canReview && <button type="button" className={styles.primary} disabled={saving || !current} onClick={() => action("lock")}>Verrouiller cette version approuvée</button>}
             {canPrepare && <div className={styles.actions}><button type="button" className={styles.danger} disabled={saving} onClick={() => action("revise")}>Créer une nouvelle révision</button><span className={styles.muted}>L’ancienne version et ses décisions restent consultables.</span></div>}
             <p className={styles.muted}>Une revue documentée ne vaut pas conformité des comptes. Les exceptions restent dans le résultat.</p>

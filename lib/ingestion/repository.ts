@@ -44,6 +44,8 @@ export interface CreateUploadIntentInput {
   idempotencyKey: string;
   parserVersion: string;
   requestId: string;
+  /** Fournisseur du contrat `ObjectStorage` ; `s3` par défaut, `local` dans le profil personnel (C07). */
+  storageProvider?: "s3" | "local";
   storageBucket: string;
 }
 
@@ -114,7 +116,7 @@ export class DrizzleIngestionRepository {
             declaredMimeType: input.contentType,
             declaredByteSize: input.contentLength,
             declaredChecksumSha256: input.checksumSha256Base64,
-            storageProvider: "s3",
+            storageProvider: input.storageProvider ?? "s3",
             storageBucket: input.storageBucket,
             storageKey: storageKey({
               organizationId: input.organizationId,

@@ -67,7 +67,7 @@ export function buildFixedAssetMission(scope: WorkpaperScope, versions: Workpape
   if (run && !fixedAssetSourcesCurrent(run.importIds, heads)) staleReasons.push("Une source Immobilisations approuvée a été remplacée ou ajoutée depuis le gel.");
   if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Immobilisations diffère du programme.");
   const stale = staleReasons.length > 0;
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   const resultLabel = !run?.result ? "Non exécuté" : !assets ? "Calcul Immobilisations bloqué ou contrat invalide" : assets.exceptions.some(e => !isUncertainty(e.code)) ? "Exceptions maintenues" : assets.controls.some(c => c.outcome === "inconclusive") ? "Travaux partiels — non concluant sur une partie" : "Aucun écart sur le périmètre testé — existence et valeur non démontrées";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
   const controls = definition.tests.map(test => {

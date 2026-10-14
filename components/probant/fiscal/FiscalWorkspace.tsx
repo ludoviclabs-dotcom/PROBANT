@@ -18,6 +18,9 @@ import { cents, dateFr, fiscalFailureMessage, FREQUENCY_LABELS, plural, STATE_LA
 import { itemOf, selectionFromItem, type FiscalSelection, type FiscalView } from "./types";
 import styles from "../cash/cash.module.css";
 import fx from "./fiscal.module.css";
+import { approvalLabel, mayReviewOwnWork } from "@/lib/auth/review-kind";
+import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
+import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 type Tab = "population" | "tests" | "exceptions" | "pieces" | "revue";
@@ -52,7 +55,7 @@ export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = em
   const run = view?.runs.find(r => r.id === activeId && r.fiscalWork?.tax === tax) ?? null, result = useMemo(() => resultOf(run), [run]);
   const vat = result?.tax === "vat" ? result : null, cit = result?.tax === "cit" ? result : null;
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
-  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
   const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state);
   const saving = status === "saving";
   const endpoint = (imports = false) => "/api/workpapers/fiscal" + (imports ? "/imports" : "") + "?" + new URLSearchParams({ dossierId, periodId: pid });
@@ -131,7 +134,7 @@ export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = em
 
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/fiscalite">Cockpit fiscal (démonstration)</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/capitaux-propres">Procédures de mission · Capitaux propres</DossierContextAnchor><span aria-current="page">Procédures de mission · Fiscalité (TVA, IS)</span></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Fiscalité — TVA puis IS</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Fiscalité — TVA puis IS</h1>
       <p className={styles.muted}>Rapprochement des écritures, de la déclaration versionnée et des pièces par période déclarative, avec les moteurs fiscaux existants. Aucune liquidation, aucune télétransmission, aucun taux qualifié de légal.</p></div>
       <DossierContextAnchor href={"/fiscal/synthese?" + new URLSearchParams({ dossierId, periodId: pid, ...(run ? { rootId: run.rootId, id: run.id, version: String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse fiscale</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
@@ -142,7 +145,7 @@ export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = em
     <div className={styles.context} aria-label="Contexte du dossier">
       <span>Dossier <strong>{dossierId || "—"}</strong></span><span>Organisation <strong>{run?.scope.organizationId ?? "—"}</strong></span>
       <span>Exercice <strong>{period.startDate ? dateFr(period.startDate) + " → " + dateFr(period.closingDate) : "—"}</strong></span>
-      <span>Mode <strong>réel — recette jetable</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
+      <span>Mode <strong>réel — {executionProfileLabel(view?.executionProfile)}</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
       <span>Feuille <strong>{run ? `${runLabel(run)} · r${run.revision} · v${run.version} · ${STATE_LABELS[run.state] ?? run.state}` : "—"}</strong></span>
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{SAVE_LABELS[status]}</span>
     </div>
@@ -223,7 +226,7 @@ export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = em
             {tab === "revue" && <>
               {tax === "vat" ? <FiscalPreparation run={run} view={view} busy={saving} editable={editable} frozenSources={frozenSources} onFreeze={(draft: VatDraft) => action("freeze", { importIds: frozenSources, draft })} onConfigure={(draft: VatDraft) => action("configure", { draft })}/>
                 : <CitPreparation run={run} view={view} busy={saving} editable={editable} frozenSources={frozenSources} sources={view.citSources} onFreeze={(draft: CitDraft) => action("freeze", { importIds: frozenSources, draft })} onConfigure={(draft: CitDraft) => action("configure", { draft })}/>}
-              <section className={styles.card} aria-labelledby="fx-review-title"><header><h2 id="fx-review-title">Exécution, conclusion et revue</h2><span className={styles.muted}>État : {STATE_LABELS[run.state] ?? run.state}{run.approval ? " · approuvée par " + run.approval.actorId : ""}</span></header>
+              <section className={styles.card} aria-labelledby="fx-review-title"><header><h2 id="fx-review-title">Exécution, conclusion et revue</h2><span className={styles.muted}>État : {STATE_LABELS[run.state] ?? run.state}{run.approval ? " · " + approvalLabel(run.approval) : ""}</span></header>
                 <div className={styles.actions}>
                   {editable && run.state === "ready" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("execute")}>{tax === "vat" ? "Exécuter le moteur TVA" : "Exécuter le moteur IS"}</button>}
                   {editable && run.state === "executed" && <button type="button" disabled={saving} onClick={() => action("execute")}>Réexécuter</button>}
@@ -231,7 +234,7 @@ export function FiscalWorkspace({ initialDossierId = "", initialPeriodValue = em
                 {editable && run.state === "executed" && <><label>Conclusion de la préparation<textarea value={conclusion} disabled={saving} onChange={e => setConclusion(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" disabled={saving || !conclusion.trim()} onClick={() => action("conclude", { text: conclusion })}>Enregistrer la conclusion</button>
                     <button type="button" className={styles.primary} disabled={saving || !run.conclusion || openNotes.length > 0} onClick={() => action("submit")}>Soumettre à la revue</button>{openNotes.length > 0 && <span className={styles.muted}>{plural(openNotes.length, "point bloquant ouvert", "points bloquants ouverts")}</span>}</div></>}
-                {canReview && run.state === "awaiting_review" && <><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
+                {canReview && run.state === "awaiting_review" && <><ReviewKindNotice kind={view?.reviewKind}/><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" className={styles.primary} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "approved", submittedHash: run.submittedHash, text: reviewText })}>Approuver cette version</button>
                     <button type="button" className={styles.danger} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "changes_requested", submittedHash: run.submittedHash, text: reviewText })}>Demander une correction</button></div></>}
                 {canReview && run.state === "approved" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("lock")}>Verrouiller la version approuvée</button>}

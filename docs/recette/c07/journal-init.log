@@ -1,0 +1,205 @@
+[probant-local] Création du cluster PostgreSQL postgres (PostgreSQL) 17.11 dans C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel\pgdata
+[probant-local] PostgreSQL démarré (port 54329).
+db:migrate: applied 0000_init_durable_ingestion.sql
+db:migrate: applied 0001_source_document_completion_guard.sql
+db:migrate: applied 0002_append_only_review_evidence.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42701',
+  message: 'column "organization_id" of relation "dossiers" already exists, skipping',
+  file: 'tablecmds.c',
+  line: '7483',
+  routine: 'check_for_column_name_collision'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_fiscal_synthesis_immutable" for relation "synthesis_snapshots" does not exist, skipping',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_profiles_immutable" for relation "tax_profiles" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_profiles_immutable ON tax_profiles"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_periods_immutable" for relation "tax_periods" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_periods_immutable ON tax_periods"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_documents_immutable" for relation "tax_documents" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_documents_immutable ON tax_documents"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_declaration_fields_immutable" for relation "tax_declaration_fields" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_declaration_fields_immutable ON tax_declaration_fields"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_control_executions_immutable" for relation "tax_control_executions" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_control_executions_immutable ON tax_control_executions"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_reconciliation_lines_immutable" for relation "tax_reconciliation_lines" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_reconciliation_lines_immutable ON tax_reconciliation_lines"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_adjustments_immutable" for relation "tax_adjustments" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_adjustments_immutable ON tax_adjustments"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'trigger "trg_tax_computation_snapshots_immutable" for relation "tax_computation_snapshots" does not exist, skipping',
+  where: 'SQL statement "DROP TRIGGER IF EXISTS trg_tax_computation_snapshots_immutable ON tax_computation_snapshots"\n' +
+    'PL/pgSQL function inline_code_block line 16 at EXECUTE',
+  file: 'dropcmds.c',
+  line: '523',
+  routine: 'does_not_exist_skipping'
+}
+db:migrate: applied 0002_tax_canonical_model.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '00000',
+  message: 'index "uq_tax_declaration_fields_document_vintage_code" does not exist, skipping',
+  file: 'tablecmds.c',
+  line: '1436',
+  routine: 'DropErrorMsgNonExistent'
+}
+db:migrate: applied 0003_tax_document_processors.up.sql
+db:migrate: applied 0003_user_identity_and_upload_quota.sql
+db:migrate: applied 0004_tax_review_evidence.sql
+db:migrate: applied 0005_clients_framing.up.sql
+db:migrate: applied 0006_clients_sales.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0007_cash_reconciliation.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0008_fixed_assets.up.sql
+db:migrate: applied 0009_payables_investigation.up.sql
+db:migrate: applied 0010_equity_dossier.up.sql
+db:migrate: applied 0011_investment_review.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0012_capitaux_propres.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0013_fiscal_workpapers.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0014_stock_workpapers.up.sql
+db:migrate: applied 0015_stock_costs_ledger.up.sql
+db:migrate: applied 0016_stock_value_review.up.sql
+db:migrate: applied 0017_exceptional_review.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0018_provision_workpapers.up.sql
+{
+  severity_local: 'NOTICE',
+  severity: 'NOTICE',
+  code: '42P07',
+  message: 'relation "clients_dossier_org_uq" already exists, skipping',
+  file: 'index.c',
+  line: '899',
+  routine: 'index_create'
+}
+db:migrate: applied 0019_closing_dossier.up.sql
+[probant-local] PostgreSQL arrêté proprement.
+[probant-local] Profil créé : C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel
+[probant-local] Étape suivante : npm run local:start -- --home "C:\Users\Ludo\AppData\Local\PROBANT\recette-c07\personnel"

@@ -73,7 +73,7 @@ export function buildEquityMission(scope: WorkpaperScope, versions: WorkpaperRun
   if (run && !equitySourcesCurrent(run.importIds, heads)) staleReasons.push("Une source Capitaux propres approuvée (y compris un PV) a été remplacée ou ajoutée depuis le gel.");
   if (run && (run.template.version !== definition.version || run.template.rule?.version !== definition.version)) staleReasons.push("La version de règle Capitaux propres diffère du programme.");
   const stale = staleReasons.length > 0;
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   // No label can read as a legal green light: the best case is « aucun écart sur le périmètre testé ».
   const resultLabel = !run?.result ? "Non exécuté" : !equity ? "Calcul Capitaux propres bloqué ou contrat invalide" : equity.exceptions.some(e => !isUncertainty(e.code)) ? "Exceptions maintenues" : equity.controls.some(c => c.outcome === "inconclusive") ? "Travaux partiels — non concluant sur une partie" : "Aucun écart sur le périmètre testé — aucune conclusion juridique";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";

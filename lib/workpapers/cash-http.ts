@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { ApiError } from "@/lib/api/errors";
 import { cashApprovalSchema, cashCommandSchema, cashPeriodSchema } from "./cash-commands";
 import type { CashRuntime } from "./cash-runtime";
@@ -13,7 +14,7 @@ const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string()
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableCash(env: Record<string, string | undefined> = process.env) {
-  if (env.VERCEL_ENV === "production" || env.PROBANT_CASH_DURABLE !== "disposable") throw new ApiError("CASH_DURABLE_DISABLED", "Le parcours Trésorerie durable est réservé à la recette jetable.", 503);
+  if (!durableChainEnabled(env, "PROBANT_CASH_DURABLE")) throw new ApiError("CASH_DURABLE_DISABLED", "Le parcours Trésorerie durable est réservé à la recette jetable ou au profil personnel local.", 503);
 }
 export function cashFailureStatus(code: string) {
   return /SESSION_INVALID|AUTHENTICATION_REQUIRED/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404

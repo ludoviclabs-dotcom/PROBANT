@@ -17,6 +17,7 @@ import { periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { Permission, Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
+import { executionProfile } from "@/lib/runtime/profile";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 32 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -33,7 +34,7 @@ export class FixedAssetRuntime {
     return identity;
   }
   private actor(identity: AuthenticatedPrincipal, scope: WorkpaperScope): Principal {
-    return { id: identity.subject, grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
+    return { id: identity.subject, ...(identity.reviewKind ? { review: identity.reviewKind, displayName: identity.displayName } : {}), grants: [{ scope, permissions: (Object.keys(permissions) as Permission[]).filter(p => hasPermission(identity.roles, permissions[p])) }] };
   }
   private async transaction<T>(request: Request, dossierId: string, pid: string, permission: Permission, body: (tx: FixedAssetTx, scope: WorkpaperScope, actor: Principal) => Promise<T>) {
     const identity = await this.identity(request, dossierId, permission);
@@ -97,7 +98,7 @@ export class FixedAssetRuntime {
         catch (error) { facts[r.id] = null; factsIssues[r.id] = error instanceof FixedAssetSourceError ? { code: error.code, locator: error.locator } : { code: error instanceof Error ? error.message : "FA_SOURCES_INVALID" }; }
         const c = this.comparisons(all, r); comparisons[r.id] = c.comparison; pendingChanges[r.id] = c.pending;
       }
-      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, runs, facts, factsIssues, sourcesCurrent, lineageCurrent, comparisons, pendingChanges, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
+      const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), runs, facts, factsIssues, sourcesCurrent, lineageCurrent, comparisons, pendingChanges, currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
         imports: imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: heads, ...(history && id ? { history: await repository.history(scope, id) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("FA_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);
       return response;
@@ -112,7 +113,7 @@ export class FixedAssetRuntime {
     return { mission, run: versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null, imports: imports.batches };
   }
   async mission(request: Request, dossierId: string, pid: string, selection: FixedAssetMissionSelection = {}) {
-    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, mission: (await this.missionData(tx, scope, selection)).mission }));
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.missionData(tx, scope, selection)).mission }));
   }
   async missionExport(request: Request, dossierId: string, pid: string, selection: FixedAssetMissionSelection, kind: FixedAssetExportKind, expectedSnapshotHash: string) {
     const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

@@ -13,6 +13,9 @@ import { citableOptions, parseCitation, ProvisionPreparation } from "./Provision
 import { dateFr, KIND_LABELS, KIND_ORDER, plural, provisionFailureMessage, STATE_LABELS, type Kind, type ProvisionView } from "./format";
 import styles from "../cash/cash.module.css";
 import pv from "./provisions.module.css";
+import { approvalLabel, mayReviewOwnWork } from "@/lib/auth/review-kind";
+import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
+import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 export type ProvisionTab = "registre" | "pont" | "exceptions" | "pieces" | "revue";
@@ -38,7 +41,7 @@ export function ProvisionWorkspace({ initialDossierId = "", initialPeriodValue =
   const run = view?.runs.find(r => r.id === activeId) ?? null, result = useMemo(() => resultOf(run), [run]);
   const event = result?.events.find(e => e.eventId === selected) ?? null;
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
-  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && view.actorId !== run?.preparedBy;
+  const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
   const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ["draft", "ready", "executed"].includes(run.state);
   const saving = status === "saving";
   const endpoint = (imports = false) => "/api/workpapers/provisions" + (imports ? "/imports" : "") + "?" + new URLSearchParams({ dossierId, periodId: pid });
@@ -115,7 +118,7 @@ export function ProvisionWorkspace({ initialDossierId = "", initialPeriodValue =
 
   return <main className={styles.page}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/fiscal">Procédures de mission · Fiscalité</DossierContextAnchor><DossierContextAnchor href="/stocks">Procédures de mission · Stocks</DossierContextAnchor><span aria-current="page">Procédures de mission · Provisions et engagements</span></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable · identité serveur</p><h1>Provisions et engagements</h1>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1>Provisions et engagements</h1>
       <p className={styles.muted}>Un registre unique des risques et engagements — ouverts, nouveaux et clos, avec ou sans écriture — relié au grand livre et à l’annexe. L’outil calcule les ponts et compare l’estimation documentée, l’écriture et l’information publiée ; la probabilité, la qualification et la décision comptable restent humaines.</p></div></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
       <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
@@ -125,7 +128,7 @@ export function ProvisionWorkspace({ initialDossierId = "", initialPeriodValue =
     <div className={styles.context} aria-label="Contexte du dossier">
       <span>Dossier <strong>{dossierId || "—"}</strong></span><span>Organisation <strong>{run?.scope.organizationId ?? "—"}</strong></span>
       <span>Exercice <strong>{period.startDate ? dateFr(period.startDate) + " → " + dateFr(period.closingDate) : "—"}</strong></span>
-      <span>Mode <strong>réel — recette jetable</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
+      <span>Mode <strong>réel — {executionProfileLabel(view?.executionProfile)}</strong></span><span>Identité <strong>{view?.actorId ?? "non connectée"}</strong></span>
       <span>Confidentiel <strong>{view ? (view.confidentialAccess ? "habilitation présente" : "masqué par le serveur") : "—"}</strong></span>
       <span>Feuille <strong>{run ? `r${run.revision} · v${run.version} · ${STATE_LABELS[run.state] ?? run.state}` : "—"}</strong></span>
       <span role="status" aria-live="polite" className={styles.saveState} data-state={status}>{SAVE_LABELS[status]}</span>
@@ -174,12 +177,12 @@ export function ProvisionWorkspace({ initialDossierId = "", initialPeriodValue =
             </>}
             {tab === "revue" && <>
               <ProvisionPreparation key={run.id + ":" + run.version} run={run} view={view} busy={saving} editable={editable} frozenSources={frozenSources} onFreeze={(draft: ProvisionDraft) => action("freeze", { importIds: frozenSources, draft })} onConfigure={(draft: ProvisionDraft) => action("configure", { draft })}/>
-              <section className={styles.card} aria-labelledby="pv-review-title"><header><h2 id="pv-review-title">Exécution, conclusion et revue</h2><span className={styles.muted}>État : {STATE_LABELS[run.state] ?? run.state}{run.approval ? " · approuvée par " + run.approval.actorId : ""}</span></header>
+              <section className={styles.card} aria-labelledby="pv-review-title"><header><h2 id="pv-review-title">Exécution, conclusion et revue</h2><span className={styles.muted}>État : {STATE_LABELS[run.state] ?? run.state}{run.approval ? " · " + approvalLabel(run.approval) : ""}</span></header>
                 <div className={styles.actions}>{editable && run.state === "ready" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("execute")}>Calculer les ponts et comparaisons</button>}</div>
                 {editable && run.state === "executed" && <><label>Conclusion de la préparation<textarea value={conclusion} disabled={saving} onChange={e => setConclusion(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" disabled={saving || !conclusion.trim()} onClick={() => action("conclude", { text: conclusion })}>Enregistrer la conclusion</button>
                     <button type="button" className={styles.primary} disabled={saving || !run.conclusion || openNotes.length > 0} onClick={() => action("submit")}>Soumettre à la revue</button>{openNotes.length > 0 && <span className={styles.muted}>{plural(openNotes.length, "point bloquant ouvert", "points bloquants ouverts")}</span>}</div></>}
-                {canReview && run.state === "awaiting_review" && <><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
+                {canReview && run.state === "awaiting_review" && <><ReviewKindNotice kind={view?.reviewKind}/><label>Décision motivée du réviseur<textarea value={reviewText} disabled={saving} onChange={e => setReviewText(e.target.value)}/></label>
                   <div className={styles.actions}><button type="button" className={styles.primary} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "approved", submittedHash: run.submittedHash, text: reviewText })}>Approuver cette version</button>
                     <button type="button" className={styles.danger} disabled={saving || !reviewText.trim()} onClick={() => action("review", { decision: "changes_requested", submittedHash: run.submittedHash, text: reviewText })}>Demander une correction</button></div></>}
                 {canReview && run.state === "approved" && <button type="button" className={styles.primary} disabled={saving} onClick={() => action("lock")}>Verrouiller la version approuvée</button>}

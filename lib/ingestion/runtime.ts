@@ -11,6 +11,8 @@ import {
 import { DrizzleIngestionRepository } from "./repository";
 import { createJobQueueFromEnvironment } from "./sqs-job-queue";
 import { DirectUploadService } from "./upload-service";
+import { createLocalIngestionRuntime } from "./local-runtime";
+import { executionProfile } from "@/lib/runtime/profile";
 
 function uploadTtlSeconds(): number {
   const raw = process.env.DIRECT_UPLOAD_TTL_SECONDS;
@@ -22,6 +24,8 @@ function uploadTtlSeconds(): number {
 }
 
 export function createPersistentIngestionRuntime() {
+  // Profil personnel local (C07) : mêmes contrats, pièces sur le PC, traitement local reprenable ; ni S3 ni SQS.
+  if (executionProfile(process.env) === "personal_local") return createLocalIngestionRuntime();
   const repository = new DrizzleIngestionRepository(getDatabase());
   const storage = createS3ObjectStorageFromEnvironment();
   const queue = createJobQueueFromEnvironment();

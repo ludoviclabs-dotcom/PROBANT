@@ -3,6 +3,7 @@ import { getSessionConfig, getSessionStore } from "@/lib/auth/server";
 import { SESSION_COOKIE, readCookie, sessionTokenDigest } from "@/lib/auth/session/cookie";
 import { describeSession } from "@/lib/auth/session/service";
 import { permissionsFor } from "@/lib/auth/roles";
+import { isLocalIssuer, localIdentity, readLocalAuthConfig } from "@/lib/auth/local/config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -31,6 +32,17 @@ export async function GET(request: Request) {
       Math.floor(Date.now() / 1_000),
     );
     if (!record) return Response.json({ authenticated: false }, { headers });
+
+    // Session du profil personnel local (C07) : mêmes règles que l'autorisation des routes.
+    if (isLocalIssuer(record.issuer)) {
+      const config = readLocalAuthConfig(process.env);
+      const local = config && record.issuer === config.issuer && record.organizationId === config.organizationId ? localIdentity(config, record.subject) : null;
+      if (!local) return Response.json({ authenticated: false }, { headers });
+      return Response.json(
+        { ...describeSession({ ...record, roles: local.roles }, sessionConfig, permissionsFor(local.roles)), executionProfile: "personal_local", reviewKind: local.reviewKind, displayName: local.displayName },
+        { headers },
+      );
+    }
 
     return Response.json(
       describeSession(record, sessionConfig, permissionsFor(record.roles)),

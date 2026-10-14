@@ -11,6 +11,14 @@ Point d'entrée de la documentation du dépôt.
 
 Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'est le rôle du suivi.
 
+## Profil personnel local — C07
+
+| Document | À quoi il sert |
+|---|---|
+| [`local/RUNTIME_PERSONNEL.md`](./local/RUNTIME_PERSONNEL.md) | **Lancer PROBANT sur son PC** : PostgreSQL 17 local, `npm run local:init` / `local:start` / `local:stop`, sauvegarde, restauration, migrations, erreurs fréquentes sous Windows |
+| [`adr/ADR-012-profil-personnel-local.md`](./adr/ADR-012-profil-personnel-local.md) | Décision : profil d'exécution `personal_local`, pièces sur disque, identité locale, relecture personnelle nommée |
+| [`recette/c07/`](./recette/c07/) | Méthode, résultats et preuves de reprise après arrêt et redémarrage |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

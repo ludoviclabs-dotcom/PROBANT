@@ -127,7 +127,7 @@ export function buildFiscalMission(scope: WorkpaperScope, versions: WorkpaperRun
   if (selection.id && !run) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
   const result = fiscalResultOf(run), staleReasons = run && current ? staleOf(run, current) : [], stale = staleReasons.length > 0;
   const definition = run ? definitionOf(run) : FISCAL_MISSION_PROGRAM.procedures[0];
-  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
+  const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash, ...(run.approval.kind ? { kind: run.approval.kind, ...(run.approval.reviewerName ? { reviewerName: run.approval.reviewerName } : {}) } : {}) } : null;
   const { resultLabel, reviewLabel } = labels(run, result), tests = testsOf(result);
   const controls = definition.tests.map(test => {
     const t = tests[test.id];

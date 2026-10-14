@@ -8,6 +8,7 @@ import type { PieceVersion } from "@/lib/workpapers/closing-journal";
 import { citationText, dateFr, STEP_STATE_LABELS, stampFr, TONE, type ClosingView } from "./format";
 import { STATE_LABELS } from "../cash/format";
 import cl from "./closing.module.css";
+import { reviewAuthor } from "@/lib/auth/review-kind";
 
 type Send = (body: Record<string, unknown>) => Promise<boolean>;
 export interface ProcedurePanelHandle { focus(): void }
@@ -56,7 +57,7 @@ export const ProcedurePanel = forwardRef<ProcedurePanelHandle, { view: ClosingVi
           <p className={cl.who}>Déclaré par {p.applicability.by} le {stampFr(p.applicability.at)}</p><Cites list={p.applicability.citations} download={download}/></li> : null}
         {p.engine ? <li className={cl.node} data-tone={TONE[p.status]}><h3>Feuille de cycle observée</h3>
           {best ? <><p><DossierContextAnchor href={p.engine.route}>{p.engine.label}</DossierContextAnchor> · {STATE_LABELS[best.state] ?? best.state} · r{best.revision} v{best.version}</p>
-            <p className={cl.who}>Préparée par {best.preparedBy}{best.approval ? " · revue par " + best.approval.actorId + " le " + stampFr(best.approval.at) : " · non revue"}</p>
+            <p className={cl.who}>Préparée par {best.preparedBy}{best.approval ? " · revue : " + reviewAuthor(best.approval) + " le " + stampFr(best.approval.at) : " · non revue"}</p>
             <p className={cl.small}>{best.populationSize !== null ? best.populationSize + " éléments de population · " : "Population non figée · "}{best.sourceCount} source{best.sourceCount > 1 ? "s" : ""} figée{best.sourceCount > 1 ? "s" : ""}{best.openBlockingNotes ? " · " + best.openBlockingNotes + " point(s) bloquant(s) ouvert(s)" : ""}</p>
             <p className={cl.hash}>empreinte de contenu {best.contentHash.slice(0, 16)}…</p>
             {p.engine.all.length > 1 ? <p className={cl.small}>Autres feuilles : {p.engine.all.slice(1).map(o => o.runId + " (" + (STATE_LABELS[o.state] ?? o.state) + ")").join(", ")}</p> : null}

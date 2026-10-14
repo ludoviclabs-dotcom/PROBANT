@@ -2,10 +2,12 @@ import type { FixedAssetFactsView } from "@/lib/workpapers/fixed-asset-sources";
 import type { FixedAssetComparison, FixedAssetPendingChange } from "@/lib/workpapers/fixed-asset-runtime";
 import type { ImportBatch } from "@/lib/workpapers/imports";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
+import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { ExecutionProfile } from "@/lib/runtime/profile";
 
 /** Read response of /api/workpapers/immobilisations: server facts and results only; nothing is recomputed in the browser. */
 export interface FixedAssetView {
-  actorId: string; permissions: string[]; runs: WorkpaperRun[];
+  actorId: string; permissions: string[]; reviewKind?: ReviewKind; executionProfile?: ExecutionProfile; runs: WorkpaperRun[];
   facts: Record<string, FixedAssetFactsView | null>; factsIssues: Record<string, { code: string; locator?: { row?: number; sheet?: string; column?: string; value?: string } }>;
   sourcesCurrent: Record<string, boolean>; currentVersions?: Record<string, number>; lineageCurrent?: Record<string, { id: string; version: number; revision: number }>;
   comparisons: Record<string, FixedAssetComparison | null>; pendingChanges: Record<string, FixedAssetPendingChange | null>;

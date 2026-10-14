@@ -7,6 +7,7 @@ import { CitationPicker, Cites, readCitations } from "./ProcedurePanel";
 import { stampFr, type ClosingView } from "./format";
 import { STATE_LABELS } from "../cash/format";
 import cl from "./closing.module.css";
+import { reviewAuthor } from "@/lib/auth/review-kind";
 
 type Send = (body: Record<string, unknown>) => Promise<boolean>;
 const submit = (send: Send, build: (f: FormData) => Record<string, unknown>) => async (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const form = ev.currentTarget; if (await send(build(new FormData(form)))) form.reset(); };
@@ -73,7 +74,7 @@ export function ClosingClose({ view, canSign, send, busy, onItem }: { view: Clos
         <thead><tr><th scope="col">Feuille</th><th scope="col">État</th><th scope="col">Version</th><th scope="col">Revue</th><th scope="col">Au programme</th></tr></thead>
         <tbody>{e.observations.map(o => { const linked = e.procedures.find(p => p.engine?.id === o.procedure);
           return <tr key={o.runId}><td>{o.route ? <DossierContextAnchor href={o.route}>{o.label}</DossierContextAnchor> : o.label}<br/><span className={cl.hash}>{o.runId}</span></td><td>{STATE_LABELS[o.state] ?? o.state}</td><td className={cl.num}>r{o.revision} v{o.version}</td>
-            <td className={cl.small}>{o.approval ? o.approval.actorId + " · " + stampFr(o.approval.at) : "—"}</td><td>{linked ? linked.procedureId + " · " + linked.riskIds.join(", ") : <span className={cl.pill} data-tone="danger">Hors programme</span>}</td></tr>; })}</tbody>
+            <td className={cl.small}>{o.approval ? reviewAuthor(o.approval) + " · " + stampFr(o.approval.at) : "—"}</td><td>{linked ? linked.procedureId + " · " + linked.riskIds.join(", ") : <span className={cl.pill} data-tone="danger">Hors programme</span>}</td></tr>; })}</tbody>
       </table></div>
       {!e.observations.length ? <p className={cl.small}>Aucune feuille de cycle pour ce dossier et cet exercice.</p> : null}
       <p className={cl.small}>La paie (Mission 18) n’a pas de feuille durable observable : ses travaux se documentent ici comme procédures manuelles.</p>

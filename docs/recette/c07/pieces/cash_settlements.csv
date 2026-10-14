@@ -1,0 +1,3 @@
+mvt;montant;date;banque;compte;devise;libelle;piece
+S1;15.00;2025-01-03;BNK-A;FR76-0001;EUR;Remise chèques BRD-1230;BRD-1230
+S2;-40.00;2025-01-10;BNK-A;FR76-0001;EUR;Prélèvement fournisseur;PRLV-77

@@ -1,0 +1,5 @@
+gl;solde;date;banque;compte;devise;nature;libelle
+512100;100.00;2024-12-31;BNK-A;FR76-0001;EUR;banque;Banque A — compte courant
+512200;250.00;2024-12-31;BNK-B;US-0002;USD;banque;Banque B — compte USD
+530000;12.00;2024-12-31;CAISSE;SIEGE;EUR;caisse;Caisse du siège
+503000;500.00;2024-12-31;BNK-A;VMP-01;EUR;vmp;SICAV monétaire

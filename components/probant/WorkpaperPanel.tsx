@@ -5,6 +5,7 @@ import { resultCells } from "@/lib/workpapers/mission-summary";
 import { CYCLE_LEARNING, GUIDE_REFERENCE } from "@/lib/workpapers/availability";
 import { CycleTechnicalPanel } from "./CycleTechnicalPanel";
 import { WorkpaperResult } from "./WorkpaperResult";
+import { reviewAuthor } from "@/lib/auth/review-kind";
 
 const stateLabels: Record<WorkpaperRun["state"], string> = { draft: "Brouillon", ready: "Prêt", executed: "Exécuté", awaiting_review: "En revue", changes_requested: "Correction demandée", approved: "Travail approuvé", locked: "Verrouillé", superseded: "Remplacé", blocked: "Bloqué", failed: "Échec" };
 /** Read-only shell: never invent a reviewer or enable real mutations without server auth. */
@@ -30,7 +31,7 @@ export function WorkpaperPanel({ runs = [], loading = false, error, durable = fa
       <h4>Limites et commentaires</h4>
       <ul>{[...(run.selection?.limitations ?? []), ...(run.result?.warnings ?? []), ...(run.result?.blockedControls ?? [])].map((limit, index) => <li key={`${index}:${limit}`}>{limit}</li>)}</ul>
       {run.notes.map((note) => <p key={note.id} id={"wp-note-" + encodeURIComponent(note.id)} tabIndex={note.id === noteId ? 0 : undefined} data-highlighted={note.id === noteId} style={note.id === noteId ? { borderLeft: "3px solid #eab308", paddingLeft: 12 } : undefined}>{note.kind} : {note.text} — {note.amount.kind === "known" ? `${note.amount.value.amount} EUR` : note.amount.reason}{note.resolution ? ` · Résolution : ${note.resolution.text}` : note.blocking ? " · Bloquante non résolue" : ""}</p>)}
-      {run.approval && <p>Revue du travail par {run.approval.actorId}, version {run.approval.version} : {run.approval.note}. Ne vaut pas conformité des comptes.</p>}
+      {run.approval && <p>Revue du travail : {reviewAuthor(run.approval)}, version {run.approval.version} : {run.approval.note}. Ne vaut pas conformité des comptes.</p>}
     </article>)}
   </section>;
 }

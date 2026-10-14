@@ -43,7 +43,7 @@ export const logFieldSchema = z
     statusCode: z.number().int().min(100).max(599),
 
     // Authentification — jamais le sujet, jamais l'e-mail, jamais un jeton
-    authenticationMethod: z.enum(["oidc-session", "signed-gateway-context"]),
+    authenticationMethod: z.enum(["oidc-session", "signed-gateway-context", "local-session"]),
     mfaSatisfied: z.boolean(),
     mfaReason: slug,
 

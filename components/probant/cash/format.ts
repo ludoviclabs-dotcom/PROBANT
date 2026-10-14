@@ -23,7 +23,7 @@ export const KIND_LABELS = { receipt_in_transit: "Remise non créditée", outsta
 export const SOURCE_TYPE_LABELS = { cash_ledger: "GL de trésorerie à la clôture", cash_statement: "Relevés bancaires à la clôture", cash_erb: "État de rapprochement (ERB)", cash_settlements: "Relevés postérieurs", cash_support: "Pièces de correction" } as const;
 
 const MESSAGES: Record<string, string> = {
-  CASH_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette jetable.",
+  CASH_DURABLE_DISABLED: "Ce parcours n’est pas ouvert sur ce serveur : lancez le profil personnel local (npm run local:start) ou une recette jetable.",
   CASH_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
   SESSION_INVALID: "Votre session a expiré. Reconnectez-vous pour reprendre.",
   AUTHENTICATION_REQUIRED: "Connectez-vous pour accéder à ce dossier.",

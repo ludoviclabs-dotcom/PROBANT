@@ -7,6 +7,7 @@ import { EQ_DECISION_TEXT, EQ_UNCERTAINTY_CODES } from "@/lib/workpapers/capitau
 import { COMPONENT_LABELS, dateFr, equityFailureMessage, eur, knownLabel, STATE_LABELS } from "./format";
 import styles from "../cash/cash.module.css";
 import eq from "./equity.module.css";
+import { executionProfileLabel, type ExecutionProfile } from "@/lib/runtime/profile";
 
 type ExportFormat = "html" | "pdf" | "json" | "manifest" | "exceptions_csv" | "decisions_csv" | "procedures_csv" | "sources_csv";
 const CSV = [{ id: "exceptions_csv", label: "Exceptions" }, { id: "decisions_csv", label: "Décisions" }, { id: "procedures_csv", label: "Procédures" }, { id: "sources_csv", label: "Index des sources" }] as const;
@@ -14,7 +15,7 @@ const FILTERS: { id: EquityMissionFilter; label: string }[] = [{ id: "all", labe
 export function EquityMissionSynthesis({ initialDossierId = "", initialPeriodId = "", initialRootId = "", initialRunId = "", initialVersion }: { initialDossierId?: string; initialPeriodId?: string; initialRootId?: string; initialRunId?: string; initialVersion?: number }) {
   const [dossier, setDossier] = useState(initialDossierId), [period, setPeriod] = useState(initialPeriodId), [scope, setScope] = useState({ dossierId: initialDossierId, periodId: initialPeriodId });
   const [selection] = useState<{ rootId?: string; id?: string; version?: number }>(initialRunId && initialVersion ? { rootId: initialRootId || undefined, id: initialRunId, version: initialVersion } : initialRootId ? { rootId: initialRootId } : {});
-  const [view, setView] = useState<{ actorId: string; permissions: string[]; mission: EquityMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<EquityMissionFilter>("all"), [exporting, setExporting] = useState(false);
+  const [view, setView] = useState<{ actorId: string; permissions: string[]; executionProfile?: ExecutionProfile; mission: EquityMissionSnapshot } | null>(null), [error, setError] = useState(""), [loading, setLoading] = useState(false), [filter, setFilter] = useState<EquityMissionFilter>("all"), [exporting, setExporting] = useState(false);
   const load = useCallback(async () => {
     if (!scope.dossierId || !scope.periodId) return;
     setLoading(true); setError("");
@@ -45,7 +46,7 @@ export function EquityMissionSynthesis({ initialDossierId = "", initialPeriodId 
   const queue = m?.queue.filter(q => filter === "all" || q.category === filter) ?? [];
   return <main className={styles.page + " " + eq.synthesis}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse du dossier</DossierContextAnchor><DossierContextAnchor href="/dashboard/tests">Atelier · simulation</DossierContextAnchor><DossierContextAnchor href="/clients-framing/synthesis">Procédures de mission · Clients</DossierContextAnchor><DossierContextAnchor href="/tresorerie/synthese">Procédures de mission · Trésorerie</DossierContextAnchor><DossierContextAnchor href="/immobilisations/synthese">Procédures de mission · Immobilisations</DossierContextAnchor><span aria-current="page">Procédures de mission · Capitaux propres</span><DossierContextAnchor href="/equity">Capitaux propres · dossier /equity (procédure parallèle)</DossierContextAnchor></nav>
-    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · recette jetable</p><h1>Revue et Synthèse Capitaux propres</h1><p className={styles.muted}>Programme fermé : pont par composante, tableau de variation, décisions ↔ écritures, PV lus. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucun feu vert juridique.</p></div>
+    <header className={styles.header}><div><p className={styles.eyebrow}>Mission · {executionProfileLabel(view?.executionProfile)}</p><h1>Revue et Synthèse Capitaux propres</h1><p className={styles.muted}>Programme fermé : pont par composante, tableau de variation, décisions ↔ écritures, PV lus. Les compteurs viennent du programme, jamais du nombre d’anomalies. Aucun feu vert juridique.</p></div>
       <DossierContextAnchor href={m ? equitySheetHref(m.scope, p?.runId && p.version ? { id: p.runId, version: p.version } : null, "all") : "/capitaux-propres"}>Ouvrir la feuille Capitaux propres</DossierContextAnchor></header>
     <form className={styles.scope} onSubmit={e => { e.preventDefault(); setScope({ dossierId: dossier.trim(), periodId: period.trim() }); }}>
       <label>Dossier<DossierScopedInput required value={dossier} onChange={e => setDossier(e.target.value)} placeholder="Identifiant du dossier"/></label>

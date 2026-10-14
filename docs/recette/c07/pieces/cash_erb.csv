@@ -1,0 +1,5 @@
+ligne;montant;date;banque;compte;devise;nature;explication;piece
+ERB-BOOK;100.00;2024-12-31;BNK-A;FR76-0001;EUR;solde_comptable;;
+ERB-BANK;90.00;2024-12-31;BNK-A;FR76-0001;EUR;solde_banque;;
+R1;15.00;2024-12-30;BNK-A;FR76-0001;EUR;remise_non_creditee;Remise de chèques du 30/12 non créditée;BRD-1230
+P1;-5.00;2024-12-28;BNK-A;FR76-0001;EUR;paiement_non_debite;Chèque 1045 émis non débité;CHQ-1045

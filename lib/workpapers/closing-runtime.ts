@@ -14,6 +14,7 @@ import { evaluateClosing, journalView } from "./closing-evaluate";
 import { eventHash, fold, type ClosingEvent } from "./closing-journal";
 import { ClosingConflict, type ClosingDatabase, type ClosingTx } from "./closing-store";
 import { periodId, type WorkpaperScope } from "./model";
+import { executionProfile } from "@/lib/runtime/profile";
 
 export type ClosingPermission = "read" | "prepare" | "review" | "sign" | "download";
 const permissions: Record<ClosingPermission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", sign: "dossier:sign", download: "dossier:export" };
@@ -55,7 +56,7 @@ export class ClosingRuntime {
   /** Read model: journal, folded state, evaluation and observed cycle sheets, computed in the same transaction. */
   private async view(tx: ClosingTx, scope: WorkpaperScope, identity: AuthenticatedPrincipal, observed?: CycleObservation[]) {
     const events = await tx.events(scope), state = fold(events), observations = observed ?? observeRuns(await tx.cycleRuns(scope));
-    const response = { actorId: identity.subject, permissions: this.granted(identity), closingAuthority: this.closingAuthority(identity, scope) === true, dossierId: scope.dossierId, periodId: scope.periodId,
+    const response = { actorId: identity.subject, permissions: this.granted(identity), executionProfile: executionProfile(process.env), closingAuthority: this.closingAuthority(identity, scope) === true, dossierId: scope.dossierId, periodId: scope.periodId,
       seq: state.seq, headHash: state.headHash, hashNotice: CL_HASH_NOTICE, pieces: state.pieces, evaluation: evaluateClosing(state, observations), journal: journalView(events) };
     if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("CL_STATE_LIMIT", "Dossier trop volumineux pour cette recette.", 413);
     return response;

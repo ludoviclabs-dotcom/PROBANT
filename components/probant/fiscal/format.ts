@@ -43,7 +43,7 @@ export const SIGNAL_LABELS: Record<string, string> = { missing_piece_reference: 
 export const SOURCE_LABELS: Record<string, string> = { fx_fec: "FEC / grand livre", fx_vat_return: "Déclaration CA3 / CA12", fx_cit_return: "Liasse IS et 2065", fx_invoices: "Inventaire des factures", fx_vat_payments: "Paiements au Trésor", fx_support: "Pièces justificatives" };
 
 const MESSAGES: Record<string, string> = {
-  FX_DURABLE_DISABLED: "Ce parcours doit être activé dans un environnement de recette jetable.", FX_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
+  FX_DURABLE_DISABLED: "Ce parcours n’est pas ouvert sur ce serveur : lancez le profil personnel local (npm run local:start) ou une recette jetable.", FX_DURABLE_UNAVAILABLE: "Le service est indisponible. Réessayez la même commande.",
   SESSION_INVALID: "Votre session a expiré. Reconnectez-vous pour reprendre.", AUTHENTICATION_REQUIRED: "Connectez-vous pour accéder à ce dossier.",
   FORBIDDEN: "Votre identité ne dispose pas de la permission nécessaire.", WORKPAPER_FORBIDDEN: "Ce dossier n’appartient pas à votre périmètre autorisé.",
   FX_CURRENT_SOURCES_REQUIRED: "Les sources affichées ne sont plus les sources courantes de cette période. Rechargez avant de figer.",

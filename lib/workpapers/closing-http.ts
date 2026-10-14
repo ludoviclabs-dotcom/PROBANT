@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { durableChainEnabled } from "@/lib/runtime/profile";
 import { ApiError } from "@/lib/api/errors";
 import { closingCommandSchema, pieceUploadSchema } from "./closing-contract";
 import type { ClosingRuntime } from "./closing-runtime";
@@ -8,7 +9,7 @@ const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableClosing(env: Record<string, string | undefined> = process.env) {
-  if (env.VERCEL_ENV === "production" || env.PROBANT_CLOSING_DURABLE !== "disposable") throw new ApiError("CL_DURABLE_DISABLED", "Le dossier de clôture durable est réservé à la recette jetable.", 503);
+  if (!durableChainEnabled(env, "PROBANT_CLOSING_DURABLE")) throw new ApiError("CL_DURABLE_DISABLED", "Le dossier de clôture durable est réservé à la recette jetable ou au profil personnel local.", 503);
 }
 export function closingFailureStatus(code: string) {
   // An altered journal or piece is an integrity failure of the server, never a user input error.
