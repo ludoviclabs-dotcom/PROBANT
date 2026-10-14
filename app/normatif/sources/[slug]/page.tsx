@@ -68,9 +68,10 @@ export default async function SourceDetailPage({
               href={source.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[var(--pb-accent)] hover:underline"
+              className="inline-flex items-start gap-1 text-[var(--pb-accent)] hover:underline"
             >
-              <ExternalLink className="h-3 w-3" />
+              {/* Calée sur la première ligne quand l'URL passe à la ligne (même position que centrée sur une seule). */}
+              <ExternalLink className="mt-[calc((1lh_-_0.75rem)/2)] h-3 w-3 shrink-0" />
               {source.url}
             </a>
           ) : (
@@ -108,7 +109,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
   return (
     <div className="flex gap-3">
       <span className="w-32 shrink-0 text-[var(--pb-text-faint)]">{label}</span>
-      <span className="text-[var(--pb-text-muted)]">{children}</span>
+      <span className="min-w-0 text-[var(--pb-text-muted)] [overflow-wrap:anywhere]">{children}</span>
     </div>
   );
 }

@@ -1,0 +1,62 @@
+{
+  "route": "/normatif/cycles/achats-charges-externes",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "main": {
+    "left": 240,
+    "width": 150,
+    "clientWidth": 150,
+    "scrollWidth": 221
+  },
+  "overflowing": [
+    "Oblig.",
+    "Oblig.",
+    "Oblig.",
+    "Oblig.",
+    "Oblig.",
+    "B. prat.",
+    "Oblig.",
+    "Les pourcentages de matérialité affichés sont des",
+    "pratiques professionnelles paramétrables",
+    "B. prat.",
+    "Résultat avant impôt normalisé ou total des charges d'exploitation",
+    "Appliquer la méthodologie globale de la mission ; pas de seuil officiel par cycl",
+    "5 % à 10 % du résultat avant impôt normalisé, ou 1 % à 2 % du total des charges",
+    "Les ISA/NEP imposent le principe et la documentation du jugement, mais ne fixent",
+    "B. prat.",
+    "60 % à 75 % du seuil de signification global",
+    "Le principe est imposé (ISA 320 / NEP 320) mais le pourcentage relève du jugemen",
+    "B. prat.",
+    "3 % à 5 % du seuil de signification global",
+    "Borne opérationnelle non fixée par les normes.",
+    "B. prat.",
+    "Échantillon de factures significatives + sélection ciblée sur le solde",
+    "Échantillonnage",
+    "Sélection ciblée + échantillonnage selon ISA 530",
+    "Factures et réceptions autour de la clôture ; décaissements post-clôture",
+    "Échantillonnage",
+    "Échantillonnage",
+    "Traitement IFRS",
+    "Traitement PCG",
+    "Impact audit",
+    "Charges constatées en résultat selon le rattachement aux produits ; classement p",
+    "Comptabilisation des charges par nature (classes 60 à 62) avec rattachement à l'",
+    "L'enjeu d'audit porte moins sur le référentiel comptable que sur l'exhaustivité,"
+  ],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 102,
+    "lines": 4
+  },
+  "tableFrames": [],
+  "axeSerious": {
+    "serious:link-name": 5
+  }
+}

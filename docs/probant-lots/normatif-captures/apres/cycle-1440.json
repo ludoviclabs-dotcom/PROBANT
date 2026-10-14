@@ -1,0 +1,33 @@
+{
+  "route": "/normatif/cycles/achats-charges-externes",
+  "width": 1440,
+  "document": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  "main": {
+    "left": 240,
+    "width": 1200,
+    "clientWidth": 1200,
+    "scrollWidth": 1200
+  },
+  "overflowing": [],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 672,
+    "lines": 1
+  },
+  "tableFrames": [
+    {
+      "clientWidth": 974,
+      "scrollWidth": 974
+    }
+  ],
+  "axeSerious": {
+    "serious:link-name": 5
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "route": "/normatif/cycles",
+  "width": 1024,
+  "document": {
+    "scrollWidth": 1024,
+    "clientWidth": 1024
+  },
+  "main": {
+    "left": 240,
+    "width": 784,
+    "clientWidth": 784,
+    "scrollWidth": 784
+  },
+  "overflowing": [],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 591,
+    "lines": 1
+  },
+  "tableFrames": [],
+  "axeSerious": {}
+}

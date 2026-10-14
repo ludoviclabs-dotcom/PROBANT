@@ -10,7 +10,13 @@ export function IFRSvsPCGPanel({ differences }: { differences: IFRSvsPCGDifferen
     );
   }
   return (
-    <div className="overflow-hidden rounded-lg border border-[var(--pb-border)]">
+    // Défile plutôt que de rogner la colonne « Impact audit » quand la colonne est étroite.
+    <div
+      className="overflow-x-auto rounded-lg border border-[var(--pb-border)]"
+      tabIndex={0}
+      role="region"
+      aria-label="Différences IFRS / PCG — défilement horizontal"
+    >
       <table className="w-full text-[11px]">
         <thead>
           <tr className="bg-[var(--pb-surface-3)] text-left text-[var(--pb-text-muted)]">

@@ -1,5 +1,6 @@
 "use client";
 
+import type { Ref } from "react";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { usePathname } from "next/navigation";
 import {
@@ -12,6 +13,7 @@ import {
   Scale,
   ShieldCheck,
   Network,
+  X,
 } from "lucide-react";
 import { WORKFLOW_ROUTES } from "@/lib/capabilities/registry";
 import { cn } from "@/lib/utils";
@@ -23,45 +25,69 @@ const NAV = WORKFLOW_ROUTES.map(item => ({ ...item, icon: icons[item.icon], desc
 /**
  * Navigation latérale. Dès `md` (768 px) elle est fixe dans la grille ; en
  * dessous elle devient un tiroir hors-champ, ouvert par le bouton du bandeau
- * (voir app/dashboard/layout.tsx) et refermé à chaque navigation.
+ * (voir app/dashboard/layout.tsx et components/probant/useNavDrawer.ts),
+ * refermé par « Fermer », Échap, le voile ou à chaque navigation.
  */
 export function Sidebar({
+  ref,
   badges,
   open = false,
   onNavigate,
+  onClose,
 }: {
+  ref?: Ref<HTMLElement>;
   badges?: Partial<Record<string, number>>;
   open?: boolean;
   onNavigate?: () => void;
+  onClose?: () => void;
 }) {
   const pathname = usePathname();
   return (
     <aside
+      ref={ref}
       id="dashboard-nav"
       className={cn(
         "flex h-full w-60 shrink-0 flex-col border-r border-[var(--pb-border)] bg-[var(--pb-surface)]",
         "max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-50 max-md:shadow-2xl max-md:shadow-black/50",
-        "max-md:transition-[transform,visibility] max-md:duration-200",
-        open ? "max-md:translate-x-0" : "max-md:invisible max-md:-translate-x-full",
+        // `translate-x-*` pose la propriété `translate` (Tailwind 4) : c'est elle
+        // qu'on anime. Ouvert, `visibility` change aussitôt (tiroir focalisable) ;
+        // fermé, elle attend la fin du glissement.
+        "max-md:duration-200",
+        open
+          ? "max-md:translate-x-0 max-md:transition-[translate]"
+          : "max-md:invisible max-md:-translate-x-full max-md:transition-[translate,visibility]",
       )}
     >
-      <Link
-        href="/dashboard/synthese"
-        onClick={onNavigate}
-        className="flex items-center gap-2.5 px-5 py-4"
-      >
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--pb-accent)]/15 text-[var(--pb-accent)]">
-          <ShieldCheck className="h-5 w-5" />
-        </span>
-        <div className="leading-tight">
-          <div className="text-sm font-bold tracking-wide text-[var(--pb-text)]">
-            PROBANT
+      <div className="flex items-center">
+        <Link
+          href="/dashboard/synthese"
+          onClick={onNavigate}
+          className="flex min-w-0 flex-1 items-center gap-2.5 px-5 py-4"
+        >
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--pb-accent)]/15 text-[var(--pb-accent)]">
+            <ShieldCheck className="h-5 w-5" />
+          </span>
+          <div className="leading-tight">
+            <div className="text-sm font-bold tracking-wide text-[var(--pb-text)]">
+              PROBANT
+            </div>
+            <div className="text-[10px] text-[var(--pb-text-faint)]">
+              revue analytique
+            </div>
           </div>
-          <div className="text-[10px] text-[var(--pb-text-faint)]">
-            revue analytique
-          </div>
-        </div>
-      </Link>
+        </Link>
+        {onClose && (
+          <button
+            type="button"
+            data-nav-close
+            aria-label="Fermer la navigation"
+            onClick={onClose}
+            className="mr-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)] md:hidden"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        )}
+      </div>
 
       <nav className="flex-1 space-y-0.5 px-2 py-2">
         {NAV.map((item) => {

@@ -1,0 +1,44 @@
+{
+  "route": "/normatif/methodologie",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "main": {
+    "left": 240,
+    "width": 150,
+    "clientWidth": 150,
+    "scrollWidth": 345
+  },
+  "overflowing": [
+    "Oblig.",
+    "Oblig.",
+    "Rapprochements (banque, fournisseurs, stocks) et revue de séquence.",
+    "Recalcul (amortissements, intérêts, conversions de devises).",
+    "Rapprochement des montants enregistrés avec les pièces justificatives.",
+    "Les éléments sont correctement classés, décrits et présentés, et les information",
+    "Oblig.",
+    "Oblig.",
+    "performanceMateriality",
+    "clearlyTrivialThreshold",
+    "Oblig.",
+    "La taille de l'échantillon dépend du niveau de risque d'échantillonnage que l'au",
+    "tableau-flux-tresorerie ·",
+    "pcgAccounts",
+    "aucun compte PCG renseigné"
+  ],
+  "sidebar": {
+    "visible": true,
+    "left": 0,
+    "width": 240
+  },
+  "heading": {
+    "width": 122,
+    "lines": 3
+  },
+  "tableFrames": [],
+  "axeSerious": {
+    "serious:scrollable-region-focusable": 1
+  }
+}

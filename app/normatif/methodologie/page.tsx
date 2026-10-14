@@ -93,14 +93,17 @@ function ContentTree({ value, depth = 0 }: { value: unknown; depth?: number }) {
   }
 
   if (typeof value === "object") {
+    // Clé de 160 px à côté de sa valeur dès sm ; à chaque niveau imbriqué la place
+    // diminue : quand il reste moins de 7rem pour la valeur, elle passe sous sa
+    // clé (flex-wrap) au lieu de sortir de la colonne (1024 px, 768 px…).
     return (
       <dl className="space-y-1">
         {Object.entries(value as Record<string, unknown>).map(([k, v]) => (
-          <div key={k} className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
+          <div key={k} className="flex flex-col gap-0.5 sm:flex-row sm:flex-wrap sm:gap-x-2">
             <dt className="shrink-0 text-[11px] font-medium capitalize text-[var(--pb-text-faint)] sm:w-40">
               {k}
             </dt>
-            <dd className="min-w-0 flex-1">
+            <dd className="min-w-0 flex-1 sm:min-w-[7rem]">
               <ContentTree value={v} depth={depth + 1} />
             </dd>
           </div>

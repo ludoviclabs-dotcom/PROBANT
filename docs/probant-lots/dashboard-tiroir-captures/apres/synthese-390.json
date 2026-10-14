@@ -1,0 +1,14 @@
+{
+  "route": "/dashboard/synthese",
+  "width": 390,
+  "main": {
+    "left": 0,
+    "width": 390
+  },
+  "sidebar": {
+    "visible": false,
+    "left": -240,
+    "width": 240
+  },
+  "axeSerious": {}
+}
