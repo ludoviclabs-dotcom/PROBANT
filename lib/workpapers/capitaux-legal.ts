@@ -17,7 +17,7 @@ export const SOCIAL_FORM_LABELS: Record<SocialForm, string> = { sarl: "SARL (y c
 interface ArticleVersion { from: string; to: string | null; label: string; url: string }
 const LF = "https://www.legifrance.gouv.fr/codes/article_lc/";
 /** Versions read on Légifrance (14/10/2026); a date before the first version read stays « version non relue ». */
-export const LEGAL_ARTICLE_VERSIONS: Record<"L232-10" | "L232-11" | "L223-42" | "L225-248" | "L227-1", ArticleVersion[]> = {
+export const LEGAL_ARTICLE_VERSIONS: Record<"L232-10" | "L232-11" | "L223-42" | "L225-248" | "L226-1" | "L227-1", ArticleVersion[]> = {
   "L232-10": [
     { from: "2000-09-21", to: "2025-09-30", label: "C. com. art. L232-10, version du 21/09/2000 au 30/09/2025 (ord. n° 2000-912)", url: LF + "LEGIARTI000051322888/2024-12-31" },
     { from: "2025-10-01", to: null, label: "C. com. art. L232-10, version en vigueur depuis le 01/10/2025 (ord. n° 2025-229 du 12/03/2025, art. 62 ; application : art. 70)", url: LF + "LEGIARTI000051322888" },
@@ -30,6 +30,13 @@ export const LEGAL_ARTICLE_VERSIONS: Record<"L232-10" | "L232-11" | "L223-42" | 
   "L225-248": [
     { from: "2000-09-21", to: "2023-03-10", label: "C. com. art. L225-248, version du 21/09/2000 au 10/03/2023 (ord. n° 2000-912)", url: LF + "LEGIARTI000047292156/2023-01-01" },
     { from: "2023-03-11", to: null, label: "C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171 du 09/03/2023, art. 14)", url: LF + "LEGIARTI000047292156" },
+  ],
+  // SCA: SA rules apply "dans la mesure où elles sont compatibles" with chapter VI (al. 2); no version excludes L225-248.
+  "L226-1": [
+    { from: "2000-09-21", to: "2019-05-23", label: "C. com. art. L226-1, version du 21/09/2000 au 23/05/2019 (ord. n° 2000-912, codification de l’art. 251 de la loi n° 66-537)", url: LF + "LEGIARTI000006226526/2000-09-21" },
+    { from: "2019-05-24", to: "2020-12-31", label: "C. com. art. L226-1, version du 24/05/2019 au 31/12/2020 (loi n° 2019-486 du 22/05/2019, art. 101)", url: LF + "LEGIARTI000038612806/2019-05-24" },
+    { from: "2021-01-01", to: "2023-05-25", label: "C. com. art. L226-1, version du 01/01/2021 au 25/05/2023 (ord. n° 2020-1142 du 16/09/2020, art. 4)", url: LF + "LEGIARTI000042340113/2021-01-01" },
+    { from: "2023-05-26", to: null, label: "C. com. art. L226-1, version en vigueur depuis le 26/05/2023 (ord. n° 2023-393 du 24/05/2023, art. 12)", url: LF + "LEGIARTI000047591354" },
   ],
   "L227-1": [
     { from: "2019-07-21", to: "2023-05-25", label: "C. com. art. L227-1, version du 21/07/2019 au 25/05/2023 (loi n° 2019-744, art. 27)", url: LF + "LEGIARTI000048535177/2023-03-31" },
@@ -123,12 +130,13 @@ export function legalMarkers(input: LegalInput): LegalMarkers {
   else if (cents(input.equityClosing.value) < floor) distSignal = { kind: "a_examiner", text: "Capitaux propres de clôture inférieurs au capital augmenté des réserves non distribuables connues des sources : distribution à examiner (al. 3). Aucune conclusion." };
   else distSignal = { kind: "aucun", text: "Capitaux propres de clôture au moins égaux au repère minimal connu des sources ; les réserves statutaires indisponibles restent à apprécier." };
 
-  // Half of the capital (L223-42 SARL; L225-248 SA/SCA; SAS through L227-1).
+  // Half of the capital (L223-42 SARL; L225-248 SA; SCA through L226-1; SAS through L227-1).
   const close = input.period.closingDate;
   const articles: { label: string; url: string }[] = [];
   let appliesHalf: "oui" | "non" | "inconnu" = "inconnu", halfReason = "Forme sociale non documentée.";
   if (form === "sarl") { const v = articleVersion("L223-42", close); articles.push(article(v, "L223-42", close)); appliesHalf = v ? "oui" : "inconnu"; halfReason = v ? "SARL : art. L223-42." : "Version de L223-42 non relue pour cette date."; }
-  else if (form === "sa" || form === "sca") { const v = articleVersion("L225-248", close); articles.push(article(v, "L225-248", close)); appliesHalf = v ? "oui" : "inconnu"; halfReason = v ? "Société par actions : art. L225-248." : "Version de L225-248 non relue pour cette date."; }
+  else if (form === "sa") { const v = articleVersion("L225-248", close); articles.push(article(v, "L225-248", close)); appliesHalf = v ? "oui" : "inconnu"; halfReason = v ? "Société par actions : art. L225-248." : "Version de L225-248 non relue pour cette date."; }
+  else if (form === "sca") { const v = articleVersion("L225-248", close), r = articleVersion("L226-1", close); articles.push(article(v, "L225-248", close), article(r, "L226-1", close)); appliesHalf = v && r ? "oui" : "inconnu"; halfReason = v && r ? "SCA : art. L225-248, applicable par le renvoi de l’art. L226-1 al. 2 (non exclu, dans la mesure de sa compatibilité avec le chapitre VI)." : "Version de L225-248 ou du renvoi L226-1 non relue pour cette date."; }
   else if (form === "sas") { const v = articleVersion("L225-248", close), r = articleVersion("L227-1", close); articles.push(article(v, "L225-248", close), article(r, "L227-1", close)); appliesHalf = v && r ? "oui" : "inconnu"; halfReason = v && r ? "SAS : art. L225-248, applicable par le renvoi de l’art. L227-1 al. 3 (non exclu)." : "Version de L225-248 ou du renvoi L227-1 non relue pour cette date."; }
   else if (form === "autre") { appliesHalf = "non"; halfReason = "Aucune disposition équivalente lue pour cette forme."; }
   const capClose = c.capital?.closing ?? null;

@@ -45,7 +45,7 @@ const MESSAGES: Record<string, string> = {
   WORKPAPER_TRANSITION_FORBIDDEN: "Cette action ne correspond plus à l’état de la feuille. Rechargez sa version courante.", WORKPAPER_ALREADY_EXISTS: "La feuille Capitaux propres existe déjà pour cette période : rechargez.",
   MAPPING_COLUMNS_INVALID: "Vérifiez les noms des colonnes du mapping dans votre fichier.", EQ_FILE_LIMIT: "Le fichier dépasse la limite de 3 Mio de cette recette.", EQ_STATE_LIMIT: "La feuille dépasse les bornes de cette recette.",
   EQ_REQUEST_INVALID: "Requête refusée : champs inattendus ou incomplets.", IDEMPOTENCY_KEY_REUSED: "Cette clé de commande a déjà servi pour un autre contenu.",
-  EQ_RULE_REPLACED_REVISION_REQUIRED: "Cette feuille a été établie sous la règle Capitaux propres 1.0.0, remplacée par la règle 1.1.0 : elle reste consultable. Créez une révision pour poursuivre.",
+  EQ_RULE_REPLACED_REVISION_REQUIRED: "La règle de cette feuille ne s’applique plus à son cas (règle 1.0.0, ou règle 1.1.0 avec une SCA déclarée, que la règle 1.1.1 traite par le renvoi de l’art. L226-1) : elle reste consultable. Créez une révision pour poursuivre.",
   EQ_AMENDMENT_INVALID: "Référence de décision remplacée invalide (identifiant de ligne du registre, différent de la ligne elle-même).",
   EQ_AMENDMENT_TARGET_UNKNOWN: "La ligne remplacée citée n’existe pas dans le registre des décisions.",
   EQ_AMENDMENT_TARGET_MISMATCH: "Une décision amendée remplace une ligne de même composante et de même type.",

@@ -10,7 +10,7 @@ import { articleVersion } from "../capitaux-legal";
  * C09 follow-up — the knowledge base, the source registries and the demos paraphrase the Code de
  * commerce without concluding. Expected wording written by hand from Légifrance (read on
  * 14/10/2026), not from the engine: L232-10 (two versions), L223-42 / L225-248 (since 11/03/2023),
- * L227-1 (SAS).
+ * L227-1 (SAS), L226-1 (SCA : quatre versions depuis le 21/09/2000, aucune n’excluant L225-248).
  */
 const L225_248_SINCE_2023 = "C. com. art. L225-248, version en vigueur depuis le 11/03/2023 (loi n° 2023-171 du 09/03/2023, art. 14)";
 
@@ -38,16 +38,19 @@ describe("C09 — base de connaissance capitaux-propres.yml : texte paraphrasé,
   it("moitié du capital : signal « à examiner » par forme sociale, ni alerte de dissolution ni délai calculé", async () => {
     const c = await loadCycle("capitaux-propres");
     const half = c.thresholds.find(t => t.label === "Capitaux propres inférieurs à la moitié du capital social")!;
-    for (const article of ["L223-42", "L225-248", "L227-1"]) expect(half.value).toContain(article);
+    for (const article of ["L223-42", "L225-248", "L226-1", "L227-1"]) expect(half.value).toContain(article);
     expectDistinctHalfCapitalProcedures(half.value, "en SARL (C. com. art. L223-42)");
+    expect(half.value).toContain("en SA (art. L225-248), en SCA par le renvoi de l'art. L226-1 et en SAS par le renvoi de l'art. L227-1");
+    expect(half.value).not.toContain("en SA et SCA (art. L225-248)");
+    expect(half.caveat).toContain("L226-1 dans ses quatre versions depuis le 21/09/2000");
     expect(half.caveat).toContain("11/03/2023 (loi n° 2023-171, art. 14)");
     expect(half.caveat).toContain("ni alerte de dissolution ni délai calculé");
     const ratio = c.ratios.find(r => r.name === "Pertes cumulées / Capital social")!;
     expect(ratio.alertThreshold).toContain("signal « à examiner »");
-    expect(ratio.alertThreshold).toContain("L225-248 (SA, SCA ; SAS par le renvoi de l'art. L227-1)");
+    expect(ratio.alertThreshold).toContain("L225-248 (SA ; SCA par le renvoi de l'art. L226-1 ; SAS par le renvoi de l'art. L227-1)");
     expect(ratio.sourceIds).toEqual(["isa-520", "cc-capitaux-propres"]);
     const risk = c.risks.find(r => r.name === "Capitaux propres inférieurs aux seuils légaux menaçant la continuité")!;
-    expect(risk.description).toContain("situation à examiner au regard de l'art. L223-42 (SARL) ou L225-248");
+    expect(risk.description).toContain("situation à examiner au regard de l'art. L223-42 (SARL) ou L225-248 (SA ; SCA par le renvoi de l'art. L226-1 ;");
     expect(risk.description).toContain("Aucune de ces suites n'est conclue automatiquement.");
     expect(risk.sourceIds).toEqual(["isa-315", "isa-570", "cc-capitaux-propres"]);
     const all = JSON.stringify(c);
@@ -120,9 +123,13 @@ describe("C09 — registres de sources : C. com. art. L225-248 daté, formes soc
     expect([engine.from, engine.url]).toEqual([s.effectiveDate, s.url]);
   });
 
-  it("data/sources cc-capitaux-propres : L223-42, L225-248 et L227-1 nommés, texte à examiner sans alerte", async () => {
+  it("data/sources cc-capitaux-propres : L223-42, L225-248, L226-1 et L227-1 nommés, texte à examiner sans alerte", async () => {
     const source = (await loadAllSources()).find(x => x.id === "cc-capitaux-propres")!;
-    for (const article of ["L232-10", "L223-42", "L225-248", "L227-1"]) expect(source.label).toContain(article);
+    for (const article of ["L232-10", "L223-42", "L225-248", "L226-1", "L227-1"]) expect(source.label).toContain(article);
+    expect(source.article).toContain("L225-248 (SA ; SCA et SAS par renvoi) ; L226-1 (renvoi des SCA aux règles des SA)");
+    // L226-1 lu sur Légifrance le 14/10/2026 : 21/09/2000, 24/05/2019 (loi 2019-486), 01/01/2021 (ord. 2020-1142), 26/05/2023 (ord. 2023-393).
+    for (const version of ["L226-1 du 21/09/2000 au 23/05/2019", "du 24/05/2019 au 31/12/2020 (loi n° 2019-486, art. 101)", "du 01/01/2021 au 25/05/2023 (ord. n° 2020-1142, art. 4)", "depuis le 26/05/2023 (ord. n° 2023-393, art. 12)"]) expect(source.note).toContain(version);
+    expect(source.note).toContain("en SCA par le renvoi de L226-1 (al. 2, qui n'exclut pas L225-248)");
     expect(source.summary).toContain("signal « à examiner », sans alerte de dissolution ni délai calculé");
     expect(source.summary).not.toMatch(/Obligation de consultation|</);
     expect(source.note).toContain("11/03/2023 (loi n° 2023-171, art. 14)");

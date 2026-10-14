@@ -46,10 +46,10 @@ const ROUTES = [
     name: "source",
     path: "/normatif/sources/cc-capitaux-propres",
     level: 1,
-    title: "Code de commerce — Réserve légale et capitaux propres inférieurs à la moitié du capital (art. L232-10, L223-42, L225-248, L227-1)",
-    // Libellé de 127 caractères depuis le lot C09 (PR #86, articles des quatre formes sociales) :
-    // à ≈ 27 caractères par ligne dans 342 px (voir plus bas), 5 lignes.
-    maxLines390: 5,
+    title: "Code de commerce — Réserve légale et capitaux propres inférieurs à la moitié du capital (art. L232-10, L223-42, L225-248, L226-1, L227-1)",
+    // Libellé de 137 caractères depuis le lot C09 (PR #86, articles des formes sociales ; L226-1 pour la SCA) :
+    // à ≈ 27 caractères par ligne dans 342 px (voir plus bas), 137 / 27 ≈ 5,07, soit 6 lignes au plus.
+    maxLines390: 6,
   },
   { name: "methodologie", path: "/normatif/methodologie", level: 2, title: "Méthodologie & contrôles qualité" },
   { name: "export", path: "/normatif/export", level: 2, title: "Export de la cartographie" },

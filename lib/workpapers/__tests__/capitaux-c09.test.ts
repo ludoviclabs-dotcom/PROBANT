@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { equityResultSchema, evaluateEquity, stampEquityWork, type EquityResult } from "../capitaux-review";
+import { capitauxRuleReplaced, equityResultSchema, evaluateEquity, stampEquityWork, type EquityResult } from "../capitaux-review";
+import { EquityRegistry } from "../capitaux-adapter";
+import { buildEquityFacts, equityPopulationExclusions } from "../capitaux-sources";
+import { freezePopulation, selectPopulation } from "../selection";
+import { stableSha256 } from "@/lib/synthesis/canonical";
 import { buildParcours, type ParcoursInput } from "../capitaux-parcours";
 import type { WorkpaperRun } from "../model";
-import { createEquityHarness } from "./capitaux-harness";
-import { asCapitauxRule100, C09_CSV, C09_READ_LINES, c09CapitauxRun, c09LegacyRun, c09Period, c09Preparer, c09Scope, c09Sources } from "./capitaux-c09-fixtures";
+import { createEquityHarness, type EquityHarness } from "./capitaux-harness";
+import { eqDraft } from "./capitaux-fixtures";
+import { asCapitauxRule100, C09_CSV, C09_READ_LINES, c09CapitauxRun, c09Framing, c09LegacyRun, c09Period, c09Preparer, c09Scope, c09Sources } from "./capitaux-c09-fixtures";
 
 const asRule100 = (result: EquityResult) => asCapitauxRule100(result);
 
@@ -152,7 +157,7 @@ describe("C09 — règle Capitaux propres 1.1.0 sur le dossier de recette", () =
 });
 
 describe("C09 — garde de règle au runtime /capitaux-propres", () => {
-  it("feuille établie en 1.0.0 : lecture permise, toute commande sauf la révision refusée (409), révision adoptant la règle 1.1.0", async () => {
+  it("feuille établie en 1.0.0 : lecture permise, toute commande sauf la révision refusée (409), révision adoptant la règle 1.1.1", async () => {
     const h = createEquityHarness(); const { run } = await h.executed();
     const list = Object.values(h.db.state.versions).map(v => (v as Record<string, WorkpaperRun[]>)[run.id]).find(Boolean)!;
     const index = list.findIndex(v => v.version === run.version), stored = list[index];
@@ -163,9 +168,70 @@ describe("C09 — garde de règle au runtime /capitaux-propres", () => {
     const refused = await h.command({ command: "execute", id: run.id, expectedVersion: run.version });
     expect([refused.status, refused.body.error]).toEqual([409, "EQ_RULE_REPLACED_REVISION_REQUIRED"]);
     const revised = await h.ok({ command: "revise", id: run.id, expectedVersion: run.version });
-    expect([revised.revision, revised.template.version, revised.template.rule?.version]).toEqual([2, "1.1.0", "1.1.0"]);
+    expect([revised.revision, revised.template.version, revised.template.rule?.version]).toEqual([2, "1.1.1", "1.1.1"]);
     // The 1.0.0 version stays as recorded.
     expect(list[index].template.rule?.version).toBe("1.0.0");
+  });
+});
+
+describe("C09 — règle 1.1.1 : renvoi de L226-1 pour la SCA, seules les feuilles 1.1.0 déclarées SCA sont périmées", () => {
+  const framing = (socialForm: "sa" | "sas" | "sca") => ({ socialForm, socialFormCitation: null, anticipationAnc202407: false, anticipationCitation: null });
+  /** Stores the version as a sheet frozen before rule 1.1.1 (template and rule 1.1.0). */
+  function asRule110(h: EquityHarness, run: WorkpaperRun) {
+    const list = Object.values(h.db.state.versions).map(v => (v as Record<string, WorkpaperRun[]>)[run.id]).find(Boolean)!;
+    const index = list.findIndex(v => v.version === run.version), stored = list[index];
+    list[index] = { ...stored, template: { ...stored.template, version: "1.1.0", rule: { ...stored.template.rule!, version: "1.1.0" } } } as WorkpaperRun;
+    return list;
+  }
+
+  it("prédicat partagé : 1.1.1 à jour ; 1.1.0 à jour hors SCA ou sans forme déclarée ; 1.1.0 déclarée SCA et 1.0.0 à réviser", async () => {
+    const { run } = await c09CapitauxRun(), work = run.capitauxWork!;
+    const at = (version: string, socialForm: "sa" | "sas" | "sca" | null) => capitauxRuleReplaced({ template: { ...run.template, version, rule: { ...run.template.rule!, version } },
+      capitauxWork: work.schemaVersion === "equity-2" ? { ...work, framing: { ...work.framing, socialForm } } : work });
+    expect([at("1.1.1", "sca"), at("1.1.0", "sa"), at("1.1.0", "sas"), at("1.1.0", null)]).toEqual([null, null, null, null]);
+    expect(at("1.1.0", "sca")).toContain("renvoi de l’art. L226-1");
+    expect(at("1.0.0", "sas")).toContain("décisions amendées");
+  });
+
+  it("feuille 1.1.0 d’une SA : poursuivie et exécutée sous la règle 1.1.0, repère « moitié du capital » sans L226-1", async () => {
+    const h = createEquityHarness(); const { run: frozen } = await h.frozenRun({}, { ...eqDraft(), framing: framing("sa") });
+    asRule110(h, frozen);
+    const run = await h.ok({ command: "execute", id: frozen.id, expectedVersion: frozen.version });
+    expect([run.template.rule?.version, run.result?.ruleVersion, run.result?.execution]).toEqual(["1.1.0", "1.1.0", "completed"]);
+    expect((run.result!.result as EquityResult).legal!.items[2].articles.map(a => a.label.slice(0, 22))).toEqual(["C. com. art. L225-248,"]);
+  });
+
+  it("feuille 1.1.0 d’une SCA : lecture permise, exécution refusée (409), révision adoptant la règle 1.1.1 ; la version 1.1.0 reste telle qu’enregistrée", async () => {
+    const h = createEquityHarness(); const { run: frozen } = await h.frozenRun({}, { ...eqDraft(), framing: framing("sca") });
+    const list = asRule110(h, frozen);
+    expect((await h.read()).status).toBe(200);
+    const refused = await h.command({ command: "execute", id: frozen.id, expectedVersion: frozen.version });
+    expect([refused.status, refused.body.error]).toEqual([409, "EQ_RULE_REPLACED_REVISION_REQUIRED"]);
+    const revised = await h.ok({ command: "revise", id: frozen.id, expectedVersion: frozen.version });
+    expect([revised.revision, revised.template.version, revised.template.rule?.version]).toEqual([2, "1.1.1", "1.1.1"]);
+    expect(list.find(v => v.version === frozen.version)!.template.rule?.version).toBe("1.1.0");
+  });
+
+  it("feuille 1.1.0 d’une SA : y déclarer une SCA exige d’abord la révision (409) ; une autre forme reste permise", async () => {
+    const h = createEquityHarness(); const { run: frozen } = await h.frozenRun({}, { ...eqDraft(), framing: framing("sa") });
+    asRule110(h, frozen);
+    const toSca = await h.command({ command: "configure", id: frozen.id, expectedVersion: frozen.version, draft: { ...eqDraft(), framing: framing("sca") } });
+    expect([toSca.status, toSca.body.error]).toEqual([409, "EQ_RULE_REPLACED_REVISION_REQUIRED"]);
+    const toSas = await h.ok({ command: "configure", id: frozen.id, expectedVersion: frozen.version, draft: { ...eqDraft(), framing: framing("sas") } });
+    expect([toSas.template.rule?.version, toSas.capitauxWork?.schemaVersion === "equity-2" && toSas.capitauxWork.framing.socialForm]).toEqual(["1.1.0", "sas"]);
+  });
+
+  it("registre de calcul : la règle 1.1.0 refuse un travail SCA ; hors SCA, résultat identique sous 1.1.0 et 1.1.1", async () => {
+    const imports = await c09Sources(), runId = "capitaux-c09-registry";
+    const population = freezePopulation(c09Scope, imports, "decision_movement", c09Preparer), exclusions = equityPopulationExclusions(buildEquityFacts(c09Scope, c09Period, imports, runId));
+    const selectedIds = population.items.map(i => i.id).filter(i => !exclusions.some(e => e.id === i));
+    const selection = selectPopulation(population, { method: "targeted", criteria: "Toutes les décisions et tous les mouvements", requestedSize: selectedIds.length, selectedIds, exclusions }, c09Preparer);
+    const work = (socialForm: "sas" | "sca") => stampEquityWork({ scope: c09Scope, period: c09Period, runId, imports, actor: c09Preparer, at: "2027-03-02T09:00:00.000Z",
+      draft: { readings: C09_READ_LINES.map(lineId => ({ lineId, text: "Transcription relue à la page citée." })), framing: framing(socialForm) } });
+    const run = (version: string, socialForm: "sas" | "sca") => new EquityRegistry().execute({ scope: c09Scope, period: c09Period, rule: { id: "capitaux_propres.review", version }, imports, population, selection, parameters: { work: work(socialForm), runId } });
+    expect([run("1.1.0", "sca").execution, run("1.1.1", "sca").execution, run("1.1.0", "sas").execution]).toEqual(["failed", "completed", "completed"]);
+    expect(stableSha256(run("1.1.0", "sas").result)).toBe(stableSha256(run("1.1.1", "sas").result));
+    expect((run("1.1.1", "sca").result as EquityResult).legal!.items[2].articles.map(a => a.label.slice(0, 20))).toEqual(["C. com. art. L225-24", "C. com. art. L226-1,"]);
   });
 });
 
@@ -231,5 +297,27 @@ describe("C09 — parcours unique sur les deux procédures", () => {
     expect(view.framing).toBeNull();
     // Rule 1.0.0 reading of the amended distribution: two decisions, the second divergent — shown as recorded, never rewritten.
     expect(view.decisions.filter(d => d.type === "distribution").map(d => d.traces[0].decisionRefs.join("+"))).toEqual(["D-DIV", "D-EXC-1", "D-EXC-2"]);
+  });
+
+  it("règle 1.1.1 : une feuille 1.1.0 d’une SAS reste à jour ; déclarée en SCA, elle est périmée et le cadre vient d’une feuille à jour", async () => {
+    const as110 = (run: WorkpaperRun, revision = run.revision) => ({ ...run, revision, template: { ...run.template, version: "1.1.0", rule: { ...run.template.rule!, version: "1.1.0" } }, result: { ...run.result!, ruleVersion: "1.1.0" } });
+    const empty = parcours(null, null);
+    const view = (...runs: WorkpaperRun[]) => buildParcours({ ...empty, journeys: { ...empty.journeys, "capitaux_propres.review": { availability: "ready", runs: runs.map(run => ({ run, sourcesCurrent: true, lineageCurrent: true })) } } });
+    const sas = view(as110((await c09CapitauxRun()).run));
+    expect(sas.journeys[0].runs[0]).toMatchObject({ ruleVersion: "1.1.0", ruleCurrent: true });
+    expect(sas.decisions.every(d => d.traces.every(t => !t.stale))).toBe(true);
+    expect(sas.framingReason).toBe("Cadre, présentation et repères de la feuille /capitaux-propres en règle 1.1.0.");
+    const scaFraming = { ...c09Framing, socialForm: "sca" as const };
+    const stale = as110((await c09CapitauxRun({ framing: scaFraming, id: "capitaux-c09-sca-110" })).run, 2);
+    const sca = view(stale);
+    expect(sca.journeys[0].runs[0]).toMatchObject({ ruleVersion: "1.1.0", ruleCurrent: false });
+    expect(sca.decisions.every(d => d.traces.every(t => t.stale && t.staleReasons.some(r => r.startsWith("Règle remplacée (1.1.0) : forme déclarée SCA") && r.includes("renvoi de l’art. L226-1"))))).toBe(true);
+    expect(sca.framingReason).toContain("en règle 1.1.0 ; règle remplacée pour cette feuille : forme déclarée SCA");
+    // A 1.1.1 sheet of the same dossier, even of an earlier revision, supplies the framing and its L226-1 citation.
+    const current = (await c09CapitauxRun({ framing: scaFraming, id: "capitaux-c09-sca-111" })).run;
+    const both = view(stale, current);
+    expect(both.framing?.runId).toBe("capitaux-c09-sca-111");
+    expect(both.framing!.legal.items[2].articles.map(a => a.label.slice(0, 20))).toEqual(["C. com. art. L225-24", "C. com. art. L226-1,"]);
+    expect(both.framingReason).toBe("Cadre, présentation et repères de la feuille /capitaux-propres en règle 1.1.1.");
   });
 });

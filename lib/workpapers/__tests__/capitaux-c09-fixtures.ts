@@ -9,7 +9,7 @@ import { minutesPdf } from "./capitaux-fixtures";
 import { EQUITY_FAMILIES, EQUITY_FAMILY_LABELS, previewEquityPdf, stampEquityWork as stampLegacyWork, evaluateEquity as evaluateLegacy } from "../equity-dossier";
 import { EQUITY_TEMPLATE as LEGACY_TEMPLATE } from "../equity-adapter";
 import { freezePopulation, selectPopulation } from "../selection";
-import { stampEquityWork, evaluateEquity } from "../capitaux-review";
+import { stampEquityWork, evaluateEquity, type EquityDraft } from "../capitaux-review";
 import { EQUITY_TEMPLATE, EQUITY_RULE } from "../capitaux-adapter";
 
 /**
@@ -167,7 +167,7 @@ export async function c09LegacyRun(options: { decisions?: string; readings?: { d
 }
 
 /** /capitaux-propres sheet of rule 1.1.0 executed on the C09 sources. */
-export async function c09CapitauxRun(options: { amends?: boolean; framing?: typeof c09Framing; instruments?: boolean; readLines?: string[]; id?: string; texts?: Partial<Record<keyof typeof C09_CSV, string>>; types?: (keyof typeof C09_CSV)[] } = {}) {
+export async function c09CapitauxRun(options: { amends?: boolean; framing?: NonNullable<EquityDraft["framing"]>; instruments?: boolean; readLines?: string[]; id?: string; texts?: Partial<Record<keyof typeof C09_CSV, string>>; types?: (keyof typeof C09_CSV)[] } = {}) {
   const imports = await c09Sources(options), id = options.id ?? "capitaux-c09-run";
   const ago = imports.find(b => b.document.documentType === "eq_minutes" && b.mapping.capitaux?.pieceRef === "PV-AGO-2026")!;
   const work = stampEquityWork({ scope: c09Scope, period: c09Period, runId: id, imports, actor: c09Preparer, at: "2027-03-02T09:00:00.000Z",

@@ -90,7 +90,7 @@ for (const width of WIDTHS) {
       await expect(row(/15\/11\/2026 — Augmentations de capital/)).toContainText("À rapprocher · non comptée");
       await expect(page.getByText("Décisions comptées", { exact: true }).locator("..")).toContainText("4");
       await expect(page.getByText("Payé à la date de revue", { exact: true }).locator("..")).toContainText("reste 120,00 EUR");
-      // Autres fonds propres (ANC 2024-07) et repères légaux, venus de la feuille 1.1.0.
+      // Autres fonds propres (ANC 2024-07) et repères légaux, venus de la feuille de référence (règle 1.1.1).
       const instruments = page.getByRole("table", { name: /^Classement par termes contractuels/ });
       await expect(instruments.getByRole("row", { name: /Titres participatifs émis en 2019/ })).toContainText("À qualifier");
       await expect(instruments.getByRole("row", { name: /Avance d’un organisme public/ })).toContainText("Qualifié");
@@ -138,7 +138,7 @@ test("réduction des animations : le panneau de détail n’anime pas son ouvert
 });
 
 for (const width of WIDTHS) {
-  test(`feuille /capitaux-propres de règle 1.0.0 à ${width} px : consultable, alerte de règle remplacée, révision vers la règle 1.1.0`, async ({ page }) => {
+  test(`feuille /capitaux-propres de règle 1.0.0 à ${width} px : consultable, alerte de règle remplacée, révision vers la règle 1.1.1`, async ({ page }) => {
     const h = createEquityHarness(); const { run } = await h.executed();
     const list = Object.values(h.db.state.versions).map(v => (v as Record<string, WorkpaperRun[]>)[run.id]).find(Boolean)!;
     const index = list.findIndex(v => v.version === Math.max(...list.map(x => x.version))), stored = list[index];
@@ -153,12 +153,44 @@ for (const width of WIDTHS) {
     await expect(page.getByText("Règle 1.0.0 : présentation des autres fonds propres, paiement par décision et repères légaux non établis pour cette version.")).toBeVisible();
     await noGlobalOverflow(page);
     await shot(page, alert, `c09-regle-1-0-0-${width}.jpg`);
-    await alert.getByRole("button", { name: "Créer une révision (règle 1.1.0)" }).click();
+    await alert.getByRole("button", { name: "Créer une révision (règle 1.1.1)" }).click();
     await expect(page.getByLabel("Contexte du dossier")).toContainText("r2 · v1");
     await expect(page.getByRole("alert").filter({ hasText: "règle Capitaux propres 1.0.0" })).toHaveCount(0);
   });
 
-  test(`feuille /capitaux-propres 1.1.0 à ${width} px : forme sociale et avance déclarées depuis le formulaire, présentation et repères calculés par le serveur`, async ({ page }) => {
+  test(`feuille /capitaux-propres 1.1.0 déclarée SCA à ${width} px : consultable, alerte nommant le renvoi de L226-1, révision vers la règle 1.1.1`, async ({ page }) => {
+    const h = createEquityHarness(); const { run } = await h.executed({}, { ...eqDraft(), framing: { socialForm: "sca", socialFormCitation: null, anticipationAnc202407: false, anticipationCitation: null } });
+    const list = Object.values(h.db.state.versions).map(v => (v as Record<string, WorkpaperRun[]>)[run.id]).find(Boolean)!;
+    const index = list.findIndex(v => v.version === Math.max(...list.map(x => x.version))), stored = list[index];
+    list[index] = { ...stored, template: { ...stored.template, version: "1.1.0", rule: { ...stored.template.rule!, version: "1.1.0" } }, result: { ...stored.result!, ruleVersion: "1.1.0" } } as WorkpaperRun;
+    await serveSheet(page, h);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(sheet());
+    const alert = page.getByRole("alert").filter({ hasText: "règle Capitaux propres 1.1.0" });
+    await expect(alert).toContainText("forme déclarée SCA ; la règle 1.1.1 cite l’art. L225-248 par le renvoi de l’art. L226-1");
+    await expect(alert).toContainText("Elle reste consultable telle quelle");
+    await noGlobalOverflow(page);
+    await shot(page, alert, `c09-regle-1-1-0-sca-${width}.jpg`);
+    await alert.getByRole("button", { name: "Créer une révision (règle 1.1.1)" }).click();
+    await expect(page.getByLabel("Contexte du dossier")).toContainText("r2 · v1");
+    await expect(page.getByRole("alert").filter({ hasText: "règle Capitaux propres 1.1.0" })).toHaveCount(0);
+  });
+
+  test(`feuille /capitaux-propres 1.1.0 d’une SA à ${width} px : à jour, aucune alerte de règle, révision non proposée`, async ({ page }) => {
+    const h = createEquityHarness(); const { run } = await h.executed({}, { ...eqDraft(), framing: { socialForm: "sa", socialFormCitation: null, anticipationAnc202407: false, anticipationCitation: null } });
+    const list = Object.values(h.db.state.versions).map(v => (v as Record<string, WorkpaperRun[]>)[run.id]).find(Boolean)!;
+    const index = list.findIndex(v => v.version === Math.max(...list.map(x => x.version))), stored = list[index];
+    list[index] = { ...stored, template: { ...stored.template, version: "1.1.0", rule: { ...stored.template.rule!, version: "1.1.0" } }, result: { ...stored.result!, ruleVersion: "1.1.0" } } as WorkpaperRun;
+    await serveSheet(page, h);
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto(sheet());
+    await expect(page.getByLabel("Contexte du dossier")).toContainText("r1");
+    await expect(page.getByRole("alert").filter({ hasText: "règle Capitaux propres" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /Créer une révision \(règle/ })).toHaveCount(0);
+    await noGlobalOverflow(page);
+  });
+
+  test(`feuille /capitaux-propres 1.1.1 à ${width} px : forme sociale et avance déclarées depuis le formulaire, présentation et repères calculés par le serveur`, async ({ page }) => {
     const h = createEquityHarness(); await h.frozenRun({}, eqDraft());
     await serveSheet(page, h);
     await page.setViewportSize({ width, height: 900 });

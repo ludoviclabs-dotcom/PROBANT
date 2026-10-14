@@ -4,7 +4,7 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
-import { CAPITAUX_RULE_VERSION, EQ_UNCERTAINTY_CODES, equityDraftFromWork, type EquityDraft } from "@/lib/workpapers/capitaux-review";
+import { CAPITAUX_RULE_VERSION, capitauxRuleReplaced, EQ_UNCERTAINTY_CODES, equityDraftFromWork, type EquityDraft } from "@/lib/workpapers/capitaux-review";
 import { CapitauxFramingForm } from "./CapitauxFramingForm";
 import { FramingResult } from "./parcours/ParcoursFraming";
 import { equityResultOf, type EquityMissionFilter } from "@/lib/workpapers/capitaux-mission";
@@ -54,8 +54,8 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
   const readings = useMemo(() => run?.capitauxWork?.readings ?? [], [run]);
   const current = run ? view?.sourcesCurrent[run.id] !== false : true;
   const canPrepare = !exactVersion && !!view?.permissions.includes("prepare"), canReview = !exactVersion && !!view?.permissions.includes("review") && (view.actorId !== run?.preparedBy || mayReviewOwnWork(view.reviewKind));
-  // A sheet of a replaced rule (1.0.0) stays readable; it is continued only through a revision adopting rule 1.1.0.
-  const ruleCurrent = !run || run.template.rule?.version === CAPITAUX_RULE_VERSION;
+  // A sheet whose rule no longer applies to it (1.0.0, or 1.1.0 declared SCA) stays readable; it is continued only through a revision adopting the current rule.
+  const ruleReplaced = run ? capitauxRuleReplaced(run) : null, ruleCurrent = !ruleReplaced;
   const editable = !!run && canPrepare && run.preparedBy === view?.actorId && current && ruleCurrent && ["draft", "ready", "executed"].includes(run.state) && !!run.population;
   const saving = status === "saving";
   const endpoint = (imports = false) => "/api/workpapers/capitaux-propres" + (imports ? "/imports" : "") + "?" + new URLSearchParams({ dossierId, periodId: pid });
@@ -179,7 +179,7 @@ export function EquityWorkspace({ initialDossierId = "", initialPeriodValue = em
     </section>}
     {view && <>
       {exactVersion && run && <p className={styles.notice} data-tone="info">Examen en lecture seule de la version {run.version}{view.currentVersions?.[run.id] ? " · version courante " + view.currentVersions[run.id] : ""}. <DossierContextAnchor href={"/capitaux-propres?" + new URLSearchParams({ dossierId: run.scope.dossierId, periodId: run.scope.periodId, id: view.lineageCurrent?.[run.rootId]?.id ?? run.id })}>Travailler sur la version courante</DossierContextAnchor></p>}
-      {run && !ruleCurrent && <div role="alert" className={styles.notice} data-tone="danger"><p>Feuille établie sous la règle Capitaux propres {run.template.rule?.version ?? run.template.version}, remplacée par la règle {CAPITAUX_RULE_VERSION} (décisions amendées, paiement par décision, autres fonds propres, repères légaux). Elle reste consultable telle quelle ; seule une révision permet de poursuivre.</p>{canPrepare && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision (règle {CAPITAUX_RULE_VERSION})</button>}</div>}
+      {run && !ruleCurrent && <div role="alert" className={styles.notice} data-tone="danger"><p>Feuille établie sous la règle Capitaux propres {run.template.rule?.version ?? run.template.version}, remplacée pour cette feuille : {ruleReplaced} Elle reste consultable telle quelle ; seule une révision permet de poursuivre.</p>{canPrepare && <button type="button" disabled={saving} onClick={() => action("revise")}>Créer une révision (règle {CAPITAUX_RULE_VERSION})</button>}</div>}
       {run && !current && <p role="alert" className={styles.notice} data-tone="danger">Une source (ou un PV) a été remplacée ou ajoutée : cette version reste attachée à ses anciennes sources et ses décisions restent intactes. Créez une révision pour reprendre.</p>}
       {run && view.factsIssues[run.id] && <p role="alert" className={styles.notice} data-tone="danger">Sources à corriger : {equityFailureMessage(view.factsIssues[run.id].code, view.factsIssues[run.id].locator)}</p>}
       <div className={styles.scopeNote} aria-label="Périmètre de l’écran"><span>Décision ≠ comptabilisation ≠ paiement</span><span>Transferts internes sans effet sur le total</span><span>Aucun rapport ne vaut conclusion juridique</span><span>Composante incomplète = inconnue, jamais nulle</span><span>Autres fonds propres présentés à part, jamais par numéro de compte</span></div>

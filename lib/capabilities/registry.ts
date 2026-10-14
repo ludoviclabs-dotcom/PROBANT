@@ -6,8 +6,9 @@ export * from "./procedures";
 /**
  * 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory.
  * 1.2.0 (C09): Capitaux propres — single journey over the two sheets, other equity funds by declared contractual terms, dated legal markers.
+ * 1.2.1: Capitaux propres sheet rule 1.1.1 (SCA through the renvoi of C. com. L226-1); a 1.1.0 sheet stays current unless declared SCA.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.2.0";
+export const CAPABILITY_REGISTRY_VERSION = "1.2.1";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -42,7 +43,7 @@ const exclusions: Record<CapabilityCycleId, string[]> = {
 };
 /** Local scope stated per cycle when the generic wording would overstate or blur what the sheet establishes. */
 const localScopes: Partial<Record<CapabilityCycleId, string>> = {
-  capitaux_propres: "Parcours unique /capitaux-propres/parcours : feuille décisions et PV versionnés (règle 1.1.0, travaux nouveaux) et dossier /equity (règle 1.0.0, historique) lus à leur version exacte ; activation locale et accès autorisé requis.",
+  capitaux_propres: "Parcours unique /capitaux-propres/parcours : feuille décisions et PV versionnés (règle 1.1.1, travaux nouveaux ; une feuille 1.1.0 reste à jour sauf déclarée en SCA) et dossier /equity (règle 1.0.0, historique) lus à leur version exacte ; activation locale et accès autorisé requis.",
   stocks: "Feuille versionnée : quantités comptées transcrites et passage à la clôture, coûts déclarés (non reconstitués), revue de valeur bornée à la valeur comptable avec estimation partielle si la quantité n’est pas rapprochée ; activation locale et accès autorisé requis. Aucun inventaire physique certifié.",
 };
 const journalCycles = CAPABILITY_CYCLE_IDS.map(id => {
