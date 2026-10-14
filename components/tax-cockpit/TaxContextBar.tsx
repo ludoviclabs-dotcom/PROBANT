@@ -252,7 +252,8 @@ export function TaxContextBar({
             </PopRow>
             <PopRow term="Snapshot fiscal">généré le {summary.generatedAt.slice(0, 10)}</PopRow>
             <PopRow term="Registre normatif">
-              <span title={REGISTRE.detail}>{REGISTRE.libelle}</span> · les moteurs fiscaux ne lisent pas ce registre
+              {REGISTRE.libelle} · les moteurs fiscaux ne lisent pas ce registre
+              <span style={{ display: "block", marginTop: 4, fontFamily: BODY, fontSize: 11.5, lineHeight: 1.5, color: C.muted }}>{REGISTRE.detail}</span>
             </PopRow>
           </dl>
           <p style={{ margin: "12px 0 0", fontSize: 11.5, lineHeight: 1.6, color: C.muted }}>

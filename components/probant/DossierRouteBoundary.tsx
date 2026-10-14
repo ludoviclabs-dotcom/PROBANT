@@ -4,7 +4,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { capabilitiesForRoute, MODE_LABELS } from "@/lib/capabilities/registry";
 import { navigationContext, parseNavigationContext, switchDossierContext, withDossierContext, type DossierNavigationContext } from "@/lib/dossier/navigation-context";
 import { SessionDossierRepository } from "@/lib/dossier/repositories";
-import { decrireReferentiel } from "@/lib/referentiel/edition";
+import { ReferentielEdition } from "@/components/referentiel/ReferentielEdition";
 
 export function DossierRouteBoundary({ children }: { children: ReactNode }) {
   const pathname = usePathname(), params = useSearchParams(), router = useRouter();
@@ -25,12 +25,12 @@ export function DossierRouteBoundary({ children }: { children: ReactNode }) {
   if (!capabilities.length || pathname.startsWith("/dashboard")) return children;
   if (error) return <main className="mx-auto max-w-5xl p-6"><h1>Contexte à vérifier</h1><p role="alert">{error}</p><a className="underline" href="/dashboard/dossier">Choisir le dossier et son exercice</a></main>;
   if (!context) return children; // Legacy exact-version links remain accepted by their existing server contracts.
-  const c = context, scoped = (href: string) => withDossierContext(href, c), referentiel = decrireReferentiel(c.reference);
+  const c = context, scoped = (href: string) => withDossierContext(href, c);
   const availableChoices = choices.filter(v => v.organizationId === c.organizationId);
   const workshop = c.mode !== "local_persistent";
   return <>
     <section aria-label="Contexte du dossier" className="mx-auto flex max-w-6xl flex-wrap gap-3 border-b border-[var(--pb-border)] p-4 text-sm [overflow-wrap:anywhere]">
-      <div className="min-w-0 flex-1"><strong>{c.entity.label}</strong> · exercice {c.exercise.label}<p>{MODE_LABELS[c.mode]} · <span title={referentiel.detail}>référentiel {referentiel.libelle}</span></p>
+      <div className="min-w-0 flex-1"><strong>{c.entity.label}</strong> · exercice {c.exercise.label}<p>{MODE_LABELS[c.mode]} · référentiel <ReferentielEdition identifiant={c.reference} /></p>
         <p>{c.procedurePeriod ? `${c.procedurePeriod.kind === "exercise" ? "Exercice" : c.procedurePeriod.kind === "vat" ? "Période TVA" : "Période paie"} : ${c.procedurePeriod.startDate} → ${c.procedurePeriod.endDate}` : "Période de procédure à confirmer ; aucun résultat supposé."}</p>
         <details><summary>Identité et méthode du contexte</summary><p>Dossier {c.dossierId} · organisation {c.organizationId}</p><p>Exercice : {c.exercise.startDate ?? "début inconnu"} → {c.exercise.closingDate ?? "clôture inconnue"}. Les repères du lien ne remplacent ni les sources ni l’autorisation serveur.</p></details>
       </div>

@@ -189,6 +189,7 @@ export function ReferentielWorkspace({
               >
                 Les seuils chiffrés externes (catégories d&apos;entreprises, nomination CAC…) doivent être
                 confrontés au Code de commerce et à ses décrets avant mise en production.
+                <span style={{ display: "block", marginTop: 8 }}>{versionDetail}</span>
               </p>
             )}
           </div>
