@@ -1,7 +1,7 @@
 "use client";
 import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { formatCents, formatQuantity, ST_CATEGORY_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, formatQuantity, isLegacyValueReview, ST_CATEGORY_LABELS, ST_COST_BASIS_LABELS, ST_HYPOTHESIS_BASIS_LABELS, ST_QUANTITY_BASIS_LABELS, ST_REVIEW_STATUS_LABELS, type StockResult, type StockUnitResult } from "@/lib/workpapers/stock-contract";
 import { KindBadge } from "./StockGrid";
 import { dateFr, unitLabel, type StockView } from "./format";
 import styles from "../cash/cash.module.css";
@@ -68,14 +68,36 @@ export const StockDetailPanel = forwardRef<StockDetailHandle, Props>(function St
     {(() => { const v = result.valuation?.units.find(x => x.unitId === unit.unitId); if (!v || (!v.cost && v.systemValueCents === null && v.costStatus === "not_tested")) return null;
       return <div className={styles.sourceBox}><p><strong>Coût et valeur</strong></p><dl>
         <dt>Coût documenté</dt><dd>{v.cost ? formatCents(v.cost.unitCostCents) + " par " + v.cost.uomLabel + " · " + v.cost.method + (v.cost.pieceRef ? " · pièce " + v.cost.pieceRef : "") + " · " + v.cost.fileName + (v.cost.row ? " ligne " + v.cost.row : "") + " · " + dateFr(v.cost.date) : v.costStatus === "missing" ? "Non documenté : valeur inconnue" : v.costStatus === "unit_incompatible" ? "Unité incompatible : non valorisé" : "Non testé (hors stock propre testé)"}</dd>
+        {v.cost?.basis && <><dt>Base du coût</dt><dd>{ST_COST_BASIS_LABELS[v.cost.basis]}{v.cost.capacity === "declared" ? " · coût déclaré, non reconstitué depuis les transactions" : ""}</dd></>}
         <dt>Valeur reconstituée</dt><dd className={styles.money}>{formatCents(v.expectedValueCents)}</dd>
         <dt>Valeur théorique déclarée</dt><dd className={styles.money}>{formatCents(v.systemValueCents)}{v.account ? " · compte " + v.account : ""}</dd>
         <dt>Quantité théorique × coût</dt><dd className={styles.money}>{formatCents(v.recalculatedSystemValueCents)}</dd>
         <dt>Écart de quantité valorisé</dt><dd className={styles.money}>{v.quantityDifferenceValueCents === null ? "Non établi" : formatCents(v.quantityDifferenceValueCents, { signed: true }) + " (écart potentiel)"}</dd>
         <dt>Écart de prix</dt><dd className={styles.money}>{v.priceDifferenceCents === null ? "Non établi" : formatCents(v.priceDifferenceCents, { signed: true })}</dd></dl>
         {v.cost && canDownload && <DossierContextAnchor href={download(v.cost.documentVersionId)}>Télécharger la liste des coûts figée</DossierContextAnchor>}</div>; })()}
-    {(() => { const rv = result.valueReview?.units.find(x => x.unitId === unit.unitId); if (!rv || rv.status === "not_reviewed") return null;
-      return <div className={styles.sourceBox}><p><strong>Revue de valeur</strong></p><dl>
+    {(() => { const review = result.valueReview; if (!review || isLegacyValueReview(review)) return null;
+      const rv = review.units.find(x => x.unitId === unit.unitId); if (!rv || rv.status === "not_reviewed") return null;
+      const q = rv.quantity, h = rv.hypothesis;
+      return <div className={styles.sourceBox}><p><strong>Revue de valeur</strong> — {ST_REVIEW_STATUS_LABELS[rv.status]}</p><dl>
+        <dt>Hypothèse citée</dt><dd>{h ? h.kind + " · pièce " + h.pieceRef + " · " + h.fileName + (h.row ? " ligne " + h.row : "") + " · " + dateFr(h.date) + " · " + ST_HYPOTHESIS_BASIS_LABELS[h.basis] : "Aucune hypothèse figée"}</dd>
+        {h && <><dt>Justification</dt><dd>{h.justification}</dd>
+          <dt>Valeur actuelle</dt><dd className={styles.money}>{formatCents(h.sellingPriceCents)} − {formatCents(h.exitCostsCents)} = {formatCents(h.currentValueCents)} par {h.uomLabel}{h.currentValueCents.startsWith("-") ? " (négative : coûts de sortie supérieurs au prix)" : ""}</dd></>}
+        <dt>Coût comparé</dt><dd>{rv.cost ? formatCents(rv.cost.unitCostCents) + " par " + rv.cost.uomLabel + " · " + rv.cost.method + " · " + ST_COST_BASIS_LABELS[rv.cost.basis] + (rv.cost.pieceRef ? " · pièce " + rv.cost.pieceRef : "") + " · " + dateFr(rv.cost.date) : "Absent : aucune comparaison"}</dd>
+        <dt>Quantités</dt><dd>Théorique {formatQuantity(q.theoretical, q.uomLabel)} · comptée {formatQuantity(q.counted, q.uomLabel)}{q.countDate ? " le " + dateFr(q.countDate) : ""} · reconstituée à la clôture {formatQuantity(q.reconstituted, q.uomLabel)}{q.difference !== null ? " · écart " + formatQuantity(q.difference, q.uomLabel, { signed: true }) : ""}</dd>
+        <dt>Quantité retenue</dt><dd>{formatQuantity(q.used, q.uomLabel)} — {ST_QUANTITY_BASIS_LABELS[q.basis]}</dd>
+        <dt>Valeur comptable de référence</dt><dd className={styles.money}>{formatCents(rv.carryingCents)}{rv.statedValueCents !== null ? " · valeur théorique déclarée " + formatCents(rv.statedValueCents) : ""}</dd>
+        <dt>Comparaison économique</dt><dd className={styles.money}>{formatCents(rv.economicGapCents)}</dd>
+        <dt>Perte de valeur de l’actif</dt><dd className={styles.money}>{formatCents(rv.assetImpairmentCents)}{rv.excessCents !== null && rv.excessCents !== "0" ? " (bornée à la valeur comptable)" : ""}</dd>
+        <dt>Complément à qualifier</dt><dd className={styles.money}>{rv.excessCents === null ? "Inconnu" : rv.excessCents === "0" ? "Aucun" : formatCents(rv.excessCents) + " — obligation éventuelle, ni dépréciation ni provision automatique"}</dd>
+        {rv.alternative && <><dt>Sur la quantité reconstituée</dt><dd className={styles.money}>{formatQuantity(rv.alternative.quantity, q.uomLabel)} : comparaison {formatCents(rv.alternative.economicGapCents)} · perte de valeur {formatCents(rv.alternative.assetImpairmentCents)} · complément {formatCents(rv.alternative.excessCents)}</dd></>}
+        <dt>Dépréciation comptabilisée</dt><dd className={styles.money}>{formatCents(rv.bookedCents)}</dd>
+        <dt>Différence</dt><dd className={styles.money}>{rv.differenceCents === null ? "Non établie" : formatCents(rv.differenceCents, { signed: true }) + (rv.status === "gap_partial" ? " — partielle, quantité non rapprochée" : "")}</dd>
+        <dt>Base de jugement</dt><dd>{rv.judgmentBasis}</dd>
+        {rv.rotation && <><dt>Indice de rotation</dt><dd>Dernier mouvement le {dateFr(rv.rotation.lastMovement)}, {rv.rotation.days} jours avant la clôture — aucun calcul n’en est déduit</dd></>}</dl>
+        <p className={styles.muted}>L’outil ne propose ni ne comptabilise aucune dépréciation ni provision : le jugement humain cité tranche.</p></div>; })()}
+    {(() => { const review = result.valueReview; if (!review || !isLegacyValueReview(review)) return null;
+      const rv = review.units.find(x => x.unitId === unit.unitId); if (!rv || rv.status === "not_reviewed") return null;
+      return <div className={styles.sourceBox}><p><strong>Revue de valeur — règle 1.0.0 (périmée)</strong></p><dl>
         <dt>Hypothèse citée</dt><dd>{rv.hypothesis ? rv.hypothesis.kind + " · pièce " + rv.hypothesis.pieceRef + " · " + rv.hypothesis.fileName + (rv.hypothesis.row ? " ligne " + rv.hypothesis.row : "") + " · " + dateFr(rv.hypothesis.date) : "Aucune hypothèse figée"}</dd>
         {rv.hypothesis && <><dt>Justification</dt><dd>{rv.hypothesis.justification}</dd>
           <dt>Valeur actuelle</dt><dd className={styles.money}>{formatCents(rv.hypothesis.sellingPriceCents)} − {formatCents(rv.hypothesis.exitCostsCents)} = {formatCents(rv.hypothesis.currentValueCents)}</dd></>}

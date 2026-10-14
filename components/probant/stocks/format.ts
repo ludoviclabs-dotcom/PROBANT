@@ -22,6 +22,7 @@ const MESSAGES: Record<string, string> = {
   ST_CURRENT_SOURCES_REQUIRED: "Les sources nommées ne sont plus les versions approuvées courantes : rechargez la feuille.",
   ST_SOURCES_REQUIRED: "Une feuille de comptage et un état théorique approuvés sont requis (au plus un journal de mouvements et un lot de pièces).",
   ST_SOURCE_REPLACED_REVISION_REQUIRED: "Une source a été remplacée ou ajoutée : créez une révision sur les sources courantes.",
+  ST_RULE_REPLACED_REVISION_REQUIRED: "Feuille établie avec une version antérieure de la règle Stocks : elle reste consultable mais ne peut plus être exécutée, conclue, soumise, revue ni verrouillée ; créez une révision pour appliquer la règle courante.",
   ST_SOURCE_HEAD_CONFLICT: "Une autre version de cette source a été approuvée entretemps : rechargez avant d’approuver.",
   ST_NO_OWN_STOCK_UNIT: "Aucune référence de stock propre à tester : tout est présenté à part ou sur des sites non visités.",
   ST_CITATION_SOURCE_REQUIRED: "La pièce citée doit appartenir aux sources figées de la feuille.",

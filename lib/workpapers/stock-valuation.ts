@@ -1,5 +1,5 @@
 import { money } from "@/lib/canonical-model/money";
-import { formatCents, formatQuantity, ST_COST_METHOD_LABELS, type StockResult, type StockUnitResult, type StockValuation } from "./stock-contract";
+import { formatCents, formatQuantity, ST_COST_BASIS_LABELS, ST_COST_METHOD_LABELS, type StockLineBasis, type StockResult, type StockUnitResult, type StockValuation } from "./stock-contract";
 import { ST_OWNED, type StCostLine, type StFact, type StockFacts } from "./stock-sources";
 
 /**
@@ -13,10 +13,12 @@ export function valueOf(hundredths: bigint, costCents: bigint) {
   return n >= 0n ? (2n * n + 100n) / 200n : -((-2n * n + 100n) / 200n);
 }
 const lineRef = (f: StFact) => ({ importId: f.importId, rowId: f.rowId, documentVersionId: f.documentVersionId, fileName: f.fileName, row: f.locator.row ?? null, date: f.date });
-/** The cost of a reference and lot, else the cost of the reference without lot. Never a neighbouring reference. */
+/** The cost of a reference and lot, else the cost of the reference without lot. Never a neighbouring reference nor another lot. */
 export function costOf(costs: StCostLine[], reference: string, lot: string) {
   return costs.find(c => c.reference === reference && c.lot === lot) ?? (lot ? costs.find(c => c.reference === reference && c.lot === "") : undefined);
 }
+/** Which line documents a unit's cost or hypothesis: its lot, the reference (unit without lot), or the reference as a documented fallback for a lot. */
+export const lineBasis = (line: { lot: string }, lot: string): StockLineBasis => line.lot === lot ? (lot ? "lot" : "reference") : "reference_fallback";
 type Exception = StockResult["exceptions"][number];
 export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valuation: StockValuation | null; exceptions: Exception[]; quantityValue: Map<string, { cents: bigint; cost: StCostLine }> } {
   const quantityValue = new Map<string, { cents: bigint; cost: StCostLine }>();
@@ -33,7 +35,7 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
       exceptions.push({ id: "COST:" + u.unitId, code: "COST_MISSING", unitId: u.unitId, label: "Coût non documenté — " + where(u), message: "Aucun coût unitaire documenté pour cette référence (et ce lot) : la valeur reste inconnue, jamais nulle.", amount: unknown("Valeur inconnue") });
       return { ...base, costStatus: "missing" as const };
     }
-    const cost = { ...lineRef(c), unitCostCents: c.quantity, uomLabel: c.uomLabel, method: ST_COST_METHOD_LABELS[c.method] ?? c.method, pieceRef: c.pieceRef, lot: c.lot };
+    const cost = { ...lineRef(c), unitCostCents: c.quantity, uomLabel: c.uomLabel, method: ST_COST_METHOD_LABELS[c.method] ?? c.method, pieceRef: c.pieceRef, lot: c.lot, basis: lineBasis(c, u.lot), capacity: "declared" as const };
     // The cost unit must be the counting unit of the system and of the count: cartons are never valued at a cost per unit.
     const uoms = new Set([...f.counts.map(x => x.uom), ...(sys ? [sys.uom] : [])]);
     if (sys ? sys.uom !== c.uom : [...uoms].some(x => x !== c.uom)) {
@@ -48,7 +50,7 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
     const price = recalculated !== null && sys?.valueCents != null ? BigInt(sys.valueCents) - recalculated : null;
     if (qdv !== null && qdv !== 0n) quantityValue.set(u.unitId, { cents: qdv, cost: c });
     if (price !== null && price !== 0n) exceptions.push({ id: "PRICE:" + u.unitId, code: "PRICE_DIFFERENCE", unitId: u.unitId, label: "Écart de prix — " + where(u),
-      message: "Valeur théorique " + formatCents(sys!.valueCents) + " ; " + formatQuantity(sys!.quantity, sys!.uomLabel) + " × " + formatCents(c.quantity) + " (" + (ST_COST_METHOD_LABELS[c.method] ?? c.method) + (c.pieceRef ? ", " + c.pieceRef : "") + ") = " + formatCents(String(recalculated)) + " ; écart " + formatCents(String(price), { signed: true }) + ". À expliquer, non validé comme anomalie.",
+      message: "Valeur théorique " + formatCents(sys!.valueCents) + " ; " + formatQuantity(sys!.quantity, sys!.uomLabel) + " × " + formatCents(c.quantity) + " (" + (ST_COST_METHOD_LABELS[c.method] ?? c.method) + (c.pieceRef ? ", " + c.pieceRef : "") + (cost.basis === "reference_fallback" ? ", " + ST_COST_BASIS_LABELS.reference_fallback.toLowerCase() : "") + ") = " + formatCents(String(recalculated)) + " ; écart " + formatCents(String(price), { signed: true }) + ". À expliquer, non validé comme anomalie.",
       amount: known(price) });
     return { ...base, cost, costStatus: "documented" as const, expectedValueCents: expected === null ? null : String(expected), recalculatedSystemValueCents: recalculated === null ? null : String(recalculated),
       quantityDifferenceValueCents: qdv === null ? null : String(qdv), priceDifferenceCents: price === null ? null : String(price) };
@@ -98,12 +100,19 @@ export function valueStocks(facts: StockFacts, units: StockUnitResult[]): { valu
   if (compensated) exceptions.push({ id: "NETV:TOTAL", code: "NET_COMPENSATED_VALUE", unitId: null, label: "Total valorisé compensé",
     message: "Total net des écarts valorisés " + formatCents(String(net), { signed: true }) + " pour des écarts bruts de " + formatCents(String(gross)) + " sur " + all.length + " références / sites / lots : le net ne justifie aucun écart individuel.", amount: unknown("Écarts compensés à expliquer un par un") });
   const systemTotal = valued.filter(v => v.owned && v.systemValueCents !== null).reduce((n, v) => n + BigInt(v.systemValueCents!), 0n);
+  // Population behind the value totals: what is valued, what stays unknown, what is not tested and what is carried for goods not owned.
+  // A missing stated value of a good not owned stays unknown: never summed as zero.
+  const notOwned = valued.filter(v => !v.owned), notOwnedKnown = notOwned.filter(v => v.systemValueCents !== null);
+  const population = { tested: valued.filter(v => v.costStatus !== "not_tested").length, valued: valued.filter(v => v.costStatus === "documented").length,
+    unknown: valued.filter(v => v.costStatus === "missing" || v.costStatus === "unit_incompatible").length, notTested: valued.filter(v => v.costStatus === "not_tested").length,
+    notOwnedValueCents: notOwned.length && !notOwnedKnown.length ? null : String(notOwnedKnown.reduce((n, v) => n + BigInt(v.systemValueCents!), 0n)),
+    notOwnedUnknown: notOwned.length - notOwnedKnown.length };
   const valuation: StockValuation = {
     costsProvided: !!facts.costs, ledgerProvided: !!facts.ledger, valueMapped: facts.valueMapped, units: valued, accounts: framed,
     depreciation: depreciation.map(l => ({ account: l.account, ledgerCents: l.quantity, ledger: lineRef(l) })), references,
     totals: { netQuantityDifferenceCents: String(net), grossQuantityDifferenceCents: String(gross), compensated, valuedDifferences: all.length,
       priceDifferenceNetCents: String(valued.reduce((n, v) => n + (v.priceDifferenceCents ? BigInt(v.priceDifferenceCents) : 0n), 0n)), systemValueCents: facts.valueMapped ? String(systemTotal) : null,
-      ledgerCents: facts.ledger ? String(ledger.reduce((n, l) => n + BigInt(l.quantity), 0n)) : null },
+      ledgerCents: facts.ledger ? String(ledger.reduce((n, l) => n + BigInt(l.quantity), 0n)) : null, population },
   };
   return { valuation, exceptions, quantityValue };
 }

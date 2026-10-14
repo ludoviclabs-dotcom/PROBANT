@@ -107,8 +107,10 @@ for (const width of [390, 1024, 1440]) {
     await page.getByRole("link", { name: "Ouvrir Stocks", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Stocks", exact: true })).toBeVisible();
     await expect(page.getByText(/Aucune feuille persistante n’est rattachée/)).toBeVisible();
-    await expect(page.getByText("Inventaire compté", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Aucune dépréciation automatique/)).toBeVisible();
+    // Registry 1.1.0 (C08): counted sheets are transcribed, costs declared, no depreciation nor provision is automatic.
+    await expect(page.getByText("Feuilles de comptage transcrites et état théorique à la clôture", { exact: true })).toBeVisible();
+    await expect(page.getByText(/Coûts CUMP \/ PEPS déclarés, non reconstitués/)).toBeVisible();
+    await expect(page.getByText(/Aucune dépréciation ni provision automatique/)).toBeVisible();
     await record(page, info, `historical-stocks-${width}`);
     await page.getByRole("link", { name: "Retour à la Synthèse", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible();

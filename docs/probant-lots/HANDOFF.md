@@ -1,3 +1,53 @@
+# Handoff — Mission C08 : valeur, coûts et périmètre Stocks (2026-10-14)
+
+**Base.** Branche `claude/c08-stocks-valeur-bornes`, worktree `quizzical-boyd-13e46a`, SHA de départ `c5e717b` (`main` après les PR #82 C06 et #83 C07), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C07 et le lot Cloisons ont été fusionnés depuis ; aucun n'avait touché au moteur Stocks livré par #67. Aucun merge ni déploiement.
+
+## Inventaire (avant)
+
+- **Revue de valeur.** `stock-value-review.ts` : écart indicatif = (coût − (prix − sortie)) × quantité théorique, sans borne, comparé à la dépréciation de la ligne théorique. Valeur actuelle négative admise mais non signalée. Quantité théorique retenue même sur un écart de quantité, une référence non comptée ou des mouvements incomplets. Une référence absente du théorique était classée « coût absent ».
+- **Coûts.** `stock-valuation.ts` : `costOf` prend le coût du lot, sinon la ligne sans lot, sans le dire. Méthode affichée « Coût moyen pondéré (PCG art. 213-34) » sans dire qu'elle est déclarée.
+- **Totaux.** Revue : `reviewed`, `notReviewed`, un écart indicatif global. Aucune population des exclusions ni valeur de la part non revue.
+- **Registre C01.** « Inventaire compté », « Présence physique non certifiée ».
+
+## Cause et reproduction
+
+Moteur de `c5e717b` exécuté le 14/10/2026 sur le dossier C08 (`docs/recette/c08/AVANT-1.0.0.json`) :
+
+- REF-N (coût 10, prix 2, sortie 5, 10 unités) : écart **130,00** pour une valeur au coût de **100,00**, différence connue +130,00.
+- REF-Q (6 comptées pour 10) : « gap » complet, différence connue +10,00.
+- REF-L L2 : repli de coût non signalé.
+
+## Changements
+
+Voir `docs/mission15/CONTRAT.md` § C08 et `docs/probant-lots/C08_PR.md`.
+
+- **Règle 1.1.0** et résultat `stocks-result-3`.
+- **Trois montants par unité** : comparaison économique, perte de valeur de l'actif bornée à la valeur comptable de référence, complément à qualifier (`VALUE_EXCESS_TO_QUALIFY`, montant inconnu).
+- **Quantité retenue et sa base**, avec estimation partielle (`VALUE_QUANTITY_UNRESOLVED`) et alternative sur la quantité reconstituée.
+- **Base de jugement** rédigée côté serveur.
+- **Coûts et hypothèses** : base `lot` / `reference` / `reference_fallback`, capacité `declared`.
+- **Totaux par population** pour la revue et pour le sous-lot coûts.
+- **Feuilles 1.0.0** consultables et périmées ; seule la révision est permise.
+- **Interface** : tableau de revue, panneau de détail, cases, alerte 1.0.0.
+- **Registre C01** passé en 1.1.0.
+
+## Vérifié
+
+- **Recette C08** : 12/12 (attendus posés à la main, `docs/recette/c08/RECETTE.md`).
+- **Suites Stocks** : 64/64.
+- **Suite complète** : 1 749/1 749, sans test ignoré. Les recettes PostgreSQL ont tourné sur un cluster jetable local (PostgreSQL 17.11 du poste, dossier temporaire, port 55432, base `probant_test`, migrations jusqu'à 0019).
+- **Contrôles statiques** : typecheck, lint sans erreur, build de production.
+- **E2E** : `c08-stocks-valeur.spec.ts` à 1440, 1024 et 390 (clavier, axe, débordement, animations réduites, registre C01) avec `stocks.spec.ts` et `c01-context.spec.ts`, 27/27. Captures : `docs/probant-lots/c08-captures/`.
+- **Suite e2e complète** : 209 réussis. 3 échecs C01, sur l'ancien libellé du registre ; l'attente a été alignée et le cas repasse. 5 ignorés hors lot, non vérifiés : profil local C07 ×4 et dépôt FEC persistant ×1. Les captures des autres lots réécrites par la suite ont été restaurées.
+
+## Limites restantes
+
+- La borne retenue est la base au coût documenté. Un écart avec la valeur théorique déclarée est signalé dans la base de jugement, non arbitré.
+- Le complément est à qualifier humainement : aucune estimation de passif, aucune provision.
+- Pas de reconstitution CUMP / PEPS : les sources ne portent ni stock d'ouverture valorisé, ni entrées valorisées, ni sorties de l'exercice. La valeur d'usage, les contrats de vente ferme (214-23) et les positions globales (214-22) ne sont pas modélisés.
+- La conservation d'une feuille 1.0.0 est prouvée au runtime (magasin mémoire), pas sur PostgreSQL. Les e2e n'utilisent pas de persistance.
+
+
 # Handoff — Mission C07 : runtime personnel local persistant (2026-10-14)
 
 **Base.** Branche `claude/local-persistent-runtime-ff20f9`, worktree `quizzical-boyd-13e46a`, SHA de départ `01150b5` (= `main` après la PR #81), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C05 et le lot Cloisons fusionnés depuis ; aucun lot n'avait touché aux drapeaux `disposable`, au stockage ni à l'identité. Aucun push, aucune PR distante, aucun déploiement ; rien n'est activé sur Vercel.

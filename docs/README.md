@@ -19,6 +19,13 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`adr/ADR-012-profil-personnel-local.md`](./adr/ADR-012-profil-personnel-local.md) | Décision : profil d'exécution `personal_local`, pièces sur disque, identité locale, relecture personnelle nommée |
 | [`recette/c07/`](./recette/c07/) | Méthode, résultats et preuves de reprise après arrêt et redémarrage |
 
+## Stocks — valeur bornée et périmètre — C08
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission15/CONTRAT.md`](./mission15/CONTRAT.md) § C08 | Règle Stocks 1.1.0 : perte de valeur bornée à la valeur comptable, complément à qualifier, quantité retenue, coûts déclarés, sources PCG lues et choix internes |
+| [`recette/c08/`](./recette/c08/) | Attendus calculés à la main et reproduction du moteur 1.0.0 (`AVANT-1.0.0.json`) |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

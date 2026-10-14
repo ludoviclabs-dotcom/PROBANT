@@ -1,5 +1,5 @@
 "use client";
-import { formatCents, type StockResult } from "@/lib/workpapers/stock-contract";
+import { formatCents, ST_COST_CAPACITY_TEXT, type StockResult } from "@/lib/workpapers/stock-contract";
 import styles from "../cash/cash.module.css";
 import st from "./stocks.module.css";
 
@@ -14,6 +14,8 @@ export function StockValuationView({ result }: { result: StockResult }) {
   return <section className={styles.card} aria-labelledby="st-val-title">
     <header><h2 id="st-val-title">Coûts et cadrage — état valorisé ↔ grand livre</h2><span className={styles.muted}>{v.costsProvided ? "Coûts documentés figés" : "Sans liste de coûts"} · {v.ledgerProvided ? "grand livre figé" : "sans grand livre"}</span></header>
     <p className={styles.muted}>Stock détenu par l’entité (propre, déposé chez un tiers, en transit, en-cours, références exclues) ; stocks de tiers et consignations reçues exclus du cadrage et signalés s’ils sont valorisés.</p>
+    {v.totals.population && <p>Population : {v.totals.population.tested} référence(s) / site(s) / lot(s) testée(s) au coût, dont {v.totals.population.valued} valorisée(s) et {v.totals.population.unknown} de valeur inconnue · {v.totals.population.notTested} non testée(s) (hors stock propre testé) · {v.totals.population.notOwnedValueCents === null ? "valeur des biens non détenus inconnue (" + v.totals.population.notOwnedUnknown + " ligne(s))" : formatCents(v.totals.population.notOwnedValueCents) + " portés pour des biens non détenus" + (v.totals.population.notOwnedUnknown ? ", " + v.totals.population.notOwnedUnknown + " de valeur inconnue" : "")}, exclus du cadrage.</p>}
+    {v.costsProvided && <p className={styles.muted}>{ST_COST_CAPACITY_TEXT}</p>}
     <div className={styles.tableScroll} role="region" aria-label="Cadrage par compte — défilement clavier" tabIndex={0}><table className={st.valueTable}>
       <caption>Cadrage par compte de stock, en euros ; écart = grand livre − état théorique valorisé</caption>
       <thead><tr><th scope="col">Compte</th><th scope="col">État valorisé (détenu)</th><th scope="col">Grand livre</th><th scope="col">Écart</th><th scope="col">Comparaison</th><th scope="col">Lecture</th></tr></thead>

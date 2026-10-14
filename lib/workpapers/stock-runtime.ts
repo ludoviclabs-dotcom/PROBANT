@@ -5,7 +5,7 @@ import { hasPermission, type Permission as AuthPermission } from "@/lib/auth/rol
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { STOCK_TEMPLATE, StockRegistry } from "./stock-adapter";
+import { STOCK_RULE, STOCK_TEMPLATE, StockRegistry } from "./stock-adapter";
 import type { StockCommand } from "./stock-commands";
 import { evaluateStocks, resolveStockCitation, stampStockWork, stockNoteCitation, stockWorkSchema, ST_UNCERTAINTY_CODES, type StockCitationInput, type StockResult } from "./stock-review";
 import { assertStockBatch, ST_TYPES, stockSourcesCurrent, StockSourceError, type StockSourceType } from "./stock-sources";
@@ -141,6 +141,9 @@ export class StockRuntime {
       const current = await repository.get(scope, command.id);
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (current.stockWork) stockWorkSchema.parse(current.stockWork);
+      // A sheet established under an earlier rule version stays readable; nothing may advance or finalize it (freeze, execution,
+      // notes, conclusion, submission, review, lock): only a revision, which adopts the current rule.
+      if (command.command !== "revise" && current.template.rule?.version !== STOCK_RULE.version) throw new Error("ST_RULE_REPLACED_REVISION_REQUIRED");
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion;
       let run: WorkpaperRun;
@@ -186,7 +189,7 @@ export class StockRuntime {
         case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
         case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
         case "lock": run = await service.lock(scope, id, v); break;
-        case "revise": run = await service.revise(scope, id, v); break;
+        case "revise": run = await service.revise(scope, id, v, STOCK_TEMPLATE); break;
       }
       return { run };
     }));

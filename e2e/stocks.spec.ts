@@ -170,7 +170,7 @@ test("Stocks — sous-lot 2 : écart potentiel −24,00 €, écart de prix, cad
   await a.click();
   const cost = panel(page);
   await expect(cost.getByText("Coût et valeur")).toBeVisible();
-  await expect(cost).toContainText("12,00 € par unite · Coût moyen pondéré (PCG art. 213-34) · pièce FA-501");
+  await expect(cost).toContainText("12,00 € par unite · Coût moyen pondéré déclaré (PCG art. 213-34, 214-26) — non reconstitué · pièce FA-501");
   await expect(cost).toContainText("−24,00 € (écart potentiel)");
   const framing = page.getByRole("table", { name: /Cadrage par compte de stock/ });
   await expect(framing.getByRole("row", { name: /^321000/ })).toContainText("+10,00 €");
@@ -206,11 +206,15 @@ test("Stocks — sous-lot 3 : revue de valeur sur hypothèse citée, différence
   await expect(c).toContainText("150,00 €");
   await expect(c).toContainText("−25,00 €");
   await expect(c).toContainText("FV-901");
+  await expect(c).toContainText("valeur comptable 400,00 €");
+  await expect(c).toContainText("rapprochée");
   const d = review.getByRole("row", { name: /REF-D · ENTREPOT-SUD/ });
-  await expect(d).toContainText("355 j avant la clôture) — indice, aucun calcul");
   await expect(d).toContainText("0,00 €");
+  // Rotation is an indicator shown with the unit's detail, never a calculation.
+  await d.getByRole("button", { name: /REF-D · ENTREPOT-SUD/ }).click();
+  await expect(panel(page)).toContainText("Dernier mouvement le 10/01/2026, 355 jours avant la clôture — aucun calcul n’en est déduit");
   await expect(page.getByText(/écart de cadrage −20,00\s€/)).toBeVisible();
-  await expect(page.getByText(/l’outil ne propose ni ne comptabilise aucune dépréciation/).first()).toBeVisible();
+  await expect(page.getByText(/l’outil ne propose ni ne comptabilise aucune dépréciation/i).first()).toBeVisible();
   await c.getByRole("button", { name: /REF-C · ENTREPOT-NORD/ }).click();
   await expect(panel(page)).toContainText("Ventes de janvier 2027 à 6,00 € l’unité, remise de fin de série");
   await expect(panel(page)).toContainText("6,00 € − 0,50 € = 5,50 €");
