@@ -25,7 +25,7 @@ function renderDemo() {
   return render(
     <CloisonsWorkspace
       silos={snapshot.dossier.silos}
-      meta={{ label: snapshot.dossier.societe.raisonSociale, exercice: snapshot.dossier.societe.exercice }}
+      meta={{ label: snapshot.dossier.societe.raisonSociale, exercice: snapshot.dossier.societe.exercice, siren: snapshot.dossier.societe.siren, sourceKind: snapshot.sourceKind }}
       exposure={projectSnapshotExposure(snapshot).exposure}
     />,
   );

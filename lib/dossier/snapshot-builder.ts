@@ -18,6 +18,7 @@ import { cycleById } from "@/lib/rapprochement/catalog";
 import { stableHash } from "@/lib/synthesis/canonical";
 import { UPLOAD_CONTRACT_VERSION, qualificationIssues, uploadStatus, type UploadExecution, type UploadDocument, type UploadQualification } from "@/lib/rapprochement/upload-contract";
 import { computeDossierSnapshotHash } from "./snapshot-state";
+import { SIREN_NON_DETECTE } from "./siren";
 
 export const DOSSIER_SNAPSHOT_VERSION = "1.0.0";
 
@@ -139,7 +140,7 @@ export function buildSnapshotFromFecDepot(input: FecDepotSnapshotInput): Dossier
     id: dossierId,
     societe: {
       raisonSociale: input.siren ? `SIREN ${input.siren}` : input.nomFichier,
-      siren: input.siren ?? "non-detecte",
+      siren: input.siren ?? SIREN_NON_DETECTE,
       exercice,
       dateCloture,
     },
@@ -291,7 +292,7 @@ export function addRapprochementToSnapshot(
   const period = input.qualification.period;
   const dossier: Dossier = {
     ...(startsFromDemo ? { id: dossierId, demoMode: false, fecFingerprint: "", referentielVersion: current.dossier.referentielVersion, createdAt: generatedAt, admissibilite: [] } : current.dossier),
-    societe: { raisonSociale: input.qualification.entity.trim() || "Entité non qualifiée", siren: startsFromDemo ? "non-detecte" : current.dossier.societe.siren, exercice: period?.closingDate.slice(0, 4) ?? "inconnue", dateCloture: period?.closingDate.replaceAll("-", "") ?? "" },
+    societe: { raisonSociale: input.qualification.entity.trim() || "Entité non qualifiée", siren: startsFromDemo ? SIREN_NON_DETECTE : current.dossier.societe.siren, exercice: period?.closingDate.slice(0, 4) ?? "inconnue", dateCloture: period?.closingDate.replaceAll("-", "") ?? "" },
     period, silos,
   };
   const baseline: CalculationContext = startsFromDemo

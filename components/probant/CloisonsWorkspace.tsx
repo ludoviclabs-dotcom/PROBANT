@@ -9,6 +9,7 @@ import type {
   Severity,
   FindingFamily,
   FauxPositifRisk,
+  DossierSourceKind,
 } from "@/lib/canonical-model";
 import {
   buildStatementDocuments,
@@ -20,6 +21,7 @@ import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentVi
 import { isEurSignalWithoutEffect, restrictExposure } from "@/lib/synthesis/exposure";
 import { EFFECT_TARGET_LABEL, scopedEffectItems, type ScopedEffectItem } from "@/lib/synthesis/effect-labels";
 import type { ExposureDimension } from "@/lib/synthesis/types";
+import { libelleSiren } from "@/lib/dossier/siren";
 
 /* ── types ──────────────────────────────────────────────────────────────────── */
 
@@ -31,6 +33,14 @@ export interface ScenarioInfo {
   forme: string;
   exercice: string;
 }
+
+/** Origine du dossier dans l'en-tête : données fictives (démo, simulation) en ambre, données déposées en accent. */
+const SOURCE_BADGE: Record<DossierSourceKind | "scenario", { label: string; fictif: boolean }> = {
+  demo:       { label: "Démo",       fictif: true  },
+  scenario:   { label: "Simulation", fictif: true  },
+  session:    { label: "Session",    fictif: false },
+  persistent: { label: "Persistant", fictif: false },
+};
 
 /* ── design constants ───────────────────────────────────────────────────────── */
 
@@ -939,13 +949,15 @@ export function CloisonsWorkspace({
   exposure,
 }: {
   silos: SiloView[];
-  meta: { label: string; exercice: string };
+  /** `siren` : `null` s'il n'est pas renseigné (jamais des zéros) ; `sourceKind` : origine du dossier actif. */
+  meta: { label: string; exercice: string; siren: string | null; sourceKind: DossierSourceKind };
   scenario?: ScenarioInfo | null;
   /** Projection des effets partagée avec la Synthèse (lib/synthesis/exposure). */
   exposure: Pick<ExposureDimension, "clusters">;
 }) {
   const docs = useMemo(() => buildStatementDocuments(silos, meta), [silos, meta]);
   const documentDisponible = docs.length > 0;
+  const sourceBadge = SOURCE_BADGE[scenario ? "scenario" : meta.sourceKind];
 
   const [vue, setVue] = useState<"silo" | "document">("silo");
   const [openSilos, setOpenSilos] = useState<Set<string>>(() => {
@@ -1051,12 +1063,12 @@ export function CloisonsWorkspace({
               <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#46c08a" }} />
                 <span style={{ fontSize: 12.5, fontWeight: 600, color: TEXT }}>{meta.label}</span>
-                <span style={{ fontSize: 8.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: "#e3bd4d", border: "1px solid rgba(227,189,77,.4)", padding: "2px 6px", borderRadius: 5 }}>
-                  {scenario ? "Simulation" : "Démo"}
+                <span data-dossier-source style={{ fontSize: 8.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: sourceBadge.fictif ? "#e3bd4d" : ACCENT, border: `1px solid ${sourceBadge.fictif ? "rgba(227,189,77,.4)" : "rgba(91,157,255,.4)"}`, padding: "2px 6px", borderRadius: 5 }}>
+                  {sourceBadge.label}
                 </span>
               </div>
               <div style={{ marginTop: 5, fontSize: 9.5, color: FAINT, fontVariantNumeric: "tabular-nums" }}>
-                {scenario ? `${scenario.secteur} · ${scenario.forme} · ` : "SIREN 000 000 000 · "}
+                {scenario ? `${scenario.secteur} · ${scenario.forme} · ` : `${libelleSiren(meta.siren)} · `}
                 Exercice {meta.exercice} · Réf. v.2024-01-01
               </div>
             </div>
