@@ -170,6 +170,9 @@ export class FixedAssetRuntime {
       const current = await repository.get(scope, command.id);
       if (!current) throw new Error("WORKPAPER_NOT_FOUND");
       if (current.fixedAssetWork) fixedAssetWorkSchema.parse(current.fixedAssetWork);
+      // A sheet established under an earlier rule version stays readable; nothing may advance or finalize it (execution, notes,
+      // conclusion, submission, review, lock): only a revision, which adopts the current rule.
+      if (command.command !== "revise" && current.template.rule?.version !== FIXED_ASSETS_RULE.version) throw new Error("FA_RULE_REPLACED_REVISION_REQUIRED");
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       const id = command.id, v = command.expectedVersion;
       let run: WorkpaperRun;
@@ -197,8 +200,6 @@ export class FixedAssetRuntime {
         }
         case "execute": {
           if (!current.fixedAssetWork) throw new Error("FA_WORK_REQUIRED");
-          // A sheet created under an earlier rule version stays readable; it is executed again only through a revision.
-          if (current.template.rule?.version !== FIXED_ASSETS_RULE.version) throw new Error("FA_RULE_REPLACED_REVISION_REQUIRED");
           run = await service.execute(scope, id, v, { work: current.fixedAssetWork, runId: id });
           if (run.state === "executed" && run.result?.outcome !== "no_exception_detected") {
             const exceptions = (run.result!.result as FixedAssetResult).exceptions;

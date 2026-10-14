@@ -70,9 +70,11 @@ export function buildFixedAssetMission(scope: WorkpaperScope, versions: Workpape
   const review = run?.approval ? { actorId: run.approval.actorId, at: run.approval.at, note: run.approval.note, approvedVersion: run.approval.version, snapshotHash: run.approval.snapshotHash } : null;
   const resultLabel = !run?.result ? "Non exécuté" : !assets ? "Calcul Immobilisations bloqué ou contrat invalide" : assets.exceptions.some(e => !isUncertainty(e.code)) ? "Exceptions maintenues" : assets.controls.some(c => c.outcome === "inconclusive") ? "Travaux partiels — non concluant sur une partie" : "Aucun écart sur le périmètre testé — existence et valeur non démontrées";
   const reviewLabel = run?.state === "locked" ? "Revue documentée et version verrouillée" : review ? "Revue documentée" : run?.state === "awaiting_review" ? "Revue attendue" : run?.state === "changes_requested" ? "Correction demandée" : "Non revu";
+  // Each control states the rule its outcome was computed with: the run's own (1.0.0 for a legacy sheet), the programme's only without a run.
+  const appliedRule = run?.result?.ruleVersion ?? run?.template.rule?.version ?? definition.version;
   const controls = definition.tests.map(test => {
     const control = assets?.controls.find(c => c.id === test.id);
-    return { id: test.id, label: test.label, ruleVersion: definition.version, convention: CONVENTIONS[test.id], conventionValidated: !!assets, outcome: control?.outcome ?? null,
+    return { id: test.id, label: test.label, ruleVersion: appliedRule, convention: CONVENTIONS[test.id], conventionValidated: !!assets, outcome: control?.outcome ?? null,
       coverage: { numerator: control?.numerator ?? 0, denominator: control?.denominator ?? null, unit: control?.unit ?? test.label, exclusions: control?.exclusions ?? [] },
       complete: !!control && control.denominator > 0 && control.numerator === control.denominator };
   });

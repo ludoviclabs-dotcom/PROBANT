@@ -168,13 +168,24 @@ describe("C06 — nouvelle version de calcul : feuilles 1.0.0 consultables, rés
     const mission = await h.mission();
     expect(mission.procedure.stale).toBe(true);
     expect(mission.procedure.staleReasons.join(" ")).toMatch(/Règle Immobilisations 1\.0\.0 appliquée, programme 1\.1\.0 : résultat périmé/);
-    expect(await h.command({ command: "execute", id: run.id, expectedVersion: latest.version })).toMatchObject({ status: 409, body: { error: "FA_RULE_REPLACED_REVISION_REQUIRED" } });
+    // Controls keep the rule their outcome was computed with; the legacy result can neither advance nor be finalized.
+    expect(mission.procedure.controls.map(c => c.ruleVersion)).toEqual(["1.0.0", "1.0.0", "1.0.0", "1.0.0"]);
+    for (const command of [
+      { command: "execute", id: run.id, expectedVersion: latest.version },
+      { command: "conclude", id: run.id, expectedVersion: latest.version, text: "Conclusion sur un résultat 1.0.0" },
+      { command: "note", id: run.id, expectedVersion: latest.version, note: { id: "legacy-note", kind: "observation", text: "x", amount: { kind: "not_applicable", reason: "x" }, blocking: false } },
+      { command: "submit", id: run.id, expectedVersion: latest.version },
+    ]) expect(await h.command(command), command.command).toMatchObject({ status: 409, body: { error: "FA_RULE_REPLACED_REVISION_REQUIRED" } });
+    for (const command of [{ command: "review", id: run.id, expectedVersion: latest.version, decision: "approved", text: "x", submittedHash: "a".repeat(64) }, { command: "lock", id: run.id, expectedVersion: latest.version }])
+      expect(await h.command(command, "reviewer"), command.command).toMatchObject({ status: 409, body: { error: "FA_RULE_REPLACED_REVISION_REQUIRED" } });
     let revised = await h.ok({ command: "revise", id: run.id, expectedVersion: latest.version });
     expect(revised.template).toMatchObject({ version: "1.1.0", rule: { version: "1.1.0" } });
     const heads = (await h.read()).body.sourceHeads as { import_id: string }[];
     revised = await h.ok({ command: "freeze", id: revised.id, expectedVersion: revised.version, importIds: heads.map(x => x.import_id), draft: faDraft() });
     revised = await h.ok({ command: "execute", id: revised.id, expectedVersion: revised.version });
     expect(fixedAssetResultOf(revised)?.schemaVersion).toBe(FA_RESULT_SCHEMA_VERSION);
-    expect((await h.mission()).procedure.stale).toBe(false);
+    const current = await h.mission();
+    expect(current.procedure.stale).toBe(false);
+    expect(current.procedure.controls.map(c => c.ruleVersion)).toEqual(["1.1.0", "1.1.0", "1.1.0", "1.1.0"]);
   });
 });

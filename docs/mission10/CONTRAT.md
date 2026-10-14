@@ -31,7 +31,7 @@ Modifications des moteurs, toutes additives : contexte réel dédié (`assertFix
 
 **Couverture du premier lot.** Couverts : plans linéaires d’origine inchangés, fin de plan, dernière annuité, plafond au restant, composants inscrits comme unités. Exclus ou bloqués avec motif : changement de durée, de résiduel ou de méthode (segment révisé), dépréciation, entrée ou reclassement sur un actif inscrit, sortie et sortie partielle, méthodes non linéaires, amortissement dérogatoire et durée d’usage fiscale. Aucun seuil de 500 €, aucune durée par défaut.
 
-**Versions.** Règle et gabarit 1.1.0, programme 1.1.0. Les feuilles 1.0.0 et leurs résultats `fixed-assets-result-1` restent consultables ; la synthèse les marque périmées ; leur exécution est refusée (`FA_RULE_REPLACED_REVISION_REQUIRED`) et une révision adopte le gabarit 1.1.0. La comparaison versionnée montre le passage 1.0.0 → 1.1.0 actif par actif.
+**Versions.** Règle et gabarit 1.1.0, programme 1.1.0. Les feuilles 1.0.0 et leurs résultats `fixed-assets-result-1` restent consultables ; la synthèse les marque périmées ; toute commande autre que la révision (exécution, configuration, notes, conclusion, soumission, revue, verrouillage) est refusée (`FA_RULE_REPLACED_REVISION_REQUIRED`) ; une révision adopte le gabarit 1.1.0. Les contrôles d’une feuille portent la version de règle avec laquelle leur résultat a été calculé (1.0.0 pour une feuille ancienne). La comparaison versionnée montre le passage 1.0.0 → 1.1.0 actif par actif.
 
 ## Questions professionnelles
 
