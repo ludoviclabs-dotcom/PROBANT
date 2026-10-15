@@ -1,3 +1,11 @@
+# Handoff — C12 : Paie/Congés persistants sur le profil personnel (15 octobre 2026)
+
+Base 172ddd7, branche codex/c12-payroll-local. Réutilise les moteurs #70, les imports qualifiés, le profil/session C07, WorkpaperService et les contrats de stores PostgreSQL. Migration additive 0020, famille hr et deux procédures payroll.review / payroll.leave au registre commun C01/C14. Relecture personnelle nommée, export local avec pièces originales, empreinte de décision mensuelle pour limiter la péremption aux périodes dépendantes. Source officielle L3141-24 lue ; bases, inclusions/exclusions et qualifications conservées. Aucun taux social arbitraire ni estimation des droits restants.
+
+Preuves et reproduction : [docs/recette/c12/REPORT.md](../recette/c12/REPORT.md), [sources](../recette/c12/SOURCES.md), [contrat courant](../workpapers/MISSION18-PAYROLL.md#c12--profil-personnel-local-15-octobre-2026). La recette API prouve une reprise avec de nouveaux processus Next/PostgreSQL et export/pièce identiques octet pour octet. Les résultats détaillés et limites sont consignés au rapport. Rien de fusionné ni déployé.
+
+---
+
 # Handoff — Mission C11 : Clients, achats, cut-off et TVA — événements transversaux (2026-10-15)
 
 **Vérification préalable.** Aucune trace de C11 sur GitHub (PR #1 à #92, branches, commits) ni sur Vercel (déploiements jusqu'à `300829b`) : le lot n'avait pas été traité. Les Missions 07 et 08 (PR #58, #59) avaient livré les chaînes Clients et Achats/cut-off que ce lot raccorde.

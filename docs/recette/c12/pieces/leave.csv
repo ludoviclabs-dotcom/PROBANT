@@ -1,0 +1,3 @@
+id;pseudonym;from;to;unit;acquired;taken;remaining;firstBase;secondBase;firstNumerator;firstDenominator;secondNumerator;secondDenominator;secondUnit;secondFrom;secondTo;ruleRef;ruleVersion;validFrom;validTo;ruleApproved;pieceRef;page;date
+L1;SYN-A01;2026-01-01;2026-12-31;working_days;30.00;20.00;10.00;100.00;120.00;1;10;1;10;working_days;2026-01-01;2026-12-31;SYN-LEAVE-METHOD;V1;2026-01-01;2026-12-31;yes;SYN-LEAVE-PROOF;1;2026-12-31
+L2;SYN-A02;2026-01-01;2026-12-31;working_days;30.00;20.00;10.00;100.00;120.00;1;10;1;10;hours;2026-01-01;2026-12-31;SYN-LEAVE-METHOD;V1;2026-01-01;2026-12-31;yes;SYN-LEAVE-PROOF;1;2026-12-31

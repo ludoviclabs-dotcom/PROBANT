@@ -55,6 +55,24 @@ export function payrollInputHash(state: PayrollState, module: PayrollModule) {
     exclusions: module === "leave" ? [] : state.exclusions,
   });
 }
+/** Semantic dependencies of one posting month; byte identity remains in immutable source history. */
+export function payrollGroupHash(state: PayrollState, module: PayrollModule, key: string) {
+  const parts = key.split("|"), month = parts[1];
+  const [y, m] = month.split("-").map(Number);
+  const previous = String(m === 1 ? y - 1 : y) + "-" + String(m === 1 ? 12 : m - 1).padStart(2, "0");
+  const related = (r: Record<string, string>) => r.establishment === parts[0] && r.rubric === parts[2] && r.organism === parts[3] && (r.month === month || (module === "framing" && r.month === previous));
+  const sameBasis = (r: Record<string, string>) => related(r) && r.basisCode === parts[4];
+  // Event rows have no basis; payment references may intentionally connect months and bases.
+  const paymentRefs = new Set((state.sources.payments?.batch.rows.filter(r => sameBasis(r.original)).flatMap(r => r.original.paymentRef ? [r.original.paymentRef] : [])) ?? []);
+  const basisJournalRowIds = new Set((state.sources.journal?.batch.rows ?? []).filter(r => sameBasis(r.original)).map(r => r.id));
+  const units = new Set(payrollPopulation(state).filter(u => u.month === month && u.establishment === parts[0] && u.rubric === parts[2] && u.organism === parts[3] && u.rowIds.some(id => basisJournalRowIds.has(id))).map(u => u.id));
+  return stableSha256({ version: "payroll-period-2", scope: state.scope, period: state.period, module, key,
+    sources: dependencies[module].map(kind => {
+      const source = state.sources[kind]; if (!source) return null;
+      return { kind, mapping: { version: source.mapping.version, qualified: source.mapping.qualified, coverage: source.mapping.coverage, synthetic: source.mapping.synthetic },
+        rows: source.batch.rows.map(r => r.original).filter(r => (kind === "events" ? related(r) : sameBasis(r)) || (kind === "payments" && r.establishment === parts[0] && r.organism === parts[3] && paymentRefs.has(r.paymentRef))).sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) };
+    }), exclusions: state.exclusions.filter(e => units.has(e.unitId)) });
+}
 export function sourceReady(state: PayrollState, kind: PayrollKind): boolean {
   const s = state.sources[kind];
   if (!s) return false;
@@ -169,7 +187,7 @@ export function buildPayrollFraming(state: PayrollState) {
       );
     const current = sumRows(j),
       booked = sumRows(gl),
-      complete = journalReady && ledgerReady && units.every((u) => !u.excluded);
+      complete = journalReady && ledgerReady && [...j, ...gl].every(x => x.base !== null) && units.every((u) => !u.excluded);
     const delta = difference(booked, current, complete),
       prev = journal.filter(
         (x) =>
@@ -185,11 +203,13 @@ export function buildPayrollFraming(state: PayrollState) {
     const previousUnits = population.filter((u) =>
       u.rowIds.some((id) => prev.some((x) => x.id === id)),
     );
+    const groupHash = payrollGroupHash(state, "framing", key);
     const review = state.reviews.find(
       (x) => x.module === "framing" && x.targetId === stableSha256(key),
     );
     return {
       id: stableSha256(key),
+      inputHash: groupHash,
       establishment: r.establishment,
       month: r.month,
       rubric: r.rubric,
@@ -202,7 +222,7 @@ export function buildPayrollFraming(state: PayrollState) {
       variation: difference(
         current,
         sumRows(prev),
-        complete && prev.length > 0 && previousUnits.every((u) => !u.excluded),
+        complete && prev.length > 0 && prev.every(x => x.base !== null) && previousUnits.every((u) => !u.excluded),
       ),
       previousMonth: previousMonth(r.month),
       details: j,
@@ -214,7 +234,7 @@ export function buildPayrollFraming(state: PayrollState) {
       status:
         delta.kind !== "known"
           ? ("blocked" as const)
-          : review?.inputHash === inputHash
+          : review?.inputHash === groupHash
             ? ("documented" as const)
             : review
               ? ("stale" as const)

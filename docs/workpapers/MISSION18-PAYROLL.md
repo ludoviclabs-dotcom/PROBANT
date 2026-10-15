@@ -1,5 +1,7 @@
 # Mission 18 — Paie par étapes, congés séparés
 
+> État courant : voir la section **C12 — profil personnel local** en fin de contrat. Les sections suivantes décrivent la livraison historique #70.
+
 ## Parcours livré
 
 `/paie-personnel` est relié à la synthèse principale et à la synthèse synthétique. Deux étapes de paie : cadrage journal/GL, puis journal/GL/déclarations/paiements. `/paie-personnel/conges` porte une population, un import et un calcul distincts. Les données, calculs, décisions et sources sont produits par les modules serveur de `lib/workpapers`, sans moteur de calcul dans React.
@@ -74,3 +76,20 @@ Recette automatisée : 50/48 ; rappel après sortie ; duplication paiement ; dat
 3. Règles de congés réelles applicables/versionnées et bases validées ; estimation de provision seulement dans une procédure dédiée.
 
 La livraison ne prouve ni conformité sociale, ni exhaustivité déclarative, ni conformité RGPD, ni absence d’erreur de paie.
+
+## C12 — profil personnel local (15 octobre 2026)
+
+Cette section remplace les restrictions historiques de #70 concernant le stockage local. Le reste du contrat CSV, les contrôles d'identité pseudonymisée et les limites métier sont conservés. Aucun parcours distant ni SaaS n'est ouvert.
+
+- Profil C07 valide, PostgreSQL loopback et session `local-session` du propriétaire, drapeau `PROBANT_PAYROLL_DURABLE=personal`, habilitation RH serveur séparée `PROBANT_LOCAL_HR=enabled`. Le lanceur C07 pose ces deux paramètres. Les rôles généraux et la seconde identité de simulation ne donnent pas accès aux données RH.
+- Migration additive `0020_payroll_local` : imports et octets, approbations, têtes de sources, reçus d'idempotence, versions de feuilles et archive du runtime. Toutes les mutations sont sérialisées par verrou du dossier dans une transaction PostgreSQL. L'archive conserve contexte, décisions, versions antérieures et aperçus ; aucune purge des quarante versions n'est appliquée au profil persistant. Limite explicite de 32 Mio pour l'archive : dépassement refusé sans perte de l'état précédent.
+- Deux procédures communes `payroll.review` et `payroll.leave`, famille `hr`, via `WorkpaperService`. Les versions sont vues par les adaptateurs de lecture de C01/C14. Leur projection ne contient ni pseudonyme, ni ligne CSV, ni montant RH ; elle porte les états, empreintes et versions. Le détail et l'export RH restent soumis à l'habilitation dédiée.
+- Les décisions de groupe sont liées à une empreinte sémantique des lignes du mois et des dépendances utiles. Le cadrage dépend également du mois précédent pour sa variation ; les références de paiement répétées traversent les mois. Une source amendée conserve sa version d'origine et ne périme pas un groupe sans dépendance modifiée. Une modification de mapping sémantique ou de couverture reste une dépendance.
+- Les exports locaux JSON canoniques regroupent contexte, calculs, décisions, historique, relectures et toutes les pièces approuvées en base64. Le téléchargement individuel vérifie le SHA-256 original. Export réservé au profil local, `private, no-store`. La sauvegarde C07 inclut automatiquement les tables `hr_*` et les pièces en base.
+- Relecture et verrouillage communs, note explicite et empreinte exacte. Dans le profil solo : « Relecture personnelle nommée » avec le nom serveur ; aucune revendication de revue indépendante par deux personnes réelles.
+
+Le schéma Congés accepte en plus les colonnes optionnelles `firstInclusions`, `firstExclusions`, `secondInclusions`, `secondExclusions` (éléments séparés par `|`), `chargesAmount`, `chargesBasis`, `accountingQualification`, `accountingReason`. Dans le profil local, les inclusions et exclusions des deux méthodes sont obligatoires pour obtenir une comparaison établie. Le booléen de provenance `synthetic` distingue les fixtures et les mappings du dossier local ; il ne donne aucun droit.
+
+Pour les charges, `chargesBasis` est l'empreinte des droits comparés (`stableSha256(rights)`) et la date est celle de clôture ; sans base identique et preuve, elles restent non établies. `accountingQualification` est une déclaration, pas une conclusion automatique ; sa justification et sa pièce sont exportées. Sources et justification : `docs/recette/c12/SOURCES.md`.
+
+L'API distante reste fermée sans consommer les corps transmis. Les imports restent des CSV qualifiés, avec pseudonymes SYN, sans nom ni NIR. Aucun parseur DSN natif, calcul de paie, taux de charges ou estimation de droits restants n'est introduit. L'historique mémoire d'une ancienne démo n'est jamais présenté comme récupéré : il faut réimporter ses CSV dans le dossier local.

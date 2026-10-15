@@ -1,0 +1,15 @@
+# C12 — sources et qualification des congés
+
+Consultation : 15 octobre 2026. Les sources officielles ci-dessous sont distinctes des pièces synthétiques de recette et des fractions explicitement fournies par le dossier.
+
+| Source | Version et portée |
+| --- | --- |
+| [Code du travail, L3141-24](https://code.travail.gouv.fr/code-du-travail/l3141-24), texte Légifrance LEGIARTI000049461568 | Version du 24 avril 2024, loi 2024-364 art. 37. Comparaison du dixième et du maintien de rémunération, pour le congé concerné. La base de référence et les périodes assimilées, dont le traitement particulier du 7° de L3141-5, doivent être qualifiées. Aucun coefficient n'est appliqué automatiquement. |
+| [L3141-25](https://code.travail.gouv.fr/code-du-travail/l3141-25) | Version du 10 août 2016 : avantages accessoires et prestations en nature dont le salarié ne bénéficie plus pendant le congé ; qualification à documenter. |
+| [L3141-28](https://code.travail.gouv.fr/code-du-travail/l3141-28) | Version du 10 août 2016 : indemnité compensatrice à la rupture pour le congé non pris. Ce cas n'est pas assimilé à une estimation automatique des droits restants d'un salarié en poste. |
+| [Service Public, F33359](https://www.service-public.gouv.fr/particuliers/vosdroits/F33359) | Fiche vérifiée le 6 février 2026 : salaire de base, majorations et éléments variables à qualifier ; frais professionnels et rémunérations couvrant indistinctement travail et congés à distinguer. La convention, le maintien effectif des primes et les pièces du dossier déterminent les bases retenues. |
+| [ANC, PCG consolidé au 1er janvier 2026](https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Plans%20comptables/2026/PCG--1er-janvier-2026.pdf), art. 321-1, 321-2, 321-4, 321-5 | Définitions lues dans la source officielle et rapprochées du contrat Mission 16 : une dette certaine aux montant et échéance précis, une estimation de sortie de ressources et une provision ne sont pas des synonymes. Le montant de la comparaison de congés ne décide d'aucun de ces classements. |
+
+Choix interne C12 : l'utilisateur fournit et qualifie les deux bases, fractions, inclusions et exclusions, la règle/version, sa période d'applicabilité et la pièce/page. Le calcul compare les méthodes uniquement si les droits, unités et périodes sont identiques. Le dossier de recette donne explicitement 10 000 × 1/10 = 1 000 et 11 000 × 1/10 = 1 100 ; le maximum est 1 100 pour ce dossier précis. Ces fractions fournies ne définissent pas une méthode de maintien de salaire universelle.
+
+`remainingRightsEstimate` demeure inconnu : une indemnité sur les droits comparés n'évalue pas les droits restants. Les charges sont un montant documenté avec preuve et base des mêmes droits, jamais un pourcentage forfaitaire. Le classement `debt / estimate / provision / unqualified`, avec sa justification, est une déclaration du dossier, sans classement automatique ni écriture au GL. Les références officielles n'établissent pas à elles seules l'applicabilité d'une convention ou l'exhaustivité d'un export.

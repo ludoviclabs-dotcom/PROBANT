@@ -235,6 +235,7 @@
   color: var(--blue);
 }
 .tableScroll {
+  position: relative;
   overflow-x: auto;
   animation: arrive 0.25s ease-out;
 }
@@ -651,9 +652,10 @@
   }
   .boundary {
     align-items: flex-start;
+    flex-wrap: wrap;
   }
   .version {
-    display: none;
+    display: block;
   }
   .table tbody td,
   .table tbody th {
@@ -687,3 +689,9 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* C12 local confirmation forms retain a readable line at 390 px. */
+.importArea label { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 12px 0; font-size: 13px; }
+.importArea :is(input, textarea) { max-width: 100%; min-width: 0; padding: 8px; border: 1px solid var(--line); border-radius: 4px; background: white; color: var(--ink); }
+.importArea textarea { width: 100%; min-height: 70px; }
+.shell textarea:focus-visible { outline: 3px solid #348cae; outline-offset: 4px; }

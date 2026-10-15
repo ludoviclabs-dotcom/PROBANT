@@ -35,8 +35,17 @@ interface Preview {
   hash: string;
   actorId: string;
 }
+export interface PayrollArchive {
+  state: PayrollState;
+  history: PayrollState[];
+  audit: { action: string; version: number; at: string }[];
+  previews: { id: string; source: PayrollSource; original: string; version: number; created: number; hash: string; actorId: string }[];
+}
+export interface PayrollImportPort {
+  approveAndSave: MemoryImportRepository["approveAndSave"];
+}
 export class PayrollRuntime {
-  private imports = new MemoryImportRepository();
+  private imports: PayrollImportPort = new MemoryImportRepository();
   private previews = new Map<string, Preview>();
   private history: PayrollState[] = [];
   private tail: Promise<void> = Promise.resolve();
@@ -49,14 +58,27 @@ export class PayrollRuntime {
   constructor(
     private state: PayrollState,
     private clock: () => number = Date.now,
+    private durable = false,
   ) {
     if (
       periodIssues(state.period).length ||
       periodId(state.period) !== state.scope.periodId ||
-      state.scope.mode !== "demo"
+      (state.scope.mode !== "demo" && !durable)
     )
       throw Error("HR_SCOPE_INVALID");
     this.state = frozen(state);
+  }
+  static restore(archive: PayrollArchive, imports: PayrollImportPort, clock: () => number = Date.now) {
+    const runtime = new PayrollRuntime(archive.state, clock, true);
+    runtime.imports = imports;
+    runtime.history = archive.history;
+    runtime.audit = archive.audit;
+    for (const p of archive.previews) runtime.previews.set(p.id, { ...p, file: new File([Buffer.from(p.original, "base64")], "source-synthetique.csv", { type: "text/csv" }) });
+    return runtime;
+  }
+  async archive(actor: HRPrincipal): Promise<PayrollArchive> {
+    this.check(actor, "read");
+    return { state: this.state, history: this.history, audit: this.audit, previews: await Promise.all([...this.previews].map(async ([id, p]) => ({ id, source: p.source, original: Buffer.from(await p.file.arrayBuffer()).toString("base64"), version: p.version, created: p.created, hash: p.hash, actorId: p.actorId }))) };
   }
   static async create(scenario = "standard") {
     const runtime = new PayrollRuntime({
@@ -116,7 +138,7 @@ export class PayrollRuntime {
     }
     return frozen({
       version: state.version,
-      mode: "synthetic" as const,
+      mode: this.durable ? "personal_local" as const : "synthetic" as const,
       period: state.period,
       framing: buildPayrollFraming(state),
       settlements: buildPayrollSettlements(state),
@@ -213,7 +235,7 @@ export class PayrollRuntime {
               : buildPayrollSettlements(state),
           group = results.groups.find((g) => g.id === c.targetId),
           proof = group?.evidence.find((e) => e.id === c.evidenceId);
-        if (results.inputHash !== c.inputHash) throw Error("HR_REVIEW_STALE");
+        if (group?.inputHash !== c.inputHash && results.inputHash !== c.inputHash) throw Error("HR_REVIEW_STALE");
         if (
           !group ||
           !proof ||
@@ -230,11 +252,12 @@ export class PayrollRuntime {
             {
               module: c.module,
               targetId: c.targetId,
-              inputHash: c.inputHash,
+              inputHash: group.inputHash,
               reason: c.reason,
               evidenceId: c.evidenceId,
               authorId: actor.id,
               at: new Date(this.clock()).toISOString(),
+              ...(actor.review ? { kind: actor.review, reviewerName: actor.displayName } : {}),
             },
           ],
         };
@@ -267,14 +290,14 @@ export class PayrollRuntime {
         };
       }
       this.history.push(state);
-      if (this.history.length > 40) this.history.shift();
+      if (!this.durable && this.history.length > 40) this.history.shift();
       this.state = frozen({ ...next, version: state.version + 1 });
       this.audit.push({
         action: c.action,
         version: this.state.version,
         at: new Date(this.clock()).toISOString(),
       });
-      if (this.audit.length > 80) this.audit.shift();
+      if (!this.durable && this.audit.length > 80) this.audit.shift();
       return this.read(actor);
     });
   }

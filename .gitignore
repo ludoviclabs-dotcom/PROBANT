@@ -42,3 +42,6 @@ yarn-error.log*
 /sbom.cdx.json
 
 .vercel
+
+# Local C12 validation artifacts and binaries
+.c12-*

@@ -9,11 +9,11 @@ import { MODULE_MANIFEST } from "@/lib/workpapers/availability";
 import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
 
 describe("C01 registre et adaptateurs de lecture", () => {
-  it("preserves all 13 journal cycles, 15 engine procedures, 7 stores and 11 reconciliation configurations", () => {
+  it("preserves all 13 journal cycles, 17 engine procedures, 8 stores and 11 reconciliation configurations", () => {
     expect(CL_CYCLES).toHaveLength(13); expect(CL_ENGINE_PROCEDURES).toBe(ENGINE_PROCEDURES); expect(CL_FAMILIES).toBe(STORE_FAMILIES);
-    expect(ENGINE_PROCEDURES).toHaveLength(15); expect(STORE_FAMILIES).toEqual(["clients", "cash", "fa", "eq", "fx", "st", "pv"]);
+    expect(ENGINE_PROCEDURES).toHaveLength(17); expect(STORE_FAMILIES).toEqual(["clients", "cash", "fa", "eq", "fx", "st", "pv", "hr"]);
     expect(AUDIT_CYCLES).toHaveLength(11); expect(DOCUMENT_TYPES).toHaveLength(22);
-    expect(new Set(ENGINE_PROCEDURES.map(p => p.id)).size).toBe(15);
+    expect(new Set(ENGINE_PROCEDURES.map(p => p.id)).size).toBe(17);
     for (const c of CAPABILITY_REGISTRY) { expect(c.requiredSources.length).toBeGreaterThan(0); expect(c.exclusions.length).toBeGreaterThan(0); }
   });
   it("describes Stocks as implemented locally and absent only from the workshop", () => {
@@ -29,7 +29,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.2.1");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.3.0");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -49,10 +49,10 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(capabilityReadModel(env)).toMatchObject({ observationStatus: "not_read", observations: [] });
     expect(configuredProcedures({ ...env, VERCEL_ENV: "production" })["stocks.count"].activated).toBe(false);
   });
-  it("reads existing heads of all seven families using all three scope keys and without writes", async () => {
+  it("reads existing heads of all eight families using all three scope keys and without writes", async () => {
     const f = await clientMissionFixture(), queries: { sql: string; params: unknown[] }[] = [];
     const result = await readStoreHeads({ execute: async query => { const q = new PgDialect().sqlToQuery(query); queries.push(q); return queries.length === 1 ? [{ run: f.locked }] : []; } }, f.scope);
-    expect(result).toEqual([{ family: "clients", run: f.locked }]); expect(queries).toHaveLength(7);
+    expect(result).toEqual([{ family: "clients", run: f.locked }]); expect(queries).toHaveLength(8);
     for (const [i, q] of queries.entries()) { expect(q.sql).toContain(STORE_FAMILIES[i] + "_workpaper_heads"); expect(q.sql).toContain(STORE_FAMILIES[i] + "_workpaper_versions"); expect(q.params).toEqual([f.scope.organizationId, f.scope.dossierId, f.scope.periodId]); expect(q.sql).not.toMatch(/INSERT|UPDATE|DELETE/); }
   });
   it("fails closed when a row belongs to another dossier, organization, period or family", async () => {

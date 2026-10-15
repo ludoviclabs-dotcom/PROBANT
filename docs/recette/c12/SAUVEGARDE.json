@@ -1,0 +1,41 @@
+{
+  "createdAt": "2026-10-15T14:17:52.084Z",
+  "label": "c12-final",
+  "tablesTotal": 76,
+  "payrollTables": {
+    "hr_command_receipts": {
+      "rows": 54,
+      "digest": "723ed18099edec8aba722a40eaa11f1996b598b26cca5222ba150a759b5624aa"
+    },
+    "hr_import_approvals": {
+      "rows": 20,
+      "digest": "60d644d9fe3109b64c20e0eb9912aa0a2279860ee4b2a23e0a474c5db95a384a"
+    },
+    "hr_imports": {
+      "rows": 20,
+      "digest": "445edb5796b30ec611b6a540630c1a1e79d7371ceb52baac18177dbe75c63824"
+    },
+    "hr_runtime": {
+      "rows": 6,
+      "digest": "2e584d95a83ac61f782d49b9c96ce6c7c2d75d7ac85f8b8ccd7caecf06529510"
+    },
+    "hr_source_heads": {
+      "rows": 14,
+      "digest": "6f9c0a91d52569a321da90fc6e3d7e5f3b00bbacebe394fbbcf519542defccb7"
+    },
+    "hr_workpaper_heads": {
+      "rows": 24,
+      "digest": "89fff82c29bd86b564debeff43b8618ac1be7d7410fcc3a8af7b7a0af20c8be3"
+    },
+    "hr_workpaper_versions": {
+      "rows": 56,
+      "digest": "d86f5edb1dce30e6f1bba49e5f05b7a0927ed24e3c53dd4ded108b6a97899f0f"
+    }
+  },
+  "dump": {
+    "file": "base.dump",
+    "bytes": 643231,
+    "sha256": "62d65c64fa00d38743e3a63f9fb6683bf8b0c31dca729c3774b0161f6b65cc38"
+  },
+  "piecesNotice": "Les octets des imports RH sont dans hr_imports.original_base64, donc dans la base sauvegardée."
+}
