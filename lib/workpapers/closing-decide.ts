@@ -1,14 +1,16 @@
 import { periodIssues } from "@/lib/canonical-model/period";
+import { cents } from "@/lib/canonical-model/money";
+import type { ReviewKind } from "@/lib/auth/review-kind";
 import { engineProcedure, isControl, stepsFor, type CitationInput, type ClosingCommand, type PieceKind, type ResolvedCitation } from "./closing-contract";
-import { fingerprint, type CycleObservation } from "./closing-cycles";
+import { fingerprint, sheetLineages, type CycleObservation } from "./closing-cycles";
 import { evaluateClosing } from "./closing-evaluate";
-import { correctionCurrent, currentValidation, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type ClosingEventType, type ClosingState } from "./closing-journal";
+import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type Attribution, type ClosingEventType, type ClosingState } from "./closing-journal";
 
 /**
  * Decision rules of the professional file: one command, checked against the folded journal, becomes one event.
  * Identifiers, authors, dates, citations (file name, hash, kind) and dependency hashes are set here by the server, never by the browser.
  */
-export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[] }
+export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[]; reviewKind?: ReviewKind; displayName?: string }
 export interface Decision { type: ClosingEventType; payload: Record<string, unknown> }
 
 export function resolveCitation(s: ClosingState, c: CitationInput): ResolvedCitation {
@@ -28,6 +30,17 @@ const resolveAll = (s: ClosingState, list: CitationInput[]) => {
 const corroborated = (list: ResolvedCitation[]) => list.some(c => c.kind !== "declaration_direction");
 const procedureOf = (s: ClosingState, id: string) => { const p = s.procedures[id]; if (!p) throw new Error("CL_PROCEDURE_UNKNOWN"); return p; };
 const applicableOf = (s: ClosingState, id: string) => s.applicability[id]?.applicable !== false;
+/**
+ * Who decides (C07 vocabulary, from the server identity only). Another identity: historical shape. The author themself: only as a named personal review
+ * of the local solo profile, recorded as such and never counted as a review by another person; otherwise refused with the given code.
+ */
+function attribution(ctx: DecideContext, authors: string[], refusal: string): Attribution {
+  if (ctx.reviewKind === "simulated_second_identity") return { kind: "simulated_second_identity" };
+  if (!authors.includes(ctx.actorId)) return ctx.reviewKind ? { kind: "distinct_identity" } : {};
+  if (ctx.reviewKind !== "personal") throw new Error(refusal);
+  if (!ctx.displayName?.trim()) throw new Error("CL_PERSONAL_REVIEWER_NAME_REQUIRED");
+  return { kind: "personal", reviewerName: ctx.displayName.trim() };
+}
 
 export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideContext): Decision {
   if (command.expectedSeq !== s.seq) throw new Error("CL_STALE_SEQ");
@@ -60,7 +73,7 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const allowed = new Set(command.riskIds.flatMap(r => s.risks[r].assertions));
       if (command.assertions.some(a => !allowed.has(a))) throw new Error("CL_ASSERTION_NOT_IN_RISK");
       if ((command.nature === "engine") !== !!command.engine) throw new Error(command.nature === "engine" ? "CL_ENGINE_REQUIRED" : "CL_ENGINE_ONLY_FOR_ENGINE");
-      if (command.engine && Object.values(s.procedures).some(p => p.engine === command.engine && p.procedureId !== command.procedureId)) throw new Error("CL_ENGINE_ALREADY_LINKED");
+      // Several programme procedures may observe the same cycle procedure (two bank accounts, two VAT periods): each then binds its own sheet lineage.
       const existing = s.procedures[command.procedureId];
       if (existing && existing.nature !== command.nature && (s.records.some(r => r.procedureId === command.procedureId) || s.conclusions[command.procedureId])) throw new Error("CL_NATURE_LOCKED");
       return { type: "set_procedure", payload: { procedureId: command.procedureId, riskIds: [...new Set(command.riskIds)], assertions: [...new Set(command.assertions)], nature: command.nature, label: command.label, owner: command.owner,
@@ -143,10 +156,10 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const p = procedureOf(s, command.procedureId), conclusion = s.conclusions[p.procedureId];
       if (!conclusion) throw new Error("CL_CONCLUSION_REQUIRED");
       if (procedureBasis(s, p.procedureId) !== conclusion.basisHash || conclusion.citations.some(c => isSuperseded(s, c))) throw new Error("CL_CONCLUSION_STALE");
-      // Review by another person (NEP 230 §08): neither the author of the conclusion nor of any work it rests on.
-      if (conclusion.by === ctx.actorId || s.records.some(r => r.procedureId === p.procedureId && r.by === ctx.actorId)) throw new Error("CL_SELF_REVIEW_FORBIDDEN");
+      // Review by another person (NEP 230 §08): neither the author of the conclusion nor of any work it rests on — except a named personal review (solo), recorded as such.
+      const who = attribution(ctx, [conclusion.by, ...s.records.filter(r => r.procedureId === p.procedureId).map(r => r.by)], "CL_SELF_REVIEW_FORBIDDEN");
       if (command.decision === "approved" && Object.values(s.reviewPoints).some(r => r.target.kind === "procedure" && r.target.id === p.procedureId && !r.closed)) throw new Error("CL_REVIEW_POINT_OPEN");
-      return { type: "review_procedure", payload: { procedureId: p.procedureId, decision: command.decision, text: command.text, conclusionSeq: conclusion.seq, basisHash: conclusion.basisHash } };
+      return { type: "review_procedure", payload: { procedureId: p.procedureId, decision: command.decision, text: command.text, conclusionSeq: conclusion.seq, basisHash: conclusion.basisHash, ...who } };
     }
     case "raise_review_point": {
       const t = command.target;
@@ -164,8 +177,8 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       if (!rp) throw new Error("CL_REVIEW_POINT_UNKNOWN");
       if (rp.closed) throw new Error("CL_REVIEW_POINT_CLOSED");
       if (!rp.answers.length) throw new Error("CL_ANSWER_REQUIRED");
-      if (rp.answers.at(-1)!.by === ctx.actorId) throw new Error("CL_SELF_CLOSE_FORBIDDEN");
-      return { type: "close_review_point", payload: { pointId: rp.pointId, text: command.text } };
+      const who = attribution(ctx, [rp.answers.at(-1)!.by], "CL_SELF_CLOSE_FORBIDDEN");
+      return { type: "close_review_point", payload: { pointId: rp.pointId, text: command.text, ...who } };
     }
     case "record_misstatement": {
       if (command.procedureId) procedureOf(s, command.procedureId);
@@ -182,14 +195,20 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const fresh = citations.filter(c => !original.has(c.pieceVersionId) && s.pieces.find(x => x.pieceVersionId === c.pieceVersionId)!.seq > m.seq);
       if (!fresh.length) throw new Error("CL_NEW_EVIDENCE_REQUIRED");
       if (!corroborated(fresh)) throw new Error("CL_REPRESENTATION_ONLY");
-      return { type: "correct_misstatement", payload: { misstatementId: m.misstatementId, text: command.text, citations } };
+      // A partial correction states the corrected amount: same sign, strictly smaller than the known misstatement; an unknown misstatement has no known remainder.
+      if (command.correctedAmount) {
+        if (m.amount.kind !== "known") throw new Error("CL_PARTIAL_AMOUNT_UNKNOWN");
+        const total = cents(m.amount.value), part = cents(command.correctedAmount);
+        if (part === 0n || (part > 0n) !== (total > 0n) || (part < 0n ? -part : part) >= (total < 0n ? -total : total)) throw new Error("CL_CORRECTED_AMOUNT_INVALID");
+      }
+      return { type: "correct_misstatement", payload: { misstatementId: m.misstatementId, text: command.text, citations, ...(command.correctedAmount ? { correctedAmount: command.correctedAmount } : {}) } };
     }
     case "assess_misstatement": {
       const m = s.misstatements[command.misstatementId];
       if (!m) throw new Error("CL_MISSTATEMENT_UNKNOWN");
       if (correctionCurrent(s, m)) throw new Error("CL_MISSTATEMENT_ALREADY_CORRECTED");
-      if (m.by === ctx.actorId) throw new Error("CL_SELF_REVIEW_FORBIDDEN");
-      return { type: "assess_misstatement", payload: { misstatementId: m.misstatementId, text: command.text } };
+      const who = attribution(ctx, [m.by], "CL_SELF_REVIEW_FORBIDDEN");
+      return { type: "assess_misstatement", payload: { misstatementId: m.misstatementId, text: command.text, ...who } };
     }
     case "record_limitation": {
       command.procedureIds.forEach(id => procedureOf(s, id));
@@ -198,8 +217,8 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
     case "assess_limitation": {
       const l = s.limitations[command.limitationId];
       if (!l) throw new Error("CL_LIMITATION_UNKNOWN");
-      if (l.by === ctx.actorId) throw new Error("CL_SELF_REVIEW_FORBIDDEN");
-      return { type: "assess_limitation", payload: { limitationId: l.limitationId, text: command.text } };
+      const who = attribution(ctx, [l.by], "CL_SELF_REVIEW_FORBIDDEN");
+      return { type: "assess_limitation", payload: { limitationId: l.limitationId, text: command.text, ...who } };
     }
     case "record_contradiction": {
       command.procedureIds.forEach(id => procedureOf(s, id));
@@ -214,6 +233,41 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const citations = resolveAll(s, command.citations);
       if (!corroborated(citations)) throw new Error("CL_REPRESENTATION_ONLY");
       return { type: "resolve_contradiction", payload: { contradictionId: c.contradictionId, text: command.text, citations } };
+    }
+    case "bind_sheet": {
+      const p = procedureOf(s, command.procedureId);
+      if (p.nature !== "engine" || !p.engine) throw new Error("CL_BIND_ENGINE_ONLY");
+      const lineage = sheetLineages(ctx.observations, p.engine).find(l => l.rootId === command.rootId);
+      if (!lineage) throw new Error("CL_SHEET_UNKNOWN");
+      if (Object.values(s.bindings).some(b => b.engine === p.engine && b.rootId === command.rootId && b.procedureId !== p.procedureId && s.procedures[b.procedureId]?.engine === p.engine)) throw new Error("CL_SHEET_ALREADY_BOUND");
+      // The binding records what the procedure covers, as seen by the server now: entity and exercise of the file, sheet period and perimeter, run, version and fingerprints.
+      const o = lineage.current;
+      return { type: "bind_sheet", payload: { procedureId: p.procedureId, engine: p.engine, rootId: o.rootId, perimeter: command.perimeter, family: o.family, runId: o.runId, revision: o.revision, version: o.version, state: o.state,
+        contentHash: o.contentHash, populationHash: o.populationHash, populationSize: o.populationSize, period: o.period, entity: s.opened.entity, exercise: { startDate: s.opened.period.startDate, closingDate: s.opened.period.closingDate } } };
+    }
+    case "exclude_sheet": {
+      const lineage = sheetLineages(ctx.observations, command.engine).find(l => l.rootId === command.rootId);
+      if (!lineage) throw new Error("CL_SHEET_UNKNOWN");
+      if (Object.values(s.bindings).some(b => b.engine === command.engine && b.rootId === command.rootId && s.procedures[b.procedureId]?.engine === command.engine)) throw new Error("CL_SHEET_BOUND");
+      if (s.exclusions[exclusionKey(command.engine, command.rootId)]?.reason === command.reason) throw new Error("CL_SHEET_ALREADY_EXCLUDED");
+      const o = lineage.current;
+      return { type: "exclude_sheet", payload: { engine: command.engine, rootId: o.rootId, reason: command.reason, runId: o.runId, revision: o.revision, version: o.version, contentHash: o.contentHash } };
+    }
+    case "set_milestone": {
+      if ((command.milestone === "autre") !== !!command.label) throw new Error("CL_MILESTONE_LABEL");
+      return { type: "set_milestone", payload: { milestone: command.milestone, ...(command.label ? { label: command.label } : {}), date: command.date, citations: resolveAll(s, command.citations) } };
+    }
+    case "set_threshold": {
+      if (command.amount.kind === "known" && cents(command.amount.value) < 0n) throw new Error("CL_THRESHOLD_INVALID");
+      return { type: "set_threshold", payload: { threshold: command.threshold, amount: command.amount, ...(command.basis ? { basis: command.basis } : {}), ...(command.rate ? { rate: command.rate } : {}), rationale: command.rationale, citations: resolveAll(s, command.citations) } };
+    }
+    case "mark_personal_complete": {
+      // Solo mode only: the server identity carries a named personal review. The mark records the limits visible now; it is never a professional validation.
+      if (ctx.reviewKind !== "personal") throw new Error("CL_PERSONAL_PROFILE_REQUIRED");
+      if (!ctx.displayName?.trim()) throw new Error("CL_PERSONAL_REVIEWER_NAME_REQUIRED");
+      const evaluation = evaluateClosing(s, ctx.observations);
+      return { type: "mark_personal_complete", payload: { text: command.text, reviewerName: ctx.displayName.trim(), headHash: s.headHash, headSeq: s.seq, cycles: ctx.observations.filter(o => engineProcedure(o.procedure)).map(fingerprint),
+        limits: [...evaluation.blockers, ...evaluation.professionalGaps].map(b => ({ code: b.code, label: b.label })) } };
     }
     case "validate_closing": {
       if (!ctx.closingAuthority) throw new Error("CL_CLOSING_AUTHORITY_FORBIDDEN");

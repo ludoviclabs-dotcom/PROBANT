@@ -11,7 +11,7 @@ import type { ProbantRole } from "@/lib/auth/roles";
 import { ClosingRuntime } from "../closing-runtime";
 import { closingHandlers } from "../closing-http";
 import { PostgresClosingDatabase } from "../closing-store";
-import { periodId, WORKPAPER_SCHEMA_VERSION, type WorkpaperRun } from "../model";
+import { contentHash, periodId, WORKPAPER_SCHEMA_VERSION, type WorkpaperRun } from "../model";
 import { pvPeriod } from "./provision-fixtures";
 import { assertDisposableDatabase } from "./disposable-database";
 
@@ -109,5 +109,33 @@ describe.skipIf(!databaseUrl)("recette Dossier de clôture — PostgreSQL jetabl
     const [{ count }] = await client<{ count: string }[]>`SELECT count(*)::text AS count FROM cl_events WHERE dossier_id = ${dossierA}`;
     expect(Number(count)).toBe(view.seq);
     expect((await handlers.GET(request(reviewer, "GET", undefined, "", "&operation=download&id=PC-01-v1"))).status).toBe(200);
+  });
+  it("C14 — Paie retrouvée après reprise : la feuille hr_* est lue par sa famille, le rattachement persiste après une nouvelle connexion, une révision le périme", async () => {
+    // A payroll sheet head as the C12 local runtime stores it (locked after a named personal review), written in the hr family tables only.
+    const hrScope = { organizationId: orgA, dossierId: dossierA, periodId: pid, mode: "real" as const };
+    const base: WorkpaperRun = { id: "hr-durable-1", rootId: "hr-durable-1", revision: 1, version: 4, schemaVersion: WORKPAPER_SCHEMA_VERSION, scope: hrScope, period: pvPeriod,
+      template: { id: "payroll.review", version: "1.0.0", objective: "Paie synthétique", kind: "calculated", assertions: [], requiredDocumentTypes: [] }, state: "locked", preparedBy: "proprietaire-local",
+      importIds: [], evidence: [], findings: [], notes: [], events: [],
+      population: { id: "hr-durable-1:population", scope: hrScope, importIds: [], unit: "row", items: [{ id: "2026-09|SOC", rowIds: ["r1"], amount: { amount: "50.00", currency: "EUR" } }], hash: "a".repeat(64) } };
+    const locked: WorkpaperRun = { ...base, approval: { actorId: "proprietaire-local", kind: "personal", reviewerName: "Camille Martin", note: "Relu sous mon nom.", at: "2027-02-01T10:00:00.000Z", version: 3, snapshotHash: contentHash(base) } };
+    await client`INSERT INTO hr_workpaper_heads (organization_id,dossier_id,period_id,id,version) VALUES (${orgA},${dossierA},${pid},${locked.id},4)`;
+    await client`INSERT INTO hr_workpaper_versions (organization_id,dossier_id,period_id,id,version,run) VALUES (${orgA},${dossierA},${pid},${locked.id},4,${JSON.stringify(locked)}::jsonb)`;
+    await ok({ command: "set_risk", riskId: "R-02", cycle: "paie", label: "Charges sociales", assertions: ["solde_exhaustivite"], assessment: { level: "modere", rationale: "Paie interne." } });
+    await ok({ command: "set_procedure", procedureId: "P-03", riskIds: ["R-02"], assertions: ["solde_exhaustivite"], nature: "engine", engine: "payroll.review", label: "Paie — rapprochement", owner: "Moi" });
+    let view = await ok({ command: "bind_sheet", procedureId: "P-03", rootId: "hr-durable-1", perimeter: "Paie 2026 — établissement unique" });
+    const p3 = (v: { evaluation: { procedures: { procedureId: string }[] } }) => v.evaluation.procedures.find(p => p.procedureId === "P-03");
+    expect(p3(view)).toMatchObject({ status: "cycle_verrouille", done: false, donePersonal: true, reviewBasis: "personnelle", engine: { binding: { mode: "explicite", recorded: { runId: "hr-durable-1", version: 4 } }, retained: { family: "hr", sourcesCurrent: true } } });
+    // Reprise: a new connection reads the same journal and the same family tables.
+    await client.end(); connect();
+    view = await read();
+    expect(view.evaluation.observations).toEqual(expect.arrayContaining([expect.objectContaining({ family: "hr", procedure: "payroll.review", runId: "hr-durable-1", state: "locked" })]));
+    expect(p3(view)).toMatchObject({ status: "cycle_verrouille", engine: { binding: { mode: "explicite", perimeter: "Paie 2026 — établissement unique", drift: null } } });
+    expect(view.projection.cycles.find((c: { cycle: string }) => c.cycle === "paie").rows[0]).toMatchObject({ procedureId: "P-03", sheet: { rootId: "hr-durable-1", family: "hr", perimeter: "Paie 2026 — établissement unique" } });
+    // A later import revises the payroll sheet (C12): revision 2 is current, the locked revision 1 no longer counts.
+    const r2: WorkpaperRun = { ...base, id: "hr-durable-1:r2", revision: 2, version: 1, state: "draft", supersedes: "hr-durable-1", previousLockedId: "hr-durable-1" };
+    await client`INSERT INTO hr_workpaper_heads (organization_id,dossier_id,period_id,id,version) VALUES (${orgA},${dossierA},${pid},${r2.id},1)`;
+    await client`INSERT INTO hr_workpaper_versions (organization_id,dossier_id,period_id,id,version,run) VALUES (${orgA},${dossierA},${pid},${r2.id},1,${JSON.stringify(r2)}::jsonb)`;
+    view = await read();
+    expect(p3(view)).toMatchObject({ status: "cycle_a_rattacher", engine: { binding: { drift: "revisee" } } });
   });
 });

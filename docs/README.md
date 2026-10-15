@@ -41,6 +41,14 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission-c11/CONTRAT.md`](./mission-c11/CONTRAT.md) | Dates de raisonnement, carte événement → procédures → sources → effets, dépendances d'invalidation, grille de cut-off 1.1.0 (texte applicable, avoirs), qualification TVA fermée, sources lues et écarts du registre fiscal |
 | [`recette/c11/`](./recette/c11/) | Huit cas avec attendus comptables et fiscaux posés à la main, pont C05 et procédures C03 attendus |
 
+## Synthèse des travaux et clôture locale — C14
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission-c14/CONTRAT.md`](./mission-c14/CONTRAT.md) | Avant / après, projection unique du dossier (dénominateurs partagés par la carte, le bandeau et l'export), rattachement des feuilles par racine, adaptateurs de sources, mode solo, seuils NEP 450 |
+| [`mission-c14/RECETTE.md`](./mission-c14/RECETTE.md) | Dénominateurs calculés à la main, 8 cas demandés et cas complémentaires, corrections consignées |
+| [`mission-c14/EXCLUSIONS.md`](./mission-c14/EXCLUSIONS.md) | Bilan des exclusions caduques et encore pertinentes |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

@@ -54,6 +54,21 @@ export type PieceKind = typeof CL_PIECE_KINDS[number];
 export const CL_PIECE_KIND_LABELS: Record<PieceKind, string> = { document: "Document", reponse_tiers: "Réponse de tiers", declaration_direction: "Déclaration de la direction" };
 /** Internal method scale (user parameter of the firm), never computed and never defaulted. */
 export const CL_RISK_LEVELS = ["eleve", "modere", "faible"] as const;
+/** Useful dates declared by the user (C14): facts with their author and piece, never a legal deadline computed by the tool. */
+export const CL_MILESTONES = ["arrete_comptes", "fin_travaux", "autre"] as const;
+export type ClosingMilestone = typeof CL_MILESTONES[number];
+export const CL_MILESTONE_LABELS: Record<ClosingMilestone, string> = { arrete_comptes: "Arrêté des comptes (date déclarée)", fin_travaux: "Fin des travaux (date déclarée)", autre: "Autre date utile" };
+/**
+ * Documented thresholds (C14). NEP 450 (arrêté du 28/12/2023) defines the materiality threshold (§06), the planning threshold (§07)
+ * and requires the amount below which misstatements are clearly trivial to be documented (§18 a). It sets no percentage, base or scale:
+ * the amount, its base and any percentage are parameters of the file (internal method), never a legal scale, and the tool compares nothing to them.
+ */
+export const CL_THRESHOLDS = ["signification", "planification", "insignifiance"] as const;
+export type ClosingThreshold = typeof CL_THRESHOLDS[number];
+export const CL_THRESHOLD_LABELS: Record<ClosingThreshold, string> = { signification: "Seuil de signification", planification: "Seuil de planification", insignifiance: "Seuil des anomalies manifestement insignifiantes" };
+export const CL_THRESHOLD_SOURCES: Record<ClosingThreshold, string> = { signification: "NEP 450 §06 (définition)", planification: "NEP 450 §07 (définition)", insignifiance: "NEP 450 §18 a) (documentation du montant)" };
+export const CL_THRESHOLD_NOTICE = "Seuils documentés par l’utilisateur : la NEP 450 en donne la définition sans pourcentage ni barème ; un pourcentage saisi est une méthode interne, pas un barème légal. Aucune comparaison automatique avec les anomalies.";
+export const CL_PERSONAL_NOTICE = "Dossier personnel marqué terminé sous relecture personnelle nommée, avec ses limites visibles. Ce marquage n’est ni une revue par une autre personne, ni une validation de clôture professionnelle, ni une opinion.";
 export const CL_RISK_LEVEL_LABELS: Record<typeof CL_RISK_LEVELS[number], string> = { eleve: "Élevé", modere: "Modéré", faible: "Faible" };
 export const CL_REACH = ["conception_mise_en_oeuvre", "fonctionnement"] as const;
 export const CL_REACH_LABELS: Record<typeof CL_REACH[number], string> = { conception_mise_en_oeuvre: "Conception et mise en œuvre seulement", fonctionnement: "Fonctionnement sur la période testée" };
@@ -66,6 +81,7 @@ export const citationInputSchema = z.object({ pieceVersionId, page: z.number().i
 export type CitationInput = z.infer<typeof citationInputSchema>;
 const citations = (min: number) => z.array(citationInputSchema).min(min).max(20);
 const seq = z.number().int().min(0).max(1_000_000);
+const rootIdSchema = z.string().min(1).max(200);
 const periodSchema = z.object({ startDate: date, closingDate: date, asOfDate: date, currency: z.literal("EUR"), validation: z.enum(["provisional", "confirmed"]) }).strict();
 const target = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("procedure"), id: procedureId }).strict(),
@@ -100,12 +116,18 @@ export const closingCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.literal("answer_review_point"), expectedSeq: seq, pointId: z.string().regex(/^RP-\d{1,4}$/), text: text(1500), citations: citations(0) }).strict(),
   z.object({ command: z.literal("close_review_point"), expectedSeq: seq, pointId: z.string().regex(/^RP-\d{1,4}$/), text: text(1000) }).strict(),
   z.object({ command: z.literal("record_misstatement"), expectedSeq: seq, procedureId: procedureId.optional(), cycle: z.enum(CL_CYCLES), description: text(500), amount: amountSchema, citations: citations(1) }).strict(),
-  z.object({ command: z.literal("correct_misstatement"), expectedSeq: seq, misstatementId: z.string().regex(/^A-\d{1,4}$/), text: text(1000), citations: citations(1) }).strict(),
+  z.object({ command: z.literal("correct_misstatement"), expectedSeq: seq, misstatementId: z.string().regex(/^A-\d{1,4}$/), text: text(1000), citations: citations(1), correctedAmount: moneySchema.optional() }).strict(),
   z.object({ command: z.literal("assess_misstatement"), expectedSeq: seq, misstatementId: z.string().regex(/^A-\d{1,4}$/), text: text(1500) }).strict(),
   z.object({ command: z.literal("record_limitation"), expectedSeq: seq, cycle: z.enum(CL_CYCLES), description: text(1000), procedureIds: z.array(procedureId).max(20) }).strict(),
   z.object({ command: z.literal("assess_limitation"), expectedSeq: seq, limitationId: z.string().regex(/^L-\d{1,4}$/), text: text(1500) }).strict(),
   z.object({ command: z.literal("record_contradiction"), expectedSeq: seq, left: citationInputSchema, right: citationInputSchema, description: text(1000), procedureIds: z.array(procedureId).max(20) }).strict(),
   z.object({ command: z.literal("resolve_contradiction"), expectedSeq: seq, contradictionId: z.string().regex(/^C-\d{1,4}$/), text: text(1500), citations: citations(1) }).strict(),
+  z.object({ command: z.literal("bind_sheet"), expectedSeq: seq, procedureId, rootId: rootIdSchema, perimeter: text(300) }).strict(),
+  z.object({ command: z.literal("exclude_sheet"), expectedSeq: seq, engine: z.enum(CL_ENGINE_IDS), rootId: rootIdSchema, reason: text(1000) }).strict(),
+  z.object({ command: z.literal("set_milestone"), expectedSeq: seq, milestone: z.enum(CL_MILESTONES), label: text(120).optional(), date, citations: citations(0) }).strict(),
+  z.object({ command: z.literal("set_threshold"), expectedSeq: seq, threshold: z.enum(CL_THRESHOLDS), amount: amountSchema, basis: text(300).optional(),
+    rate: z.string().regex(/^(100|\d{1,2}(\.\d{1,2})?)$/).optional(), rationale: text(1000), citations: citations(0) }).strict(),
+  z.object({ command: z.literal("mark_personal_complete"), expectedSeq: seq, text: text(1500) }).strict(),
   z.object({ command: z.literal("validate_closing"), expectedSeq: seq, text: text(1500) }).strict(),
   z.object({ command: z.literal("reopen"), expectedSeq: seq, reason: text(1000) }).strict(),
 ]);
@@ -117,6 +139,7 @@ export const CL_COMMAND_PERMISSION: Record<ClosingCommandName, "prepare" | "revi
   request_piece: "prepare", close_piece_request: "prepare", conclude_procedure: "prepare", review_procedure: "review", raise_review_point: "review", answer_review_point: "prepare",
   close_review_point: "review", record_misstatement: "prepare", correct_misstatement: "prepare", assess_misstatement: "review", record_limitation: "prepare", assess_limitation: "review",
   record_contradiction: "prepare", resolve_contradiction: "prepare", validate_closing: "sign", reopen: "sign",
+  bind_sheet: "prepare", exclude_sheet: "prepare", set_milestone: "prepare", set_threshold: "prepare", mark_personal_complete: "review",
 };
 export const pieceUploadSchema = z.object({ expectedSeq: seq, label: text(160), kind: z.enum(CL_PIECE_KINDS), pieceId: z.string().regex(/^PC-\d{1,4}$/).optional() }).strict();
 

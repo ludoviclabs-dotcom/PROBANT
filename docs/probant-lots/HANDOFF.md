@@ -1,3 +1,45 @@
+# Handoff — C14 : synthèse des travaux et clôture locale unifiées (15 octobre 2026)
+
+**Base.** Worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/synthese-unifie-cloture-465ac8`, SHA de départ `bb919bf` (`main` après la PR #94, C12), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C12 fusionnés depuis ; le dossier de clôture (PR #72) n'avait pas bougé hors C01 (registre) et C07 (relecture personnelle des feuilles). C13 (Emprunts, PR #95) n'est pas sur `main`. Rien de commité, poussé, fusionné ni déployé.
+
+## Cause
+
+- `bestObservation` retenait la feuille au rang d'état le plus élevé parmi toutes les racines d'une procédure de cycle : une feuille verrouillée couvrait une autre population (2e compte, 2e période de TVA) ; et comme les stores durables gardent la révision verrouillée « courante » après une révision, un verrouillage ancien couvrait aussi la nouvelle révision.
+- L'observation ignorait les sources : une source remplacée après le verrouillage laissait une validation « validée ».
+- Dénominateurs recomptés séparément ; aucune projection commune au bandeau, à la carte et à un export (inexistant) ; revue « par une autre personne » seule possible, donc aucun achèvement en usage solo ; correction d'anomalie tout ou rien ; mention « paie non observable » fausse depuis C12 ; Provisions sans restitution ni export.
+
+## Changements
+
+Voir `docs/mission-c14/CONTRAT.md` (§ 1 avant / après, § 2 projection, § 3 règles). En bref : lignées par racine et rattachement `bind_sheet` / exclusion motivée `exclude_sheet` ; adaptateurs de sources par famille (`closing-adapters.ts`) ; `evaluation.denominators` unique ; `closing-projection.ts` + export `operation=export` (JSON, HTML, PDF, CSV, manifeste, conflit 409) ; onglet « Synthèse des travaux » ; relecture personnelle nommée et « dossier personnel terminé » distincts de la validation ; correction partielle et étapes C05 ; dates déclarées et seuils documentés (NEP 450) ; restitution et export Provisions à version exacte (`/provisions/synthese`), masquage confidentiel complété (copie des lignes d'un calcul bloqué, totaux d'une source masquée) ; registre 1.3.1. Aucune migration (types d'événements texte).
+
+## Sources
+
+NEP 450 (H2A, arrêté du 28/12/2023, JO du 31/12/2023) lue le 15/10/2026 : §06 seuil de signification, §07 seuil de planification (inférieur), §18 a) documentation du montant des anomalies manifestement insignifiantes ; aucun pourcentage ni barème. Page H2A attendue de la NEP 320 introuvable (404).
+
+## Cas contrôlés
+
+| Contrôle | Résultat |
+|---|---|
+| Recette C14 (`closing-c14.test.ts`) : 8 cas demandés, mode solo, dates et seuils, attendus manuels de `docs/mission-c14/RECETTE.md` | 9 / 9 |
+| Recette Mission 19 (`closing-runtime.test.ts`) : 53 événements, 19 travaux restants, indicateurs inchangés ; 2 attendus adaptés (consignés) | 18 / 18 |
+| Restitution et export Provisions (`provision-mission.test.ts`, composant), Provisions existants | 45 / 45 |
+| PostgreSQL 17 jetable local (`closing-durable` dont « Paie retrouvée après reprise », `provision-durable`) | 7 / 7 |
+| Suite Vitest complète, recettes PostgreSQL incluses | 1 913 / 1 914 ; l'échec (`capitaux-propres.test.tsx`, fichier non touché) ne se reproduit pas seul : 6 / 6 deux fois — test jsdom sensible à la charge |
+| E2E sur build de production (`closing.spec.ts`, `provisions.spec.ts`) à 1440, 1024 et 390 px, axe WCAG 2.1 AA, aucun débordement, mouvement réduit | 11 / 11 ; deux défauts trouvés et corrigés en route (zone défilante non focalisable, identifiant de feuille insécable à 390 px) |
+| `tsc --noEmit`, ESLint des fichiers modifiés, `next build` | aucune erreur |
+
+Mêmes dénominateurs vérifiés : indicateurs, carte recomptée cellule par cellule, projection, JSON et HTML exportés (2 / 7 procédures, 4 / 13 couples, 1 / 1 feuille). Captures : `docs/probant-lots/c14-captures/` (JPEG ; synthèse 1440 / 1024 / 390, rattachement, clôture 390, mode solo 1440 / 390, synthèse Provisions 1440 / 1024 / 390).
+
+## Limites restantes
+
+- Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier.
+- Familles à règle « imports figés » : une source **ajoutée** après le gel n'est pas signalée (seulement remplacée).
+- Pièces binaires hors paquet d'export ; PDF non validé PDF/A.
+- Dettes financières sans feuille durable sur `main` ; à raccorder aux adaptateurs quand la PR #95 sera fusionnée.
+- Exclusions encore pertinentes : `docs/mission-c14/EXCLUSIONS.md`.
+
+---
+
 # Handoff — C12 : Paie/Congés persistants sur le profil personnel (15 octobre 2026)
 
 Base 172ddd7, branche codex/c12-payroll-local. Réutilise les moteurs #70, les imports qualifiés, le profil/session C07, WorkpaperService et les contrats de stores PostgreSQL. Migration additive 0020, famille hr et deux procédures payroll.review / payroll.leave au registre commun C01/C14. Relecture personnelle nommée, export local avec pièces originales, empreinte de décision mensuelle pour limiter la péremption aux périodes dépendantes. Source officielle L3141-24 lue ; bases, inclusions/exclusions et qualifications conservées. Aucun taux social arbitraire ni estimation des droits restants.

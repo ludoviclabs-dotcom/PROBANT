@@ -7,8 +7,12 @@ import { PV_TYPES, ProvisionSourceError, provisionMappingSchema } from "./provis
 import { ProvisionConflict } from "./provision-store";
 import { periodId } from "./model";
 
-const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(["list", "history", "download", "version"]).optional(),
-  id: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
+const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(["list", "history", "download", "version", "mission"]).optional(),
+  id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
+/** Export of one displayed synthesis state: the browser names the exact version and the snapshot hash it saw. */
+const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(),
+  kind: z.enum(["diagnostic", "approved"]), format: z.enum(["json", "html", "pdf", "manifest", "exceptions_csv", "decisions_csv", "procedures_csv", "sources_csv"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict()
+  .refine(b => b.version === undefined || !!b.id, "Version sans feuille");
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableProvisions(env: Record<string, string | undefined> = process.env) {
@@ -17,7 +21,7 @@ export function requireDisposableProvisions(env: Record<string, string | undefin
 export function provisionFailureStatus(code: string) {
   return /SESSION_INVALID|AUTHENTICATION_REQUIRED/.test(code) ? 401 : /FORBIDDEN|SELF_APPROVAL/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404
     : /STALE|CONFLICT|REPLACED|ALREADY_EXISTS|IDEMPOTENCY_KEY_REUSED/.test(code) ? 409
-    : /^(PV_|PROVISION_|IMPORT_|MAPPING_|PREPARATION_|WORKPAPER_|UNRESOLVED_|REVIEW_|CONCLUSION_|NOTE_|CALCULATION_|COMPLETED_|INPUTS_|REQUIRED_|AMOUNT_|DATE_|CSV_|XLSX_|ZIP_|UPLOAD_|FILE_|MIME_|STRING_|EMPTY_|POPULATION_|SELECTION_|REVISION_|LOCKED_|APPROVAL_|STALE_|EXPLICIT_|SHEET_|WORKSHEET_|EXCLUSIONS_)/.test(code)
+    : /^(PV_|PROVISION_|EXPORT_|MISSION_|IMPORT_|MAPPING_|PREPARATION_|WORKPAPER_|UNRESOLVED_|REVIEW_|CONCLUSION_|NOTE_|CALCULATION_|COMPLETED_|INPUTS_|REQUIRED_|AMOUNT_|DATE_|CSV_|XLSX_|ZIP_|UPLOAD_|FILE_|MIME_|STRING_|EMPTY_|POPULATION_|SELECTION_|REVISION_|LOCKED_|APPROVAL_|STALE_|EXPLICIT_|SHEET_|WORKSHEET_|EXCLUSIONS_)/.test(code)
       || /REQUIRED|INVALID|INCOMPLETE|NOT_ALLOWED|MISMATCH|DUPLICATE|UNKNOWN|UNSUPPORTED|OUTSIDE|IMMUTABLE/.test(code) ? 422 : 503;
 }
 function failure(error: unknown) {
@@ -33,6 +37,7 @@ function scope(request: Request) {
   if (new Set(params.keys()).size !== [...params.keys()].length) throw new Error("PV_QUERY_INVALID");
   const parsed = query.parse(Object.fromEntries(params));
   if (parsed.version !== undefined && !parsed.id) throw new Error("PV_QUERY_INVALID");
+  if (parsed.rootId !== undefined && parsed.operation !== "mission") throw new Error("PV_QUERY_INVALID");
   return parsed;
 }
 async function bounded(request: Request, max: number) {
@@ -64,6 +69,7 @@ export function provisionHandlers(create: () => ProvisionRuntime, enabled: () =>
           if (!bytes) return Response.json({ error: "SOURCE_NOT_FOUND" }, { status: 404, headers });
           return new Response(Uint8Array.from(bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": "attachment; filename=\"source-provisions\"", "X-Content-Type-Options": "nosniff" } });
         }
+        if (q.operation === "mission") return Response.json(await runtime.mission(request, q.dossierId, q.periodId, { rootId: q.rootId, id: q.id, version: q.version }), { headers });
         if (q.operation === "version" && (!q.id || q.version === undefined)) throw new Error("WORKPAPER_VERSION_REQUIRED");
         if (q.version !== undefined && q.operation !== "version") throw new Error("PV_QUERY_INVALID");
         return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history", q.version), { headers });
@@ -76,6 +82,18 @@ export function provisionHandlers(create: () => ProvisionRuntime, enabled: () =>
         await runtime.check(request, q.dossierId, "read");
         const command = provisionCommandSchema.parse(await (await bounded(request, 400_000)).json());
         return Response.json(await runtime.command(request, q.dossierId, q.periodId, command, request.headers.get("Idempotency-Key") ?? ""), { headers });
+      } catch (error) { return fail(error); }
+    },
+    exportPOST: async (request: Request) => {
+      try {
+        enabled();
+        const input = exportBody.parse(await (await bounded(request, 4096)).json()), runtime = create();
+        const pack = await runtime.missionExport(request, input.dossierId, input.periodId, { rootId: input.rootId, id: input.id, version: input.version }, input.kind, input.expectedSnapshotHash);
+        const format = ({ json: "canonical_json", html: "accessible_html", pdf: "pdf", manifest: "manifest", exceptions_csv: "findings_csv", decisions_csv: "review_events_csv", procedures_csv: "controls_csv", sources_csv: "sources_csv" } as const)[input.format];
+        const entry = pack.manifest.artifacts.find(a => a.format === format);
+        const content = input.format === "json" ? pack.canonicalJson : input.format === "manifest" ? pack.manifestJson : input.format === "html" ? pack.html : input.format === "exceptions_csv" ? pack.csv.findings : input.format === "decisions_csv" ? pack.csv.reviewEvents : input.format === "procedures_csv" ? pack.csv.controls : input.format === "sources_csv" ? pack.csv.sources : Uint8Array.from(pack.pdf).buffer;
+        return new Response(content, { headers: { ...headers, "Content-Type": entry?.mediaType ?? "application/json", "Content-Disposition": "attachment; filename=\"" + (entry?.fileName ?? "probant-provisions-" + input.kind + "-manifest.json") + "\"", "X-Content-Type-Options": "nosniff",
+          "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'", "X-Probant-Snapshot": pack.manifest.snapshotSha256 } });
       } catch (error) { return fail(error); }
     },
     importsPOST: async (request: Request) => {

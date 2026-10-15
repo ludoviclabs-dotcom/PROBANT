@@ -174,6 +174,19 @@
 .journal li{display:grid;grid-template-columns:52px 150px minmax(0,1fr);gap:2px 12px;padding:8px 0;border-bottom:1px solid #18202d;font-size:12.5px}
 .journal li > :first-child{font-variant-numeric:tabular-nums;color:var(--muted)}
 
+/* C14 — dossier journey: cycle anchors, export links, sub-headings; continuous lines, no card grid. */
+.cycleNav{display:flex;flex-wrap:wrap;gap:4px 16px;margin:6px 0 10px;font-size:12.5px}
+.cycleNav a{color:var(--pb-text,#e6edf6);text-decoration:none;border-bottom:1px solid var(--pb-border-strong,#324563);padding:2px 0}
+.cycleNav a:hover,.cycleNav a:focus-visible{border-bottom-color:var(--accent)}
+.cycleNav a span{font-variant-numeric:tabular-nums;color:var(--muted);margin-left:4px}
+.exports{display:flex;flex-wrap:wrap;gap:6px 14px;align-items:baseline;margin:4px 0 8px;padding:8px 0;border-top:1px solid var(--pb-border,#243044);border-bottom:1px solid var(--pb-border,#243044);font-size:12.5px}
+.exports a{color:var(--accent)}
+/* Below tablet width a journey table keeps readable columns and scrolls inside its focusable region instead of squeezing every cell. */
+@media (max-width:760px){.journey{min-width:720px}}
+.subhead{font-size:12.5px;margin:12px 0 4px;color:#c9d4e4;font-weight:600}
+.notice{border-left:3px solid var(--open);padding:8px 12px;margin:10px 0;font-size:12.5px;color:#c9d4e4;background:linear-gradient(90deg,var(--open-bg),transparent 80%)}
+.personal{border:1px solid var(--pb-border-strong,#324563);border-left:3px solid var(--info);border-radius:0 10px 10px 0;padding:14px 16px;margin:14px 0}
+.personal[data-status=perime]{border-left-color:var(--danger)}
 @media (max-width:1180px){.layout{grid-template-columns:minmax(0,1fr)}.panel{position:static;max-height:none}}
 @media (max-width:640px){.versus{grid-template-columns:minmax(0,1fr)}.clash{transform:rotate(90deg)}.journal li{grid-template-columns:40px minmax(0,1fr)}.journal li > :nth-child(3){grid-column:1/-1}
   .verdict{grid-template-columns:minmax(0,1fr)}.verdict svg{display:none}}

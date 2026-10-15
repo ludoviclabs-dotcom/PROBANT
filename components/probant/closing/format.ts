@@ -3,17 +3,19 @@ import type { PieceVersion } from "@/lib/workpapers/closing-journal";
 import type { ResolvedCitation } from "@/lib/workpapers/closing-contract";
 import { formatCents } from "@/lib/workpapers/stock-contract";
 import type { ExecutionProfile } from "@/lib/runtime/profile";
+import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { DossierProjection } from "@/lib/workpapers/closing-projection";
 
 export { dateFr, plural } from "../fiscal/format";
 /** Server response of GET /api/workpapers/closing: the browser renders the evaluation, it never recomputes a state, a count or an amount. */
 export interface ClosingView {
-  actorId: string; executionProfile?: ExecutionProfile; permissions: ("read" | "prepare" | "review" | "sign" | "download")[]; closingAuthority: boolean; dossierId: string; periodId: string;
-  seq: number; headHash: string; hashNotice: string; pieces: PieceVersion[]; evaluation: ClosingEvaluation; journal: JournalLine[];
+  actorId: string; executionProfile?: ExecutionProfile; permissions: ("read" | "prepare" | "review" | "sign" | "download")[]; closingAuthority: boolean; reviewKind?: ReviewKind; reviewerName?: string; dossierId: string; periodId: string;
+  seq: number; headHash: string; hashNotice: string; pieces: PieceVersion[]; evaluation: ClosingEvaluation; projection: DossierProjection; journal: JournalLine[];
 }
-export type ClosingTab = "programme" | "pieces" | "anomalies" | "revue" | "cloture" | "journal";
+export type ClosingTab = "synthese" | "programme" | "pieces" | "anomalies" | "revue" | "cloture" | "journal";
 export const TONE: Record<ProcedureStatus, "ok" | "open" | "danger" | "muted" | "info"> = {
-  revue: "ok", cycle_verrouille: "ok", conclue: "info", cycle_approuve: "info", en_cours: "open", cycle_en_cours: "open", a_faire: "open", changements: "danger", perimee: "danger",
-  population_absente: "danger", perimetre_requis: "danger", cycle_bloque: "danger", cycle_absent: "open", non_applicable: "muted",
+  revue: "ok", cycle_verrouille: "ok", revue_personnelle: "info", conclue: "info", cycle_approuve: "info", en_cours: "open", cycle_en_cours: "open", a_faire: "open", changements: "danger", perimee: "danger",
+  population_absente: "danger", perimetre_requis: "danger", cycle_bloque: "danger", cycle_a_rattacher: "danger", cycle_source_remplacee: "danger", cycle_absent: "open", non_applicable: "muted",
 };
 export const STEP_STATE_LABELS: Record<StepState, string> = { absent: "non documentée", documente: "documentée", sans_preuve: "sans pièce", preuve_remplacee: "pièce remplacée", declaration_seule: "déclaration seule" };
 /** Absolute server time in French (Europe/Paris), never a relative time computed on the client clock. */
@@ -35,7 +37,18 @@ const MESSAGES: Record<string, string> = {
   CL_RISK_ASSERTION_IN_USE: "Assertion encore couverte par une procédure : modifiez d’abord la procédure.",
   CL_ENGINE_REQUIRED: "Une feuille outillée désigne la procédure de cycle observée.",
   CL_ENGINE_ONLY_FOR_ENGINE: "Seule une feuille outillée désigne une procédure de cycle.",
-  CL_ENGINE_ALREADY_LINKED: "Cette feuille de cycle est déjà rattachée à une autre procédure du programme.",
+  CL_BIND_ENGINE_ONLY: "Seule une feuille outillée se rattache à une feuille de cycle.",
+  CL_SHEET_UNKNOWN: "Feuille de cycle inconnue pour ce dossier et cet exercice : rechargez le dossier.",
+  CL_SHEET_ALREADY_BOUND: "Cette feuille est déjà rattachée à une autre procédure du programme.",
+  CL_SHEET_BOUND: "Feuille rattachée à une procédure : rattachez-en une autre avant de l’écarter.",
+  CL_SHEET_ALREADY_EXCLUDED: "Feuille déjà écartée avec ce motif.",
+  CL_MILESTONE_LABEL: "Libellé requis pour une autre date utile, et seulement pour elle.",
+  CL_THRESHOLD_INVALID: "Un seuil documenté est un montant positif ou nul, ou inconnu avec son motif.",
+  CL_PARTIAL_AMOUNT_UNKNOWN: "Correction partielle impossible sur une anomalie au montant inconnu.",
+  CL_CORRECTED_AMOUNT_INVALID: "Montant corrigé : même signe et strictement inférieur à l’anomalie (sinon, correction totale sans montant).",
+  CL_PERSONAL_PROFILE_REQUIRED: "Marquage personnel réservé au profil local solo avec relecture personnelle nommée.",
+  CL_PERSONAL_REVIEWER_NAME_REQUIRED: "Relecture personnelle : le nom de la personne qui relit est requis (profil local).",
+  EXPORT_SNAPSHOT_CONFLICT: "Le dossier a changé depuis votre lecture : rechargez avant d’exporter.",
   CL_NATURE_LOCKED: "Nature figée : des travaux ou une conclusion existent déjà.",
   CL_ENGINE_POPULATION_FROM_CYCLE: "La population d’une feuille outillée vient de son cycle.",
   CL_ENGINE_WORK_IN_CYCLE: "Les travaux d’une feuille outillée se documentent dans son cycle.",

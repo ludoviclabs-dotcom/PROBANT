@@ -45,6 +45,14 @@ export function redactProvisionBatch<T extends ImportBatch>(batch: T, ctx: Confi
   }
   return batch;
 }
+/**
+ * A source as a reader without the capability receives it in a read response or an export. When rows are withheld whole,
+ * the source totals are withheld with them: they would reveal the sum of the hidden rows (unknown, never zero).
+ */
+export function redactProvisionSource<T extends ImportBatch>(batch: T, ctx: ConfidentialContext) {
+  const shown = redactProvisionBatch(batch, ctx);
+  return shown.maskedRows ? { ...shown, report: { ...shown.report, sourceTotal: { kind: "unknown" as const, reason: PV_MASKED }, normalizedTotal: null } } : shown;
+}
 /** True when the original bytes of this source contain confidential content: their download then requires the capability. */
 export function provisionBatchConfidential(batch: ImportBatch, ctx: ConfidentialContext) {
   const parsed = provisionMappingSchema.safeParse(batch.mapping);
@@ -75,19 +83,23 @@ export function redactProvisionResult(result: ProvisionResult): ProvisionResult 
 /**
  * A run as a reader without the capability may see it: masked result, masked copy of the source rows the calculation
  * kept as its input, and masked notes on sensitive exceptions or confidential events.
+ * The input copy is masked whatever the execution status: a blocked or failed calculation also keeps every frozen row.
  */
 export function redactProvisionRun(run: WorkpaperRun, batches: ImportBatch[]): WorkpaperRun {
-  const result = run.result?.execution === "completed" && run.template.id === "provisions.register" ? run.result.result as ProvisionResult : null;
-  if (!result) return run;
+  if (run.template.id !== "provisions.register") return run;
+  const result = run.result?.execution === "completed" ? run.result.result as ProvisionResult : null;
   const ctx = confidentialContext(batches);
-  const input = run.result!.input as { imports?: { id: string; rows: ImportBatch["rows"] }[] } | undefined;
+  const input = run.result?.input as { imports?: { id: string; rows: ImportBatch["rows"] }[] } | undefined;
   const inputImports = input?.imports?.map(i => { const batch = batches.find(b => b.id === i.id); return { ...i, rows: batch ? redactProvisionBatch({ ...batch, rows: i.rows }, ctx).rows : [] }; });
-  const sensitive = new Set(result.exceptions.filter(x => x.sensitive).map(x => "pv-exception:" + x.id));
-  const confidential = new Set(result.events.filter(e => e.confidential).map(e => e.eventId));
-  const hidden = (noteId: string) => sensitive.has(noteId) || [...confidential].some(id => noteId.startsWith("pv-event:" + id + ":"));
+  const sensitive = new Set(result?.exceptions.filter(x => x.sensitive).map(x => "pv-exception:" + x.id) ?? []);
+  // Confidential events: those of the result, and those every register version declares (a run without a result keeps its notes).
+  const confidential = new Set([...(result?.events.filter(e => e.confidential).map(e => e.eventId) ?? []), ...ctx.events]);
+  // Without a completed result the sensitivity of an exception note is unknown: a note on a confidential event is then masked.
+  const exceptionEvent = (noteId: string) => noteId.startsWith("pv-exception:") ? noteId.split(":")[2] ?? "" : "";
+  const hidden = (noteId: string) => sensitive.has(noteId) || [...confidential].some(id => noteId.startsWith("pv-event:" + id + ":")) || (!result && confidential.has(exceptionEvent(noteId)));
   return {
     ...run,
-    result: { ...run.result!, result: redactProvisionResult(result), ...(inputImports ? { input: { ...input, imports: inputImports } } : {}) },
+    ...(run.result ? { result: { ...run.result, ...(result ? { result: redactProvisionResult(result) } : {}), ...(inputImports ? { input: { ...input, imports: inputImports } } : {}) } } : {}),
     notes: run.notes.map(n => hidden(n.id) ? { ...n, text: n.text.split(" — ")[0] + " — " + PV_MASKED, amount: masked, ...(n.resolution ? { resolution: { ...n.resolution, text: PV_MASKED } } : {}) } : n),
   };
 }

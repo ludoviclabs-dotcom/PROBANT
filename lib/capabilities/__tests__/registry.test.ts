@@ -29,7 +29,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.3.0");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.3.1");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;

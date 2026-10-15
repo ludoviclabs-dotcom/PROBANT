@@ -17,6 +17,7 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
       <h2 id="cl-misstatements">Anomalies relevées <span className={cl.small}>{m.total} · corrigées {m.corrected} · non corrigées {m.uncorrected}</span></h2>
       <ul className={cl.totals} aria-label="Totaux des anomalies">
         <li>Corrigées : <strong>{euros(m.knownCorrected.amount)}</strong>{m.unknownCorrected ? " + " + m.unknownCorrected + " montant(s) inconnu(s)" : ""}</li>
+        {m.partial ? <li>Résiduel après correction partielle inclus : <strong>{euros(m.knownResidual.amount)}</strong> connus</li> : null}
         <li>Non corrigées : <strong>{euros(m.knownUncorrected.amount)}</strong> connus{m.unknownUncorrected ? <> + <strong>{m.unknownUncorrected}</strong> montant{m.unknownUncorrected > 1 ? "s" : ""} inconnu{m.unknownUncorrected > 1 ? "s" : ""} (jamais compté{m.unknownUncorrected > 1 ? "s" : ""} pour zéro)</> : null}</li>
         <li className={cl.small}>Aucune comparaison à un seuil de signification : le caractère significatif s’apprécie par le professionnel (NEP 450).</li>
       </ul>
@@ -27,12 +28,15 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
           <td><strong>{x.misstatementId}</strong> · {x.description}<br/><span className={cl.who}>Relevée par {x.by} le {stampFr(x.at)}</span></td>
           <td>{CL_CYCLE_LABELS[x.cycle]}{x.procedureId ? <><br/><button type="button" className={cl.link} onClick={ev => onOpen(x.procedureId!, ev.currentTarget)}>{x.procedureId}</button></> : null}</td>
           <td className={cl.num}>{x.amount.kind === "known" ? euros(x.amount.value.amount) : <span>Inconnu<br/><span className={cl.small}>{x.amount.reason}</span></span>}</td>
-          <td>{staleCorrections.includes(x.misstatementId) ? <span className={cl.pill} data-tone="danger">Correction à réexaminer — pièce remplacée</span> : x.correction ? <span className={cl.pill} data-tone="ok">Corrigée</span> : x.assessment ? <span className={cl.pill} data-tone="open">Non corrigée — appréciée</span> : <span className={cl.pill} data-tone="danger">Non corrigée — à apprécier</span>}</td>
+          <td>{(() => { const st = e.findings.misstatements.find(m => m.misstatementId === x.misstatementId)!; return <><span className={cl.pill} data-tone={st.stage === "corrigee" ? "ok" : st.stage === "corrigee_partiellement" || st.stage === "appreciee" ? "open" : "danger"}>{st.stageLabel}</span>
+            {st.residual && st.stage === "corrigee_partiellement" ? <><br/><span className={cl.small}>Résiduel : {euros(st.residual.amount)}</span></> : null}{st.freshEvidence.length ? <><br/><span className={cl.small}>Preuve nouvelle : {st.freshEvidence.map(c => c.label + " v" + c.version).join(", ")}</span></> : null}</>; })()}</td>
           <td><Cites list={x.citations} download={download}/>
             {x.correction ? <><p className={cl.small}>Correction : {x.correction.text} — par {x.correction.by} le {stampFr(x.correction.at)}</p><Cites list={x.correction.citations} download={download}/></> : null}
             {x.assessment ? <p className={cl.small}>Appréciation : {x.assessment.text} — par {x.assessment.by} le {stampFr(x.assessment.at)}</p> : null}
-            {(!x.correction || staleCorrections.includes(x.misstatementId)) && canPrepare ? <details><summary>Documenter la correction</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "correct_misstatement", misstatementId: x.misstatementId, text: f.get("text"), citations: readCitations(f, "mc") }))}>
-              <label>Correction<textarea name="text" required maxLength={1000}/></label><CitationPicker pieces={view.pieces} name="mc" label="Preuve nouvelle (déposée après l’anomalie)" required/><button className={cl.submit} disabled={busy}>Enregistrer la correction</button></form></details> : null}
+            {(!x.correction || staleCorrections.includes(x.misstatementId)) && canPrepare ? <details><summary>Documenter la correction</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "correct_misstatement", misstatementId: x.misstatementId, text: f.get("text"), citations: readCitations(f, "mc"), ...(f.get("corrected") ? { correctedAmount: { amount: String(f.get("corrected")).replace(",", "."), currency: "EUR" } } : {}) }))}>
+              <label>Correction<textarea name="text" required maxLength={1000}/></label>
+              {x.amount.kind === "known" ? <label>Montant corrigé si partiel (vide = correction totale)<input name="corrected" pattern="-?\d+([.,]\d{2})" inputMode="decimal"/></label> : null}
+              <CitationPicker pieces={view.pieces} name="mc" label="Preuve nouvelle (déposée après l’anomalie)" required/><button className={cl.submit} disabled={busy}>Enregistrer la correction</button></form></details> : null}
             {!x.correction && !x.assessment && canReview ? <details><summary>Apprécier l’anomalie non corrigée</summary><form className={cl.form} onSubmit={submit(send, f => ({ command: "assess_misstatement", misstatementId: x.misstatementId, text: f.get("text") }))}>
               <label>Appréciation (humaine)<textarea name="text" required maxLength={1500}/></label><button className={cl.submit} disabled={busy}>Enregistrer</button></form></details> : null}
           </td>

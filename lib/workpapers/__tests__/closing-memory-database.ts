@@ -11,13 +11,15 @@ interface State {
   receipts: Record<string, Record<string, { requestHash: string; response: unknown }>>;
 }
 /** A cycle test store seen through its current heads only (read-only, like the PostgreSQL adapter). */
-export interface CycleSource { family: CycleFamily; runs(scope: WorkpaperScope): Promise<WorkpaperRun[]> }
+export interface CycleSource { family: CycleFamily; runs(scope: WorkpaperScope): Promise<WorkpaperRun[]>; heads?(scope: WorkpaperScope): Promise<{ document_type: string; import_id: string }[]> }
 /** Reads the current head of every run of a Trésorerie-style test double without cloning its whole state (sources included). */
-export function memoryCycleSource(family: CycleFamily, db: { state: { runHeads: Record<string, Record<string, number>>; versions: Record<string, Record<string, WorkpaperRun[]>> } }): CycleSource {
+export function memoryCycleSource(family: CycleFamily, db: { state: { runHeads: Record<string, Record<string, number>>; versions: Record<string, Record<string, WorkpaperRun[]>>; heads?: Record<string, Record<string, string>> } }): CycleSource {
   return { family, async runs(scope) {
     const k = key(scope), heads = db.state.runHeads[k] ?? {};
     return Object.keys(heads).sort().map(id => db.state.versions[k][id].find(r => r.version === heads[id])).filter((r): r is WorkpaperRun => !!r).map(r => structuredClone(r));
-  } };
+  }, ...(db.state.heads ? { async heads(scope: WorkpaperScope) {
+    return Object.entries(db.state.heads?.[key(scope)] ?? {}).sort(([a], [b]) => a < b ? -1 : 1).map(([document_type, import_id]) => ({ document_type, import_id }));
+  } } : {}) };
 }
 const key = (s: WorkpaperScope) => { if (s.mode !== "real") throw new Error("CL_REAL_SCOPE_REQUIRED"); return [s.organizationId, s.dossierId, s.periodId].join("|"); };
 
@@ -45,6 +47,11 @@ class MemoryClosingTx implements ClosingTx {
   async cycleRuns(scope: WorkpaperScope) {
     const out: { family: CycleFamily; run: WorkpaperRun }[] = [];
     for (const c of this.cycles) out.push(...(await c.runs(scope)).map(run => ({ family: c.family, run })));
+    return out;
+  }
+  async cycleSourceHeads(scope: WorkpaperScope) {
+    const out: Partial<Record<CycleFamily, { document_type: string; import_id: string }[]>> = {};
+    for (const c of this.cycles) if (c.heads) out[c.family] = [...(out[c.family] ?? []), ...(await c.heads(scope))];
     return out;
   }
 }
