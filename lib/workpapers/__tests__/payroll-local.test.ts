@@ -4,6 +4,8 @@ import { PayrollRuntime } from "../payroll-runtime";
 import { payrollActor, payrollFixture } from "../payroll-fixture";
 import { MemoryImportRepository } from "../imports";
 import { payrollObservation } from "../payroll-observation";
+import { payrollGroupHash, payrollPopulation } from "../payroll-framing";
+import { payrollProof } from "../payroll-import";
 it("une déclaration amendée périme septembre seulement, sans toucher octobre ni les congés", async()=>{
  const r=await PayrollRuntime.create();
  const fixture=payrollFixture();
@@ -36,4 +38,23 @@ it("une base absente bloque seulement le groupe concerné, sans devenir zéro",a
  const p=await r.preview(payrollActor,new File([text],"ledger.csv"),fixture.mapping("ledger"));const v=await r.command(payrollActor,{action:"approve_import",version:p.version,previewId:p.previewId,previewHash:p.previewHash});
  expect(v.framing.groups.find(g=>g.month==="2026-09"&&g.rubric==="SOC")?.delta.kind).toBe("unknown");expect(v.framing.groups.find(g=>g.month==="2026-10"&&g.rubric==="SOC")?.delta.kind).toBe("known");
  expect(v.settlements.groups.find(g=>g.month==="2026-09"&&g.rubric==="SOC")?.glDelta.kind).toBe("unknown");
+});
+
+it("les changements et exclusions d'une base ne périment pas les autres bases",async()=>{
+ const runtime=await PayrollRuntime.create(),state=structuredClone((await runtime.archive(payrollActor)).state),journal=state.sources.journal!;
+ const sample=journal.batch.rows.find(r=>r.original.month==="2026-09"&&r.original.rubric==="SOC");expect(sample).toBeDefined();if(!sample)return;
+ const row=structuredClone(sample);row.id="row-c12-other-basis";row.original={...row.original,id:"C12-OTHER-BASIS",basisCode:"AUTRE"};journal.batch.rows.push(row);
+ const key=(r:Record<string,string>)=>[r.establishment,r.month,r.rubric,r.organism,r.basisCode].join("|"),primaryKey=key(sample.original),otherKey=key(row.original);
+ const primaryHash=payrollGroupHash(state,"settlements",primaryKey),otherHash=payrollGroupHash(state,"settlements",otherKey);
+ const changed=structuredClone(state),changedRow=changed.sources.journal!.batch.rows.find(r=>r.id===row.id)!;changedRow.original={...changedRow.original,amount:"999.00"};
+ expect(payrollGroupHash(changed,"settlements",primaryKey)).toBe(primaryHash);expect(payrollGroupHash(changed,"settlements",otherKey)).not.toBe(otherHash);
+ const unit=payrollPopulation(state).find(u=>u.rowIds.includes(row.id));expect(unit).toBeDefined();if(!unit)return;
+ const excluded=structuredClone(state);excluded.exclusions.push({unitId:unit.id,reason:"outside_scope",evidenceId:"C12-TEST"});
+ expect(payrollGroupHash(excluded,"settlements",primaryKey)).toBe(primaryHash);expect(payrollGroupHash(excluded,"settlements",otherKey)).not.toBe(otherHash);
+});
+
+it("attache les preuves de Congés à leur procédure",async()=>{
+ const archive=await(await PayrollRuntime.create()).archive(payrollActor),leave=archive.state.sources.leave!,journal=archive.state.sources.journal!;
+ expect(payrollProof(leave,leave.batch.rows[0].id).procedureId).toBe("payroll.leave");
+ expect(payrollProof(journal,journal.batch.rows[0].id).procedureId).toBe("payroll.review");
 });

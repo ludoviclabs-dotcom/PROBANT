@@ -105,7 +105,7 @@ export function payrollProof(
   return {
     id: row.id,
     scope: source.batch.scope,
-    procedureId: "payroll.review",
+    procedureId: source.mapping.kind === "leave" ? "payroll.leave" : "payroll.review",
     documentVersionId: source.batch.document.id,
     rowId: row.id,
     locator: row.locator,
@@ -204,7 +204,7 @@ export async function previewPayroll(
     },
     actor,
     "payroll_" + mapping.kind,
-    "payroll.review",
+    mapping.kind === "leave" ? "payroll.leave" : "payroll.review",
   );
   const source = { mapping, batch };
   qualifyPayrollSource(source);

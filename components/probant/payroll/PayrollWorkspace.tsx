@@ -71,6 +71,11 @@ const monthLabel = (month: string) =>
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(month + "-01T00:00:00Z"));
+function monthForView(view: PayrollView, preferred: string) {
+  const available = [...new Set([...view.framing.groups, ...view.settlements.groups].map((g) => g.month))].sort();
+  if (available.includes(preferred)) return preferred;
+  return available[0] ?? view.period.startDate.slice(0, 7);
+}
 function display(value: string) {
   const [whole, decimals] = value.split(".");
   return (
@@ -286,7 +291,7 @@ export function PayrollWorkspace({
           });
         if (!isDemo && response.status === 404) return;
         const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(response);
-        if (active) { setView(data); setRuns(data.runs ?? []); }
+        if (active) { setView(data); setRuns(data.runs ?? []); setMonth(monthForView(data, "2026-09")); }
       } catch (e) {
         if (active)
           setError(e instanceof Error ? e.message : "Lecture indisponible.");
@@ -312,6 +317,7 @@ export function PayrollWorkspace({
       );
       setView(data);
       setRuns((data as PayrollView & { runs?: WorkpaperRun[] }).runs ?? []);
+      setMonth(monthForView(data, month));
       setNotice(demo ? "Version enregistrée dans la session synthétique." : "Version et pièces enregistrées sur ce PC.");
       return true;
     } catch (e) {
@@ -327,6 +333,7 @@ export function PayrollWorkspace({
     try {
       const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(await fetch(endpoint, { cache: "no-store" }));
       setView(data); setRuns(data.runs ?? []);
+      setMonth(monthForView(data, month));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Lecture indisponible.");
     } finally {
@@ -497,7 +504,7 @@ export function PayrollWorkspace({
               const period: AccountingPeriod = { startDate, closingDate, asOfDate, currency: "EUR", validation: "confirmed" };
               const pid = periodId(period), target = "/api/workpapers/paie?" + new URLSearchParams({ dossierId: localScope.dossierId, periodId: pid });
               const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(await fetch(target, { method: "POST", headers: { "Content-Type": "application/json", ...await mutationHeaders() }, body: JSON.stringify({ action: "init", period }) }));
-              setEndpoint(target); setView(data); setRuns(data.runs ?? []); setLocalScope({ ...localScope, periodId: pid });
+              setEndpoint(target); setView(data); setRuns(data.runs ?? []); setMonth(monthForView(data, period.startDate.slice(0, 7))); setLocalScope({ ...localScope, periodId: pid });
               const url = new URL(window.location.href); url.searchParams.set("dossierId", localScope.dossierId); url.searchParams.set("periodId", pid); window.history.replaceState(null,"",url);
             } catch (e) { setError(e instanceof Error ? e.message : "Initialisation refusée"); } finally { setBusy(false); }
           }}>
@@ -517,7 +524,7 @@ export function PayrollWorkspace({
               <p>{r.template.objective} · révision {r.revision} · {reviewStateLabels[r.state]} · {r.result ? outcomeLabels[r.result.outcome] : "Non exécuté"}</p>
               {r.conclusion && <p>Conclusion : {r.conclusion}</p>}
               {r.approval ? <p>{approvalLabel(r.approval)}</p> : <button disabled={busy || !reviewNote.trim()} onClick={async()=>{
-                setBusy(true);setError("");try{const data=await result<PayrollView & {runs:WorkpaperRun[]}>(await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",...await mutationHeaders()},body:JSON.stringify({action:"review",id:r.id,version:r.version,hash:contentHash(r),note:reviewNote})}));setView(data);setRuns(data.runs);setReviewNote("");}catch(e){setError(e instanceof Error?e.message:"Relecture refusée")}finally{setBusy(false)}
+                setBusy(true);setError("");try{const data=await result<PayrollView & {runs:WorkpaperRun[]}>(await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",...await mutationHeaders()},body:JSON.stringify({action:"review",id:r.id,version:r.version,hash:contentHash(r),note:reviewNote})}));setView(data);setRuns(data.runs);setMonth(monthForView(data, month));setReviewNote("");}catch(e){setError(e instanceof Error?e.message:"Relecture refusée")}finally{setBusy(false)}
               }}>Enregistrer ma relecture personnelle nommée</button>}
             </div>)}
             <a href={endpointUrl("",{operation:"export",version:String(view.version)})}>Exporter la paie, les congés et leurs pièces</a>

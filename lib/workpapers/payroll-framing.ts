@@ -61,13 +61,16 @@ export function payrollGroupHash(state: PayrollState, module: PayrollModule, key
   const [y, m] = month.split("-").map(Number);
   const previous = String(m === 1 ? y - 1 : y) + "-" + String(m === 1 ? 12 : m - 1).padStart(2, "0");
   const related = (r: Record<string, string>) => r.establishment === parts[0] && r.rubric === parts[2] && r.organism === parts[3] && (r.month === month || (module === "framing" && r.month === previous));
-  const paymentRefs = new Set(state.sources.payments?.batch.rows.filter(r => related(r.original)).map(r => r.original.paymentRef));
-  const units = new Set(payrollPopulation(state).filter(u => u.month === month && u.establishment === parts[0] && u.rubric === parts[2] && u.organism === parts[3]).map(u => u.id));
+  const sameBasis = (r: Record<string, string>) => related(r) && r.basisCode === parts[4];
+  // Event rows have no basis; payment references may intentionally connect months and bases.
+  const paymentRefs = new Set((state.sources.payments?.batch.rows.filter(r => sameBasis(r.original)).flatMap(r => r.original.paymentRef ? [r.original.paymentRef] : [])) ?? []);
+  const basisJournalRowIds = new Set((state.sources.journal?.batch.rows ?? []).filter(r => sameBasis(r.original)).map(r => r.id));
+  const units = new Set(payrollPopulation(state).filter(u => u.month === month && u.establishment === parts[0] && u.rubric === parts[2] && u.organism === parts[3] && u.rowIds.some(id => basisJournalRowIds.has(id))).map(u => u.id));
   return stableSha256({ version: "payroll-period-2", scope: state.scope, period: state.period, module, key,
     sources: dependencies[module].map(kind => {
       const source = state.sources[kind]; if (!source) return null;
       return { kind, mapping: { version: source.mapping.version, qualified: source.mapping.qualified, coverage: source.mapping.coverage, synthetic: source.mapping.synthetic },
-        rows: source.batch.rows.map(r => r.original).filter(r => related(r) || (kind === "payments" && r.establishment === parts[0] && r.organism === parts[3] && paymentRefs.has(r.paymentRef))).sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) };
+        rows: source.batch.rows.map(r => r.original).filter(r => (kind === "events" ? related(r) : sameBasis(r)) || (kind === "payments" && r.establishment === parts[0] && r.organism === parts[3] && paymentRefs.has(r.paymentRef))).sort((a,b) => a.id < b.id ? -1 : a.id > b.id ? 1 : 0) };
     }), exclusions: state.exclusions.filter(e => units.has(e.unitId)) });
 }
 export function sourceReady(state: PayrollState, kind: PayrollKind): boolean {
