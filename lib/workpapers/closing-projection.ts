@@ -2,15 +2,31 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import { CAPABILITY_REGISTRY } from "@/lib/capabilities/registry";
 import { reviewAuthor } from "@/lib/auth/review-kind";
 import { assertionLabel, CL_CYCLE_LABELS, CL_CYCLES, engineProcedure, type ClosingCycle } from "./closing-contract";
+import type { DossierEventEffect, DossierEventSource } from "./closing-events";
 import { amountText, type ClosingEvaluation, type Denominators, type JournalLine, type LineageAssignment, type ProcedureView, type ReviewBasis } from "./closing-evaluate";
 
 /**
  * C14 — single projection of the professional file: what the matrix, the cockpit and the export read, from the server evaluation only.
  * It regroups, per cycle, the programme procedures with the sheet each one covers (entity, exercise, period, perimeter, run, root, version, fingerprint)
  * or the manual work, results, pieces, notes, misstatements and contradictions; the other sheets stay listed. No engine is recalculated, no opinion is generated.
+ * 1.1.0: the effects of the transversal events map (C11) are listed beside the misstatements, at their C05 stage, with their source sheets placed in their lineage.
  */
-export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.0.0";
+export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.1.0";
 export const ASSIGNMENT_LABELS: Record<LineageAssignment, string> = { retenue: "Retenue au programme", a_rattacher: "À rattacher ou écarter", ecartee: "Écartée avec motif", hors_programme: "Hors programme" };
+/** C05 stage of an event effect, as the map's projection states it; residual = the part of a corrected effect left uncorrected. */
+export function effectStageLabel(x: Pick<DossierEventEffect, "status" | "stage" | "bridge">): string {
+  if (x.status !== "determined") return x.status === "absent" ? "Aucun groupe C05" : "Indéterminé — aucun montant retenu (bornes conservées)";
+  return x.stage === "corrected" ? (x.bridge && x.bridge.residualCents > 0 ? "Corrigé partiellement — reste résiduel" : "Corrigé") : x.stage === "proposed" ? "Proposé (validé), non corrigé" : x.stage === "dismissed" ? "Écarté en revue" : "En attente — aucune décision de revue";
+}
+export const OBSERVATION_LABELS: Record<string, string> = { candidate: "candidat", already_treated: "déjà rattaché", no_difference_on_tested_items: "aucune différence", inconclusive: "non concluant", not_tested: "non testé", observed: "solde ouvert observé" };
+const READ_LABELS = { courante: "version courante de la lignée", version_anterieure: "version antérieure de la feuille", revision_anterieure: "révision antérieure de la lignée" } as const;
+/** One source sheet of an event, at its exact version, placed in its dossier lineage (one lineage per root). */
+export function eventSourceText(x: DossierEventSource): string {
+  const where = !x.lineage ? "feuille non observée par le dossier" : READ_LABELS[x.lineage.read] + (x.lineage.read === "courante" ? "" : " (courante : " + x.lineage.currentRunId + " r" + x.lineage.currentRevision + " v" + x.lineage.currentVersion + ")")
+    + " · " + ASSIGNMENT_LABELS[x.lineage.assignment] + (x.lineage.procedureId ? " par " + x.lineage.procedureId : "") + (x.lineage.sourcesCurrent === false ? " · source remplacée" : "");
+  return (engineProcedure(x.procedure)?.label ?? x.procedure) + " · " + x.runId + (x.lineage ? " r" + x.lineage.revision : "") + " v" + x.version + " — " + (OBSERVATION_LABELS[x.observation] ?? x.observation)
+    + (x.counted ? " compté dans l’effet" : "") + (x.stale ? " · périmée dans la carte : " + x.staleReasons.join(" ") : "") + " · " + where + (x.freshness === "discordante" ? " · lecture discordante entre la carte et le dossier" : "");
+}
 export const REVIEW_BASIS_LABELS: Record<Exclude<ReviewBasis, null>, string> = { autre_personne: "Revue par une autre personne", personnelle: "Relecture personnelle nommée", simulation: "Seconde identité simulée (ne vaut pas revue)" };
 
 export interface ProjectionSheet { procedure: string; label: string; rootId: string; runId: string; revision: number; version: number; state: string; contentHash: string; family: string;
@@ -36,6 +52,8 @@ export interface DossierProjection {
     contradictions: { id: string; description: string; status: string; procedureIds: string[]; representationSide: boolean; laterRepresentations: string[] }[];
     limitations: { id: string; cycle: string; description: string; assessed: boolean; assessedBy: string | null }[];
     totals: ClosingEvaluation["misstatements"];
+    /** Effects of the transversal events map (C11) at their C05 stage, beside the journaled misstatements: never added to `totals`. */
+    events: ClosingEvaluation["events"];
   };
   dates: ClosingEvaluation["dates"]; thresholds: { label: string; source: string; amount: string; basis: string | null; rate: string | null; rationale: string; by: string; at: string }[]; thresholdNotice: string;
   completion: { closable: boolean; blockers: string[]; professionalGaps: string[]; professional: ClosingEvaluation["validation"]; personal: ClosingEvaluation["personal"] };
@@ -93,12 +111,15 @@ export function projectDossier(input: { dossierId: string; periodId: string; seq
       contradictions: e.findings.contradictions.map(c => ({ id: c.contradictionId, description: c.description, status: c.status, procedureIds: c.procedureIds, representationSide: c.representationSide, laterRepresentations: c.laterRepresentations })),
       limitations: e.items.limitations.map(l => ({ id: l.limitationId, cycle: CL_CYCLE_LABELS[l.cycle], description: l.description, assessed: !!l.assessment, assessedBy: l.assessment ? REVIEW_BASIS_LABELS[l.assessment.kind === "personal" ? "personnelle" : l.assessment.kind === "simulated_second_identity" ? "simulation" : "autre_personne"] : null })),
       totals: e.misstatements,
+      events: e.events,
     },
     dates: e.dates, thresholds: e.thresholds.map(t => ({ label: t.label, source: t.source, amount: amountText(t.amount), basis: t.basis ?? null, rate: t.rate ?? null, rationale: t.rationale, by: t.by, at: t.at })), thresholdNotice: e.thresholdNotice,
     completion: { closable: e.closable, blockers: e.blockers.map(b => b.label), professionalGaps: e.professionalGaps.map(b => b.label), professional: e.validation, personal: e.personal },
     exclusions, noOpinion: e.noOpinion,
     limitations: ["Projection du journal et des feuilles observées à leur version courante : aucun moteur n’est recalculé ici.", "Une feuille verrouillée ne couvre que la procédure et la population rattachées ; les autres feuilles restent listées.",
       "La relecture personnelle nommée (mode solo) ne vaut pas revue par une autre personne ; la validation professionnelle reste distincte.", "Montants inconnus comptés à part, jamais pour zéro ; aucune comparaison aux seuils documentés.",
+      e.events.status === "lue" ? "Effets des événements transversaux lus dans la carte C11 (empreinte " + e.events.map!.hash.slice(0, 12) + "…) à leur étape C05 : catégorie distincte des anomalies journalisées, sans total commun ; aucune décision de revue n’y est enregistrée par le dossier."
+        : "Effets des événements transversaux non établis (" + e.events.reason + ") : inconnus, jamais comptés pour zéro.",
       "Le chaînage d’empreintes est un contrôle d’intégrité local : ni signature ni archivage à valeur probante."],
   };
   return { ...body, hash: stableSha256(body) };

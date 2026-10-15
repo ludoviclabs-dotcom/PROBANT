@@ -4,6 +4,7 @@ import { assertionLabel, CL_CYCLE_LABELS, CL_MILESTONE_LABELS, CL_NATURE_LABELS,
   type ClosingAssertion, type ClosingMilestone, type ClosingNature, type ClosingStep, type ClosingThreshold, type ResolvedCitation } from "./closing-contract";
 import { fingerprintChanged, sheetLineages, type CycleObservation, type SheetLineage } from "./closing-cycles";
 import { formatCents } from "./stock-contract";
+import { EVENT_MAP_NOT_READ, projectEventEffects, type ClosingEventEffects, type EventDenominators, type EventMapRead } from "./closing-events";
 import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, procedureBasis, type Attribution, type ClosingEvent, type ClosingState, type Conclusion, type Contradiction, type ItgcScopeEntry, type Limitation, type Misstatement, type PopulationEntry, type Review, type ReviewPoint, type RiskEntry, type WorkRecord } from "./closing-journal";
 
 /**
@@ -74,6 +75,8 @@ export interface Denominators {
   pairs: { declared: number; counted: number; excludedNotApplicable: number; reviewed: number; reviewedPersonal: number; inProgress: number; uncovered: number };
   engines: { applicable: number; locked: number; lockedPersonal: number; toBind: number };
   sheets: { lineages: number; retained: number; toAssign: number; excluded: number; outsideProgram: number; previousRevisions: number; inconclusiveRetained: number; sourcesReplaced: number };
+  /** Effects of the transversal events map (C11, C05 projection), read only: a separate category, never added to the misstatements. */
+  events: EventDenominators;
 }
 export interface ClosingEvaluation {
   opened: boolean; period?: AccountingPeriod; entity?: string; risks: RiskView[]; procedures: ProcedureView[]; indicators: Indicator[]; denominators: Denominators; missing: MissingItem[]; coherence: CoherencePoint[];
@@ -83,6 +86,8 @@ export interface ClosingEvaluation {
   /** Recorded facts, as written in the journal (authors, dates, citations): the browser lists them, it never re-derives them. */
   items: { misstatements: Misstatement[]; limitations: Limitation[]; contradictions: Contradiction[]; reviewPoints: ReviewPoint[]; staleCorrections: string[]; staleResolutions: string[]; cancelledRequests: { requestId: string; description: string; reason: string }[] };
   findings: { misstatements: MisstatementView[]; contradictions: ContradictionView[] };
+  /** Effects read from the transversal events map, each source sheet placed in its dossier lineage. */
+  events: ClosingEventEffects;
   closable: boolean; observations: CycleObservation[]; sheets: LineageView[]; outsideProgram: CycleObservation[];
   validation: { status: "absente" | "validee" | "perimee" | "reouverte"; by?: string; at?: string; text?: string; changed: string[]; reopened?: { by: string; at: string; reason: string } };
   personal: { status: "absent" | "marque" | "perime"; by?: string; at?: string; reviewerName?: string; text?: string; limits: { code: string; label: string }[]; changed: string[]; notice: string };
@@ -224,7 +229,8 @@ function misstatementView(s: ClosingState, m: Misstatement): MisstatementView {
     detected: known, corrected, residual, residualUnknown: known === null && !current, freshEvidence: fresh, originalEvidence: m.citations, assessedBy: basisOf(m.assessment) };
 }
 
-export function evaluateClosing(s: ClosingState, observations: CycleObservation[]): ClosingEvaluation {
+/** `events`: the transversal events map as read by the server; when it is not read, its effects stay unknown (never zero). */
+export function evaluateClosing(s: ClosingState, observations: CycleObservation[], events: EventMapRead = EVENT_MAP_NOT_READ): ClosingEvaluation {
   const lineages = sheetLineages(observations);
   const sharingByEngine = new Map<string, number>();
   for (const p of Object.values(s.procedures)) if (p.nature === "engine" && p.engine) sharingByEngine.set(p.engine, (sharingByEngine.get(p.engine) ?? 0) + 1);
@@ -323,6 +329,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   const allPairs = risks.flatMap(r => r.pairs), pairs = allPairs.filter(x => x.status !== "non_applicable"), naPairs = allPairs.length - pairs.length;
   const requests = Object.values(s.requests), activeRequests = requests.filter(r => r.closed?.outcome !== "cancelled"), cancelled = requests.length - activeRequests.length;
   const retainedSheets = sheets.filter(x => x.assignment === "retenue");
+  const eventEffects = projectEventEffects(events, sheets);
   const denominators: Denominators = {
     procedures: { declared: procedures.length, applicable: applicable.length, notApplicable: na, done: applicable.filter(p => p.done).length, donePersonal: applicable.filter(p => p.donePersonal).length, concluded: applicable.filter(p => p.concluded).length },
     pairs: { declared: allPairs.length, counted: pairs.length, excludedNotApplicable: naPairs, reviewed: pairs.filter(x => x.status === "revue").length, reviewedPersonal: pairs.filter(x => x.status === "relue").length,
@@ -331,6 +338,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
     sheets: { lineages: sheets.length, retained: retainedSheets.length, toAssign: sheets.filter(x => x.assignment === "a_rattacher").length, excluded: sheets.filter(x => x.assignment === "ecartee").length,
       outsideProgram: outsideProgram.length, previousRevisions: sheets.reduce((n, x) => n + x.previous.length, 0), inconclusiveRetained: retainedSheets.filter(x => x.current.outcome === "inconclusive").length,
       sourcesReplaced: sheets.filter(x => x.current.sourcesCurrent === false).length },
+    events: eventEffects.denominators,
   };
   const D = denominators;
   const naNote = na ? plural(na, "procédure non applicable motivée exclue", "procédures non applicables motivées exclues") : undefined;
@@ -407,7 +415,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   return { opened: !!s.opened, ...(s.opened ? { period: s.opened.period, entity: s.opened.entity } : {}), risks, procedures, indicators, denominators, missing, coherence, misstatements: summary, blockers, professionalGaps,
     items: { misstatements, limitations, contradictions, reviewPoints: points, staleCorrections: misstatements.filter(m => m.correction && !correctionCurrent(s, m)).map(m => m.misstatementId), staleResolutions: contradictions.filter(c => c.resolution && !resolutionCurrent(s, c)).map(c => c.contradictionId),
       cancelledRequests: requests.flatMap(r => r.closed?.outcome === "cancelled" ? [{ requestId: r.requestId, description: r.description, reason: r.closed.reason }] : []) },
-    findings: { misstatements: mviews, contradictions: cviews },
+    findings: { misstatements: mviews, contradictions: cviews }, events: eventEffects.block,
     closable: !!s.opened && blockers.length === 0 && professionalGaps.length === 0, observations, sheets, outsideProgram, validation, personal, dates, thresholds, thresholdNotice: CL_THRESHOLD_NOTICE, noOpinion: CL_NO_OPINION };
 }
 

@@ -3,8 +3,8 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { Finding } from "@/lib/canonical-model/finding";
 import type { FrenchGaapTextId } from "@/lib/knowledge/french-gaap";
 import { resolveProcedure, type ProcedureProposal } from "@/lib/audit/procedures";
-import { projectExposure } from "@/lib/synthesis/exposure";
-import type { EffectStage } from "@/lib/synthesis/types";
+import { projectExposure, restrictExposure } from "@/lib/synthesis/exposure";
+import type { EffectReviewStage, EffectStage, ExposureClusterView } from "@/lib/synthesis/types";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { qualifyVatExigibility, VAT_CATEGORY_LABELS, VAT_EXIGIBILITY_SOURCES, type ReadVatSource, type VatOperationCategory, type VatQualification, type VatSettlement } from "@/lib/tax/vat/exigibility";
 import { CUTOFF_METHOD_TEXT, resolveCutoffRule, type CutoffRule } from "./cutoff-rule";
@@ -20,8 +20,11 @@ import { frozen, type WorkpaperScope } from "./model";
  * paiements, clôture, période de TVA), cite le texte applicable, qualifie l'exigibilité pour les seules catégories
  * couvertes, garde les résidus par clé et les règlements globaux sans les répartir, et compte une seule fois l'effet
  * d'un événement observé par plusieurs procédures (projection C05).
+ *
+ * 1.1.0 : chaque effet porte sa lecture C05 (constats porteurs, groupe, étape de revue et pont de l'événement), lue dans la
+ * projection partagée par `restrictExposure` ; le dossier de clôture la reprend sans recalcul.
  */
-export const EVENT_MAP_VERSION = "1.0.0" as const;
+export const EVENT_MAP_VERSION = "1.1.0" as const;
 
 export type EventPart = "accounting" | "vat" | "settlement";
 export interface EventSource { documentVersionId: string; rowId: string | null; documentType: string; role: string; procedureId: string; runId: string }
@@ -64,6 +67,9 @@ const ROW_STATUS: Record<NonNullable<CutoffEventFacts["procedureRow"]>["status"]
   omission_candidate: "candidate", booked_in_period: "already_treated", existing_accrual: "already_treated", outside_period_justified: "no_difference_on_tested_items", inconclusive: "inconclusive", not_tested: "not_tested",
 };
 export interface EventDependency { part: EventPart; kind: "source" | "run" | "framework" | "vat_sheet"; ref: string; label: string; stale: boolean }
+type EventEffectBase = { economicIdentity: string; amountCents: number; direction: "increase" | "decrease"; target: "resultat"; contributors: number };
+/** Groupe C05 d'un événement, tel que la projection partagée le décrit (aucun montant retenu hors agrégation déterminée). */
+export type EventCluster = Pick<ExposureClusterView, "clusterId" | "findingIds" | "status" | "retainedCents" | "boundsCents" | "correctedCents"> & { reviewStage: EffectReviewStage | null; reason: string | null };
 export interface TransversalEvent {
   eventId: string; flow: "purchase" | "sale"; party: string; invoiceId: string; documentKind: "invoice" | "credit_note";
   dates: {
@@ -81,7 +87,12 @@ export interface TransversalEvent {
     amountHt: KnownAmount; balanceSheet: { account: string; amountTtc: KnownAmount } | null; vatAccount: string | null };
   settlement: { invoiceTtc: KnownAmount; allocatedTtc: Money; creditsTtc: Money; residualTtc: KnownAmount; dueAtClosing: Money | null; dueAtReview: Money | null; partial: boolean; groupedPaymentIds: string[] };
   observations: EventObservation[];
-  effect: { economicIdentity: string; amountCents: number; direction: "increase" | "decrease"; target: "resultat"; contributors: number } | null;
+  effect: (EventEffectBase & {
+    /** Constats C05 porteurs de l'effet : une observation courante porteuse du candidat retenu = un constat, à sa version de feuille. */
+    contributions: { findingId: string; procedureId: string; runId: string; version: number }[];
+    /** Lecture C05 du périmètre de l'événement (restrictExposure) : groupe, étape de revue et pont par poste et sens. */
+    exposure: { clusters: EventCluster[]; stages: EffectStage[] };
+  }) | null;
   procedure: ProcedureProposal | null;
   sources: (EventSource & { parts: EventPart[] })[];
   dependencies: EventDependency[];
@@ -173,7 +184,7 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
   }
   // Une feuille TVA périmée ne date aucune période d'exigibilité ; elle reste une dépendance de l'événement.
   const sheets = input.vatSheets.filter((v) => !v.stale).sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
-  const events: TransversalEvent[] = shells.map((s) => {
+  const built = shells.map((s): Omit<TransversalEvent, "effect"> & { effect: EventEffectBase | null } => {
     // Calculs courants (dates, montants, TVA, résidu) : seuls les faits, soldes et avoirs de feuilles non périmées. Les
     // faits périmés restent visibles comme observations, sources et dépendances, jamais comme valeur courante.
     const lead = s.facts.find((f) => !f.run.stale) ?? null, open = s.open.filter((o) => !o.run.stale);
@@ -302,8 +313,20 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
   }).sort((a, b) => a.flow.localeCompare(b.flow) || a.party.localeCompare(b.party) || a.invoiceId.localeCompare(b.invoiceId) || a.eventId.localeCompare(b.eventId));
   // Pont : pour un événement retenu, chaque observation courante porteuse du candidat devient un constat ; C05 compte une
   // fois les répétitions exactes. Un événement suspendu ou divergent n'alimente aucun effet (compté à part).
-  const findings = events.filter((e) => e.accounting.status === "candidate").flatMap((e) => e.observations.map((o) => candidateFinding(e, o, e.rule, close)).filter((f): f is Finding => !!f));
+  const carried = built.filter((e) => e.accounting.status === "candidate").flatMap((e) => e.observations.flatMap((o) => {
+    const finding = candidateFinding(e, o, e.rule, close);
+    return finding ? [{ eventId: e.eventId, finding, contribution: { findingId: finding.id, procedureId: o.procedureId, runId: o.runId, version: o.version } }] : [];
+  }));
+  const findings = carried.map((c) => c.finding);
   const projection = projectExposure(findings, `cutoff-map:${scope.dossierId}:${scope.periodId}`);
+  // Lecture C05 de chaque effet : le périmètre de l'événement se lit dans la projection partagée, sans recalcul ni moteur parallèle.
+  const events: TransversalEvent[] = built.map((e) => {
+    if (!e.effect) return { ...e, effect: null };
+    const contributions = carried.filter((c) => c.eventId === e.eventId).map((c) => c.contribution).sort((a, b) => a.findingId.localeCompare(b.findingId));
+    const scoped = restrictExposure(projection.exposure, contributions.map((c) => c.findingId));
+    return { ...e, effect: { ...e.effect, contributions, exposure: { stages: scoped.stages,
+      clusters: scoped.clusters.map((c) => ({ clusterId: c.clusterId, findingIds: c.findingIds, status: c.status, retainedCents: c.retainedCents, boundsCents: c.boundsCents, reviewStage: c.reviewStage, correctedCents: c.correctedCents, reason: c.reason ?? null })) } } };
+  });
   const observations = events.flatMap((e) => e.observations);
   const body = {
     schemaVersion: "transversal-events-1" as const, version: EVENT_MAP_VERSION, scope, period: { startDate: period.startDate, closingDate: close, asOfDate: review },

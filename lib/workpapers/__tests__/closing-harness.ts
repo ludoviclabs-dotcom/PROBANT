@@ -6,6 +6,7 @@ import { pvPeriod, pvScope } from "./provision-fixtures";
 import { createProvisionHarness } from "./provision-harness";
 import { TestAuthorizer } from "./cash-memory-database";
 import { MemoryClosingDatabase, memoryCycleSource, type CycleSource } from "./closing-memory-database";
+import type { EventMapReader } from "../closing-events";
 
 /** The file shares the dossier and exercise of the Provisions recipe, so that a real locked provisions sheet can be observed. */
 export const CL_DOSSIER = pvScope.dossierId, CL_OTHER_DOSSIER = "99999999-9999-4999-8999-999999999999", CL_ORG = pvScope.organizationId, CL_PERIOD = pvPeriod, CL_PERIOD_ID = pvScope.periodId;
@@ -18,16 +19,18 @@ export type ClosingViewBody = Awaited<ReturnType<ClosingRuntime["read"]>>;
  * Real runtime and handlers over the in-memory TEST store. Every response comes from the engine, never from hand-written JSON;
  * this proves runtime rules, never durability.
  */
-export function createClosingHarness(options: { start?: number; cycles?: CycleSource[]; directUploads?: boolean } = {}) {
+export function createClosingHarness(options: { start?: number; cycles?: CycleSource[]; directUploads?: boolean; events?: EventMapReader; periodId?: string } = {}) {
   const start = options.start ?? 1_801_000_000, db = new MemoryClosingDatabase(options.cycles ?? []), auth = new TestAuthorizer(), clock = { now: start };
   db.addDossier(CL_DOSSIER, CL_ORG); db.addDossier(CL_OTHER_DOSSIER, "org-other");
   auth.add("preparer", "preparer-cl", CL_ORG, ["preparer"]); auth.add("preparer2", "collab-b-cl", CL_ORG, ["preparer"]); auth.add("reviewer", "reviewer-cl", CL_ORG, ["reviewer"]);
   auth.add("signer", "signer-cl", CL_ORG, ["signer"]); auth.add("signer-nocap", "signer-sans-habilitation", CL_ORG, ["signer"]); auth.add("admin", "admin-cl", CL_ORG, ["admin"]);
   auth.add("outsider", "outsider", "org-other", ["preparer", "reviewer", "signer"]); auth.add("expired", "preparer-cl", CL_ORG, ["preparer"], start - 1);
   let n = 0;
-  const runtime = () => new ClosingRuntime(db, auth, () => clock.now, identity => CL_AUTHORITY.has(identity.subject), () => "evt-" + String(++n).padStart(4, "0"));
+  // The events map reader stands for GET /api/workpapers/payables?operation=events (C11); without it the map is not read.
+  const runtime = () => new ClosingRuntime(db, auth, () => clock.now, identity => CL_AUTHORITY.has(identity.subject), () => "evt-" + String(++n).padStart(4, "0"), options.events);
+  const pid = options.periodId ?? CL_PERIOD_ID;
   const handlers = closingHandlers(runtime, () => {});
-  const url = (dossier = CL_DOSSIER, extra = "") => "https://probant.test/api/workpapers/closing?dossierId=" + dossier + "&periodId=" + CL_PERIOD_ID + extra;
+  const url = (dossier = CL_DOSSIER, extra = "") => "https://probant.test/api/workpapers/closing?dossierId=" + dossier + "&periodId=" + pid + extra;
   const request = (session: string, method = "GET", body?: BodyInit, dossier = CL_DOSSIER, extra = "", key: string = randomUUID()) =>
     new Request(url(dossier, extra), { method, headers: { "x-test-session": session, "Idempotency-Key": key, ...(typeof body === "string" ? { "Content-Type": "application/json" } : {}) }, body });
   /** Last journal head seen by the harness: commands are sent against it unless the test sets another one. */
@@ -53,7 +56,7 @@ export function createClosingHarness(options: { start?: number; cycles?: CycleSo
     async upload(content: string | Uint8Array, fileName: string, meta: { label: string; kind: PieceKind; pieceId?: string; expectedSeq?: number }, session = "preparer", key: string = randomUUID()) {
       const full = { ...meta, expectedSeq: meta.expectedSeq ?? seen.seq }, file = new File([content as BlobPart], fileName, { type: "text/plain" });
       // jsdom replaces FormData: presentation fixtures call the same runtime method without the multipart transport.
-      if (options.directUploads) { try { const body = await runtime().upload(request(session), CL_DOSSIER, CL_PERIOD_ID, file, full, key); seen.seq = body.view.seq; return { status: 200, body }; } catch (e) { return { status: 422, body: { error: (e as Error).message } }; } }
+      if (options.directUploads) { try { const body = await runtime().upload(request(session), CL_DOSSIER, pid, file, full, key); seen.seq = body.view.seq; return { status: 200, body }; } catch (e) { return { status: 422, body: { error: (e as Error).message } }; } }
       const form = new FormData(); form.set("file", file); form.set("meta", JSON.stringify(full));
       return json(await handlers.piecesPOST(new Request(url(CL_DOSSIER).replace("/closing?", "/closing/pieces?"), { method: "POST", headers: { "x-test-session": session, "Idempotency-Key": key }, body: form })));
     },

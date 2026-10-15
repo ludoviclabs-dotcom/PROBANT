@@ -5,6 +5,7 @@ import type { ProjectionRow, ProjectionSheet } from "@/lib/workpapers/closing-pr
 import { CitationPicker, readCitations } from "./ProcedurePanel";
 import { dateFr, euros, stampFr, STEP_STATE_LABELS, TONE, type ClosingView } from "./format";
 import { STATE_LABELS } from "../cash/format";
+import { EventEffectsSection } from "./ClosingEventEffects";
 import type { ProcedureStatus } from "@/lib/workpapers/closing-evaluate";
 import cl from "./closing.module.css";
 
@@ -76,6 +77,8 @@ export function ClosingSynthesis({ view, onOpen, canPrepare, send, busy, exportH
       {f.contradictions.length ? <ul className={cl.remaining}>{f.contradictions.map(c => <li key={c.id}><strong>{c.id}</strong> · {c.description} — <span className={cl.pill} data-tone={c.status === "resolue" ? "ok" : "danger"}>{c.status === "resolue" ? "Résolue" : c.status === "ouverte" ? "Ouverte" : "Résolution à réexaminer"}</span>
         {c.laterRepresentations.length ? <span className={cl.small}> · déclaration de la direction reçue depuis ({c.laterRepresentations.join(", ")}) : elle ne clôt pas la contradiction</span> : null}</li>)}</ul> : <p className={cl.small}>Aucune contradiction déclarée.</p>}
     </section>
+
+    <EventEffectsSection events={f.events} d={d.events}/>
 
     <section className={cl.section} aria-labelledby="cl-synth-dates">
       <h2 id="cl-synth-dates">Dates utiles et seuils documentés</h2>
