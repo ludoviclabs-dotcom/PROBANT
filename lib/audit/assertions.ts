@@ -66,12 +66,16 @@ export const RULE_ASSERTIONS: Record<string, RuleAssertionEntry> = {
   "R-PCG-ENGAGEMENTS": { assertions: ["annexe_exhaustivite"], objective: "Mention des engagements donnés en annexe", rationale: "L'information de l'annexe est incomplète." },
   // Scénarios de démonstration (lib/demo/scenarios.ts).
   "R-PCG-IMMO-INCORP": { assertions: ["solde_existence", "solde_evaluation"], objective: "Conditions d'activation des frais de recherche et développement", rationale: "Sans critères d'éligibilité démontrés, l'actif n'a pas lieu d'être inscrit ou l'est pour un montant inapproprié." },
-  "R-ISA240-REVENU": { assertions: ["flux_realite", "flux_separation"], objective: "Reconnaissance du revenu au transfert du contrôle", rationale: "Un revenu reconnu avant le transfert du contrôle est enregistré sans fait générateur ou sur la mauvaise période." },
+  // C11 : référentiel français (PCG 512-4 et 513-3 ; ANC 2026-03 522-2 s'il régit le contrat), et non IFRS 15 par défaut.
+  "R-ISA240-REVENU": { assertions: ["flux_realite", "flux_separation"], objective: "Reconnaissance du revenu à la livraison du bien ou à la réalisation de la prestation", rationale: "Un revenu enregistré avant la livraison ou la réalisation de la prestation est enregistré sans fait générateur ou sur la mauvaise période." },
   "R-PCG-PROVISIONS": { assertions: ["solde_exhaustivite", "solde_evaluation"], objective: "Exhaustivité et évaluation des provisions pour risques", rationale: "Un risque notifié non provisionné est un passif absent ou sous-évalué." },
   "R-PCG-DEPREC-STOCK": { assertions: ["solde_evaluation"], objective: "Dépréciation des articles sans mouvement", rationale: "La dépréciation porte sur le montant inscrit, pas sur l'existence." },
   "R-PCG-FNP": { assertions: ["flux_exhaustivite", "flux_separation"], objective: "Exhaustivité des factures non parvenues", rationale: "Des factures non parvenues sous-estimées sont des charges absentes de la bonne période." },
   "R-PCG-PROV-CP": { assertions: ["solde_evaluation"], objective: "Évaluation de la provision pour congés payés, charges incluses", rationale: "Une base incomplète sous-évalue le passif." },
   "R-INT-AMORT-REVISION": { assertions: ["solde_evaluation"], objective: "Révision des durées d'utilité", rationale: "Des durées non révisées peuvent fausser la valeur nette ; signal interne sur une estimation." },
+  // Carte des événements transversaux (C11) : avoirs dont la cause précède la clôture.
+  "R-PCG-AAE": { assertions: ["flux_separation", "flux_exhaustivite"], objective: "Rattachement des avoirs à établir (compte 4198)", rationale: "Une réduction de prix dont la cause précède la clôture diminue les produits de la période ; son omission surévalue le chiffre d'affaires." },
+  "R-PCG-AAR": { assertions: ["flux_separation", "flux_exhaustivite"], objective: "Rattachement des avoirs à recevoir (compte 4098)", rationale: "Une réduction de prix obtenue dont la cause précède la clôture diminue les charges de la période." },
 };
 
 /** Écarts du rapprochement multi-documents (`R-RAPPRO-<qualification>`), par qualification de l'écart. */

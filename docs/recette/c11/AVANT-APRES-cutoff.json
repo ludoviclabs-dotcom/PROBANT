@@ -1,0 +1,244 @@
+{
+  "base": "300829b (lib/workpapers/cutoff.ts 1.0.0)",
+  "apres": "cutoff 1.1.0",
+  "genereLe": "2026-10-15",
+  "cas": [
+    {
+      "cas": "c1",
+      "avant": {
+        "version": "1.0.0",
+        "status": "candidate",
+        "candidate": "FAE",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "1000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "candidate",
+        "candidate": "FAE",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "1000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c2",
+      "avant": {
+        "version": "1.0.0",
+        "status": "candidate",
+        "candidate": "PCA",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "2000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "candidate",
+        "candidate": "PCA",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "2000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c3a",
+      "avant": {
+        "version": "1.0.0",
+        "status": "already_treated",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Montant déjà rattaché ; aucun double ajustement"
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "already_treated",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Montant déjà rattaché ; aucun double ajustement"
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c3b",
+      "avant": {
+        "version": "1.0.0",
+        "status": "already_treated",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Montant déjà rattaché ; aucun double ajustement"
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "already_treated",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Montant déjà rattaché ; aucun double ajustement"
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c4",
+      "avant": {
+        "version": "1.0.0",
+        "status": "no_difference_on_tested_items",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Aucun montant enregistré à reporter sur les éléments testés"
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "no_difference_on_tested_items",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Aucun montant enregistré à reporter sur les éléments testés"
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c5a",
+      "avant": {
+        "version": "1.0.0",
+        "status": "candidate",
+        "candidate": "FAE",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "-500.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "candidate",
+        "candidate": "AAE",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "-500.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c6",
+      "avant": {
+        "version": "1.0.0",
+        "status": "no_difference_on_tested_items",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Aucun montant enregistré à reporter sur les éléments testés"
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "no_difference_on_tested_items",
+        "candidate": null,
+        "amount": {
+          "kind": "not_applicable",
+          "reason": "Aucun montant enregistré à reporter sur les éléments testés"
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c7a",
+      "avant": {
+        "version": "1.0.0",
+        "status": "candidate",
+        "candidate": "FNP",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "1000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "candidate",
+        "candidate": "FNP",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "1000.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    },
+    {
+      "cas": "c8",
+      "avant": {
+        "version": "1.0.0",
+        "status": "candidate",
+        "candidate": "FNP",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "400.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "absente"
+      },
+      "apres": {
+        "version": "1.1.0",
+        "status": "candidate",
+        "candidate": "FNP",
+        "amount": {
+          "kind": "known",
+          "value": {
+            "amount": "400.00",
+            "currency": "EUR"
+          }
+        },
+        "rule": "anc-2022-06 — 511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)"
+      }
+    }
+  ]
+}

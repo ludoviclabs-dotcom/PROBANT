@@ -149,10 +149,10 @@ export const RULE_PROCEDURES: Record<string, ProcedureEntry> = {
     "Obtenir, projet par projet, la démonstration des critères d'éligibilité prévus par la source du constat.",
     "Apprécier si les critères sont documentés à la date d'activation ; sinon, proposer la correction.",
   ], references: [REFERENCES.nep500], route: "/immobilisations" },
-  "R-ISA240-REVENU": { title: "Revue de la reconnaissance du revenu au transfert du contrôle", steps: [
-    "Lire les contrats concernés : obligations, période de service, modalités de transfert du contrôle.",
-    "Rapprocher le revenu reconnu des prestations réellement rendues à la clôture ; isoler la part à différer.",
-    "Documenter le fait générateur retenu et son effet sur la période.",
+  "R-ISA240-REVENU": { title: "Revue de la reconnaissance du revenu à la livraison ou à la réalisation de la prestation", steps: [
+    "Lire les contrats concernés : biens et services vendus, période de service, date de conclusion ou de renouvellement (le champ d'ANC 2026-03 en dépend).",
+    "Rapprocher le revenu enregistré des livraisons et prestations réellement réalisées à la clôture ; isoler la part à différer en produits constatés d'avance (487).",
+    "Documenter le fait générateur retenu, le texte français applicable à l'exercice et au contrat, et l'effet sur la période.",
   ], references: [REFERENCES.nep500], route: "/cutoff" },
   "R-PCG-PROVISIONS": { title: "Risque notifié et provision", steps: [
     "Obtenir la notification, les échanges avec le tiers et, le cas échéant, la position de l'avocat (NEP 501 §07-08).",
@@ -175,6 +175,15 @@ export const RULE_PROCEDURES: Record<string, ProcedureEntry> = {
     "Obtenir la politique d'amortissement et les éléments techniques sur l'utilisation réelle des équipements.",
     "Apprécier si une révision des durées s'impose ; documenter la décision et son effet prospectif.",
   ], references: [REFERENCES.nep500], route: "/immobilisations", leftToProfessional: "Signal interne : la révision des estimations relève de la direction et de son appréciation par le professionnel." },
+  "R-PCG-AAE": { title: "Rattachement des avoirs à établir", steps: [
+    "Rapprocher les avoirs émis après la clôture de leur cause (retour, défaut, accord commercial) et de sa date.",
+    "Pour une cause antérieure à la clôture, vérifier l'avoir à établir (4198) et sa contrepartie (709, TVA 44587) ; pour une cause postérieure, aucun rattachement.",
+    "Documenter le montant retenu et la pièce de la cause ; la grille ne fixe aucun montant probable à la place du professionnel.",
+  ], references: [REFERENCES.nep500], route: "/cutoff" },
+  "R-PCG-AAR": { title: "Rattachement des avoirs à recevoir", steps: [
+    "Rapprocher les avoirs fournisseurs reçus après la clôture de leur cause et de sa date.",
+    "Pour une cause antérieure à la clôture, vérifier l'avoir à recevoir (4098) et sa contrepartie (609 à 629, TVA 44586).",
+  ], references: [REFERENCES.nep500], route: "/cutoff" },
   "R-PCG-ENGAGEMENTS": { title: "Recensement des engagements donnés", steps: [
     "Recenser cautions, garanties et engagements donnés auprès de la direction, des banques et des contrats.",
     "Vérifier leur mention en annexe.",

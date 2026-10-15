@@ -7,8 +7,9 @@ import { ClientsConflict } from "./clients-persistence";
 import { clientsApprovalSchema, payablesCommandSchema, clientsPeriodSchema } from "./payables-commands";
 import { periodId } from "./model";
 import type { PayablesRuntime } from "./payables-runtime";
+import type { VatObservationReader } from "./transversal-events-adapter";
 const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100),
-    operation: z.enum(["list", "history", "download", "mission", "version"]).optional(), id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
+    operation: z.enum(["list", "history", "download", "mission", "version", "events"]).optional(), id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
 const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(), kind: z.enum(["diagnostic", "approved"]), format: z.enum(["json", "html", "pdf", "manifest", "exceptions_csv", "decisions_csv", "procedures_csv", "sources_csv"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
 const headers = { "Cache-Control": "private, no-store" };
 export function requireDisposablePayables(env: Record<string, string | undefined> = process.env) {
@@ -65,7 +66,8 @@ async function bounded(request: Request, max: number) {
     }
     return new Request(request.url, { method: request.method, headers: request.headers, body: bytes });
 }
-export function payablesHandlers(create: () => PayablesRuntime, enabled: () => void = requireDisposablePayables, observeError?: (error: unknown) => void) {
+/** `vat` : lecteur des feuilles TVA pour la carte des événements (C11), null si la chaîne fiscale n'est pas activée. */
+export function payablesHandlers(create: () => PayablesRuntime, enabled: () => void = requireDisposablePayables, observeError?: (error: unknown) => void, vat: () => VatObservationReader | null = () => null) {
     const fail = (error: unknown) => { observeError?.(error); return failure(error); };
     return {
         GET: async (request: Request) => {
@@ -82,6 +84,11 @@ export function payablesHandlers(create: () => PayablesRuntime, enabled: () => v
                 }
                 if (q.operation === "mission")
                     return Response.json(await runtime.payablesMission(request, q.dossierId, q.periodId, { rootId: q.rootId, id: q.id, version: q.version }), { headers });
+                if (q.operation === "events") {
+                    if (q.id || q.rootId || q.version !== undefined)
+                        throw new Error("CLIENT_QUERY_INVALID");
+                    return Response.json(await runtime.cutoffEvents(request, q.dossierId, q.periodId, vat()), { headers });
+                }
                 if (q.operation === "version" && (!q.id || q.version === undefined))
                     throw new Error("WORKPAPER_VERSION_REQUIRED");
                 if (q.version !== undefined && q.operation !== "version")

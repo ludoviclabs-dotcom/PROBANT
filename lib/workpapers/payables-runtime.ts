@@ -10,7 +10,10 @@ import { periodId, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { ImportMapping, ImportBatch } from "./imports";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import type { PayablesCommand } from "./payables-commands";
-import { buildPayablesMission } from "./payables-mission";
+import { buildPayablesMission, payableHref } from "./payables-mission";
+import type { ClientsSalesResult } from "./clients-sales";
+import { buildTransversalEventMap } from "./transversal-events";
+import { eventMapInput, latestExecutedPerRoot, SUPERSEDED_REASON, type ClientsSalesObservation, type PayablesObservation, type VatObservation, type VatObservationReader } from "./transversal-events-adapter";
 import type { MissionSelection } from "./client-mission";
 import { buildPayablesPackage } from "@/lib/evidence/payables-package";
 import { executionProfile } from "@/lib/runtime/profile";
@@ -147,6 +150,51 @@ export class PayablesRuntime extends ClientsRuntime {
             throw new ApiError("PAYABLE_STATE_LIMIT", "Synthèse trop volumineuse.", 413);
         const run = versions.find(r => r.id === mission.selectedRunId && r.version === mission.selectedVersion) ?? null;
         return { mission, run, imports: imports.batches };
+    }
+    /**
+     * C11 : carte des événements transversaux. Lecture seule des dernières versions des feuilles Achats / RPNE et Clients
+     * et ventes (stockage partagé clients_*), puis des feuilles TVA si la chaîne fiscale est activée. Une feuille dont une
+     * source approuvée a été remplacée reste visible comme périmée et ne compte dans aucun effet.
+     */
+    async cutoffEvents(request: Request, dossierId: string, pid: string, vat: VatObservationReader | null) {
+        const data = await this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => {
+            const [size] = await rows<{ count: string; bytes: string }>(tx, sql `SELECT count(*)::text AS count,coalesce(sum(octet_length(run::text)),0)::text AS bytes FROM clients_workpaper_versions WHERE ${scopeWhere(scope)}`);
+            if (Number(size.count) > 500 || Number(size.bytes) > 24 * 1024 * 1024)
+                throw new ApiError("PAYABLE_STATE_LIMIT", "Historique trop volumineux.", 413);
+            const imports = await ClientsImports.load(tx, scope), heads = await this.heads(tx, scope);
+            const versions = (await rows<{ run: WorkpaperRun }>(tx, sql `SELECT run FROM clients_workpaper_versions WHERE ${scopeWhere(scope)} ORDER BY id,version`)).map(r => r.run)
+                .filter(r => (PAYABLE_PROCEDURES as readonly string[]).includes(r.template.id) || r.template.id === "clients.sales");
+            // Dernière version exécutée de chaque feuille ; une révision plus récente (même en préparation) la périme sans l'effacer.
+            const current = latestExecutedPerRoot(versions), superseded = new Set(current.filter(c => c.superseded).map(c => c.run));
+            const staleOf = (run: WorkpaperRun) => [...(superseded.has(run) ? [SUPERSEDED_REASON] : []), ...(run.importIds.some(id => !heads.some(h => h.import_id === id)) ? ["Une source approuvée a été remplacée."] : [])];
+            const runs = current.map(c => c.run);
+            const payables: PayablesObservation[] = runs.filter(r => (PAYABLE_PROCEDURES as readonly string[]).includes(r.template.id)).map(run => {
+                const batches = imports.batches.filter(b => run.importIds.includes(b.id) && b.approval);
+                let facts: ReturnType<typeof buildPayablesFacts> | null = null;
+                try { facts = buildPayablesFacts(scope, run.period, batches, run.id, run.template.id as PayableProcedure); }
+                catch { facts = null; }
+                const staleReasons = staleOf(run);
+                return { run, result: run.result!.result as PayablesResult, facts, stale: staleReasons.length > 0, staleReasons, href: payableHref(scope, run) };
+            });
+            const clientsSales: ClientsSalesObservation[] = runs.filter(r => r.template.id === "clients.sales").map(run => {
+                const staleReasons = staleOf(run);
+                return { run, result: run.result!.result as ClientsSalesResult, stale: staleReasons.length > 0, staleReasons, href: "/clients-framing?" + new URLSearchParams({ dossierId: scope.dossierId, periodId: scope.periodId, id: run.id, version: String(run.version) }) };
+            });
+            return { scope, actorId: actor.id, payables, clientsSales };
+        });
+        let vatObservations: VatObservation[] = [], vatChain: "read" | "disabled" | "unavailable" = "disabled";
+        if (vat) {
+            try { vatObservations = await vat.vatObservations(request, dossierId, pid); vatChain = "read"; }
+            catch { vatChain = "unavailable"; }
+        }
+        const runs = [...data.payables.map(p => p.run), ...data.clientsSales.map(c => c.run)];
+        if (!runs.length)
+            return { actorId: data.actorId, map: null, reason: "Aucune feuille Clients et ventes ni Achats exécutée pour cette période : la carte n’a aucun événement à projeter." };
+        // La période de la carte est celle de la feuille la plus récemment créée ; un écart de date de revue est signalé.
+        const period = [...runs].sort((a, b) => (b.events.at(-1)?.at ?? "").localeCompare(a.events.at(-1)?.at ?? ""))[0].period;
+        const map = buildTransversalEventMap(eventMapInput({ scope: data.scope, period, payables: data.payables, clientsSales: data.clientsSales, vat: vatObservations, vatChain }));
+        const reviewDates = [...new Set(runs.map(r => r.period.asOfDate))];
+        return { actorId: data.actorId, map, reason: reviewDates.length > 1 ? `Dates de revue différentes entre feuilles (${reviewDates.sort().join(", ")}) : la carte lit la date ${period.asOfDate}.` : null };
     }
     async payablesMission(request: Request, dossierId: string, pid: string, selection: MissionSelection = {}) { return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.payableData(tx, scope, selection)).mission })); }
     async payablesExport(request: Request, dossierId: string, pid: string, selection: MissionSelection, kind: "diagnostic" | "approved", expectedSnapshotHash: string) {

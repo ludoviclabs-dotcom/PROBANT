@@ -18,11 +18,12 @@ import { periodId, type WorkpaperRun } from "../model";
 import { CA3_T1, CA3_T2, CA3_T2_CORRECTED, ca3Text, citText, DECL_2065, fecText, FX_CSV, FX_SIREN, fxMapping, fxPeriod, LIASSE_2058A, T1, T2 } from "./fiscal-fixtures";
 import type { CitResult } from "../fiscal-cit-contract";
 import { assertDisposableDatabase } from "./disposable-database";
+import { SUPERSEDED_REASON } from "../transversal-events-adapter";
 
 /** Disposable PostgreSQL recipe (CI service or local *_ci / *_test database); skipped, never simulated, without it. */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessions serveur et append-only", () => {
-  let client: ReturnType<typeof postgres>, handlers: ReturnType<typeof fiscalHandlers>, store: DrizzleSessionStore;
+  let client: ReturnType<typeof postgres>, handlers: ReturnType<typeof fiscalHandlers>, store: DrizzleSessionStore, runtime: FiscalRuntime;
   const now = 1_801_000_000, orgA = randomUUID(), orgB = randomUUID(), dossierA = randomUUID(), dossierB = randomUUID();
   const config = { secret: "disposable-fiscal-test-secret-0000000000000000000000", idleTtlSeconds: 3600, absoluteTtlSeconds: 7200, appOrigin: "https://probant.example.test" };
   type Session = { secret: string; csrf: string };
@@ -38,6 +39,7 @@ describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessi
     const authorizer = new RequestAuthorizer({ sessionStore: store, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db) });
     handlers = fiscalHandlers(() => new FiscalRuntime(new PostgresFiscalDatabase(db), authorizer, () => now), () => {},
       error => { if (error instanceof Error) console.error("FISCAL_RECIPE_ERROR", error.name, error.message.split("\n")[0], error.cause instanceof Error ? error.cause.message : ""); });
+    runtime = new FiscalRuntime(new PostgresFiscalDatabase(db), authorizer, () => now);
   }
   async function session(org: string, subject: string, roles: ProbantRole[]) {
     const secret = newSessionSecret(), record = await store.create({ tokenSha256: sessionTokenDigest(secret), issuer: "https://idp.example.test", subject, organizationId: org, roles, acr: "mfa", amr: ["mfa"], mfaSatisfied: true, nowEpochSeconds: now, idleTtlSeconds: 3600, absoluteTtlSeconds: 7200 });
@@ -125,5 +127,25 @@ describe.skipIf(!databaseUrl)("recette fiscale TVA — PostgreSQL jetable, sessi
     isRun = await success({ command: "lock", id: isRun.id, expectedVersion: isRun.version }, reviewer);
     expect(isRun).toMatchObject({ state: "locked", template: { id: "is.computation" }, approval: { actorId: "fx-reviewer" } });
     expect((await read()).sourcesCurrent[isRun.id]).toBe(true);
+  });
+  it("C11 : la carte des événements lit une seule révision TVA par feuille ; la révision exécutée antérieure est périmée, jamais doublée", async () => {
+    const observe = () => runtime.vatObservations(request(preparer), dossierA, periodId(fxPeriod));
+    // Feuille verrouillée dont la déclaration du T2 a été remplacée : lue une fois, périmée.
+    expect(await observe()).toEqual([expect.objectContaining({ runId: run.id, rootId: run.rootId, stale: true, staleReasons: ["Une source de la période déclarative a été remplacée."] })]);
+    let revised = await success({ command: "revise", id: run.id, expectedVersion: run.version });
+    expect(revised).toMatchObject({ rootId: run.rootId, revision: run.revision + 1, state: "draft" });
+    // Révision en préparation : la version exécutée reste la seule lue, périmée aussi par la révision.
+    expect(await observe()).toEqual([expect.objectContaining({ runId: run.id, stale: true, staleReasons: [SUPERSEDED_REASON, "Une source de la période déclarative a été remplacée."] })]);
+    const view = await read(), expected = view.expectedSources[revised.id] as string[];
+    const support = view.imports.find((b: { document: { documentType: string } }) => b.document.documentType === "fx_support");
+    const regime = support.rows.find((r: { normalized?: { key: string } }) => r.normalized?.key === "ATT-REGIME").id as string;
+    revised = await success({ command: "freeze", id: revised.id, expectedVersion: revised.version, importIds: expected, draft: { frequency: "quarterly", formVintage: 2026,
+      profile: { vatRegime: "real_normal", vatGroupStatus: "none", siren: FX_SIREN, evidence: { documentId: support.document.id, rowId: regime } }, explanations: [] } });
+    revised = await success({ command: "execute", id: revised.id, expectedVersion: revised.version });
+    expect(revised.result?.execution).toBe("completed");
+    // Deux révisions exécutées de la même feuille : seule la plus récente est lue, courante ; aucune période dédoublée.
+    const after = await observe();
+    expect(after).toEqual([expect.objectContaining({ runId: revised.id, rootId: run.rootId, revision: run.revision + 1, stale: false, staleReasons: [] })]);
+    expect(after[0].result.period).toEqual(T2);
   });
 });

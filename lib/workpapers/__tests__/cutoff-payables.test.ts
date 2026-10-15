@@ -33,6 +33,8 @@ describe("CUT-401 shared synthetic decision framework", () => {
     const input = cutoffFixture();
     const credit = analyzeCutoff({ ...input, documentKind: "credit_note", originalEventKey: input.economicEventKey, basis: { net: known("-100.00"), tax: known("-20.00"), gross: known("-120.00"), evidence: [proof] } });
     expect(credit.amount).toEqual(known("-100.00"));
+    // C11 : un avoir d'achat à cause antérieure à la clôture est un avoir à recevoir (4098), jamais une FNP négative.
+    expect(credit.candidate).toBe("AAR");
     const result = analyzeCutoff(input);
     expect(() => reviewCutoff(result, input.context, "validated", "", "2024-07-31T00:00:00Z", reviewer)).toThrow();
     expect(() => reviewCutoff(result, input.context, "validated", "verified", "2024-07-31T00:00:00Z", preparer)).toThrow();

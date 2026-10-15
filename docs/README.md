@@ -34,6 +34,13 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission-c09/CONTRAT.md`](./mission-c09/CONTRAT.md) | Vue commune et dédoublonnage par PV, règle Capitaux propres 1.1.0 (amendements, paiement, autres fonds propres ANC 2024-07, repères légaux), sources lues et choix internes |
 | [`recette/c09/`](./recette/c09/) | Attendus calculés à la main et reproduction du moteur 1.0.0 (`AVANT-capitaux-1.0.0.json`) |
 
+## Clients, achats, cut-off et TVA — événements transversaux — C11
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission-c11/CONTRAT.md`](./mission-c11/CONTRAT.md) | Dates de raisonnement, carte événement → procédures → sources → effets, dépendances d'invalidation, grille de cut-off 1.1.0 (texte applicable, avoirs), qualification TVA fermée, sources lues et écarts du registre fiscal |
+| [`recette/c11/`](./recette/c11/) | Huit cas avec attendus comptables et fiscaux posés à la main, pont C05 et procédures C03 attendus |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

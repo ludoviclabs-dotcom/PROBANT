@@ -56,3 +56,7 @@ Les fixtures déterministes couvrent : 1 200 TTC / 1 000 HT prestation antérieu
 La recette PostgreSQL fait partie de `clients-durable.integration.test.ts` pour partager l’infrastructure jetable et les sessions réelles de deux organisations/quatre dossiers. Elle vérifie les cinq cas, droits transversaux, auteur serveur, auto-approbation, rejeu, concurrence, invalidation, export/téléchargements, expiration, redémarrage de PostgreSQL et remplacement d’une source avec ancienne décision intacte. Elle est ignorée localement si `PROBANT_CLIENTS_TEST_DATABASE_URL` manque ; aucune simulation n’est présentée comme une preuve de durabilité. Le CI existant l’exécute sur PostgreSQL 17 et lui fournit l’identifiant du conteneur à redémarrer.
 
 Les tests navigateur utilisent des réponses explicites pour vérifier présentation, accusés, conflits, filtres, unités, accès à la bonne version, affichage mobile et accessibilité. Ils ne remplacent pas la recette native. L’IdP OIDC externe, l’authenticité des originaux, un environnement de mission réel et la production ne sont pas exécutés/activés par ce lot.
+
+## C11 — événements transversaux (15/10/2026)
+
+La grille de cut-off passe en 1.1.0 (texte français applicable cité, avoirs à établir / à recevoir) sans changer la grille des factures ; trois colonnes facultatives des factures (`natureColumn`, `debitOptionColumn`, `contractDateColumn`) alimentent la carte des événements transversaux (`/cutoff`, opération `events`). Voir [`../mission-c11/CONTRAT.md`](../mission-c11/CONTRAT.md).
