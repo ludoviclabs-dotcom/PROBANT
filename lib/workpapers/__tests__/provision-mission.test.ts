@@ -6,6 +6,7 @@ import { redactProvisionRun } from "../provision-redaction";
 import type { WorkpaperRun } from "../model";
 import { estimateCsv, ESTIMATE_ROWS, pvScope, registerCsv, REGISTER_ROWS } from "./provision-fixtures";
 import { createProvisionHarness, type ProvisionHarness } from "./provision-harness";
+import type { AuthenticatedPrincipal } from "@/lib/auth/principal";
 
 /**
  * Mission synthesis of the provisions register (C-lot « restitution Provisions »). Every expected value below is
@@ -250,5 +251,22 @@ describe("PV-1622 Export Provisions : état affiché exact et paquet approuvé",
     const oldApproved = await exportRequest(h, "reviewer", { id: executed.id, version: executed.version, kind: "approved", expectedSnapshotHash: old.hash });
     expect([oldApproved.status, (await oldApproved.json()).error]).toEqual([422, "EXPORT_APPROVED_CURRENT_LOCKED_REQUIRED"]);
     expect((await exportRequest(h, "reviewer", { id: executed.id, version: executed.version, kind: "diagnostic", expectedSnapshotHash: old.hash })).status).toBe(200);
+  });
+
+  it("paquet approuvé refusé quand la feuille est verrouillée par une seconde identité simulée (C07 : ne vaut pas relecture)", async () => {
+    const h = createProvisionHarness(), { sources, run: executed } = await h.executed();
+    h.auth.identities["simulated"] = { ...h.auth.identities["reviewer"], subject: "seconde-identite-simulee", reviewKind: "simulated_second_identity" } as AuthenticatedPrincipal;
+    const support = sources.pv_support!, comite = support.rows.find(r => r.original.Piece === "PV-COMITE-12")!;
+    let run = executed;
+    for (const n of run.notes) run = await h.ok({ command: "resolve", id: run.id, expectedVersion: run.version, noteId: n.id, text: "Différence examinée avec la direction, appréciation documentée au procès-verbal.", citation: { documentId: support.document.id, rowId: comite.id } });
+    run = await h.ok({ command: "conclude", id: run.id, expectedVersion: run.version, text: "Différences examinées et documentées, aucune issue juridique déduite." });
+    run = await h.ok({ command: "submit", id: run.id, expectedVersion: run.version });
+    run = await h.ok({ command: "review", id: run.id, expectedVersion: run.version, decision: "approved", submittedHash: run.submittedHash!, text: "Approbation simulée." }, "simulated");
+    run = await h.ok({ command: "lock", id: run.id, expectedVersion: run.version }, "simulated");
+    expect(run.approval).toMatchObject({ kind: "simulated_second_identity" });
+    const m = (await mission(h, "reviewer")).body.mission;
+    const approved = await exportRequest(h, "reviewer", { id: run.id, version: run.version, kind: "approved", format: "html", expectedSnapshotHash: m.hash });
+    expect([approved.status, (await approved.json()).error]).toEqual([422, "EXPORT_APPROVED_SIMULATED_REVIEW"]);
+    expect((await exportRequest(h, "reviewer", { id: run.id, version: run.version, kind: "diagnostic", expectedSnapshotHash: m.hash })).status).toBe(200);
   });
 });

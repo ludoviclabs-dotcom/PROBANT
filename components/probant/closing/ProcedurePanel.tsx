@@ -39,14 +39,11 @@ function LineageList({ lineages, self, engine, canPrepare, send, busy, drift }: 
   return <ul className={cl.remaining} aria-label="Feuilles observées pour cette procédure de cycle">{lineages.map(l => {
     const mine = l.procedureId === self, o = l.current;
     return <li key={l.rootId}><span><strong>racine {l.rootId}</strong> · r{o.revision} v{o.version} · {STATE_LABELS[o.state] ?? o.state} · {o.populationSize !== null ? o.populationSize + (o.populationSize > 1 ? " éléments" : " élément") : "population non figée"} · période {dateFr(o.period.startDate)} → {dateFr(o.period.closingDate)}
-      {" "}<span className={cl.pill} data-tone={mine ? "ok" : l.assignment === "ecartee" ? "muted" : l.assignment === "retenue" ? "info" : "danger"}>{mine ? "Retenue ici" : l.assignment === "retenue" ? "Retenue par " + l.procedureId : ASSIGNMENT_LABELS[l.assignment]}</span>
+      {" "}<span className={cl.pill} data-tone={mine && l.assignment === "retenue" ? "ok" : l.assignment === "ecartee" ? "muted" : l.assignment === "retenue" ? "info" : "danger"}>{mine ? (l.assignment === "retenue" ? "Retenue ici" : "À confirmer ici") : l.procedureId ? (l.assignment === "retenue" ? "Retenue par " : "À confirmer par ") + l.procedureId : ASSIGNMENT_LABELS[l.assignment]}</span>
       {l.exclusion ? <span className={cl.small}> · motif : {l.exclusion.reason}</span> : null}{l.previous.length ? <span className={cl.small}> · {l.previous.length} révision(s) antérieure(s) listée(s), sans effet</span> : null}</span>
-      {canPrepare && (!mine || drift) && l.assignment !== "retenue" ? <details><summary>{mine ? "Confirmer le rattachement" : "Rattacher cette feuille"}</summary>
+      {canPrepare && (mine ? drift : !l.procedureId) ? <details><summary>{mine ? "Confirmer le rattachement de la révision courante" : "Rattacher cette feuille"}</summary>
         <form className={cl.form} onSubmit={submit(f => ({ command: "bind_sheet", procedureId: self, rootId: l.rootId, perimeter: f.get("perimeter") }))}>
           <label>Périmètre couvert (compte, période déclarative, site…)<input name="perimeter" required maxLength={300}/></label><button className={cl.submit} disabled={busy}>Rattacher</button></form></details> : null}
-      {canPrepare && mine && drift ? <details><summary>Confirmer le rattachement de la révision courante</summary>
-        <form className={cl.form} onSubmit={submit(f => ({ command: "bind_sheet", procedureId: self, rootId: l.rootId, perimeter: f.get("perimeter") }))}>
-          <label>Périmètre couvert<input name="perimeter" required maxLength={300}/></label><button className={cl.submit} disabled={busy}>Confirmer</button></form></details> : null}
       {canPrepare && !l.procedureId && l.assignment !== "ecartee" ? <details><summary>Écarter du programme (motif)</summary>
         <form className={cl.form} onSubmit={submit(f => ({ command: "exclude_sheet", engine, rootId: l.rootId, reason: f.get("reason") }))}>
           <label>Motif<textarea name="reason" required maxLength={1000}/></label><button className={cl.submit} disabled={busy}>Écarter</button></form></details> : null}

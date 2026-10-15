@@ -234,12 +234,15 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   if (!s.opened) add(blockers, "FILE_NOT_OPENED", "Dossier non ouvert : exercice et entité à déclarer", "file", "file");
 
   // Sheet lineages: retained by one procedure, deliberately excluded with a reason, to assign (the engine is in the programme), or outside the programme.
+  // A lineage whose binding drifted (new revision or population) stays to assign, named by the procedure that must confirm it: never counted as retained.
   const sheets: LineageView[] = lineages.map(l => {
-    const owner = procedures.find(p => p.engine && p.engine.id === l.procedure && p.engine.binding.rootId === l.rootId && p.engine.binding.mode !== "aucun");
+    const bound = procedures.find(p => p.engine && p.engine.id === l.procedure && p.engine.binding.rootId === l.rootId && p.engine.binding.mode !== "aucun");
+    const owner = bound && !bound.engine!.binding.drift ? bound : undefined;
     const exclusion = s.exclusions[exclusionKey(l.procedure, l.rootId)];
     const known = engineProcedure(l.procedure);
     const base = { procedure: l.procedure, label: known?.label ?? l.current.label, route: known?.route ?? null, rootId: l.rootId, current: l.current, previous: l.previous };
     if (owner) return { ...base, assignment: "retenue" as const, procedureId: owner.procedureId, binding: owner.engine!.binding.mode === "explicite" ? "explicite" as const : "implicite" as const };
+    if (bound) return { ...base, assignment: "a_rattacher" as const, procedureId: bound.procedureId, binding: "explicite" as const };
     if (exclusion) return { ...base, assignment: "ecartee" as const, exclusion: { reason: exclusion.reason, by: exclusion.by, at: exclusion.at, revision: exclusion.revision } };
     return { ...base, assignment: sharingByEngine.has(l.procedure) ? "a_rattacher" as const : "hors_programme" as const };
   });
@@ -285,7 +288,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   for (const x of sheets.filter(y => y.assignment === "hors_programme")) coherence.push({ code: "CYCLE_OUTSIDE_PROGRAM", label: "Feuille « " + x.label + " » (" + x.current.state + ", v" + x.current.version + ") réalisée hors programme : à rattacher à un risque et une assertion, ou à écarter avec son motif", refs: [{ kind: "cycle", id: x.current.runId }] });
   const retainedEngines = new Set(sheets.filter(x => x.assignment === "retenue").map(x => x.procedure));
   // A new population of an engine whose programme already retains another sheet: an older lock never covers it silently.
-  for (const x of sheets.filter(y => y.assignment === "a_rattacher" && retainedEngines.has(y.procedure))) coherence.push({ code: "SHEET_UNASSIGNED", label: "Feuille « " + x.label + " » (racine " + x.rootId + ", r" + x.current.revision + ", " + (x.current.populationSize === null ? "population non figée" : plural(x.current.populationSize, "élément", "éléments")) + ") ni rattachée ni écartée : le verrouillage d’une autre feuille ne couvre pas cette population", refs: [{ kind: "cycle", id: x.current.runId }] });
+  for (const x of sheets.filter(y => y.assignment === "a_rattacher" && !y.procedureId && retainedEngines.has(y.procedure))) coherence.push({ code: "SHEET_UNASSIGNED", label: "Feuille « " + x.label + " » (racine " + x.rootId + ", r" + x.current.revision + ", " + (x.current.populationSize === null ? "population non figée" : plural(x.current.populationSize, "élément", "éléments")) + ") ni rattachée ni écartée : le verrouillage d’une autre feuille ne couvre pas cette population", refs: [{ kind: "cycle", id: x.current.runId }] });
   for (const p of procedures.filter(x => !x.applicable)) {
     const worked = p.records.length > 0 || (p.engine?.retained && p.engine.retained.state !== "draft");
     if (worked) coherence.push({ code: "NA_WITH_WORK", label: p.procedureId + " déclarée non applicable alors que des travaux existent", refs: [{ kind: "procedure", id: p.procedureId }] });

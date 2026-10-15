@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { ProcedureView } from "../closing-evaluate";
 import { buildRecipe } from "./closing-fixtures";
 import { addSolo, euro, sheet, small, source } from "./closing-c14-fixtures";
+import { fingerprintChanged, type CycleObservation } from "../closing-cycles";
 import { createClosingHarness, lockedProvisionSource, type ClosingViewBody } from "./closing-harness";
 import { PV_CSV } from "./provision-fixtures";
 
@@ -142,11 +143,25 @@ describe("C14 — vue unifiée du dossier : projection, rattachement des feuille
     v = await h.view();
     expect(proc(v, "P-02")).toMatchObject({ status: "cycle_a_rattacher", done: false, engine: { retained: null, binding: { drift: "revisee" } } });
     expect(proc(v, "P-02").remaining.map(r => r.code)).toEqual(["SHEET_REVISED"]);
-    expect(v.evaluation.sheets[0]).toMatchObject({ rootId: "cash-B1", current: { runId: "cash-B1:r2", state: "draft" }, previous: [{ runId: "cash-B1", state: "locked" }] });
+    expect(v.evaluation.sheets[0]).toMatchObject({ rootId: "cash-B1", assignment: "a_rattacher", procedureId: "P-02", current: { runId: "cash-B1:r2", state: "draft" }, previous: [{ runId: "cash-B1", state: "locked" }] });
+    // The drifted lineage is pending confirmation by P-02: counted to assign, not retained, flagged once (SHEET_REVISED), listed on the procedure row only.
+    expect(v.evaluation.denominators.sheets).toMatchObject({ lineages: 1, retained: 0, toAssign: 1 });
+    expect(v.evaluation.coherence.map(c => c.code)).not.toContain("SHEET_UNASSIGNED");
+    expect(v.projection.cycles.find(c => c.cycle === "tresorerie")!.otherSheets).toEqual([]);
     expect(indicator(v, "cycles")).toEqual([0, 1]);
     v = (await h.ok({ command: "bind_sheet", procedureId: "P-02", rootId: "cash-B1", perimeter: "Compte 512-B1 et sous-compte devise" })).view;
     expect(proc(v, "P-02")).toMatchObject({ status: "cycle_en_cours", engine: { retained: { runId: "cash-B1:r2" }, binding: { drift: null } } });
     expect(proc(v, "P-02").limits.join(" ")).toContain("révision antérieure verrouillée conservée (r1) : elle ne couvre pas la révision courante");
+  });
+
+  it("validation antérieure à C14 (empreinte sans fraîcheur des sources) : une source remplacée depuis compte comme un changement", () => {
+    const now = { version: 7, state: "locked", contentHash: "h", sourcesCurrent: false } as CycleObservation;
+    const legacy = { procedure: "provisions.register", runId: "pv-1", version: 7, state: "locked" as const, contentHash: "h" };
+    expect(fingerprintChanged(legacy, now)).toBe(true);
+    expect(fingerprintChanged(legacy, { ...now, sourcesCurrent: true })).toBe(false);
+    expect(fingerprintChanged(legacy, { ...now, sourcesCurrent: null })).toBe(false);
+    expect(fingerprintChanged({ ...legacy, sourcesCurrent: true }, now)).toBe(true);
+    expect(fingerprintChanged({ ...legacy, sourcesCurrent: true }, { ...now, sourcesCurrent: true })).toBe(false);
   });
 
   it("source remplacée après clôture : la validation devient périmée, la feuille demande une révision dans son cycle", async () => {

@@ -18,9 +18,14 @@ export interface CycleObservation {
 }
 export interface CycleFingerprint { procedure: string; runId: string; version: number; state: WorkpaperState; contentHash: string; sourcesCurrent?: boolean | null }
 export const fingerprint = (o: CycleObservation): CycleFingerprint => ({ procedure: o.procedure, runId: o.runId, version: o.version, state: o.state, contentHash: o.contentHash, ...(o.sourcesCurrent !== null ? { sourcesCurrent: o.sourcesCurrent } : {}) });
-/** A recorded fingerprint no longer matches the current observation (version, state, content, or a source replaced since). */
+/**
+ * A recorded fingerprint no longer matches the current observation (version, state, content, or a source replaced since).
+ * A fingerprint recorded before C14 carries no freshness: a source now replaced counts as a change rather than being presumed already known.
+ */
 export const fingerprintChanged = (f: CycleFingerprint, now: CycleObservation | undefined) =>
-  !now || now.version !== f.version || now.state !== f.state || now.contentHash !== f.contentHash || (f.sourcesCurrent !== undefined && f.sourcesCurrent !== null && now.sourcesCurrent !== f.sourcesCurrent);
+  !now || now.version !== f.version || now.state !== f.state || now.contentHash !== f.contentHash
+  || (typeof f.sourcesCurrent === "boolean" && typeof now.sourcesCurrent === "boolean" && now.sourcesCurrent !== f.sourcesCurrent)
+  || (typeof f.sourcesCurrent !== "boolean" && now.sourcesCurrent === false);
 
 /** Current heads of every cycle family, validated as workpaper runs; superseded revisions are kept out of the observation. */
 export function observeRuns(rows: { family: CycleFamily; run: WorkpaperRun }[], sourcesCurrent: (row: { family: CycleFamily; run: WorkpaperRun }) => boolean | null = () => null): CycleObservation[] {

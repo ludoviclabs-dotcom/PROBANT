@@ -20,6 +20,8 @@ export function assertProvisionPackage(mission: ProvisionMissionSnapshot, run: W
     if (run.id !== mission.procedure.runId || run.version !== mission.procedure.version || contentHash(run) !== mission.procedure.contentHash) throw new Error("EXPORT_VERSION_INVALID");
   } else if (mission.procedure.runId) throw new Error("EXPORT_RUN_REQUIRED");
   if (kind === "approved" && (!run || run.state !== "locked" || mission.procedure.stale || !mission.procedure.provisions || !run.approval || run.approval.snapshotHash !== contentHash(run))) throw new Error("EXPORT_APPROVED_CURRENT_LOCKED_REQUIRED");
+  // A simulated second identity never counts as a review (C07): its lock yields a diagnostic only. A named personal review is a review, stated as such.
+  if (kind === "approved" && run?.approval?.kind === "simulated_second_identity") throw new Error("EXPORT_APPROVED_SIMULATED_REVIEW");
 }
 const escapeHtml = (value: unknown) => String(value ?? "—").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]!));
 function table(title: string, headings: string[], rows: unknown[][]) {
@@ -50,7 +52,7 @@ function registerDetails(m: ProvisionMissionSnapshot) {
 }
 export function provisionMissionHtml(m: ProvisionMissionSnapshot, run: WorkpaperRun | null, kind: ProvisionExportKind, createdAt: string) {
   const p = m.procedure;
-  const status = kind === "approved" ? "Paquet du registre Provisions approuvé et verrouillé — portée : cette procédure uniquement" : "Export diagnostic — ne constitue pas un paquet approuvé";
+  const status = kind === "approved" ? "Paquet du registre Provisions approuvé et verrouillé — portée : cette procédure uniquement" + (run?.approval?.kind === "personal" ? " ; relecture personnelle nommée, pas une revue par une autre identité" : "") : "Export diagnostic — ne constitue pas un paquet approuvé";
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PROBANT — Provisions et engagements</title><style>
 body{font:15px/1.55 system-ui,sans-serif;color:#18283c;background:white;margin:2rem auto;max-width:1120px;padding:0 1rem}h1{font-size:26px}h2{font-size:20px;margin-top:2rem}p,td,th{overflow-wrap:anywhere;white-space:pre-wrap}table{width:100%;border-collapse:collapse;margin:1rem 0;table-layout:fixed}caption{text-align:left;font-weight:700;margin:.5rem 0}th,td{text-align:left;vertical-align:top;border:1px solid #b5bfcb;padding:7px;font-size:12px}th{background:#edf1f6}thead{display:table-header-group}tr{break-inside:avoid}header{border-bottom:2px solid #344b67}.notice{border-left:4px solid #ab7015;padding:1rem;background:#fff7e4}@page{size:A4 landscape;margin:16mm}@media print{body{max-width:none;margin:0;padding:0;font-size:11px}h2{break-after:avoid}th{background:#eee}table{font-size:10px}.notice{background:none}}
 </style></head><body><header><p>Procédures de mission · registre local</p><h1>Provisions et engagements — ${escapeHtml(p.label)}</h1><p>${escapeHtml(status)}</p><p>Dossier ${escapeHtml(m.scope.dossierId)} · Organisation ${escapeHtml(m.scope.organizationId)} · Période ${escapeHtml(m.scope.periodId)}</p><p>Feuille ${escapeHtml(p.runId)} · révision ${escapeHtml(p.revision)} · version ${escapeHtml(p.version)} · préparation ${escapeHtml(p.preparedBy)}</p><p>État serveur ${escapeHtml(m.hash)} · état établi au ${escapeHtml(createdAt)}</p></header>

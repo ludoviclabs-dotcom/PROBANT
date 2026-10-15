@@ -66,13 +66,12 @@ export function projectDossier(input: { dossierId: string; periodId: string; seq
       notApplicable: p.applicability && !p.applicability.applicable ? { reason: p.applicability.reason ?? "", by: p.applicability.by, at: p.applicability.at } : null,
       evidence: p.evidence, misstatements: p.misstatements, contradictions: p.contradictions, openPoints: p.openPoints, remaining: p.remaining.map(r => r.label), limits: p.limits };
   });
-  const retainedKeys = new Set(e.sheets.filter(x => x.assignment === "retenue").map(x => x.procedure + "|" + x.rootId));
   const present = new Set<ClosingCycle>([...rows.map(r => r.cycle), ...e.risks.map(r => r.cycle), ...e.sheets.map(x => engineProcedure(x.procedure)!.cycle)]);
   const cycles = CL_CYCLES.filter(c => present.has(c)).map(c => ({ cycle: c, label: CL_CYCLE_LABELS[c],
     risks: e.risks.filter(r => r.cycle === c).map(r => ({ riskId: r.riskId, label: r.label, level: r.assessment?.level ?? null, pairs: r.pairs.map(x => ({ assertion: assertionLabel(x.assertion), status: x.status })) })),
     rows: rows.filter(r => r.cycle === c),
     // Every lineage not retained by a procedure, and every earlier revision, stays listed with the cycle: never merged into the retained sheet.
-    otherSheets: e.sheets.filter(x => engineProcedure(x.procedure)!.cycle === c && !retainedKeys.has(x.procedure + "|" + x.rootId)).map(x => sheetOf(x)) }));
+    otherSheets: e.sheets.filter(x => engineProcedure(x.procedure)!.cycle === c && !x.procedureId).map(x => sheetOf(x)) }));
   const exclusions: ProjectionExclusion[] = [
     ...e.procedures.filter(p => !p.applicable).map(p => ({ kind: "procedure_non_applicable" as const, id: p.procedureId, label: p.procedureId + " · " + p.label, reason: p.applicability?.reason ?? "" })),
     ...e.risks.flatMap(r => r.pairs.filter(x => x.status === "non_applicable").map(x => ({ kind: "couple_non_applicable" as const, id: r.riskId + ":" + x.assertion, label: r.riskId + " · " + assertionLabel(x.assertion), reason: "Couvert seulement par " + x.procedures.join(", ") + ", non applicable(s) motivée(s)" }))),

@@ -16,7 +16,7 @@ const CSV = [{ id: "exceptions_csv", label: "Différences et incertitudes" }, { 
 const FILTERS: { id: ProvisionMissionFilter; label: string }[] = [{ id: "all", label: "Tous les travaux" }, { id: "blocked", label: "Blocages" }, { id: "exceptions", label: "Différences à examiner" }, { id: "evidence", label: "Pièces et incertitudes" }, { id: "review", label: "Revues" }, { id: "stale", label: "Travaux périmés" }];
 const OUTCOMES: Record<ProvisionControlOutcome, string> = { no_exception_detected: "Aucune différence sur le périmètre testé", exceptions_detected: "Différences maintenues", inconclusive: "Non concluant", not_applicable: "Non applicable" };
 const ANNEX: Record<string, string> = { not_provided: "Annexe non fournie", not_expected: "Non attendue", missing: "Absent de l’annexe", present: "Présent en annexe" };
-const EXPORT_MESSAGES: Record<string, string> = { EXPORT_APPROVED_CURRENT_LOCKED_REQUIRED: "Un paquet approuvé exige la version courante, revue par une autre identité, verrouillée et non périmée.", PV_EXPORT_LIMIT: "Export trop volumineux pour ce poste.", WORKPAPER_VERSION_NOT_FOUND: "La version demandée n’existe pas pour cette feuille.", WORKPAPER_NOT_FOUND: "Feuille ou dossier introuvable pour cette période." };
+const EXPORT_MESSAGES: Record<string, string> = { EXPORT_APPROVED_CURRENT_LOCKED_REQUIRED: "Un paquet approuvé exige la version courante, relue (autre identité ou relecture personnelle nommée), verrouillée et non périmée.", EXPORT_APPROVED_SIMULATED_REVIEW: "Approbation d’une seconde identité simulée : elle ne vaut pas relecture, seul un export diagnostic est possible.", PV_EXPORT_LIMIT: "Export trop volumineux pour ce poste.", WORKPAPER_VERSION_NOT_FOUND: "La version demandée n’existe pas pour cette feuille.", WORKPAPER_NOT_FOUND: "Feuille ou dossier introuvable pour cette période." };
 const message = (code: string) => EXPORT_MESSAGES[code] ?? provisionFailureMessage(code);
 
 /** Mission synthesis of the provisions register: every value comes from the server restitution, at the exact version shown. */
@@ -37,7 +37,7 @@ export function ProvisionMissionSynthesis({ initialDossierId = "", initialPeriod
   useEffect(() => { void load(); }, [load]);
   const m = view?.mission, p = m?.procedure, r = p?.provisions;
   const shownRun = p?.runId && p.version ? { id: p.runId, version: p.version } : null;
-  const approvedReady = p?.state === "locked" && !p.stale && !!r;
+  const approvedReady = p?.state === "locked" && !p.stale && !!r && p.review?.kind !== "simulated_second_identity";
   const newer = !!m && !!p?.runId && !!m.assignment.currentRunId && (m.assignment.currentRunId !== p.runId || m.assignment.currentVersion !== p.version);
   async function download(kind: "diagnostic" | "approved", format: ExportFormat) {
     if (!m || exporting) return;
@@ -124,7 +124,7 @@ export function ProvisionMissionSynthesis({ initialDossierId = "", initialPeriod
           <div className={styles.actions}><strong>Diagnostic</strong>{(["html", "pdf", "json", "manifest"] as const).map(f => <button key={f} type="button" disabled={exporting} onClick={() => void download("diagnostic", f)}>{f === "html" ? "HTML imprimable" : f.toUpperCase()}</button>)}
             <select aria-label="Télécharger un CSV diagnostic" value="" disabled={exporting} onChange={e => void download("diagnostic", e.target.value as ExportFormat)}><option value="" disabled>CSV…</option>{CSV.map(f => <option key={f.id} value={f.id}>{f.label}</option>)}</select></div>
           <div className={styles.actions}><strong>Paquet approuvé</strong>{(["html", "pdf", "json", "manifest"] as const).map(f => <button key={f} type="button" disabled={exporting || !approvedReady} onClick={() => void download("approved", f)}>{f === "html" ? "HTML imprimable" : f.toUpperCase()}</button>)}</div>
-          <p role="status">{exporting ? "Génération et contrôle serveur…" : approvedReady ? "Version courante, revue par une autre identité et verrouillée. Aucune opinion sur les comptes ni conclusion juridique." : "Paquet approuvé disponible après revue distincte et verrouillage de la version courante."}</p></> : <p>Votre identité ne dispose pas de la permission d’export.</p>}
+          <p role="status">{exporting ? "Génération et contrôle serveur…" : approvedReady ? (p?.review?.kind === "personal" ? "Version courante verrouillée après relecture personnelle nommée — pas une revue par une autre identité." : "Version courante, revue par une autre identité et verrouillée.") + " Aucune opinion sur les comptes ni conclusion juridique." : p?.review?.kind === "simulated_second_identity" ? "Approbation d’une seconde identité simulée : elle ne vaut pas relecture, aucun paquet approuvé." : "Paquet approuvé disponible après relecture (autre identité ou relecture personnelle nommée) et verrouillage de la version courante."}</p></> : <p>Votre identité ne dispose pas de la permission d’export.</p>}
         <details><summary>Limites et identité de l’état</summary><ul>{m.limitations.map(l => <li key={l}>{l}</li>)}</ul><code className={pv.hash}>{m.hash}</code></details>
       </section>
     </>}
