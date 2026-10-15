@@ -1,3 +1,51 @@
+# Handoff — Mission C11 : Clients, achats, cut-off et TVA — événements transversaux (2026-10-15)
+
+**Vérification préalable.** Aucune trace de C11 sur GitHub (PR #1 à #92, branches, commits) ni sur Vercel (déploiements jusqu'à `300829b`) : le lot n'avait pas été traité. Les Missions 07 et 08 (PR #58, #59) avaient livré les chaînes Clients et Achats/cut-off que ce lot raccorde.
+
+**Base.** Worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/clients-achats-cutoff-tva-881799`, SHA de départ `300829b` (`main` après la PR #91), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C09 et les lots Cloisons, Normatif, éditions du référentiel (PR #90) et en-tête Cloisons (PR #91) fusionnés depuis ; aucun n'avait touché la grille de cut-off, les sources Achats ni la feuille TVA, hormis le résolveur C04 (PR #76), réutilisé. C10 (IS) n'est pas sur `main` : modifications non commitées dans le worktree `quizzical-boyd-13e46a` ; C11 ne recoupe ses fichiers que sur `lib/workpapers/fiscal-runtime.ts` (méthode `vatObservations` ajoutée avant `mission`) et `docs/README.md` (section C11 ajoutée après C09) : conflits de fusion textuels possibles, sans recouvrement fonctionnel. Commits locaux `023bac3` (lot) et `783b7b1` (fusion de `main` après la PR #92) ; rien poussé, aucun merge ni déploiement.
+
+## Cause
+
+- La grille de cut-off ne citait aucun texte : ni l'édition de l'exercice, ni ANC 2026-03 (anticipation, champ contractuel). Le résolveur C04 laissait le champ contractuel non daté (Légifrance 403) et le recueil PCG 2024 « inaccessible ».
+- Un avoir à cause antérieure produisait une « FAE » ou une « FNP » négative.
+- Clients et ventes, Achats / RPNE et TVA ne partageaient aucun événement ; `/cutoff` ne lisait que les feuilles Achats ; quatre dates seulement (fait générateur, facture, comptabilisation, clôture) ; aucun paiement, aucune période TVA ; exigibilité « à qualifier ».
+- La règle Revenu (C03) et le scénario STARTUP-CA-1 parlaient de « transfert du contrôle » (IFRS 15) et de « CCA » pour des produits constatés d'avance.
+
+## Changements
+
+Voir `docs/mission-c11/CONTRAT.md` (§ 1 avant / après, § 3 carte événement → procédures → sources → effets, § 4 dépendances d'invalidation, § 5 qualification TVA, § 7 sources lues).
+
+## Sources
+
+Lues le 15/10/2026, empreintes vérifiées contre le registre C04 : PCG 2024 (`f608f78f…`), ANC 2022-06 (`aeaa05cf…`), PCG consolidé 2026 (`b9e7a732…`), ANC 2026-03 (`59330e81…`) ; arrêté du 12/08/2026 (Légifrance, navigateur) ; CGI 269 et 271 (Légifrance) ; BOI-TVA-BASE-20-10, 20-20, 20-50-10 (BOFiP). **Écarts du registre fiscal consignés, non corrigés** (art. 269 : 01/01/2022 → 31/08/2026 au registre, 01/01/2023 → 31/12/2026 sur Légifrance ; art. 271 : aucune version avant le 21/02/2026 alors que le I-2 est identique depuis le 31/12/2023) : les corriger changerait la couverture du moteur TVA et la recette Mission 13.
+
+## Cas contrôlés
+
+| Contrôle | Résultat |
+|---|---|
+| Recette C11 (`c11-transversal-events.test.ts`) : texte applicable (exercices 2025-2026, 2026 avec et sans option, 2027 selon la date du contrat), moteur de cut-off réel sur les 8 cas, carte (dates, TVA, règlements, observations), pont C05, procédures C03, divergence, péremption | 33 / 33 |
+| Raccord de la chaîne réelle Mission 08 (`c11-event-map-adapter.test.ts`) : D compté une fois 600 HT, G suspendu comme dans la synthèse Achats, feuille périmée hors effet | 2 / 2 |
+| Résidus par clé et compensation globale (`c11-compensation.test.ts`) : net 0 masquant ±50 → brut 100 ; clé absente → partiel | 2 / 2 |
+| Résolveur C04 (`french-gaap.test.ts`), dont 3 cas C11 | 17 / 17 |
+| Recette PostgreSQL 17 jetable locale (`clients-durable` + `fiscal-durable`), dont le cas C11 `operation=events` (effet unique de D, reliquat de G, feuille Clients périmée par sa révision, refus inter-organisation, paramètres refusés) | 31 / 31 |
+| Avant / après de la grille (`docs/recette/c11/AVANT-APRES-cutoff.json`, moteur 1.0.0 de `300829b` contre 1.1.0) | Factures : 8 résultats identiques ; avoir AV-106 : « FAE −500 » → « AAE −500 » ; texte cité en 1.1.0 |
+| Suite Vitest complète sur `300829b` + C11 (avant fusion de la PR #92) | 1 870 / 1 875 ; les 5 échecs sont ceux de `main` corrigés par la PR #92 (éd. 3 du référentiel), sans lien avec C11 |
+| Suite Vitest complète après fusion de `main` (`783b7b1`) | 182 fichiers, 1 880 / 1 880 (recettes PostgreSQL incluses, base jetable locale) |
+| E2E sur build de production : `c11-carte-evenements.spec.ts` à 1440, 1024 et 390 px (clavier, focus du panneau, axe WCAG 2.1 AA, aucun débordement, mouvement réduit) et `payables.spec.ts` (dont `/cutoff` adapté à la carte) | 8 / 8 ; captures relues aux trois largeurs |
+| `tsc --noEmit`, ESLint des fichiers modifiés ; `next build` de production après fusion | aucune erreur ; build OK |
+
+Captures : `docs/probant-lots/c11-captures/cutoff-carte-{1440,1024,390}.jpg`.
+
+Correction consignée de la recette : l'attendu du cas 8 a été révisé pendant le lot (voir `docs/recette/c11/RECETTE.md`, « Corrections consignées ») pour suivre la règle de la synthèse Achats : une procédure qui teste l'événement et ne conclut pas suspend l'effet.
+
+## Limites restantes
+
+- Acomptes encaissés avant la clôture et cause datée d'un avoir post-clôture : non sourcés dans la chaîne réelle (qualification partielle ou information requise, affichées comme telles).
+- Option d'anticipation d'ANC 2026-03 non sourcée ; option pour les débits déclarée par facture (original à corroborer).
+- Avoirs non importables comme événements de cut-off ; TVA sur avoirs (272, 267) non couverte ; prix variables, contrats à long terme, droits de retour non implémentés.
+- Les constats C05 de la carte ne sont pas versés dans la Synthèse du dossier (lot C14).
+- Écarts du registre fiscal (art. 269, 271) à corriger dans un lot dédié.
+
 # Handoff — Audit Normatif 360 à 390 px, navigation vers la liste des cycles, tiroirs de navigation (2026-10-14)
 
 **Base.** Worktree `probant-analysis-setup-41121f`, branche `claude/competent-borg-3d6941`, SHA de départ `ff3f9fb` (`main` après la PR #84 C08), checkout propre. Le module Normatif n'avait pas bougé depuis son introduction (`fb43c8e`). Fichiers applicatifs modifiés : `app/normatif/layout.tsx`, `components/normatif/CycleSidebar.tsx`, `app/normatif/sources/[slug]/page.tsx`, `components/normatif/IFRSvsPCGPanel.tsx`. La demande citait `NormatifSidebar` ; le composant réel s'appelle `CycleSidebar`. Aucun contenu modifié, aucun merge ni déploiement.
