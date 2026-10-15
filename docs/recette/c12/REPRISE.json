@@ -91,10 +91,5 @@
       "next": 14848,
       "postgres": 10360
     }
-  },
-  "dossierId": "0be08418-6548-4cd2-b22c-e39586e65cdb",
-  "periodId": "period-cabc536c56357d5fae16cc06e69c90d40da55a8499d93923e3618106228464ee",
-  "version": 13,
-  "exportSha256": "3b6a430f6ce99235eb2eb812738ae2d2dcd654546e33cf2f8bdbecda98316643",
-  "journalSha256": "73babf4abc1ada2cc1d1dbbadd7a0f6af70150696bf2d904ab8c835e078e220e"
+  }
 }

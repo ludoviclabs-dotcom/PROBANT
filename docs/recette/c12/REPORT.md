@@ -23,7 +23,7 @@ Les comparaisons de Congés exigent mêmes droits, unités et périodes, méthod
 
 Les attendus sont fixés dans le script avant appel aux API : 48 − 50 = −2 ; 10 000 × 1/10 = 1 000 ; 11 000 × 1/10 = 1 100 ; maximum 1 100 pour les seuls droits documentés. Le script ne lit ni ne modifie un dossier existant de l'utilisateur ; il crée un dossier synthétique et ne contacte que l'origine loopback du profil fourni.
 
-[REPRISE.json](REPRISE.json) conserve les contrôles, versions, empreintes et PID avant/après. Les secrets et codes de connexion n'y figurent pas. Le script arrête réellement Next et PostgreSQL, relance de nouveaux processus et compare les données canoniques, l'export et la pièce originale. L'ordre des clés JSON PostgreSQL est neutralisé pour comparer les données ; les fichiers exportés et pièces sont comparés octet pour octet.
+[REPRISE.json](REPRISE.json) conserve les contrôles et PID avant/après, sans recopier de réponse HTTP ou de pièce dans le dépôt. Le contexte nécessaire aux parcours navigateur est recherché dans le profil local par le nom synthétique du dossier. Le script arrête réellement Next et PostgreSQL, relance de nouveaux processus et compare les données canoniques, l'export et la pièce originale. L'ordre des clés JSON PostgreSQL est neutralisé pour comparer les données ; les fichiers exportés et pièces sont comparés octet pour octet. Les requêtes de recette sont limitées par garde explicite à l'origine loopback du profil.
 
 ## Vérifications finales
 
