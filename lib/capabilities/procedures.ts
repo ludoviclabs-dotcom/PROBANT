@@ -1,8 +1,9 @@
-export const CAPABILITY_CYCLE_IDS = ["clients", "achats", "tresorerie", "immobilisations", "stocks", "provisions", "capitaux_propres", "participations", "fiscal", "paie", "exceptionnel", "transversal", "informatique"] as const;
+/** C13: `dettes_financieres` joins the journal vocabulary (additive; events recorded before keep their cycle). */
+export const CAPABILITY_CYCLE_IDS = ["clients", "achats", "tresorerie", "immobilisations", "stocks", "provisions", "capitaux_propres", "dettes_financieres", "participations", "fiscal", "paie", "exceptionnel", "transversal", "informatique"] as const;
 export type CapabilityCycleId = typeof CAPABILITY_CYCLE_IDS[number];
 export const CAPABILITY_CYCLE_LABELS: Record<CapabilityCycleId, string> = {
   clients: "Clients et ventes", achats: "Achats et fournisseurs", tresorerie: "Trésorerie", immobilisations: "Immobilisations", stocks: "Stocks", provisions: "Provisions et engagements",
-  capitaux_propres: "Capitaux propres", participations: "Participations", fiscal: "TVA et IS", paie: "Paie et personnel", exceptionnel: "Résultat exceptionnel", transversal: "Transversal et clôture", informatique: "Systèmes d’information",
+  capitaux_propres: "Capitaux propres", dettes_financieres: "Dettes financières", participations: "Participations", fiscal: "TVA et IS", paie: "Paie et personnel", exceptionnel: "Résultat exceptionnel", transversal: "Transversal et clôture", informatique: "Systèmes d’information",
 };
 
 /** Tooled procedures: the existing cycle sheets. The file only observes them (state, version, review); it never recalculates a cycle. */
@@ -22,6 +23,7 @@ export const ENGINE_PROCEDURES = [
   { id: "provisions.register", cycle: "provisions", family: "pv", label: "Registre des risques et engagements", route: "/provisions" },
   { id: "capitaux_propres.review", cycle: "capitaux_propres", family: "eq", label: "Décisions et PV versionnés (parcours cible)", route: "/capitaux-propres" },
   { id: "equity.review", cycle: "capitaux_propres", family: "clients", label: "Décisions et mouvements (parcours historique)", route: "/equity" },
+  { id: "loans.review", cycle: "dettes_financieres", family: "clients", label: "Emprunts : principal, échéances et intérêts", route: "/emprunts" },
   { id: "investments.review", cycle: "participations", family: "clients", label: "Droits, distributions et valeur", route: "/participations" },
   { id: "tva.reconciliation", cycle: "fiscal", family: "fx", label: "TVA par période déclarative", route: "/fiscal" },
   { id: "is.computation", cycle: "fiscal", family: "fx", label: "IS par exercice", route: "/fiscal" },

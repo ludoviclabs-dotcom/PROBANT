@@ -1,6 +1,6 @@
 # Handoff — C14 : synthèse des travaux et clôture locale unifiées (15 octobre 2026)
 
-**Base.** Worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/synthese-unifie-cloture-465ac8`, SHA de départ `bb919bf` (`main` après la PR #94, C12), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C12 fusionnés depuis ; le dossier de clôture (PR #72) n'avait pas bougé hors C01 (registre) et C07 (relecture personnelle des feuilles). C13 (Emprunts, PR #95) n'est pas sur `main`. Rien de commité, poussé, fusionné ni déployé.
+**Base.** Worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/synthese-unifie-cloture-465ac8`, SHA de départ `bb919bf` (`main` après la PR #94, C12), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C12 fusionnés depuis ; le dossier de clôture (PR #72) n'avait pas bougé hors C01 (registre) et C07 (relecture personnelle des feuilles). C13 (Emprunts, PR #95) a été fusionné dans `main` pendant la revue, puis intégré à la branche avant la PR. Rien de commité, poussé, fusionné ni déployé.
 
 ## Cause
 
@@ -35,8 +35,65 @@ Mêmes dénominateurs vérifiés : indicateurs, carte recomptée cellule par cel
 - Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier.
 - Familles à règle « imports figés » : une source **ajoutée** après le gel n'est pas signalée (seulement remplacée).
 - Pièces binaires hors paquet d'export ; PDF non validé PDF/A.
-- Dettes financières sans feuille durable sur `main` ; à raccorder aux adaptateurs quand la PR #95 sera fusionnée.
+- Emprunts (C13, PR #95) fusionnés pendant la revue et intégrés à la branche : la feuille `loans.review` est lue par sa famille comme les autres.
 - Exclusions encore pertinentes : `docs/mission-c14/EXCLUSIONS.md`.
+
+---
+
+# Handoff — Mission C13 : Emprunts, la chaîne réellement livrée (2026-10-15)
+
+**Base.** Worktree `quizzical-boyd-13e46a`, branche `claude/chaine-emprunts-manquante-2904e3`, SHA de départ `172ddd7` (`main` après la PR #93), checkout propre ; `main` fusionné ensuite après la PR #94 (C12 Paie/Congés, `bb919bf`). Écart avec la base du diagnostic `ab8f991` : C00 à C11 et les lots Cloisons, Normatif, éditions du référentiel fusionnés depuis ; aucun n'avait touché Emprunts. Rien poussé, aucune PR, aucun merge ni déploiement.
+
+**Chantier Mission 14 retrouvé.** Absent du dépôt (aucune branche, stash, commit pendant ni session Claude) ; trouvé dans le dossier de projet Codex `%USERPROFILE%\.codex\.chatgpt-projects\g-p-6a828022…\mission14` (branche `codex/mission14-loans`, base `5e49934`, 57 fichiers indexés jamais commités). Comparé fichier par fichier ; porté pour ses parties valables (runtime sur `ClientsRuntime`, pont par le rapprochement générique, intérêt en fractions exactes, citations, gel exhaustif), corrigé et complété là où il ne couvrait pas C13. Le chantier lui-même n'a pas été modifié.
+
+## Cause
+
+- `main` n'avait qu'une carte historique (rapprochement échéancier ↔ GL 16) et un périmètre `dettes_financieres` hors journal, sans moteur ni route ; le rapport Mission 20 bloquait donc Emprunts.
+- Le chantier Mission 14 n'était pas intégrable tel quel : migration `0012` en collision avec `0012_capitaux_propres`, verrou de chaîne ignorant le profil C07, écran autonome hors charte, taux indexé figé par version (sans dates de révision), conventions 30/360 absentes, frais et principal exigés même à zéro (faux « non concluant »), échéance à cheval sur l'ouverture bloquée, aucune rubrique de bilan ni distinction autres fonds propres, aucun cadrage de périmètre, lignes sources recopiées dans chaque version (la lecture dépassait la limite de 24 Mio du store après une quarantaine de versions).
+
+## Changements
+
+Voir `docs/mission-c13/CONTRAT.md` (§ 2 tableau Mission 14 → C13). Moteur `loans.review` 1.0.0 (`lib/workpapers/loan-review.ts`, `loan-rules.ts`) ; runtime, HTTP, export, fixture ; écran `/emprunts` (`components/probant/loans/*`) et exemple `/emprunts?demo=1` ; registre C01 1.4.0 (`dettes_financieres` cycle du journal, procédure observée par le dossier de clôture, lien de travail sur `/local`) ; drapeau `PROBANT_LOANS_DURABLE` (profil C07, lanceur, `.env.example`) ; résolveur C04 sujet `financial_debts` ; migration additive `0021_loans_review` à retour arrière gardé. Fichiers partagés modifiés de façon ciblée : `model`, `selection` (période passée à la population Emprunts et à sa reproduction), `calculations`, `service`, `imports`, `cycle-context`, `cycle-review`, `clients-runtime`, `clients-persistence`.
+
+## Sources
+
+Lues le 15/10/2026, PDF de l'ANC retéléchargés, empreintes identiques au registre C04 : PCG 2024 (`f608f78f…`, art. 821-1, 932-1, 941-16), ANC 2022-06 (`aeaa05cf…`, art. 821-1, 1121-1, 1211-16), PCG consolidé 2026 (`55c824b2…`, mêmes articles et 167), ANC 2026-03 (`59330e81…`, aucun changement des comptes 16), ANC 2024-07 via le moteur C09. Choix de méthode présentés comme tels (contrat § 3).
+
+## Cas contrôlés
+
+| Contrôle | Résultat |
+|---|---|
+| Moteur (`loans.test.ts`) : recette simple 90 000 / 250 (30/360) et contre-épreuves, taux absent (index, taux fixe, convention, marge), révision hors calendrier, plancher exclu, avenant et échéancier modifié, versions chevauchantes, frais séparés, remboursement anticipé, mismatch de périmètre, balance absente, textes 2024 / 2025 / 2026 / 2027, signaux de compte, avance conditionnée (C09), termes manquants, covenants, intégrité, observation par le dossier de clôture, export ; après revue : fixation d'index postérieure refusée, avenant postérieur à la clôture, export d'une version conservée ; texte non déterminé (`loans-rules-unresolved.test.ts`) | 33 / 33 et 1 / 1 |
+| Passerelle (`loan-gate.test.ts`) et écran (`components/probant/__tests__/loans.test.tsx`) | 6 / 6 et 5 / 5 |
+| Recette PostgreSQL 17 jetable (`loans-durable.integration.test.ts`) : imports natifs, gel partiel refusé, calcul, autorité serveur, idempotence, concurrence, citations, auto-relecture OIDC refusée, relecture distincte, verrouillage, export et CSRF, reconnexion, échéancier remplacé → périmée → révision, ancienne version lisible, **relecture personnelle nommée du profil local**, garde de retour arrière 0021 | 6 / 6 |
+| Toutes les recettes PostgreSQL du dépôt (base neuve, 23 migrations) | 10 fichiers, 59 / 59 |
+| Suite unitaire complète (`--pool=forks`) | 176 fichiers, 1 874 / 1 874 ; après revue 177 fichiers, 1 878 / 1 878 ; recettes PostgreSQL à part ci-dessus (rejouées après revue sur base neuve : 59 / 59) |
+| E2E sur build de production, exemple `/emprunts?demo=1` à 1440, 1024 et 390 px : débordement, axe WCAG 2.1 AA serious/critical, filtre par mois, panneau et retour par Échap, mouvement réduit, recette simple, taux absent, vue vide, export, chaîne fermée sans profil | 5 / 5 |
+| E2E sur profil personnel local de recette (`recette-c13`, ports 54369 / 3240) : import par l'écran de six sources → gel et calcul → conclusion citée → relecture personnelle nommée → verrouillage → export ; pack complet aux trois largeurs (exceptions, panneau, cadrage) ; échéancier remplacé → feuille périmée | 2 / 2 |
+| E2E `c07-profil-local.spec.ts` sur le même profil (page `/local` : 13 liens de travail, dont Emprunts) | 4 / 4 |
+| Suite e2e complète du dépôt (build avant les dernières retouches de libellés de l'export ; `c13-emprunts` et `c07-profil-local` rejoués ensuite sur le build final) | 292 réussis, 7 ignorés (profils locaux et FEC persistant sans variables : non vérifiés dans ce passage), 0 échec |
+| `tsc --noEmit`, ESLint des fichiers modifiés, `db:check`, `next build` | aucune erreur (7 avertissements de lint de la base) |
+
+Captures : `docs/probant-lots/c13-captures/` (exemple et panneau aux trois largeurs, recette simple, sans session à 390, profil local : sources, feuille verrouillée, pack complet aux trois largeurs, exceptions à 390, feuille périmée) ; export réel du profil local : `local-diagnostic.html`.
+
+Défauts trouvés et corrigés pendant la recette : population non reproductible par le registre de calcul (période non transmise) ; taille du store dépassée (faits recopiés) ; focus du panneau perdu sous charge (test intermittent ~50 %, effet lié à la sélection) ; débordement à 390 px des listes « Pièce citée » (formulaires contraints) ; table des contrats tronquée à 1440 px (cellules resserrées) ; valeurs d'avenant affichées en JSON brut.
+
+**Revue automatique de la PR #95 (15/10/2026).** Cinq remarques vérifiées dans le code, toutes fondées, corrigées sans changer les attendus de la recette :
+- notes générées par l'exécution ajoutées en une seule version (`addNotes`) au lieu d'une version par point : le store refuse un dossier au-delà de 500 versions ; recette PostgreSQL : 10 points, une seule version de notes ;
+- texte applicable non déterminé pour l'exercice (aucun texte lu ne couvre la période) : comptes et poste non vérifiés, point « rules_unresolved », contrat et feuille non concluants au lieu de « aucune différence relevée » (test avec la réponse réelle du résolveur pour 2010) ;
+- présentation au bilan lue sur la version du contrat en vigueur à la clôture : un avenant effectif après la clôture (connu avant la date de revue) reste dans l'historique sans changer nature, comptes, devise ni classement du solde de clôture ;
+- export d'une version conservée (version antérieure, révision remplacée ou feuille périmée) depuis ses propres sources figées, avec la mention correspondante ; l'export d'une version périmée était refusé (409) ;
+- date de fixation de l'index contrôlée à l'import : au plus tard la date de révision et la date de l'avis, sinon source refusée (`LOAN_RATE_FIXING_DATE_INVALID`).
+
+**Fusion de `main` après la PR #94 (C12, 15/10/2026).** Conflits résolus en gardant les deux lots : migration Emprunts renumérotée **`0021_loans_review`** (C12 a pris `0020_payroll_local` ; les deux sont indépendantes : tables `hr_*` d'un côté, contrainte de types de `clients_imports` de l'autre) ; registre des capacités **1.4.0** (C12 avait publié 1.3.0) : 14 cycles du journal, 18 procédures, 8 familles de stores ; quatorze drapeaux de chaîne dans le profil et le lanceur (Paie puis Emprunts, même ordre) ; unions d'adaptateurs (`imports`, `service`, `cycle-context`) étendues aux deux procédures ; page `/local` : 15 liens de travail (14 routes du registre et le dossier de clôture), attendu de l'e2e C07 corrigé (`main` attendait encore 12 liens alors qu'il en affichait 14).
+
+## Limites restantes
+
+- Emprunts simples en euros ; obligataires, convertibles, participatifs, devises, frais capitalisés, planchers / plafonds d'index, dérivés exclus et nommés ; aucun DCF, LBO, ratio de covenant ni conformité de financement.
+- Packs transcrits à la main ; aucune lecture native des contrats PDF ; l'échéancier n'est pas reconstitué (comparé seulement).
+- Convention 30/360 découpée aux mouvements : peut différer d'un décompte sur l'intervalle entier (écart à expliquer). Intérêts payés d'avance non couverts. La feuille ne déclare aucune anticipation de texte.
+- Le vocabulaire du journal de clôture passe de 13 à 14 cycles : un retour à un code antérieur ne relirait pas un événement rattaché à « Dettes financières ».
+- Données exclusivement synthétiques : une suite verte n'autorise aucune mission réelle.
 
 ---
 

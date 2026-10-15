@@ -41,6 +41,13 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission-c11/CONTRAT.md`](./mission-c11/CONTRAT.md) | Dates de raisonnement, carte événement → procédures → sources → effets, dépendances d'invalidation, grille de cut-off 1.1.0 (texte applicable, avoirs), qualification TVA fermée, sources lues et écarts du registre fiscal |
 | [`recette/c11/`](./recette/c11/) | Huit cas avec attendus comptables et fiscaux posés à la main, pont C05 et procédures C03 attendus |
 
+## Emprunts — chaîne livrée — C13
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission-c13/CONTRAT.md`](./mission-c13/CONTRAT.md) | Chantier Mission 14 retrouvé et porté (ce qui est gardé, ce qui change), sources du pack, population, calculs, taux et révisions sourcés, covenants sans ratio, postes de bilan selon le texte applicable, autres fonds propres par le moteur C09, exclusions nommées, attendus |
+| [`recette/c13/`](./recette/c13/) | Attendus recalculés indépendamment (`attendus.py`), packs synthétiques et protocole de recette |
+
 ## Synthèse des travaux et clôture locale — C14
 
 | Document | À quoi il sert |

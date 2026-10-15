@@ -1,0 +1,64 @@
+/* Emprunts (C13) — échéancier par mois, lignes continues, panneau de détail. Jetons de base : cash.module.css. */
+.lede{max-width:860px;color:#c9d4e4}
+.outcome{display:flex;flex-wrap:wrap;gap:6px 18px;align-items:baseline;border-left:3px solid var(--tone,#7aa7ff);padding:4px 0 4px 12px;margin:4px 0 14px}
+.outcome strong{font-size:15px}
+.outcome[data-tone=ok]{--tone:var(--ok)}.outcome[data-tone=explain]{--tone:var(--warn)}.outcome[data-tone=unknown]{--tone:var(--muted)}
+.section{border-top:1px solid var(--pb-border,#243044);padding-top:14px;min-width:0}
+.section > header{display:flex;justify-content:space-between;align-items:baseline;gap:8px 16px;flex-wrap:wrap;margin-bottom:10px}
+.section > header h2{margin:0}
+.months{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin:0 0 6px;padding:0;list-style:none}
+.months button{width:100%;display:grid;gap:2px;justify-items:start;text-align:left;padding:7px 8px;border-radius:6px;background:transparent;border:1px solid var(--pb-border,#243044);min-width:0}
+.months button[aria-pressed=true]{border-color:var(--accent);background:var(--accent-bg);box-shadow:inset 0 -2px 0 var(--accent)}
+.months button:disabled{opacity:.45}
+.months strong{font-size:12px;font-weight:650}
+.months small{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.monthBar{display:block;height:3px;border-radius:2px;background:#5774b8;margin-top:3px;max-width:100%}
+.monthBar[data-flag=true]{background:var(--warn)}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:end;margin:10px 0}
+.toolbar label{min-width:180px}
+.toolbar input[type=search]{min-width:200px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font-size:12px;padding:4px 10px;border-radius:999px;background:transparent}
+.chips button[aria-pressed=true]{background:var(--accent-bg);border-color:var(--accent);color:#dce5ff}
+.chip{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:600;border:1px solid currentColor;border-radius:999px;padding:1px 8px;white-space:nowrap;color:var(--tone,#c9d4e4)}
+.chip[data-tone=ok]{--tone:var(--ok)}.chip[data-tone=explain]{--tone:var(--warn)}.chip[data-tone=unknown]{--tone:#aab7ca;border-style:dashed}.chip[data-tone=excluded]{--tone:#8f86d9}
+.dueTable{min-width:900px}
+.contractTable{min-width:860px}
+/* Doubled class: denser cells than the page rule so the eight columns fit beside the detail panel at 1440 px. */
+.dueTable.dueTable :is(th,td),.contractTable.contractTable :is(th,td){padding:9px 7px}
+.framingTable{min-width:640px}
+.dueTable td.num,.contractTable td.num,.framingTable td.num,.dueTable th.num,.contractTable th.num,.framingTable th.num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dueTable tbody tr[aria-selected=true],.contractTable tbody tr[aria-selected=true]{background:#18233a;box-shadow:inset 3px 0 0 var(--accent)}
+.rowButton{border:0!important;background:none!important;padding:0!important;text-align:left;color:#dce5ff;font-weight:600;max-width:340px;overflow-wrap:anywhere}
+.rowButton small{display:block;color:var(--muted);font-weight:400;font-size:11px}
+.blocked{display:block;color:#aab7ca;font-size:11px;font-style:italic}
+.empty{padding:14px;color:var(--muted)}
+.empty button{margin-left:8px}
+.bridge{list-style:none;margin:6px 0;padding:0;display:grid;gap:2px}
+.bridge li{display:flex;justify-content:space-between;gap:12px;padding:5px 0;border-bottom:1px solid #1b2433;font-size:13px}
+.bridge li[data-kind=total]{border-top:1px solid var(--pb-border-strong,#324563);font-weight:650}
+.bridge li span:last-child{font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right}
+.residual{display:flex;justify-content:space-between;gap:12px;align-items:baseline;width:100%;margin-top:6px;padding:8px 10px;border-radius:6px;text-align:left;border:1px solid var(--warn)!important;background:var(--warn-bg)!important}
+.residual[data-tone=ok]{border-color:var(--ok)!important;background:var(--ok-bg)!important}
+.residual[data-tone=unknown]{border-color:#5d6b80!important;background:transparent!important;border-style:dashed!important}
+.panelSection{border-top:1px solid var(--pb-border,#243044);padding-top:10px;margin-top:12px}
+.panelSection h3{margin-top:0}
+.segment{display:grid;gap:2px;padding:6px 0;border-bottom:1px dashed #243044;font-size:12.5px}
+.segment button{justify-self:start;font-size:12px;padding:2px 8px}
+.clause{display:grid;gap:4px;padding:8px 0;border-bottom:1px solid #1b2433;font-size:12.5px}
+.quote,.clause blockquote{margin:0;padding-left:10px;border-left:2px solid #324563;color:#c9d4e4}
+.sources{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.sources button{width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;text-align:left;padding:6px 9px;background:var(--pb-surface-2,#161d2b);font-size:12.5px}
+.sources button[aria-expanded=true]{border-color:var(--accent);background:var(--accent-bg)}
+.sources small{color:var(--muted)}
+.versions{display:grid;gap:4px;font-size:12.5px}
+.versions del{color:#aab7ca}
+.issues{margin:6px 0;padding-left:18px;font-size:12.5px}
+.issues li{margin:3px 0}
+/* A select is as wide as its longest option: form fields take the available width instead, at every width. */
+.form label{min-width:0}
+.form :is(select,input,textarea){width:100%;min-width:0}
+.uploadTypes{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:0 18px;margin:0;padding:0;list-style:none}
+.uploadTypes li{border-top:1px solid var(--pb-border,#243044);padding:8px 0;min-width:0}
+@media (max-width:1180px){.months{grid-template-columns:repeat(6,minmax(0,1fr))}}
+@media (max-width:520px){.months{grid-template-columns:repeat(4,minmax(0,1fr))}.toolbar label{min-width:0;flex:1 1 100%}.toolbar input[type=search]{min-width:0;width:100%}.rowButton{max-width:240px}}

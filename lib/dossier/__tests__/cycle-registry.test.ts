@@ -10,8 +10,9 @@ import { CLIENT_FRAME_TEMPLATE } from "@/lib/workpapers/clients-adapter";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 
 describe("registre des cycles — projection C02 des manifestes existants", () => {
-  it("projette les 14 périmètres du registre C01 (13 cycles du journal + dettes financières), et chaque procédure outillée est rattachée à son cycle", () => {
-    expect(CYCLE_REGISTRY.map(e => e.id).sort()).toEqual([...CL_CYCLES, "dettes_financieres"].sort());
+  it("projette les 14 périmètres du registre (cycles du journal, dettes financières incluses depuis C13), et chaque procédure outillée est rattachée à son cycle", () => {
+    expect(CYCLE_REGISTRY.map(e => e.id).sort()).toEqual([...CL_CYCLES].sort());
+    expect(CYCLE_REGISTRY).toHaveLength(14);
     expect(CYCLE_REGISTRY).toHaveLength(CAPABILITY_REGISTRY.length);
     for (const p of CL_ENGINE_PROCEDURES) expect(CYCLE_REGISTRY.find(e => e.id === p.cycle)?.procedures).toContain(p.id);
   });

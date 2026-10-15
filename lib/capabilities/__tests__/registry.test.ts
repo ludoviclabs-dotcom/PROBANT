@@ -9,11 +9,11 @@ import { MODULE_MANIFEST } from "@/lib/workpapers/availability";
 import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
 
 describe("C01 registre et adaptateurs de lecture", () => {
-  it("preserves all 13 journal cycles, 17 engine procedures, 8 stores and 11 reconciliation configurations", () => {
-    expect(CL_CYCLES).toHaveLength(13); expect(CL_ENGINE_PROCEDURES).toBe(ENGINE_PROCEDURES); expect(CL_FAMILIES).toBe(STORE_FAMILIES);
-    expect(ENGINE_PROCEDURES).toHaveLength(17); expect(STORE_FAMILIES).toEqual(["clients", "cash", "fa", "eq", "fx", "st", "pv", "hr"]);
+  it("preserves the journal cycles (14 since C13), 18 engine procedures, 8 stores and 11 reconciliation configurations", () => {
+    expect(CL_CYCLES).toHaveLength(14); expect(CL_ENGINE_PROCEDURES).toBe(ENGINE_PROCEDURES); expect(CL_FAMILIES).toBe(STORE_FAMILIES);
+    expect(ENGINE_PROCEDURES).toHaveLength(18); expect(STORE_FAMILIES).toEqual(["clients", "cash", "fa", "eq", "fx", "st", "pv", "hr"]);
     expect(AUDIT_CYCLES).toHaveLength(11); expect(DOCUMENT_TYPES).toHaveLength(22);
-    expect(new Set(ENGINE_PROCEDURES.map(p => p.id)).size).toBe(17);
+    expect(new Set(ENGINE_PROCEDURES.map(p => p.id)).size).toBe(18);
     for (const c of CAPABILITY_REGISTRY) { expect(c.requiredSources.length).toBeGreaterThan(0); expect(c.exclusions.length).toBeGreaterThan(0); }
   });
   it("describes Stocks as implemented locally and absent only from the workshop", () => {
@@ -29,7 +29,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.3.1");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.4.1");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -42,6 +42,20 @@ describe("C01 registre et adaptateurs de lecture", () => {
     const cycle = CYCLE_REGISTRY.find(c => c.id === "capitaux_propres")!;
     expect(cycle.sheet).toEqual({ label: "Parcours Capitaux propres", href: "/capitaux-propres/parcours" });
     expect(cycle.secondary).toEqual([]);
+  });
+  it("C13 : Dettes financières est un cycle du journal avec sa feuille /emprunts, sans conformité de financement ni taux par défaut", async () => {
+    const debts = CAPABILITY_REGISTRY.find(c => c.id === "dettes_financieres")!;
+    expect(CL_CYCLES).toContain("dettes_financieres");
+    expect(debts.procedures.map(p => p.id)).toEqual(["loans.review"]);
+    expect(debts.routes).toEqual(["/emprunts"]);
+    expect(debts.reconciliation?.id).toBe("dettes-financieres");
+    expect(debts.modes).toMatchObject({ historical: { implemented: true }, scenario: { implemented: false }, local_persistent: { implemented: true } });
+    expect(debts.modes.local_persistent.scope).toContain("/emprunts");
+    expect(debts.exclusions.join(" ")).toMatch(/Aucun taux ni convention par défaut ; aucun ratio de covenant calculé ni conformité de financement déduite/);
+    expect(configuredProcedures({ PROBANT_LOANS_DURABLE: "disposable" })["loans.review"].activated).toBe(true);
+    expect(configuredProcedures({ PROBANT_LOANS_DURABLE: "disposable", VERCEL_ENV: "production" })["loans.review"].activated).toBe(false);
+    const { CYCLE_REGISTRY } = await import("@/lib/dossier/cycle-registry");
+    expect(CYCLE_REGISTRY.find(c => c.id === "dettes_financieres")!.sheet).toEqual({ label: "Feuille Emprunts", href: "/emprunts" });
   });
   it("does not turn activated configuration into execution or authorization", () => {
     const env = { PROBANT_STOCKS_DURABLE: "disposable", DATABASE_URL: "configured" };
