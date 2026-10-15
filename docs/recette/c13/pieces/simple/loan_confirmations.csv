@@ -1,0 +1,2 @@
+Key;Amount;Date;Details
+"C13-SIMPLE-CONF";"90000.00";"2026-12-31";"{""contractId"":""C13-SIMPLE"",""basis"":""closing_principal"",""source"":{""title"":""Confirmation du prêteur C13-SIMPLE (exemple synthétique)"",""pack"":""EXEMPLE-EMPRUNTS-2026"",""date"":""2027-01-12"",""page"":1,""clause"":""Solde au 31 décembre 2026"",""excerpt"":""Capital restant dû au 31/12/2026 : 90000.00 EUR.""}}"

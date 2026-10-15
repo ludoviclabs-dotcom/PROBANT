@@ -10,7 +10,7 @@ PROBANT s'exécute sur votre PC avec une base PostgreSQL qui lui est propre et d
 | **Type de dossier** (`CapabilityMode`, contrat C01) | historique · scénario · local persistant | les données lues |
 | **Type de relecture** (`ReviewKind`, `lib/auth/review-kind.ts`) | `distinct_identity` relecture par une autre identité · `personal` relecture personnelle nommée · `simulated_second_identity` simulation | le serveur, d'après l'identité authentifiée |
 
-Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les treize drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Paie/Congés).
+Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les quatorze drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Paie/Congés — C12, Emprunts — C13).
 
 ## Dépendances effectivement nécessaires
 
@@ -73,7 +73,7 @@ Pour un profil hors de l'emplacement par défaut : `npm run local:start -- --hom
   run\etat.json          PID de Next pendant qu'il tourne
 ```
 
-Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions) et les pièces de clôture sont conservés dans PostgreSQL, octets originaux compris (`original_base64`, empreinte SHA-256 vérifiée à chaque téléchargement) : ils sont donc sur le PC et dans chaque sauvegarde. Les dépôts FEC durables vont dans `pieces\` par l'adaptateur `LocalObjectStorage` (même contrat `ObjectStorage` que S3) et sont traités dans le serveur local ; un dépôt interrompu reprend depuis l'état PostgreSQL au démarrage suivant (premier affichage de `/local`, puis chaque minute).
+Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Emprunts) et les pièces de clôture sont conservés dans PostgreSQL, octets originaux compris (`original_base64`, empreinte SHA-256 vérifiée à chaque téléchargement) : ils sont donc sur le PC et dans chaque sauvegarde. Les dépôts FEC durables vont dans `pieces\` par l'adaptateur `LocalObjectStorage` (même contrat `ObjectStorage` que S3) et sont traités dans le serveur local ; un dépôt interrompu reprend depuis l'état PostgreSQL au démarrage suivant (premier affichage de `/local`, puis chaque minute).
 
 ## Identité et relecture
 
@@ -99,7 +99,7 @@ Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capita
 
 - Le lanceur refuse une base `*_ci` / `*_test`, un `data_directory` différent de celui du profil (autre serveur sur le port), une base sans marqueur ou au marqueur d'un autre profil.
 - Le serveur refuse le profil personnel sur Vercel, avec une base non locale ou de recette (`personalProfileIssues`).
-- Les huit recettes PostgreSQL jetables (`*-durable.integration.test.ts`) refusent toute base portant le marqueur `probant_local.profile`, quel que soit son nom.
+- Les neuf recettes PostgreSQL jetables des feuilles (`*-durable.integration.test.ts`, Emprunts compris depuis C13) refusent toute base portant le marqueur `probant_local.profile`, quel que soit son nom.
 
 ## Erreurs fréquentes
 
@@ -121,6 +121,6 @@ Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capita
 
 - Les binaires EDB du zip ne portent pas de signature Authenticode : seule l'empreinte SHA-256 du téléchargement HTTPS a été relevée.
 - La page Dépôt (`/dashboard/depot`) n'accepte le dépôt FEC durable que pour un dossier qui possède déjà une synthèse persistante ; le premier dépôt d'un nouveau dossier passe aujourd'hui par l'API (`/api/dossiers/<id>/uploads`), comme dans la recette C07. Raccorder l'écran est un lot distinct.
-- Paie/Congés disposent du store local C12 (CSV pseudonymisés, relecture personnelle et export avec pièces) ; Emprunts n'a pas de moteur durable (lot C13).
+- Paie/Congés disposent du store local C12 (CSV pseudonymisés, relecture personnelle et export avec pièces) ; Emprunts a sa feuille durable `/emprunts` depuis C13 (emprunts simples en euros ; voir `docs/mission-c13/CONTRAT.md`).
 - Un seul serveur Next par profil : le traitement FEC local est en processus, sans file partagée entre plusieurs serveurs.
 - Lecteur d'écran non vérifié sur la page `/local`.

@@ -28,8 +28,10 @@ export type FrenchGaapTextId = "pcg-2024" | "anc-2022-06" | "anc-2024-07" | "pcg
  * Sujets dont la numérotation d'article dépend de la version applicable.
  * `cutoff` (C11) : articles de rattachement des charges et des produits et commentaires des comptes de
  * régularisation (408, 418, 486, 487), tels que portés par chaque édition lue.
+ * `financial_debts` (C13) : modèle de bilan, liste des comptes et commentaire du compte 16 (emprunts et dettes
+ * assimilées, intérêts courus), tels que portés par chaque édition lue.
  */
-export type NumberingTopic = "exceptional_result" | "income_tax" | "revenue" | "other_equity" | "cutoff";
+export type NumberingTopic = "exceptional_result" | "income_tax" | "revenue" | "other_equity" | "cutoff" | "financial_debts";
 
 export interface OfficialEdition {
   url: string;
@@ -117,6 +119,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     numbering: {
       exceptional_result: "946-67 / 947-77 (PCG au 01/01/2024)",
       cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 ; comptes 408 (art. 944-40), 418 et 4191 (art. 944-41), 486 et 487 (art. 944-48) (PCG au 01/01/2024)",
+      financial_debts: "821-1 (passif), 932-1 (comptes 16, intérêts courus en 1688), 941-16 (PCG au 01/01/2024)",
     },
     supersedes: [],
     editions: [
@@ -126,7 +129,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 677,
         readAt: "2026-10-15",
         access: "read_official_pdf",
-        note: "Lu en C11 (même empreinte que la lecture C06 du 14/10/2026) : art. 511-3 (p. 188), 512-3 et 512-4 (p. 191), 513-3 et 513-4 (p. 191-192), 944-40 (408), 944-41 (418, 4191), 944-48 (486, 487). Mission 17 : pages PDF 563 / 567.",
+        note: "Lu en C11 (même empreinte que la lecture C06 du 14/10/2026) : art. 511-3 (p. 188), 512-3 et 512-4 (p. 191), 513-3 et 513-4 (p. 191-192), 944-40 (408), 944-41 (418, 4191), 944-48 (486, 487). Mission 17 : pages PDF 563 / 567. Relu le 15/10/2026 (C13, même empreinte) : 821-1 (pages PDF 428 et 430), 932-1 (comptes 16, page PDF 512), 941-16 (pages PDF 537-538).",
       },
     ],
     limits: ["Fenêtre d'ouverture 2024 = méthode interne : l'édition consolidée n'a pas d'article d'application propre."],
@@ -154,6 +157,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     numbering: {
       exceptional_result: "513-5 (ANC 2022-06)",
       cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 (texte inchangé) ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (ANC 2022-06)",
+      financial_debts: "821-1 (passif), 1121-1 (comptes 16, intérêts courus par subdivision), 1211-16 (ANC 2022-06)",
     },
     supersedes: ["pcg-2024"],
     editions: [
@@ -163,7 +167,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 106,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "En-tête : homologué par arrêté du 26/12/2023, JO du 30/12/2023 ; art. 513-5 créé ; art. 27 lu. Relu le 15/10/2026 (C11, même empreinte) : art. 1214-40 (408), 1214-41 (418, 4191), 1214-48 (486, 487).",
+        note: "En-tête : homologué par arrêté du 26/12/2023, JO du 30/12/2023 ; art. 513-5 créé ; art. 27 lu. Relu le 15/10/2026 (C11, même empreinte) : art. 1214-40 (408), 1214-41 (418, 4191), 1214-48 (486, 487). Relu le 15/10/2026 (C13, même empreinte) : 821-1 (p. 7 et 10), 1121-1 (comptes 16, p. 40 à 43), 1211-16 (p. 70-71).",
       },
     ],
     limits: ["Entrée en vigueur non énoncée par le texte lu ; seule la date de publication au JO est portée."],
@@ -226,6 +230,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     numbering: {
       exceptional_result: "513-5 (PCG consolidé au 01/01/2026)", income_tax: "515-1 (PCG consolidé au 01/01/2026)", other_equity: "314-1 à 316-1 (PCG consolidé au 01/01/2026, chapitre I bis)",
       cutoff: "511-3, 512-3, 512-4, 513-3, 513-4 ; comptes 408 (art. 1214-40), 418 et 4191 (art. 1214-41), 486 et 487 (art. 1214-48) (PCG consolidé au 01/01/2026)",
+      financial_debts: "821-1 (passif avec autres fonds propres), 1121-1 (comptes 16 et 167), 1211-16 (PCG consolidé au 01/01/2026)",
     },
     supersedes: [],
     editions: [
@@ -243,7 +248,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 183,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "Même version consolidée, fichier regénéré le 20/04/2026 (mise en page, pieds de page) ; articles identiques sur 513-5, 515-1 et le chapitre I bis.",
+        note: "Même version consolidée, fichier regénéré le 20/04/2026 (mise en page, pieds de page) ; articles identiques sur 513-5, 515-1 et le chapitre I bis. Lu le 15/10/2026 (C13) : 821-1 (p. 96 et 98), 1121-1 (comptes 16 et 167, p. 133-134), 1211-16 (p. 155-156).",
       },
     ],
     limits: [
@@ -276,6 +281,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
     numbering: {
       exceptional_result: "531-5 (ANC 2026-03)", income_tax: "542-1 (ANC 2026-03)", revenue: "521-1 à 523-7 (ANC 2026-03)",
       cutoff: "511-3, 521-4, 522-2, 522-3, 522-7, 522-11, 522-12 (ANC 2026-03)",
+      financial_debts: "821-1, 1121-1, 1211-16 du PCG consolidé au 01/01/2026, non modifiés par ANC 2026-03 (art. 1er : 1121-1 modifié au seul compte 6454)",
     },
     supersedes: ["anc-2022-06", "pcg-2026-01-01", "anc-2026-04"],
     editions: [
@@ -285,7 +291,7 @@ export const FRENCH_GAAP_TEXTS: readonly FrenchGaapText[] = [
         pages: 10,
         readAt: READ_AT,
         access: "read_official_pdf",
-        note: "En-tête : homologué par arrêté du 12/08/2026, JO du 03/09/2026 ; art. 1er-3 (chapitre I du titre V remplacé : 511-1 à 542-2, dont 531-5 et 542-1) ; art. 4 lu. Relu le 15/10/2026 (C11, même empreinte) : 511-3, 521-4, 522-2, 522-3, 522-5 à 522-7, 522-11, 522-12.",
+        note: "En-tête : homologué par arrêté du 12/08/2026, JO du 03/09/2026 ; art. 1er-3 (chapitre I du titre V remplacé : 511-1 à 542-2, dont 531-5 et 542-1) ; art. 4 lu. Relu le 15/10/2026 (C11, même empreinte) : 511-3, 521-4, 522-2, 522-3, 522-5 à 522-7, 522-11, 522-12. Relu le 15/10/2026 (C13, même empreinte) : art. 1er à 3, aucune modification du compte 16 ni du passif de l'art. 821-1 (1121-1 modifié au seul compte 6454).",
       },
       {
         url: "https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000054791025",

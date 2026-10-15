@@ -59,7 +59,7 @@ describe("C07 — profils d'exécution distincts", () => {
     for (const flag of Object.values(PROCEDURE_ACTIVATION)) expect(DURABLE_CHAIN_FLAGS).toContain(flag);
   });
 
-  it("le lanceur ouvre exactement les mêmes douze chaînes que le serveur", () => {
+  it("le lanceur ouvre exactement les mêmes quatorze chaînes que le serveur", () => {
     expect([...LAUNCHER_FLAGS]).toEqual([...DURABLE_CHAIN_FLAGS]);
   });
 });

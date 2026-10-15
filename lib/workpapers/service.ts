@@ -1,3 +1,4 @@
+import { loanWorkSchema, type LoanWork, type LoanResult } from "./loan-review";
 import type { payrollObservation } from "./payroll-observation";
 import type { PayrollState } from "./payroll-contract";
 import { exceptionalWorkSchema, type ExceptionalWork, type ExceptionalResult } from './exceptional-dossier';
@@ -46,10 +47,10 @@ export class WorkpaperService {
   constructor(private readonly repository: WorkpaperRepository, private readonly imports: WorkpaperImportPort,
     private readonly calculations: CalculationRegistry, private readonly session: TrustedSession = disabledSession,
     private readonly clock: () => string = () => new Date().toISOString(),
-    private readonly realAdapter?: "payroll.review" | "payroll.leave" | "exceptional.review" | "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation" | "stocks.count" | "provisions.register") {}
+    private readonly realAdapter?: "loans.review" | "payroll.review" | "payroll.leave" | "exceptional.review" | "investments.review" | "equity.review" | "clients.frame" | "clients.sales" | "payables.frame" | "payables.purchases" | "payables.rpne" | "cash.reconciliation" | "fixed_assets.review" | "capitaux_propres.review" | "tva.reconciliation" | "is.computation" | "stocks.count" | "provisions.register") {}
   private async actor(scope: WorkpaperScope, permission: Permission) {
     const actor = await this.session(); authorize(actor, scope, permission);
-    if (scope.mode !== "demo" && !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register", "payroll.review", "payroll.leave"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
+    if (scope.mode !== "demo" && !["loans.review", "exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register", "payroll.review", "payroll.leave"].includes(this.realAdapter ?? "")) throw new Error("REAL_WORKPAPER_DISABLED_AUTH_AND_DURABLE_STORAGE_REQUIRED");
     return actor!;
   }
   private stamp(run: WorkpaperRun, actor: Principal, action: string): WorkpaperRun {
@@ -80,6 +81,14 @@ export class WorkpaperService {
     return this.repository.compareAndSwap(scope, id, version, run => {
       if (run.template.id !== "clients.sales" || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
       return this.stamp({ ...run, clientsWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, submittedHash: undefined, approval: undefined, version: version + 1 }, actor, "configure_clients_sales");
+    });
+  }
+  async configureLoans(scope: WorkpaperScope, id: string, version: number, work: LoanWork) {
+    const actor = await this.actor(scope, "prepare"), validated = loanWorkSchema.parse(work);
+    if (this.realAdapter !== "loans.review" || validated.authorId !== actor.id) throw new Error("LOAN_AUTHOR_MISMATCH");
+    return this.repository.compareAndSwap(scope, id, version, run => {
+      if (run.template.id !== "loans.review" || run.preparedBy !== actor.id || !["draft", "ready", "executed"].includes(run.state)) throw new Error("PREPARATION_EDIT_FORBIDDEN");
+      return this.stamp({ ...run, loanWork: validated, state: run.population ? "ready" : "draft", result: undefined, findings: [], notes: [], conclusion: undefined, approval: undefined, submittedHash: undefined, version: version + 1 }, actor, "configure_loans");
     });
   }
   async configureExceptional(scope:WorkpaperScope,id:string,version:number,work:ExceptionalWork){
@@ -183,7 +192,7 @@ export class WorkpaperService {
       assertScope(scope, population.scope); assertScope(scope, selection.scope);
       if (selection.validatedBy !== actor.id) throw new Error("SELECTION_VALIDATOR_MISMATCH");
       const imports = population.importIds.map((i) => this.imports.get(scope, i, actor));
-      validateSelectionSources(population, selection, imports);
+      validateSelectionSources(population, selection, imports, run.period);
       if (run.template.requiredDocumentTypes.some((t) => !imports.some((b) => b.document.documentType === t))) throw new Error("REQUIRED_DOCUMENT_MISSING");
       return { ...run, importIds: [...population.importIds], population, selection };
     });
@@ -237,6 +246,10 @@ export class WorkpaperService {
         if(value.runId!==run.id)throw new Error("PAYABLE_RESULT_IDENTITY_MISMATCH");
         const links=[...value.methodEvidence,...value.windowEvidence,...value.rows.flatMap(r=>r.evidence),...value.events.flatMap(e=>e.cutoff.evidence)];
         evidence=[...new Map([...evidence,...links].map(link=>[link.id,link])).values()];
+      }
+      if (this.realAdapter === "loans.review" && result.execution === "completed") {
+        const value = result.result as LoanResult; if (value.runId !== run.id) throw new Error("LOAN_RESULT_IDENTITY_MISMATCH");
+        evidence = [...new Map([...evidence, ...value.evidence].map(link => [link.id, link])).values()];
       }
       if(this.realAdapter === 'exceptional.review' && result.execution === 'completed') { const value=result.result as ExceptionalResult; if(value.runId!==run.id)throw Error('EXCEPTIONAL_RESULT_IDENTITY_MISMATCH'); evidence=[...new Map([...evidence,...value.evidence].map(link=>[link.id,link])).values()]; }
       if(this.realAdapter === 'investments.review' && result.execution === 'completed') {
@@ -336,12 +349,12 @@ export class WorkpaperService {
       return this.stamp({ ...old, ...(template ? { template } : {}), id: nextId, revision: old.revision + 1, version: 1, state: "draft", preparedBy: actor.id, supersedes: old.id,
         previousLockedId: old.state === "locked" ? old.id : old.previousLockedId,
         result: undefined, findings: [], approval: undefined, submittedHash: undefined, conclusion: undefined,
-        ...(scope.mode === "real" ? { exceptionalWork: undefined, investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, stockWork: undefined, provisionWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
+        ...(scope.mode === "real" ? { loanWork: undefined, exceptionalWork: undefined, investmentWork: undefined, cashWork: undefined, fixedAssetWork: undefined, equityWork: undefined, capitauxWork: undefined, fiscalWork: old.fiscalWork, stockWork: undefined, provisionWork: undefined, clientsWork: undefined, payablesWork: undefined, importIds: [], population: undefined, selection: undefined, notes: [] } : {}),
         evidence: (scope.mode === "real" ? [] : old.evidence).map((e) => ({ ...e, id: `${e.id}:r${old.revision + 1}`, procedureId: nextId })), events: [] }, actor, "revise");
     });
   }
   async lock(scope: WorkpaperScope, id: string, version: number) {
-    if (scope.mode !== "real" || !["exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register", "payroll.review", "payroll.leave"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
+    if (scope.mode !== "real" || !["loans.review", "exceptional.review", "investments.review", "equity.review", "clients.frame", "clients.sales", "payables.frame", "payables.purchases", "payables.rpne", "cash.reconciliation", "fixed_assets.review", "capitaux_propres.review", "tva.reconciliation", "is.computation", "stocks.count", "provisions.register", "payroll.review", "payroll.leave"].includes(this.realAdapter ?? "")) throw new Error("CLIENT_LOCK_ONLY");
     const actor = await this.actor(scope, "review");
     return this.repository.compareAndSwap(scope, id, version, (run) => {
       assertTransition(run, "locked", actor);
