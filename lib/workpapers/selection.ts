@@ -4,20 +4,28 @@ import type { ImportBatch } from "./imports";
 import { assertScope, frozen, type Population, type SelectionSet, type WorkpaperScope } from "./model";
 import { authorize, type Principal } from "./policy";
 import { exceptionalUnits } from './exceptional-dossier';
+import { assertLoanPopulationPeriod, isLoanPopulation, loanPopulationItems } from "./loan-review";
+import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { registerUnits } from "./fixed-asset-sources";
 import { equityPopulationItems as capitauxPopulationItems, isEquityPopulation as isCapitauxPopulation } from "./capitaux-sources";
 import { citPopulationItems, isFiscalPopulation, vatPopulationItems } from "./fiscal-population";
 import { isStockPopulation, stockPopulationItems } from "./stock-population";
 import { isProvisionPopulation, provisionPopulationItems } from "./provision-population";
 
-/** Invoice grouping is limited to the validated Clients open-at-closing mapping. */
-export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], unit: Population["unit"], principal: Principal): Population {
+/**
+ * Invoice grouping is limited to the validated Clients open-at-closing mapping.
+ * `period` is required only by the loans unit (C13): its dues are bounded to the exercise, which the scope key does not carry.
+ */
+export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], unit: Population["unit"], principal: Principal, period?: AccountingPeriod): Population {
   authorize(principal, scope, "prepare");
   const invoiceUnit = unit === "invoice" && imports.filter(b => b.document.documentType === "clients_invoices").length === 1 && imports.every(b => b.mapping.version === "clients-sales-1" && !!b.mapping.sales) && imports.find(b => b.document.documentType === "clients_invoices")?.mapping.sales?.basis === "open_at_closing";
   // One bank account = one row of the single closing ledger of the validated cash mapping.
   const accountUnit = unit === "account" && imports.filter(b => b.document.documentType === "cash_ledger").length === 1 && imports.every(b => b.mapping.version === "cash-reconciliation-1" && !!b.mapping.cash) && imports.find(b => b.document.documentType === "cash_ledger")?.mapping.cash?.basis === "ledger_closing";
   // One asset / component = the lines of the single register of the validated fixed-asset mapping.
   const assetUnit = unit === "asset" && imports.filter(b => b.document.documentType === "fa_register").length === 1 && imports.every(b => b.mapping.version === "fixed-assets-1" && !!b.mapping.fixedAssets) && imports.find(b => b.document.documentType === "fa_register")?.mapping.fixedAssets?.basis === "asset_register";
+  // Loans (C13): one contract (all versions) or one due payable during the exercise, from the loans mapping.
+  const loanUnit = unit === "loan_contract_due";
+  if (loanUnit && !isLoanPopulation(imports)) throw new Error("LOAN_POPULATION_MAPPING_INVALID");
   const exceptionalUnit=unit==='event';
   if(exceptionalUnit && (imports.some(b=>b.mapping.version!=='exceptional-review-1') || imports.filter(b=>b.document.documentType==='exceptional_ledger').length!==1)) throw Error('EXCEPTIONAL_POPULATION_MAPPING_INVALID');
   const investmentUnit=unit==='security_distribution';
@@ -34,11 +42,11 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   const stockUnit = unit === "stock_unit" && isStockPopulation(imports);
   // Provisions register (Mission 16): one event of the single approved register of the provisions mapping.
   const provisionUnit = unit === "pv_event" && isProvisionPopulation(imports);
-  if (!exceptionalUnit && !investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !provisionUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  if (!loanUnit && !exceptionalUnit && !investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !provisionUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
   const populationImports = investmentUnit ? imports.filter(b=>["investment_register","investment_distributions"].includes(b.document.documentType)) : equityUnit ? imports.filter(b=>["equity_ledger","equity_decisions"].includes(b.document.documentType)) : payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
-  const items = exceptionalUnit ? exceptionalUnits(imports) : unit === "stock_unit" ? stockPopulationItems(imports) : unit === "pv_event" ? provisionPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
+  const items = loanUnit ? loanPopulationItems(imports, assertLoanPopulationPeriod(scope, period)) : exceptionalUnit ? exceptionalUnits(imports) : unit === "stock_unit" ? stockPopulationItems(imports) : unit === "pv_event" ? provisionPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
     // The population measure is the gross closing value; an asset without one is refused rather than counted as zero.
     if (!u.grossClosing) throw new Error("FA_GROSS_CLOSING_REQUIRED");
     return { id: u.unitId, rowIds: u.rowIds, amount: u.grossClosing };
@@ -85,10 +93,10 @@ export function selectPopulation(population: Population, request: SelectionReque
     limitations: ["Taille fournie et validée par le préparateur ; aucune assurance statistique ni extrapolation.", `Dénominateur : ${population.items.length} ${population.unit === "event" ? "événements" : population.unit === "invoice" ? "factures" : population.unit === "account" ? "comptes" : population.unit === "asset" ? "actifs ou composants" : population.unit === "decision_movement" ? "décisions et mouvements" : population.unit === "vat_entry" ? "écritures de TVA" : population.unit === "result_entry" ? "écritures de résultat" : "lignes"} ; ${eligible.length} éligibles après exclusions.`] };
   return frozen({ ...selection, id: `selection-${stableSha256(selection)}` });
 }
-export function validateSelectionSources(population: Population, selection: SelectionSet, imports: ImportBatch[]): void {
+export function validateSelectionSources(population: Population, selection: SelectionSet, imports: ImportBatch[], period?: AccountingPeriod): void {
   assertScope(population.scope, selection.scope);
   const principal: Principal = { id: selection.validatedBy, grants: [{ scope: population.scope, permissions: ["prepare"] }] };
-  const rebuilt = freezePopulation(population.scope, imports, population.unit, principal);
+  const rebuilt = freezePopulation(population.scope, imports, population.unit, principal, period);
   if (stableSha256(rebuilt) !== stableSha256(population)) throw new Error("POPULATION_SOURCES_CHANGED");
   const expected = selectPopulation(population, { method: selection.method, criteria: selection.criteria, requestedSize: selection.requestedSize,
     exclusions: selection.exclusions, seed: selection.seed, selectedIds: selection.method === "targeted" ? selection.selectedIds : undefined }, principal);

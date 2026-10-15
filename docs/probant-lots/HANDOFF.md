@@ -1,3 +1,49 @@
+# Handoff — Mission C13 : Emprunts, la chaîne réellement livrée (2026-10-15)
+
+**Base.** Worktree `quizzical-boyd-13e46a`, branche `claude/chaine-emprunts-manquante-2904e3`, SHA de départ `172ddd7` (`main` après la PR #93), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C11 et les lots Cloisons, Normatif, éditions du référentiel fusionnés depuis ; aucun n'avait touché Emprunts. Rien poussé, aucune PR, aucun merge ni déploiement.
+
+**Chantier Mission 14 retrouvé.** Absent du dépôt (aucune branche, stash, commit pendant ni session Claude) ; trouvé dans le dossier de projet Codex `%USERPROFILE%\.codex\.chatgpt-projects\g-p-6a828022…\mission14` (branche `codex/mission14-loans`, base `5e49934`, 57 fichiers indexés jamais commités). Comparé fichier par fichier ; porté pour ses parties valables (runtime sur `ClientsRuntime`, pont par le rapprochement générique, intérêt en fractions exactes, citations, gel exhaustif), corrigé et complété là où il ne couvrait pas C13. Le chantier lui-même n'a pas été modifié.
+
+## Cause
+
+- `main` n'avait qu'une carte historique (rapprochement échéancier ↔ GL 16) et un périmètre `dettes_financieres` hors journal, sans moteur ni route ; le rapport Mission 20 bloquait donc Emprunts.
+- Le chantier Mission 14 n'était pas intégrable tel quel : migration `0012` en collision avec `0012_capitaux_propres`, verrou de chaîne ignorant le profil C07, écran autonome hors charte, taux indexé figé par version (sans dates de révision), conventions 30/360 absentes, frais et principal exigés même à zéro (faux « non concluant »), échéance à cheval sur l'ouverture bloquée, aucune rubrique de bilan ni distinction autres fonds propres, aucun cadrage de périmètre, lignes sources recopiées dans chaque version (la lecture dépassait la limite de 24 Mio du store après une quarantaine de versions).
+
+## Changements
+
+Voir `docs/mission-c13/CONTRAT.md` (§ 2 tableau Mission 14 → C13). Moteur `loans.review` 1.0.0 (`lib/workpapers/loan-review.ts`, `loan-rules.ts`) ; runtime, HTTP, export, fixture ; écran `/emprunts` (`components/probant/loans/*`) et exemple `/emprunts?demo=1` ; registre C01 1.3.0 (`dettes_financieres` cycle du journal, procédure observée par le dossier de clôture, lien de travail sur `/local`) ; drapeau `PROBANT_LOANS_DURABLE` (profil C07, lanceur, `.env.example`) ; résolveur C04 sujet `financial_debts` ; migration additive `0020_loans_review` à retour arrière gardé. Fichiers partagés modifiés de façon ciblée : `model`, `selection` (période passée à la population Emprunts et à sa reproduction), `calculations`, `service`, `imports`, `cycle-context`, `cycle-review`, `clients-runtime`, `clients-persistence`.
+
+## Sources
+
+Lues le 15/10/2026, PDF de l'ANC retéléchargés, empreintes identiques au registre C04 : PCG 2024 (`f608f78f…`, art. 821-1, 932-1, 941-16), ANC 2022-06 (`aeaa05cf…`, art. 821-1, 1121-1, 1211-16), PCG consolidé 2026 (`55c824b2…`, mêmes articles et 167), ANC 2026-03 (`59330e81…`, aucun changement des comptes 16), ANC 2024-07 via le moteur C09. Choix de méthode présentés comme tels (contrat § 3).
+
+## Cas contrôlés
+
+| Contrôle | Résultat |
+|---|---|
+| Moteur (`loans.test.ts`) : recette simple 90 000 / 250 (30/360) et contre-épreuves, taux absent (index, taux fixe, convention, marge), révision hors calendrier, plancher exclu, avenant et échéancier modifié, versions chevauchantes, frais séparés, remboursement anticipé, mismatch de périmètre, balance absente, textes 2024 / 2025 / 2026 / 2027, signaux de compte, avance conditionnée (C09), termes manquants, covenants, intégrité, observation par le dossier de clôture, export | 30 / 30 |
+| Passerelle (`loan-gate.test.ts`) et écran (`components/probant/__tests__/loans.test.tsx`) | 6 / 6 et 5 / 5 |
+| Recette PostgreSQL 17 jetable (`loans-durable.integration.test.ts`) : imports natifs, gel partiel refusé, calcul, autorité serveur, idempotence, concurrence, citations, auto-relecture OIDC refusée, relecture distincte, verrouillage, export et CSRF, reconnexion, échéancier remplacé → périmée → révision, ancienne version lisible, **relecture personnelle nommée du profil local**, garde de retour arrière 0020 | 6 / 6 |
+| Toutes les recettes PostgreSQL du dépôt (base neuve, 23 migrations) | 10 fichiers, 59 / 59 |
+| Suite unitaire complète (`--pool=forks`) | 176 fichiers, 1 874 / 1 874 (état final) ; recettes PostgreSQL à part ci-dessus |
+| E2E sur build de production, exemple `/emprunts?demo=1` à 1440, 1024 et 390 px : débordement, axe WCAG 2.1 AA serious/critical, filtre par mois, panneau et retour par Échap, mouvement réduit, recette simple, taux absent, vue vide, export, chaîne fermée sans profil | 5 / 5 |
+| E2E sur profil personnel local de recette (`recette-c13`, ports 54369 / 3240) : import par l'écran de six sources → gel et calcul → conclusion citée → relecture personnelle nommée → verrouillage → export ; pack complet aux trois largeurs (exceptions, panneau, cadrage) ; échéancier remplacé → feuille périmée | 2 / 2 |
+| E2E `c07-profil-local.spec.ts` sur le même profil (page `/local` : 13 liens de travail, dont Emprunts) | 4 / 4 |
+| Suite e2e complète du dépôt (build avant les dernières retouches de libellés de l'export ; `c13-emprunts` et `c07-profil-local` rejoués ensuite sur le build final) | 292 réussis, 7 ignorés (profils locaux et FEC persistant sans variables : non vérifiés dans ce passage), 0 échec |
+| `tsc --noEmit`, ESLint des fichiers modifiés, `db:check`, `next build` | aucune erreur (7 avertissements de lint de la base) |
+
+Captures : `docs/probant-lots/c13-captures/` (exemple et panneau aux trois largeurs, recette simple, sans session à 390, profil local : sources, feuille verrouillée, pack complet aux trois largeurs, exceptions à 390, feuille périmée) ; export réel du profil local : `local-diagnostic.html`.
+
+Défauts trouvés et corrigés pendant la recette : population non reproductible par le registre de calcul (période non transmise) ; taille du store dépassée (faits recopiés) ; focus du panneau perdu sous charge (test intermittent ~50 %, effet lié à la sélection) ; débordement à 390 px des listes « Pièce citée » (formulaires contraints) ; table des contrats tronquée à 1440 px (cellules resserrées) ; valeurs d'avenant affichées en JSON brut.
+
+## Limites restantes
+
+- Emprunts simples en euros ; obligataires, convertibles, participatifs, devises, frais capitalisés, planchers / plafonds d'index, dérivés exclus et nommés ; aucun DCF, LBO, ratio de covenant ni conformité de financement.
+- Packs transcrits à la main ; aucune lecture native des contrats PDF ; l'échéancier n'est pas reconstitué (comparé seulement).
+- Convention 30/360 découpée aux mouvements : peut différer d'un décompte sur l'intervalle entier (écart à expliquer). Intérêts payés d'avance non couverts. La feuille ne déclare aucune anticipation de texte.
+- Le vocabulaire du journal de clôture passe de 13 à 14 cycles : un retour à un code antérieur ne relirait pas un événement rattaché à « Dettes financières ».
+- Données exclusivement synthétiques : une suite verte n'autorise aucune mission réelle.
+
 # Handoff — Mission C11 : Clients, achats, cut-off et TVA — événements transversaux (2026-10-15)
 
 **Vérification préalable.** Aucune trace de C11 sur GitHub (PR #1 à #92, branches, commits) ni sur Vercel (déploiements jusqu'à `300829b`) : le lot n'avait pas été traité. Les Missions 07 et 08 (PR #58, #59) avaient livré les chaînes Clients et Achats/cut-off que ce lot raccorde.

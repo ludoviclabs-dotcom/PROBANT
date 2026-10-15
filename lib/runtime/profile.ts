@@ -43,6 +43,7 @@ export const DURABLE_CHAIN_FLAGS = [
   "PROBANT_STOCKS_DURABLE",
   "PROBANT_PROVISIONS_DURABLE",
   "PROBANT_CLOSING_DURABLE",
+  "PROBANT_LOANS_DURABLE",
 ] as const;
 export type DurableChainFlag = (typeof DURABLE_CHAIN_FLAGS)[number];
 

@@ -76,7 +76,8 @@ const PRESENTATION: Record<CycleId, Presentation> = {
     legacyLimits: ["Les feuilles de cycle ne forment pas un audit complet ; aucune opinion générée."] },
   informatique: { scope: "Contrôles généraux informatiques déclarés dans le dossier de clôture, avec leur propre périmètre.", silos: [],
     secondary: [{ label: "Déclarer le périmètre ITGC dans le dossier de clôture", href: "/dossier-cloture" }], legacyLimits: ["Aucun travail ni conclusion avant définition du périmètre ITGC : une checklist ne vaut pas couverture."] },
-  dettes_financieres: { scope: "Échéancier des emprunts rapproché du grand livre 16 dans le rapprochement historique.", silos: ["dettes-financieres", "rapprochement-dettes-financieres"] },
+  dettes_financieres: { scope: "Contrats et échéances de l’exercice, pont de principal, intérêts et intérêts courus sur paramètres contractuels sourcés, cadrage sur la balance ; rapprochement historique conservé.", silos: ["dettes-financieres", "rapprochement-dettes-financieres"],
+    sheet: { label: "Feuille Emprunts", href: "/emprunts" }, legacyLimits: ["Emprunts simples en euros ; covenants lus sans ratio calculé ; aucune conformité de financement déduite."] },
 };
 
 export const CYCLE_REGISTRY: readonly CycleRegistryEntry[] = CAPABILITY_REGISTRY.map((c: RegistryCycle): CycleRegistryEntry => {

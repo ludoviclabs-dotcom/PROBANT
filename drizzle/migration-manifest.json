@@ -23,7 +23,8 @@
     "0016_stock_value_review.up.sql",
     "0017_exceptional_review.up.sql",
     "0018_provision_workpapers.up.sql",
-    "0019_closing_dossier.up.sql"
+    "0019_closing_dossier.up.sql",
+    "0020_loans_review.up.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -47,7 +48,8 @@
     "0016_stock_value_review.down.sql",
     "0017_exceptional_review.down.sql",
     "0018_provision_workpapers.down.sql",
-    "0019_closing_dossier.down.sql"
+    "0019_closing_dossier.down.sql",
+    "0020_loans_review.down.sql"
   ],
   "tables": [
     "control_executions",

@@ -38,7 +38,7 @@ export class CalculationRegistry {
     assertScope(request.scope, request.population.scope); assertScope(request.scope, request.selection.scope);
     request.imports.forEach((b) => assertScope(request.scope, b.scope));
     const warnings: string[] = [], blockedControls: string[] = [];
-    try { validateSelectionSources(request.population, request.selection, request.imports); } catch { blockedControls.push("population_or_selection_not_reproducible"); }
+    try { validateSelectionSources(request.population, request.selection, request.imports, request.period); } catch { blockedControls.push("population_or_selection_not_reproducible"); }
     if (periodIssues(request.period).length || periodId(request.period) !== request.scope.periodId) blockedControls.push("period");
     if (!definition) blockedControls.push("rule_version_unavailable");
     if (definition && (definition.reference.effectiveFrom > request.period.closingDate || (definition.reference.effectiveTo && definition.reference.effectiveTo < request.period.closingDate) || (request.scope.mode === "real" && definition.reference.validation !== "validated"))) blockedControls.push("rule_not_applicable");
