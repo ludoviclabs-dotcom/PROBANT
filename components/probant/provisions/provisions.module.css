@@ -116,3 +116,6 @@
 @media (max-width:1180px){.lanes{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
 @media (max-width:720px){.strip{grid-template-columns:repeat(2,minmax(0,1fr))}.strip > li::after{display:none}.lanes{grid-template-columns:minmax(0,1fr)}.views{margin-left:0}.toolbar label{min-width:0;flex:1 1 140px}.toolbar input[type=search]{min-width:0;width:100%}}
 @media (prefers-reduced-motion:reduce){.tile,.stepCase,.timeline li,.kindBar button{animation:none!important;transition:none!important}.tile:hover,.stepCase:hover{transform:none}.stepBar > span,.mini span,.scale *{transition:none!important}}
+/* Scope form of the mission synthesis: fields take their label's width, never their font-dependent intrinsic width (overflow at 390 px under Linux fonts). */
+.scopeForm label{min-width:min(150px,100%)}
+.scopeForm :is(input,select){width:100%;min-width:0;box-sizing:border-box}
