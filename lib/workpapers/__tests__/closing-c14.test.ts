@@ -136,6 +136,7 @@ describe("C14 — vue unifiée du dossier : projection, rattachement des feuille
     expect(v.evaluation.denominators.sheets.inconclusiveRetained).toBe(1);
     expect(v.projection.cycles.find(c => c.cycle === "tresorerie")!.rows.find(r => r.procedureId === "P-02")!.sheet).toMatchObject({ inconclusive: true, result: "inconclusive" });
     v = (await h.ok({ command: "bind_sheet", procedureId: "P-02", rootId: "cash-B1", perimeter: "Compte 512-B1" })).view;
+    expect(proc(v, "P-02")).toMatchObject({ status: "cycle_verrouille", engine: { binding: { mode: "explicite", drift: null, recorded: { runId: "cash-B1", revision: 1 } } } });
     // A revision of the same lineage with a new population: the locked revision 1 stays listed, never counted.
     cash.runs_.push(sheet({ id: "cash-B1:r2", rootId: "cash-B1", revision: 2, version: 1, state: "draft", population: ["512-B1", "512-B1-devise"] }));
     v = await h.view();
