@@ -10,7 +10,7 @@ PROBANT s'exécute sur votre PC avec une base PostgreSQL qui lui est propre et d
 | **Type de dossier** (`CapabilityMode`, contrat C01) | historique · scénario · local persistant | les données lues |
 | **Type de relecture** (`ReviewKind`, `lib/auth/review-kind.ts`) | `distinct_identity` relecture par une autre identité · `personal` relecture personnelle nommée · `simulated_second_identity` simulation | le serveur, d'après l'identité authentifiée |
 
-Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les treize drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Emprunts — C13).
+Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les quatorze drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Paie/Congés — C12, Emprunts — C13).
 
 ## Dépendances effectivement nécessaires
 
@@ -121,6 +121,6 @@ Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capita
 
 - Les binaires EDB du zip ne portent pas de signature Authenticode : seule l'empreinte SHA-256 du téléchargement HTTPS a été relevée.
 - La page Dépôt (`/dashboard/depot`) n'accepte le dépôt FEC durable que pour un dossier qui possède déjà une synthèse persistante ; le premier dépôt d'un nouveau dossier passe aujourd'hui par l'API (`/api/dossiers/<id>/uploads`), comme dans la recette C07. Raccorder l'écran est un lot distinct.
-- La paie reste en mémoire (lot C12). Emprunts a sa feuille durable `/emprunts` depuis C13 (emprunts simples en euros ; voir `docs/mission-c13/CONTRAT.md`).
+- Paie/Congés disposent du store local C12 (CSV pseudonymisés, relecture personnelle et export avec pièces) ; Emprunts a sa feuille durable `/emprunts` depuis C13 (emprunts simples en euros ; voir `docs/mission-c13/CONTRAT.md`).
 - Un seul serveur Next par profil : le traitement FEC local est en processus, sans file partagée entre plusieurs serveurs.
 - Lecteur d'écran non vérifié sur la page `/local`.

@@ -68,7 +68,7 @@ const PRESENTATION: Record<CycleId, Presentation> = {
     sheet: { label: "Feuille fiscale", href: "/fiscal" }, synthesisLabel: "Synthèse fiscale — TVA par période déclarative, IS par exercice",
     secondary: [{ label: "Cockpit Fiscalité — contrôles et réconciliations", href: "/dashboard/fiscalite" }], legacyLimits: ["Moteurs fiscaux existants, aucune liquidation ni conformité déclarée."] },
   paie: { scope: "Journal, déclarations et paiements ; congés en revue indépendante.", silos: ["charges-personnel", "rapprochement-paie"],
-    sheet: { label: "Paie · journal, déclarations et paiements", href: "/paie-personnel" }, secondary: [{ label: "Congés · revue indépendante", href: "/paie-personnel/conges" }], legacyLimits: ["Usage réel bloqué, accès RH à valider."] },
+    sheet: { label: "Paie · journal, déclarations et paiements", href: "/paie-personnel" }, secondary: [{ label: "Congés · revue indépendante", href: "/paie-personnel/conges" }], legacyLimits: ["Profil personnel local ; accès RH dédié, sans logiciel de paie ni DSN native."] },
   exceptionnel: { scope: "Revue de classement par événement du résultat exceptionnel.", silos: ["resultat-exceptionnel", "rapprochement-resultat-exceptionnel"],
     sheet: { label: "Résultat exceptionnel · revue par événement", href: "/resultat-exceptionnel" } },
   transversal: { scope: "Programme de travail, contrôle interne et clôture : travaux restants, pièces manquantes et contradictions ; cut-off transversal.", silos: [],

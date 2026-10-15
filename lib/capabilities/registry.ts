@@ -6,10 +6,11 @@ export * from "./procedures";
 /**
  * 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory.
  * 1.2.0 (C09): Capitaux propres — single journey over the two sheets, other equity funds by declared contractual terms, dated legal markers.
+ * 1.3.0 (C12): local payroll and leave procedures, hr persistence family, separate RH access.
  * 1.2.1: Capitaux propres sheet rule 1.1.1 (SCA through the renvoi of C. com. L226-1); a 1.1.0 sheet stays current unless declared SCA.
- * 1.3.0 (C13): Dettes financières — journal cycle and versioned loans sheet /emprunts (loans.review) over the historical reconciliation.
+ * 1.4.0 (C13): Dettes financières — journal cycle and versioned loans sheet /emprunts (loans.review) over the historical reconciliation.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.3.0";
+export const CAPABILITY_REGISTRY_VERSION = "1.4.0";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -43,12 +44,13 @@ const exclusions: Record<CapabilityCycleId, string[]> = {
   dettes_financieres: ["Emprunts simples en euros : obligataires, convertibles, participatifs, devises, frais capitalisés, planchers / plafonds d’index et dérivés exclus et nommés",
     "Aucun taux ni convention par défaut ; aucun ratio de covenant calculé ni conformité de financement déduite", "Instruments proches des fonds propres classés par termes contractuels déclarés (moteur Capitaux propres)", "Ni DCF ni LBO"],
   fiscal: ["Aucune liquidation ou conformité déclarée", "TVA mensuelle distincte de l’exercice IS"],
-  paie: ["Paie complète et lecture native DSN absentes", "Accès RH réel bloqué"], exceptionnel: ["Qualification humaine par événement"],
+  paie: ["Paie complète et lecture native DSN absentes", "Profil personnel local et habilitation RH dédiée requis"], exceptionnel: ["Qualification humaine par événement"],
   transversal: ["Aucune opinion générée", "Cut-off : fait générateur documenté requis"], informatique: ["Pas de moteur ITGC", "Travaux manuels possibles dans le programme de clôture"],
 };
 /** Local scope stated per cycle when the generic wording would overstate or blur what the sheet establishes. */
 const localScopes: Partial<Record<CapabilityCycleId, string>> = {
   dettes_financieres: "Feuille versionnée /emprunts : contrats et échéances de l’exercice, pont de principal, intérêts et intérêts courus sur paramètres contractuels sourcés, cadrage sur la balance, présentation selon le texte applicable ; activation locale et accès autorisé requis.",
+  paie: "Paie et congés séparés, CSV qualifiés et versions conservés sur le PC ; comparaison sur les mêmes droits, sans estimation automatique des droits restants ni DSN native.",
   capitaux_propres: "Parcours unique /capitaux-propres/parcours : feuille décisions et PV versionnés (règle 1.1.1, travaux nouveaux ; une feuille 1.1.0 reste à jour sauf déclarée en SCA) et dossier /equity (règle 1.0.0, historique) lus à leur version exacte ; activation locale et accès autorisé requis.",
   stocks: "Feuille versionnée : quantités comptées transcrites et passage à la clôture, coûts déclarés (non reconstitués), revue de valeur bornée à la valeur comptable avec estimation partielle si la quantité n’est pas rapprochée ; activation locale et accès autorisé requis. Aucun inventaire physique certifié.",
 };
@@ -72,6 +74,7 @@ export function reconciliationCycles() {
 export function reconciliationDocuments() { const cycles = reconciliationCycles(); return DOCUMENT_DEFINITIONS.filter(d => cycles.some(c => c.id === d.cycleId)); }
 export function capabilitiesForRoute(path: string) { return CAPABILITY_REGISTRY.filter(c => c.routes.some(r => path === r || path.startsWith(r + "/"))); }
 export const PROCEDURE_ACTIVATION: Record<string, string> = {
+  "payroll.review": "PROBANT_PAYROLL_DURABLE", "payroll.leave": "PROBANT_PAYROLL_DURABLE",
   "clients.frame": "PROBANT_CLIENTS_DURABLE", "clients.sales": "PROBANT_CLIENTS_DURABLE",
   "payables.frame": "PROBANT_PAYABLES_DURABLE", "payables.purchases": "PROBANT_PAYABLES_DURABLE", "payables.rpne": "PROBANT_PAYABLES_DURABLE",
   "cash.reconciliation": "PROBANT_CASH_DURABLE", "fixed_assets.review": "PROBANT_FIXED_ASSETS_DURABLE", "stocks.count": "PROBANT_STOCKS_DURABLE",

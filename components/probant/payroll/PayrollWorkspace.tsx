@@ -1,5 +1,4 @@
 "use client";
-import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import {
   useCallback,
@@ -30,8 +29,11 @@ import type {
   PayrollModule,
   PayrollReason,
 } from "@/lib/workpapers/payroll-contract";
+import { periodId, contentHash, type WorkpaperRun } from "@/lib/workpapers/model";
+import { approvalLabel } from "@/lib/auth/review-kind";
+import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import styles from "./payroll.module.css";
-const endpoint = "/api/workpapers/paie/demo";
+const demoEndpoint = "/api/workpapers/paie/demo";
 const labels: Record<PayrollKind, string> = {
   journal: "Journal",
   ledger: "Grand livre",
@@ -40,6 +42,9 @@ const labels: Record<PayrollKind, string> = {
   events: "Pièces & événements",
   leave: "Congés",
 };
+const reviewStateLabels: Record<WorkpaperRun["state"], string> = { draft: "Brouillon", ready: "Prêt", executed: "Exécuté", awaiting_review: "En relecture", changes_requested: "À reprendre", approved: "Approuvé", locked: "Verrouillé", superseded: "Remplacé", blocked: "Bloqué", failed: "Échec" };
+const outcomeLabels = { inconclusive: "Non concluant", exceptions_detected: "Écarts à examiner", no_exception_detected: "Aucun écart arithmétique détecté" };
+const accountingLabels = { debt: "Dette de personnel", estimate: "Estimation", provision: "Provision comptable", unqualified: "À qualifier" };
 const units = {
   working_days: "jours ouvrés",
   business_days: "jours ouvrables",
@@ -66,6 +71,11 @@ const monthLabel = (month: string) =>
     year: "numeric",
     timeZone: "UTC",
   }).format(new Date(month + "-01T00:00:00Z"));
+function monthForView(view: PayrollView, preferred: string) {
+  const available = [...new Set([...view.framing.groups, ...view.settlements.groups].map((g) => g.month))].sort();
+  if (available.includes(preferred)) return preferred;
+  return available[0] ?? view.period.startDate.slice(0, 7);
+}
 function display(value: string) {
   const [whole, decimals] = value.split(".");
   return (
@@ -208,6 +218,18 @@ export function PayrollWorkspace({
 }: {
   initialTab: PayrollModule;
 }) {
+  const [endpoint, setEndpoint] = useState(demoEndpoint);
+  const [localScope, setLocalScope] = useState({ dossierId: "", periodId: "" });
+  const [startDate, setStartDate] = useState(""), [closingDate, setClosingDate] = useState(""), [asOfDate, setAsOfDate] = useState("");
+  const [packId, setPackId] = useState("LOCAL-IMPORT"), [sourceVersion, setSourceVersion] = useState("V1"), [generatedAt, setGeneratedAt] = useState("");
+  const [reviewNote, setReviewNote] = useState("");
+  const [runs, setRuns] = useState<WorkpaperRun[]>([]);
+  const endpointUrl = (path = "", params: Record<string,string> = {}) => {
+    const url = new URL(endpoint, window.location.origin); url.pathname += path;
+    for (const [k,v] of Object.entries(params)) url.searchParams.set(k,v);
+    return url.pathname + url.search;
+  };
+  const mutationHeaders = async () => { const session = await (await fetch("/api/auth/session", { cache: "no-store" })).json(); return { "Idempotency-Key": crypto.randomUUID(), "x-probant-csrf": String(session.csrfToken ?? "") }; };
   const [tab, setTab] = useState(initialTab),
     [view, setView] = useState<PayrollView | null>(null);
   const [demo, setDemo] = useState(false),
@@ -244,24 +266,32 @@ export function PayrollWorkspace({
     let active = true;
     const params = new URLSearchParams(window.location.search);
     const isDemo = params.get("demo") === "1";
+    const dossierId = params.get("dossierId") ?? "", pid = params.get("periodId") ?? "";
+    setLocalScope({ dossierId, periodId: pid });
+    setStartDate(params.get("procedureStart") ?? params.get("exerciseStart") ?? "");
+    setClosingDate(params.get("procedureEnd") ?? params.get("exerciseEnd") ?? "");
+    setAsOfDate(params.get("reviewDate") ?? "");
+    const target = isDemo ? demoEndpoint : "/api/workpapers/paie?" + new URLSearchParams({ dossierId, periodId: pid });
+    setEndpoint(target);
     if (initialTab !== "leave" && params.get("etape") === "reglements")
       setTab("settlements");
     setDemo(isDemo);
-    if (!isDemo) {
+    if (!isDemo && (!dossierId || !pid)) {
       setLoading(false);
       return;
     }
     (async () => {
       try {
-        let response = await fetch(endpoint, { cache: "no-store" });
-        if (response.status === 401)
-          response = await fetch(endpoint, {
+        let response = await fetch(target, { cache: "no-store" });
+        if (isDemo && response.status === 401)
+          response = await fetch(target, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { "Content-Type": "application/json", ...await mutationHeaders() },
             body: JSON.stringify({ action: "init", scenario: "standard" }),
           });
-        const data = await result<PayrollView>(response);
-        if (active) setView(data);
+        if (!isDemo && response.status === 404) return;
+        const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(response);
+        if (active) { setView(data); setRuns(data.runs ?? []); setMonth(monthForView(data, "2026-09")); }
       } catch (e) {
         if (active)
           setError(e instanceof Error ? e.message : "Lecture indisponible.");
@@ -281,12 +311,14 @@ export function PayrollWorkspace({
       const data = await result<PayrollView>(
         await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json", ...await mutationHeaders() },
           body: JSON.stringify(payload),
         }),
       );
       setView(data);
-      setNotice("Version enregistrée dans la session synthétique.");
+      setRuns((data as PayrollView & { runs?: WorkpaperRun[] }).runs ?? []);
+      setMonth(monthForView(data, month));
+      setNotice(demo ? "Version enregistrée dans la session synthétique." : "Version et pièces enregistrées sur ce PC.");
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Modification refusée.");
@@ -299,9 +331,9 @@ export function PayrollWorkspace({
     setBusy(true);
     setError("");
     try {
-      setView(
-        await result<PayrollView>(await fetch(endpoint, { cache: "no-store" })),
-      );
+      const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(await fetch(endpoint, { cache: "no-store" }));
+      setView(data); setRuns(data.runs ?? []);
+      setMonth(monthForView(data, month));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Lecture indisponible.");
     } finally {
@@ -309,6 +341,7 @@ export function PayrollWorkspace({
     }
   }
   async function upload(file: File) {
+    if (!demo && (!packId.trim() || !sourceVersion.trim() || !generatedAt)) { setError("Renseignez le pack, sa version et la date de génération de l’export."); return; }
     setBusy(true);
     setError("");
     setPreview(null);
@@ -316,19 +349,19 @@ export function PayrollWorkspace({
       const mapping = {
         version: "payroll-review-1",
         kind,
-        synthetic: true,
+        synthetic: demo,
         qualified: false,
         coverage,
-        packId: "SYN-LOCAL-IMPORT",
-        sourceVersion: "V1",
-        generatedAt: "2027-02-01",
+        packId: demo ? "SYN-LOCAL-IMPORT" : packId,
+        sourceVersion: demo ? "V1" : sourceVersion,
+        generatedAt: demo ? "2027-02-01" : generatedAt,
       };
       const form = new FormData();
       form.append("file", file);
       form.append("mapping", JSON.stringify(mapping));
       setPreview(
         await result<Preview>(
-          await fetch(endpoint + "/imports", { method: "POST", body: form }),
+          await fetch(endpointUrl("/imports"), { method: "POST", headers: await mutationHeaders(), body: form }),
         ),
       );
     } catch (e) {
@@ -366,7 +399,7 @@ export function PayrollWorkspace({
   const linkedReview = view?.reviews.find(
     (r) => r.module === selected?.module && r.targetId === selected.id,
   );
-  const query = demo ? "?demo=1" : "";
+  const query = demo ? "?demo=1" : localScope.dossierId ? "?" + new URLSearchParams({ dossierId: localScope.dossierId, periodId: localScope.periodId }) : "";
   return (
     <div className={styles.shell}>
       <div inert={selected !== null}>
@@ -404,7 +437,7 @@ export function PayrollWorkspace({
             <LockKeyhole size={17} />
             <span>
               {view
-                ? "Exemple exclusivement synthétique · session locale · revue au 1 février 2027"
+                ? demo ? "Exemple exclusivement synthétique · session locale · revue au 1 février 2027" : "Profil personnel local · sources et versions conservées sur ce PC"
                 : "Extension réelle bloquée : habilitations RH et mappings à valider."}
             </span>
             <span className={styles.version}>
@@ -465,10 +498,41 @@ export function PayrollWorkspace({
               {notice}
             </p>
           )}
+          {!demo && !view && !loading && <form className={styles.importArea} onSubmit={async e => {
+            e.preventDefault(); setBusy(true); setError("");
+            try {
+              const period: AccountingPeriod = { startDate, closingDate, asOfDate, currency: "EUR", validation: "confirmed" };
+              const pid = periodId(period), target = "/api/workpapers/paie?" + new URLSearchParams({ dossierId: localScope.dossierId, periodId: pid });
+              const data = await result<PayrollView & { runs?: WorkpaperRun[] }>(await fetch(target, { method: "POST", headers: { "Content-Type": "application/json", ...await mutationHeaders() }, body: JSON.stringify({ action: "init", period }) }));
+              setEndpoint(target); setView(data); setRuns(data.runs ?? []); setMonth(monthForView(data, period.startDate.slice(0, 7))); setLocalScope({ ...localScope, periodId: pid });
+              const url = new URL(window.location.href); url.searchParams.set("dossierId", localScope.dossierId); url.searchParams.set("periodId", pid); window.history.replaceState(null,"",url);
+            } catch (e) { setError(e instanceof Error ? e.message : "Initialisation refusée"); } finally { setBusy(false); }
+          }}>
+            <h2>Ouvrir la revue sur ce PC</h2>
+            <p>Choisissez un dossier du profil local et confirmez sa période. Les imports utilisent des identifiants pseudonymisés SYN.</p>
+            <label>Dossier <input required value={localScope.dossierId} onChange={e=>setLocalScope({...localScope,dossierId:e.target.value})} /></label>
+            <label>Début <input type="date" required value={startDate} onChange={e=>setStartDate(e.target.value)} /></label>
+            <label>Clôture <input type="date" required value={closingDate} onChange={e=>setClosingDate(e.target.value)} /></label>
+            <label>Date de revue <input type="date" required value={asOfDate} onChange={e=>setAsOfDate(e.target.value)} /></label>
+            <button className={styles.primaryButton} disabled={busy}>Ouvrir la revue locale</button>
+          </form>}
+          {!demo && view && <section className={styles.importArea} aria-label="Synthèse et relecture locale">
+            <h2>Synthèse · {tab === "leave" ? "Congés" : "Paie"}</h2>
+            <p>Les constats, la conclusion et la relecture restent distincts. Un écart documenté conserve son montant.</p>
+            <label>Conclusion et note de relecture <textarea value={reviewNote} onChange={e=>setReviewNote(e.target.value)} /></label>
+            {runs.filter(r=>r.template.id===(tab==="leave"?"payroll.leave":"payroll.review")).map(r=><div key={r.id}>
+              <p>{r.template.objective} · révision {r.revision} · {reviewStateLabels[r.state]} · {r.result ? outcomeLabels[r.result.outcome] : "Non exécuté"}</p>
+              {r.conclusion && <p>Conclusion : {r.conclusion}</p>}
+              {r.approval ? <p>{approvalLabel(r.approval)}</p> : <button disabled={busy || !reviewNote.trim()} onClick={async()=>{
+                setBusy(true);setError("");try{const data=await result<PayrollView & {runs:WorkpaperRun[]}>(await fetch(endpoint,{method:"POST",headers:{"Content-Type":"application/json",...await mutationHeaders()},body:JSON.stringify({action:"review",id:r.id,version:r.version,hash:contentHash(r),note:reviewNote})}));setView(data);setRuns(data.runs);setMonth(monthForView(data, month));setReviewNote("");}catch(e){setError(e instanceof Error?e.message:"Relecture refusée")}finally{setBusy(false)}
+              }}>Enregistrer ma relecture personnelle nommée</button>}
+            </div>)}
+            <a href={endpointUrl("",{operation:"export",version:String(view.version)})}>Exporter la paie, les congés et leurs pièces</a>
+          </section>}
           {loading ? (
             <div className={styles.empty}>
               <Loader2 className={styles.spin} />
-              Lecture des sources synthétiques…
+              Lecture des sources…
             </div>
           ) : (
             <>
@@ -494,7 +558,7 @@ export function PayrollWorkspace({
                     disabled={!view}
                   >
                     {revealed ? <EyeOff size={17} /> : <Eye size={17} />}
-                    {revealed ? "Masquer" : "Révéler l’exemple"}
+                    {revealed ? "Masquer" : "Révéler les montants"}
                   </button>
                   <button
                     className={styles.primaryButton}
@@ -517,6 +581,11 @@ export function PayrollWorkspace({
                     ISO. Identifiants SYN uniquement. Aucun nom de salarié. Un
                     fichier nommé DSN n’est pas une DSN native.
                   </p>
+                  {!demo && <div>
+                    <label>Pack de sources <input value={packId} onChange={e=>setPackId(e.target.value)} /></label>
+                    <label>Version de la source <input value={sourceVersion} onChange={e=>setSourceVersion(e.target.value)} /></label>
+                    <label>Date de génération de l’export <input type="date" value={generatedAt} onChange={e=>setGeneratedAt(e.target.value)} required /></label>
+                  </div>}
                   <div className={styles.sourceTabs}>
                     {(tab === "leave"
                       ? (["leave"] as PayrollKind[])
@@ -562,13 +631,13 @@ export function PayrollWorkspace({
                     ))}
                   </div>
                   <div className={styles.importActions}>
-                    <DossierContextAnchor
+                    <a
                       className={styles.plainButton}
-                      href={endpoint + "?operation=template&kind=" + kind}
+                      href={endpointUrl("", { operation: "template", kind })}
                     >
                       <Download size={16} />
                       Colonnes attendues
-                    </DossierContextAnchor>
+                    </a>
                     <input
                       ref={fileRef}
                       type="file"
@@ -585,7 +654,7 @@ export function PayrollWorkspace({
                       onClick={() => fileRef.current?.click()}
                       disabled={busy}
                     >
-                      Choisir un CSV synthétique
+                      Choisir un CSV structuré
                     </button>
                   </div>
                   {preview && (
@@ -614,12 +683,12 @@ export function PayrollWorkspace({
                           ) {
                             setPreview(null);
                             setNotice(
-                              "Mapping synthétique qualifié. Les revues dépendantes doivent être relues si leur source a changé.",
+                              "Mapping qualifié. Les revues dépendantes doivent être relues si leur source a changé.",
                             );
                           }
                         }}
                       >
-                        Qualifier ce mapping synthétique{" "}
+                        Qualifier ce mapping{" "}
                         <ArrowRight size={16} />
                       </button>
                       <p>
@@ -893,10 +962,10 @@ export function PayrollWorkspace({
                     : "Un écart arithmétique reste soumis à revue. Aucune écriture n’est créée dans le grand livre."}
                 </span>
                 {view && (
-                  <DossierContextAnchor href={endpoint + "?operation=diagnostic"}>
+                  <a href={demo ? endpointUrl("", { operation: "diagnostic" }) : endpointUrl("", { operation: "export", version: String(view?.version ?? 1) })}>
                     <Download size={15} />
-                    Diagnostic sans données RH
-                  </DossierContextAnchor>
+                    {demo ? "Diagnostic sans données RH" : "Export local avec données RH et pièces"}
+                  </a>
                 )}
               </div>
               <section className={styles.documentation}>
@@ -928,7 +997,7 @@ export function PayrollWorkspace({
                               ? "Mapping non établi"
                               : s.mapping.coverage !== "complete"
                                 ? "Couverture à établir"
-                                : `${s.mapping.sourceVersion} · qualifiée synthétique`}
+                                : `${s.mapping.sourceVersion} · ${s.mapping.synthetic ? "qualifiée synthétique" : "qualifiée pour le dossier"}`}
                         </span>
                       </div>
                     ))}
@@ -937,29 +1006,29 @@ export function PayrollWorkspace({
                     <span>Non implémenté · sous-lot distinct</span>
                   </div>
                   <div>
-                    <span>Usage réel</span>
-                    <span>Bloqué · sécurité RH à valider</span>
+                    <span>{demo ? "Usage réel" : "Profil personnel"}</span>
+                    <span>{demo ? "Bloqué · sécurité RH à valider" : "Sources et versions sur ce PC"}</span>
                   </div>
                 </div>
               </section>
               <section className={styles.official}>
                 <h3>Références officielles — distinctes des pièces client</h3>
                 <p>
-                  <DossierContextAnchor
+                  <a
                     href="https://www.cnil.fr/fr/les-regles-pour-la-gestion-du-personnel"
                     target="_blank"
                     rel="noreferrer"
                   >
                     CNIL · Gestion du personnel
-                  </DossierContextAnchor>{" "}
+                  </a>{" "}
                   · 17 août 2023 · accès limité aux fonctions habilitées.{" "}
-                  <DossierContextAnchor
+                  <a
                     href="https://www.cnil.fr/sites/cnil/files/2023-09/referentiel_gestion_des_ressources_humaines.pdf"
                     target="_blank"
                     rel="noreferrer"
                   >
                     Référentiel RH
-                  </DossierContextAnchor>{" "}
+                  </a>{" "}
                   · adopté le 21 novembre 2019, modifié le 23 mai 2022 · p. 1–2,
                   champ d’application.
                 </p>
@@ -1156,7 +1225,7 @@ export function PayrollWorkspace({
                   )}
                 </>
               )}
-              <h3>Pièces client — pack synthétique</h3>
+              <h3>Pièces du dossier</h3>
               <p>
                 Ces événements étayent un motif. Ils ne prouvent pas à eux seuls
                 la correction de l’écart.
@@ -1181,10 +1250,7 @@ export function PayrollWorkspace({
                         version: view.version,
                         module: selected.module as "framing" | "settlements",
                         targetId: group.id,
-                        inputHash:
-                          selected.module === "framing"
-                            ? view.framing.inputHash
-                            : view.settlements.inputHash,
+                        inputHash: group.inputHash,
                         reason: p.reason,
                         evidenceId: p.id,
                       })
@@ -1272,13 +1338,15 @@ export function PayrollWorkspace({
                       {revealed ? `${b.numerator}/${b.denominator}` : "•• / ••"}
                     </p>
                     <p>
-                      Inclus : base décrite dans la méthode. Exclus : charges
-                      associées et extrapolation.
+                      Inclus : {b.inclusions.join(" · ") || "non qualifiés"}. Exclus : {b.exclusions.join(" · ") || "non qualifiés"}.
                     </p>
                   </div>
                 ),
               )}
-              <h3>Règle et pièce client synthétiques</h3>
+              <h3>Qualification comptable</h3>
+              <p>{accountingLabels[selectedLeave.accounting.qualification]} · {selectedLeave.accounting.reason}</p>
+              <p>Charges associées : {selectedLeave.result?.associatedCharges ? "montant documenté sur les mêmes droits" : "non établies, aucun taux appliqué"}.</p>
+              <h3>Règle et pièce du dossier</h3>
               <p>
                 {selectedLeave.rule.id} · {selectedLeave.rule.version}
                 <br />
@@ -1292,7 +1360,7 @@ export function PayrollWorkspace({
                   ? "Droits incohérents : calcul bloqué."
                   : !selectedLeave.result?.comparable
                     ? "Droits, unités, périodes ou règle non comparables : résultat bloqué."
-                    : "Méthodes comparables selon la règle synthétique documentée."}
+                    : "Méthodes comparables selon la règle documentée."}
               </p>
               {selectedLeave.result && (
                 <div className={styles.drawerAmounts}>

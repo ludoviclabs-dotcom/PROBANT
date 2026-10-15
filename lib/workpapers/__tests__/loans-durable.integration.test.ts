@@ -22,7 +22,7 @@ import { assertDisposableDatabase } from "./disposable-database";
 /**
  * C13 — recette Emprunts sur PostgreSQL jetable (base *_test locale) : imports approuvés → population → exécution →
  * pièces → relecture (distincte, puis personnelle nommée du profil local C07) → verrouillage → export ; échéancier
- * remplacé, révision et preuves antérieures conservées ; garde de retour arrière de la migration 0020.
+ * remplacé, révision et preuves antérieures conservées ; garde de retour arrière de la migration 0021.
  */
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette Emprunts — PostgreSQL jetable, sessions serveur, relecture et export", () => {
@@ -197,8 +197,8 @@ describe.skipIf(!databaseUrl)("recette Emprunts — PostgreSQL jetable, sessions
     expect(await exported.text()).toContain("Relecture personnelle nommée · Camille Martin (exemple)");
   }, 60000);
 
-  it("migration 0020 : le retour arrière est refusé tant que des sources ou feuilles Emprunts existent", async () => {
-    const down = readFileSync("drizzle/0020_loans_review.down.sql", "utf8"), guard = down.slice(down.indexOf("DO $$"), down.indexOf("END $$;") + "END $$;".length);
+  it("migration 0021 : le retour arrière est refusé tant que des sources ou feuilles Emprunts existent", async () => {
+    const down = readFileSync("drizzle/0021_loans_review.down.sql", "utf8"), guard = down.slice(down.indexOf("DO $$"), down.indexOf("END $$;") + "END $$;".length);
     await expect(client.unsafe(guard)).rejects.toThrow(/LOAN_ROLLBACK_DATA_PRESENT/);
     const [{ types }] = await client`SELECT count(DISTINCT document_type)::int AS types FROM clients_imports WHERE document_type LIKE 'loan%'`;
     expect(types).toBe(8);

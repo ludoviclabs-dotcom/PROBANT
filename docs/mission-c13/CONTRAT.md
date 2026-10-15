@@ -1,6 +1,6 @@
 # C13 — Emprunts : la chaîne réellement livrée
 
-Date : 15 octobre 2026. Base : `main` `172ddd7` (PR #93 fusionnée). Branche locale : `claude/chaine-emprunts-manquante-2904e3`. Règle `loans.review` 1.0.0, registre des capacités 1.3.0. Outil personnel local ; aucune exploitation SaaS, aucun pilote.
+Date : 15 octobre 2026. Base : `main` `172ddd7` (PR #93 fusionnée). Branche locale : `claude/chaine-emprunts-manquante-2904e3`. Règle `loans.review` 1.0.0, registre des capacités 1.4.0 (C12 a publié 1.3.0 ; base fusionnée avec `main` `bb919bf`). Outil personnel local ; aucune exploitation SaaS, aucun pilote.
 
 ## 1. Point de départ constaté
 
@@ -25,7 +25,7 @@ Date : 15 octobre 2026. Base : `main` `172ddd7` (PR #93 fusionnée). Branche loc
 | Échéance à cheval sur l'ouverture → bloquée | La part antérieure à l'ouverture reprend les **intérêts courus d'ouverture du GL** (attribuables à une seule échéance) ; la part de l'exercice est recalculée. |
 | Faits sources copiés dans chaque version du résultat | **Retirés** (seuls les liens de preuve restent) : la limite de taille du store était atteinte après une quarantaine de versions ; les faits sont recalculés depuis les sources figées à la lecture et à l'export. |
 | Route `/emprunts` + maquette autonome ; drapeau `PROBANT_LOAN_DURABLE=disposable` | Route `/emprunts` dans la charte des feuilles (cash.module.css), contexte dossier C01, profil C07 ; drapeau `PROBANT_LOANS_DURABLE` (`disposable` ou `personal`, refusé sur Vercel production). |
-| Migration `0012_loans_simple` | **`0020_loans_review`**, additive (contrainte de types de sources), retour arrière refusé tant que des données Emprunts existent. |
+| Migration `0012_loans_simple` | **`0021_loans_review`**, additive (contrainte de types de sources), retour arrière refusé tant que des données Emprunts existent. |
 
 ## 3. Sources officielles lues (15/10/2026)
 

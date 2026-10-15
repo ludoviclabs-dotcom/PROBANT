@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "label": "C14 lit la famille hr via le lecteur commun",
+      "status": "PASS"
+    },
+    {
+      "label": "Projection sans pseudonyme ni CSV original",
+      "status": "PASS"
+    },
+    {
+      "label": "Historique local au-delà du seul état courant",
+      "status": "PASS"
+    },
+    {
+      "label": "Archive liée au dossier et à son organisation",
+      "status": "PASS"
+    },
+    {
+      "label": "Octets et imports approuvés immuables",
+      "status": "PASS"
+    },
+    {
+      "label": "Migration descendante refusée avec données",
+      "status": "PASS"
+    },
+    {
+      "label": "Refus sans altération du dossier",
+      "status": "PASS"
+    }
+  ],
+  "observedVersions": 11,
+  "procedures": [
+    "payroll.leave",
+    "payroll.review"
+  ]
+}

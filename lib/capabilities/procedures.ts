@@ -7,9 +7,11 @@ export const CAPABILITY_CYCLE_LABELS: Record<CapabilityCycleId, string> = {
 };
 
 /** Tooled procedures: the existing cycle sheets. The file only observes them (state, version, review); it never recalculates a cycle. */
-export const STORE_FAMILIES = ["clients", "cash", "fa", "eq", "fx", "st", "pv"] as const;
+export const STORE_FAMILIES = ["clients", "cash", "fa", "eq", "fx", "st", "pv", "hr"] as const;
 export type StoreFamily = typeof STORE_FAMILIES[number];
 export const ENGINE_PROCEDURES = [
+  { id: "payroll.review", cycle: "paie", family: "hr", label: "Paie — rapprochement mensuel", route: "/paie-personnel" },
+  { id: "payroll.leave", cycle: "paie", family: "hr", label: "Congés — droits et méthodes documentés", route: "/paie-personnel/conges" },
   { id: "clients.frame", cycle: "clients", family: "clients", label: "Cadrage Clients", route: "/clients-framing" },
   { id: "clients.sales", cycle: "clients", family: "clients", label: "Ventes, encaissements et avoirs", route: "/clients-framing" },
   { id: "payables.frame", cycle: "achats", family: "clients", label: "Cadrage Fournisseurs", route: "/payables" },

@@ -42,7 +42,7 @@ export const DURABLE_CHAIN_FLAGS = [
   "PROBANT_FISCAL_DURABLE",
   "PROBANT_STOCKS_DURABLE",
   "PROBANT_PROVISIONS_DURABLE",
-  "PROBANT_CLOSING_DURABLE",
+  "PROBANT_CLOSING_DURABLE", "PROBANT_PAYROLL_DURABLE",
   "PROBANT_LOANS_DURABLE",
 ] as const;
 export type DurableChainFlag = (typeof DURABLE_CHAIN_FLAGS)[number];
@@ -82,7 +82,7 @@ export function personalProfileIssues(env: RuntimeEnv): string[] {
 
 export function executionProfile(env: RuntimeEnv): ExecutionProfile {
   if (isPersonalProfileRequested(env)) return "personal_local";
-  return DURABLE_CHAIN_FLAGS.some(flag => env[flag] === "disposable") ? "disposable_recipe" : "browser_demo";
+  return DURABLE_CHAIN_FLAGS.some(flag => flag !== "PROBANT_PAYROLL_DURABLE" && env[flag] === "disposable") ? "disposable_recipe" : "browser_demo";
 }
 
 /**
@@ -92,6 +92,7 @@ export function executionProfile(env: RuntimeEnv): ExecutionProfile {
  */
 export function durableChainEnabled(env: RuntimeEnv, flag: string): boolean {
   if (isPersonalProfileRequested(env)) return env[flag] === "personal" && personalProfileIssues(env).length === 0;
+  if (flag === "PROBANT_PAYROLL_DURABLE") return false; // C12 only opens in the personal profile.
   return env.VERCEL_ENV !== "production" && env[flag] === "disposable";
 }
 

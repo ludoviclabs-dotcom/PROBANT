@@ -16,11 +16,11 @@ export const DATABASE = "probant_personnel";
 export const OWNER_SUBJECT = "proprietaire-local";
 export const SIMULATION_SUBJECT = "simulation-seconde-identite";
 
-/** Les treize drapeaux des chaînes durables (miroir de lib/runtime/profile.ts, vérifié par test). */
+/** Les quatorze drapeaux des chaînes durables (miroir de lib/runtime/profile.ts, vérifié par test). */
 export const DURABLE_CHAIN_FLAGS = [
   "PROBANT_CLIENTS_DURABLE", "PROBANT_PAYABLES_DURABLE", "PROBANT_EQUITY_DURABLE", "PROBANT_INVESTMENT_DURABLE",
   "PROBANT_EXCEPTIONAL_DURABLE", "PROBANT_CASH_DURABLE", "PROBANT_FIXED_ASSETS_DURABLE", "PROBANT_CAPITAUX_DURABLE",
-  "PROBANT_FISCAL_DURABLE", "PROBANT_STOCKS_DURABLE", "PROBANT_PROVISIONS_DURABLE", "PROBANT_CLOSING_DURABLE", "PROBANT_LOANS_DURABLE",
+  "PROBANT_FISCAL_DURABLE", "PROBANT_STOCKS_DURABLE", "PROBANT_PROVISIONS_DURABLE", "PROBANT_CLOSING_DURABLE", "PROBANT_PAYROLL_DURABLE", "PROBANT_LOANS_DURABLE",
 ];
 
 /**
@@ -155,6 +155,7 @@ export function childEnv({ config, secrets, home, baseEnv, documentedKeys = [] }
     PROBANT_LOCAL_ORGANIZATION_ID: config.organizationId,
     PROBANT_LOCAL_OWNER_NAME: config.owner.name,
     PROBANT_LOCAL_REVIEW: config.review,
+      PROBANT_LOCAL_HR: "enabled",
     PROBANT_LOCAL_SIMULATION: config.simulation ? "enabled" : "",
   });
   for (const flag of DURABLE_CHAIN_FLAGS) env[flag] = "personal";

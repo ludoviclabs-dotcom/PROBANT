@@ -31,7 +31,7 @@ describe("C07 — lanceur : configuration et environnement de Next", () => {
     expect(validateConfig({ ...config, app: { host: "127.0.0.1", port: 54329 } })).toEqual(expect.arrayContaining([expect.stringMatching(/app.port/)]));
   });
 
-  it("l'environnement de Next ouvre les treize chaînes en « personal », neutralise tout distant et forme un profil valide", () => {
+  it("l'environnement de Next ouvre les quatorze chaînes en « personal », neutralise tout distant et forme un profil valide", () => {
     const base = { PATH: "C:\\Windows", SystemRoot: "C:\\Windows", DATABASE_URL: ["postgresql://probant", "x@localhost:5432/probant_ci"].join(":"), BLOB_READ_WRITE_TOKEN: "jeton", PROBANT_CASH_DURABLE: "disposable", AWS_REGION: "eu-west-3", OIDC_ISSUER: "https://idp" };
     const env = childEnv({ config, secrets, home: "C:\\profil", baseEnv: base, documentedKeys: ["S3_PRIVATE_BUCKET", "CSP_MODE"] });
     expect(env.PATH).toBe("C:\\Windows");

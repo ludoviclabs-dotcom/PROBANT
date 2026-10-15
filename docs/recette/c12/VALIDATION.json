@@ -1,0 +1,68 @@
+{
+  "base": "172ddd7",
+  "branch": "codex/c12-payroll-local",
+  "data": "Données synthétiques sur le profil personnel local C07",
+  "restart": {
+    "passed": 20,
+    "failed": 0,
+    "processes": {
+      "before": {
+        "next": 15420,
+        "postgres": 26988
+      },
+      "after": {
+        "next": 14848,
+        "postgres": 10360
+      }
+    }
+  },
+  "storage": {
+    "passed": 7,
+    "failed": 0
+  },
+  "targetedUnitTests": {
+    "passed": 40,
+    "failed": 0
+  },
+  "lastFullUnitSuite": {
+    "passed": 1834,
+    "failed": 1,
+    "limitation": "Cloisons : dépassement du délai existant de 5 secondes en suite chargée ; les 4 tests du fichier passent ensuite seuls, sans changement des délais."
+  },
+  "browser": {
+    "passed": 4,
+    "failed": 0,
+    "measures": [
+      {
+        "width": 390,
+        "overflow": false,
+        "axeSeriousCritical": 0,
+        "keyboardEscape": true,
+        "reducedMotion": true
+      },
+      {
+        "width": 1024,
+        "overflow": false,
+        "axeSeriousCritical": 0,
+        "keyboardEscape": true,
+        "reducedMotion": true
+      },
+      {
+        "width": 1440,
+        "overflow": false,
+        "axeSeriousCritical": 0,
+        "keyboardEscape": true,
+        "reducedMotion": true
+      }
+    ]
+  },
+  "build": "PASS",
+  "typecheck": "PASS",
+  "scopedLint": "PASS sans erreur ni avertissement",
+  "migrations": "23 migrations montantes, invariants valides",
+  "backup": {
+    "tables": 76,
+    "payrollTables": 7
+  },
+  "review": "Relecture personnelle nommée. Pas de revue indépendante par deux personnes réelles."
+}
