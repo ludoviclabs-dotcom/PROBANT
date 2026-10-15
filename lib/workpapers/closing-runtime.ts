@@ -118,7 +118,7 @@ export class ClosingRuntime {
         const state = fold(await tx.events(scope)), at = new Date(this.now() * 1000).toISOString();
         if (command.command === "open" && periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
         if (command.expectedSeq !== state.seq) throw new ClosingConflict(state.seq, command.expectedSeq);
-        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations,
+        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations, events: eventMap,
           ...(identity.reviewKind ? { reviewKind: identity.reviewKind } : {}), ...(identity.displayName ? { displayName: identity.displayName } : {}) });
         return this.append(tx, scope, identity.subject, at, decision, { seq: state.seq, hash: state.headHash });
       });

@@ -4,7 +4,7 @@ import type { Finding } from "@/lib/canonical-model/finding";
 import type { FrenchGaapTextId } from "@/lib/knowledge/french-gaap";
 import { resolveProcedure, type ProcedureProposal } from "@/lib/audit/procedures";
 import { projectExposure, restrictExposure } from "@/lib/synthesis/exposure";
-import type { EffectReviewStage, EffectStage, ExposureClusterView } from "@/lib/synthesis/types";
+import type { EffectStage, ExposureClusterView } from "@/lib/synthesis/types";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { qualifyVatExigibility, VAT_CATEGORY_LABELS, VAT_EXIGIBILITY_SOURCES, type ReadVatSource, type VatOperationCategory, type VatQualification, type VatSettlement } from "@/lib/tax/vat/exigibility";
 import { CUTOFF_METHOD_TEXT, resolveCutoffRule, type CutoffRule } from "./cutoff-rule";
@@ -68,8 +68,6 @@ const ROW_STATUS: Record<NonNullable<CutoffEventFacts["procedureRow"]>["status"]
 };
 export interface EventDependency { part: EventPart; kind: "source" | "run" | "framework" | "vat_sheet"; ref: string; label: string; stale: boolean }
 type EventEffectBase = { economicIdentity: string; amountCents: number; direction: "increase" | "decrease"; target: "resultat"; contributors: number };
-/** Groupe C05 d'un événement, tel que la projection partagée le décrit (aucun montant retenu hors agrégation déterminée). */
-export type EventCluster = Pick<ExposureClusterView, "clusterId" | "findingIds" | "status" | "retainedCents" | "boundsCents" | "correctedCents"> & { reviewStage: EffectReviewStage | null; reason: string | null };
 export interface TransversalEvent {
   eventId: string; flow: "purchase" | "sale"; party: string; invoiceId: string; documentKind: "invoice" | "credit_note";
   dates: {
@@ -91,7 +89,7 @@ export interface TransversalEvent {
     /** Constats C05 porteurs de l'effet : une observation courante porteuse du candidat retenu = un constat, à sa version de feuille. */
     contributions: { findingId: string; procedureId: string; runId: string; version: number }[];
     /** Lecture C05 du périmètre de l'événement (restrictExposure) : groupe, étape de revue et pont par poste et sens. */
-    exposure: { clusters: EventCluster[]; stages: EffectStage[] };
+    exposure: { clusters: ExposureClusterView[]; stages: EffectStage[] };
   }) | null;
   procedure: ProcedureProposal | null;
   sources: (EventSource & { parts: EventPart[] })[];
@@ -324,8 +322,8 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
     if (!e.effect) return { ...e, effect: null };
     const contributions = carried.filter((c) => c.eventId === e.eventId).map((c) => c.contribution).sort((a, b) => a.findingId.localeCompare(b.findingId));
     const scoped = restrictExposure(projection.exposure, contributions.map((c) => c.findingId));
-    return { ...e, effect: { ...e.effect, contributions, exposure: { stages: scoped.stages,
-      clusters: scoped.clusters.map((c) => ({ clusterId: c.clusterId, findingIds: c.findingIds, status: c.status, retainedCents: c.retainedCents, boundsCents: c.boundsCents, reviewStage: c.reviewStage, correctedCents: c.correctedCents, reason: c.reason ?? null })) } } };
+    // Groupes C05 complets (membres et représentant) : un lecteur y applique une décision de revue par la règle C05 (`reviewedCluster`), sans recalcul.
+    return { ...e, effect: { ...e.effect, contributions, exposure: { stages: scoped.stages, clusters: scoped.clusters } } };
   });
   const observations = events.flatMap((e) => e.observations);
   const body = {

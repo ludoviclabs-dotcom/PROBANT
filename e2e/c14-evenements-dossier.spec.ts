@@ -12,7 +12,7 @@ import { dossierMap, eventsHarness, eventsProgramme, EV_PERIOD_ID, evScope } fro
 test.describe.configure({ timeout: 120_000 });
 const CAPTURES = path.join(process.cwd(), "docs", "probant-lots", "c14-evenements-captures");
 // Attendu posé à la main (recette C11 : 4 effets, 7 observations porteuses, 11 événements ; cas 8 sans effet).
-const SENTENCE = "4 effets d’événements transversaux comptés une fois (7 observations avec candidat, 11 événements) · étape C05 : 4 en attente, 0 proposé(s), 0 corrigé(s) · 1 candidat sans effet compté — catégorie distincte des anomalies journalisées";
+const SENTENCE = "4 effets d’événements transversaux comptés une fois (7 observations avec candidat, 11 événements) · étape C05 : 4 en attente, 0 apprécié(s) non corrigé(s), 0 corrigé(s) · 1 candidat sans effet compté — catégorie distincte des anomalies journalisées";
 
 async function axe(page: Page) {
   await page.addScriptTag({ path: path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js") });
@@ -30,11 +30,15 @@ async function noGlobalOverflow(page: Page, width: number) {
   });
   expect(layout.width, JSON.stringify(layout.outside)).toBeLessThanOrEqual(width);
 }
+const session = { current: "preparer" };
 async function serve(page: Page, h: ClosingHarness, map: ReturnType<typeof dossierMap>) {
   await page.route("**/api/auth/session", r => r.fulfill({ json: { authenticated: true, csrfToken: "test-csrf" } }));
+  // Every dossier request (reads and decisions) goes to the real ClosingRuntime of the harness, under the session chosen by the test.
   await page.route("**/api/workpapers/closing**", async route => {
-    const req = route.request(), url = new URL(req.url());
-    const response = await h.handlers.GET(new Request("https://probant.test" + url.pathname + url.search, { method: "GET", headers: { "x-test-session": "preparer" } }));
+    const req = route.request(), url = new URL(req.url()), sent = req.headers(), posted = req.method() === "POST" ? req.postDataBuffer() : null;
+    const headers: Record<string, string> = { "x-test-session": session.current, ...(sent["idempotency-key"] ? { "Idempotency-Key": sent["idempotency-key"] } : {}), ...(sent["content-type"] ? { "Content-Type": sent["content-type"] } : {}) };
+    const request = new Request("https://probant.test" + url.pathname + url.search, { method: req.method(), headers, body: posted ? new Uint8Array(posted) : undefined });
+    const response = await (req.method() === "POST" ? h.handlers.POST : h.handlers.GET)(request);
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
   });
   // La carte C11 de /cutoff : la même que celle que lit le dossier (operation=events).
@@ -43,6 +47,7 @@ async function serve(page: Page, h: ClosingHarness, map: ReturnType<typeof dossi
 }
 const text = async (page: Page, testId: string) => (await page.getByTestId(testId).innerText()).replace(/\s+/g, " ").trim();
 
+test.beforeEach(() => { session.current = "preparer"; });
 for (const width of [1440, 1024, 390]) {
   test(`C14 suite à ${width} px — effets des événements dans le bandeau, la carte de couverture, la synthèse et l’export ; même carte sur /cutoff`, async ({ page }) => {
     const map = dossierMap(), h = eventsHarness(map);
@@ -67,7 +72,7 @@ for (const width of [1440, 1024, 390]) {
     const f102 = effects.locator('tr[data-event="F-102"]');
     await expect(f102).toContainText("2 000,00");
     await expect(f102).toContainText("baisse du résultat · 2 observation(s)");
-    await expect(f102).toContainText("En attente — aucune décision de revue");
+    await expect(f102).toContainText("En attente — correction ou appréciation à documenter");
     await expect(f102).toContainText("Recherche de passifs non enregistrés · RUN-RPNE r1 v1 — candidat compté dans l’effet · version courante de la lignée · Retenue au programme par P-02");
     await expect(f102).toContainText("Ventes, encaissements et avoirs · RUN-CLI r1 v1 — solde ouvert observé · version courante de la lignée · Hors programme");
     await expect(section.getByRole("list", { name: "Pont C05 des effets par poste et sens" })).toContainText("Résultat · baisse — en attente 3 500,00");
@@ -97,5 +102,62 @@ for (const width of [1440, 1024, 390]) {
     await expect(bridge).toContainText("11 événements");
     await expect(bridge).toContainText("7 observations avec candidat");
     await expect(bridge).toContainText("4 effets comptés une fois");
+  });
+}
+
+// Attendus posés à la main : F-101 corrigé 600,00 sur 1 000,00 (résiduel 400,00) ; FS-202 apprécié non corrigé ; restent F-102 et AV-106 en attente.
+const AFTER = "4 effets d’événements transversaux comptés une fois (7 observations avec candidat, 11 événements) · étape C05 : 2 en attente, 1 apprécié(s) non corrigé(s), 1 corrigé(s) · 1 candidat sans effet compté — catégorie distincte des anomalies journalisées";
+for (const width of [1440, 1024, 390]) {
+  test(`C14 suite à ${width} px — décisions de revue d’un effet depuis l’onglet Anomalies : correction partielle par le préparateur, appréciation par le relecteur`, async ({ page }) => {
+    const map = dossierMap(), h = eventsHarness(map);
+    await eventsProgramme(h);
+    const pc = await h.piece("Écriture FAE F-101 passée au 31/03/2026");
+    await serve(page, h, map);
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.setViewportSize({ width, height: 900 });
+    await page.goto("/dossier-cloture?" + new URLSearchParams({ dossierId: CL_DOSSIER, periodId: EV_PERIOD_ID }));
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dossier professionnel — contrôle interne et clôture");
+    await page.getByRole("tab", { name: /^Anomalies et limites/ }).click();
+    const region = page.getByRole("region", { name: "Effets des événements à traiter : étape, décision et feuilles sources" });
+    await expect(region.locator("tbody tr")).toHaveCount(4);
+    if (width >= 1024) expect(await region.evaluate(el => el.scrollWidth - el.clientWidth)).toBeLessThanOrEqual(0);
+    await noGlobalOverflow(page, width);
+    // Préparateur : correction partielle de F-101 citant une pièce du dossier.
+    const f101 = region.locator('tr[data-event="F-101"]');
+    await f101.getByText("Documenter la correction").click();
+    await f101.getByLabel("Correction (écriture passée par l’entité, référence)").fill("Écriture FAE passée le 15/04/2026, pour 600,00 seulement");
+    await f101.getByLabel(/^Montant corrigé si partiel/).fill("600.00");
+    await f101.getByLabel("Pièces du dossier qui établissent la correction").selectOption(pc);
+    await f101.getByRole("button", { name: "Enregistrer la correction" }).click();
+    await expect(f101).toContainText("Corrigé partiellement — reste résiduel");
+    await expect(f101).toContainText("Résiduel 400,00");
+    await expect(f101).toContainText("Correction partielle 600,00 € — s’applique");
+    // Relecteur : appréciation de FS-202, non corrigé.
+    session.current = "reviewer";
+    await page.reload();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dossier professionnel — contrôle interne et clôture");
+    await page.getByRole("tab", { name: /^Anomalies et limites/ }).click();
+    const fs202 = page.getByRole("region", { name: "Effets des événements à traiter : étape, décision et feuilles sources" }).locator('tr[data-event="FS-202"]');
+    await fs202.getByText("Apprécier l’effet non corrigé").click();
+    await fs202.getByLabel("Appréciation (humaine, sans opinion générée)").fill("FNP 1 000,00 non comptabilisée : effet non corrigé, apprécié au regard du résultat");
+    await fs202.getByRole("button", { name: "Enregistrer l’appréciation" }).click();
+    await expect(fs202).toContainText("Non corrigé — apprécié (anomalie résiduelle)");
+    await expect(fs202).toContainText("Apprécié non corrigé 1 000,00");
+    // Mêmes dénominateurs dans le bandeau, l'onglet, la carte de couverture, la synthèse et l'export.
+    expect(await text(page, "cockpit-events")).toBe(AFTER);
+    expect(await text(page, "anomalies-events")).toBe(AFTER);
+    await page.getByRole("tab", { name: /^Programme/ }).click();
+    expect(await text(page, "matrix-events")).toBe(AFTER);
+    await page.getByRole("tab", { name: /^Synthèse des travaux/ }).click();
+    expect(await text(page, "synthesis-events")).toBe(AFTER);
+    await expect(page.getByRole("list", { name: "Pont C05 des effets par poste et sens" })).toContainText("Résultat · hausse — en attente 0,00 € · apprécié non corrigé 0,00 € · corrigé 600,00 € · résiduel 400,00 €");
+    const href = await page.getByRole("link", { name: "JSON canonique" }).getAttribute("href");
+    const exported = await page.evaluate(async url => (await fetch(url!)).json(), href);
+    expect(exported.projection.denominators.events).toMatchObject({ byStage: { pending: 2, proposed: 1, corrected: 1 }, decided: 2, toReexamine: 0 });
+    await page.getByRole("tab", { name: /^Anomalies et limites/ }).click();
+    await noGlobalOverflow(page, width);
+    if (width === 1440) { await page.setViewportSize({ width, height: 7000 }); await axe(page); }
+    await page.setViewportSize({ width, height: width === 390 ? 3600 : 2000 });
+    await page.getByRole("region", { name: /^Effets des événements transversaux/ }).screenshot({ path: path.join(CAPTURES, `c14-evenements-decisions-${width}.jpg`), type: "jpeg", quality: 80 });
   });
 }

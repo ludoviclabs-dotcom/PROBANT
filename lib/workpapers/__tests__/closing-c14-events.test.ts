@@ -11,7 +11,7 @@ import { dossierMap, eventSheets, eventsHarness, eventsProgramme, EV_PERIOD, EV_
  * Attendus posés à la main avant exécution, à partir de docs/recette/c11/RECETTE.md (pont C05 : hausse 1 000,00 ; baisse 3 500,00 ;
  * 7 observations porteuses pour 4 effets) et de son cas 8 (FS-203 : candidat FNP 400,00 suspendu par la RPNE non concluante, aucun effet).
  */
-const NONE = { status: "non_lue", mapHash: null, events: null, observations: null, candidateObservations: null, countedEffects: null, withoutEffect: null, divergentEvents: null, staleObservations: null, byStage: null, outsideProgramme: null, discordantSources: null };
+const NONE = { status: "non_lue", mapHash: null, events: null, observations: null, candidateObservations: null, countedEffects: null, withoutEffect: null, divergentEvents: null, staleObservations: null, byStage: null, decided: null, toReexamine: null, orphanDecisions: 0, outsideProgramme: null, discordantSources: null };
 
 describe("C11 1.1.0 — lecture C05 de chaque effet dans la carte", () => {
   it("un effet par événement retenu, ses constats porteurs à leur version de feuille, son groupe et son pont C05 lus dans la projection partagée", () => {
@@ -55,14 +55,17 @@ describe("C14 suite — effets des événements transversaux dans le dossier de 
     expect(fs203.sources[1].reasons).toContain("FENETRE_NON_COUVERTE");
     // Dénominateurs : 11 événements (9 analysés + F-107, F-108 lus seulement comme soldes ouverts), 19 observations (14 analyses + 5 soldes ouverts), 7 porteuses, 4 effets.
     const expected = { status: "lue", mapHash: map.hash, events: 11, observations: 19, candidateObservations: 7, countedEffects: 4, withoutEffect: 1, divergentEvents: 0, staleObservations: 0,
-      byStage: { pending: 4, proposed: 0, corrected: 0, dismissed: 0, undetermined: 0 }, outsideProgramme: 0, discordantSources: 0 };
+      byStage: { pending: 4, proposed: 0, corrected: 0, dismissed: 0, undetermined: 0 }, decided: 0, toReexamine: 0, orphanDecisions: 0, outsideProgramme: 0, discordantSources: 0 };
     expect(v.evaluation.denominators.events).toEqual(expected);
     expect(v.projection.denominators.events).toEqual(expected);
     // Mêmes nombres que la carte C11 elle-même.
     expect([expected.countedEffects, expected.candidateObservations, expected.events]).toEqual([map.bridge.countedEffects, map.bridge.candidateObservations, map.events.length]);
-    expect(eventDenominatorText(v.projection.denominators.events, ev.reason)).toBe("4 effets d’événements transversaux comptés une fois (7 observations avec candidat, 11 événements) · étape C05 : 4 en attente, 0 proposé(s), 0 corrigé(s) · 1 candidat sans effet compté — catégorie distincte des anomalies journalisées");
-    // Lecture seule : aucun travail restant ni blocage n'est ajouté par la carte.
-    expect(v.evaluation.blockers.some(b => /F-10|FS-20|AV-106/.test(b.label))).toBe(false);
+    expect(eventDenominatorText(v.projection.denominators.events, ev.reason)).toBe("4 effets d’événements transversaux comptés une fois (7 observations avec candidat, 11 événements) · étape C05 : 4 en attente, 0 apprécié(s) non corrigé(s), 0 corrigé(s) · 1 candidat sans effet compté — catégorie distincte des anomalies journalisées");
+    // Sans décision journalisée, chaque effet compté reste un travail restant (comme une anomalie non appréciée) ; le cas 8, sans effet, n'en crée pas.
+    expect(v.evaluation.blockers.filter(b => b.code.startsWith("EVENT_")).map(b => [b.code, b.ref])).toEqual(ev.effects.map(x => ["EVENT_EFFECT_UNTREATED", { kind: "event", id: x.eventId }]));
+    expect(v.evaluation.blockers.find(b => b.ref.id === ev.effects.find(x => x.invoiceId === "F-101")!.eventId)!.label).toBe("F-101 · effet FAE 1 000,00 € (hausse du résultat) en attente : correction ou appréciation à documenter (NEP 450)");
+    // Sans décision, le pont C05 du dossier est exactement celui de la carte.
+    expect(ev.stages).toEqual(map.bridge.stages);
   });
 
   it("à côté des anomalies journalisées, jamais additionnés : les totaux du journal restent ceux du journal", async () => {

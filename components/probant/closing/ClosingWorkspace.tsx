@@ -95,12 +95,12 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
   const goTab = (t: ClosingTab) => { setTab(t); requestAnimationFrame(() => tabRefs.current[t]?.focus()); };
   const onSegment = (indicator: string, id: string) => {
     if (/^P-\d+$/.test(id)) { open(id, document.activeElement as HTMLElement); return; }
-    goTab(/^R-/.test(id) ? "programme" : /^RP-/.test(id) ? "revue" : /^(A|L|C)-/.test(id) ? "anomalies" : /^D-/.test(id) ? "pieces" : indicator === "cycles" ? "synthese" : "programme");
+    goTab(/^R-/.test(id) ? "programme" : /^RP-/.test(id) ? "revue" : /^(A|L|C)-/.test(id) || /^event-/.test(id) ? "anomalies" : /^D-/.test(id) ? "pieces" : indicator === "cycles" ? "synthese" : "programme");
   };
   const onItem = (b: RemainingItem, origin: HTMLElement) => {
     if (b.procedureId) { open(b.procedureId, origin); return; }
     const k = b.ref.kind;
-    goTab(k === "point" ? "revue" : ["misstatement", "limitation", "contradiction"].includes(k) ? "anomalies" : k === "request" ? "pieces" : k === "cycle" || k === "file" ? "cloture" : "programme");
+    goTab(k === "point" ? "revue" : ["misstatement", "limitation", "contradiction", "event"].includes(k) ? "anomalies" : k === "request" ? "pieces" : k === "cycle" || k === "file" ? "cloture" : "programme");
   };
   const onTabKey = (ev: React.KeyboardEvent, index: number) => {
     if (!["ArrowRight", "ArrowLeft", "Home", "End"].includes(ev.key)) return;
@@ -108,7 +108,7 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
     const next = ev.key === "Home" ? 0 : ev.key === "End" ? TABS.length - 1 : (index + (ev.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
     goTab(TABS[next].id);
   };
-  const counts: Record<ClosingTab, number | null> = e ? { synthese: view!.projection.cycles.length, programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution || e.items.staleResolutions.includes(c.contradictionId)).length + e.items.limitations.length,
+  const counts: Record<ClosingTab, number | null> = e ? { synthese: view!.projection.cycles.length, programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution || e.items.staleResolutions.includes(c.contradictionId)).length + e.items.limitations.length + e.events.effects.length,
     revue: e.items.reviewPoints.filter(r => !r.closed).length, cloture: e.blockers.length, journal: view!.journal.length } : { synthese: null, programme: null, pieces: null, anomalies: null, revue: null, cloture: null, journal: null };
 
   return <main className={`${styles.page} ${cl.root}`}>

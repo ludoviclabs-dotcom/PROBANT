@@ -24,7 +24,7 @@ describe("C14 — vue unifiée du dossier : projection, rattachement des feuille
       engines: { applicable: 1, locked: 1, lockedPersonal: 0, toBind: 0 },
       sheets: { lineages: 1, retained: 1, toAssign: 0, excluded: 0, outsideProgram: 0, previousRevisions: 0, inconclusiveRetained: 0, sourcesReplaced: 0 },
       // No events map wired in this recipe: its effects are unknown (null), never zero.
-      events: { status: "non_lue", mapHash: null, events: null, observations: null, candidateObservations: null, countedEffects: null, withoutEffect: null, divergentEvents: null, staleObservations: null, byStage: null, outsideProgramme: null, discordantSources: null } };
+      events: { status: "non_lue", mapHash: null, events: null, observations: null, candidateObservations: null, countedEffects: null, withoutEffect: null, divergentEvents: null, staleObservations: null, byStage: null, decided: null, toReexamine: null, orphanDecisions: 0, outsideProgramme: null, discordantSources: null } };
     expect(v.evaluation.denominators).toEqual(expected);
     expect(v.projection.denominators).toEqual(expected);
     expect(proc(v, "P-01")).toMatchObject({ status: "cycle_verrouille", done: true, engine: { binding: { mode: "implicite", drift: null }, retained: { state: "locked", sourcesCurrent: true } } });

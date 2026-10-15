@@ -82,6 +82,8 @@ export type CitationInput = z.infer<typeof citationInputSchema>;
 const citations = (min: number) => z.array(citationInputSchema).min(min).max(20);
 const seq = z.number().int().min(0).max(1_000_000);
 const rootIdSchema = z.string().min(1).max(200);
+/** Economic event of the transversal events map (C11) and the fingerprint of the effect the browser has read (C14 suite). */
+const eventIdSchema = z.string().regex(/^event-[a-f0-9]{64}$/), effectBasisSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const periodSchema = z.object({ startDate: date, closingDate: date, asOfDate: date, currency: z.literal("EUR"), validation: z.enum(["provisional", "confirmed"]) }).strict();
 const target = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("procedure"), id: procedureId }).strict(),
@@ -118,6 +120,9 @@ export const closingCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.literal("record_misstatement"), expectedSeq: seq, procedureId: procedureId.optional(), cycle: z.enum(CL_CYCLES), description: text(500), amount: amountSchema, citations: citations(1) }).strict(),
   z.object({ command: z.literal("correct_misstatement"), expectedSeq: seq, misstatementId: z.string().regex(/^A-\d{1,4}$/), text: text(1000), citations: citations(1), correctedAmount: moneySchema.optional() }).strict(),
   z.object({ command: z.literal("assess_misstatement"), expectedSeq: seq, misstatementId: z.string().regex(/^A-\d{1,4}$/), text: text(1500) }).strict(),
+  // Review decision on an effect of the transversal events map: the effect stays the map's (counted once, C05); the file records its correction or its assessment.
+  z.object({ command: z.literal("correct_event_effect"), expectedSeq: seq, eventId: eventIdSchema, basisHash: effectBasisSchema, text: text(1000), citations: citations(1), correctedAmount: moneySchema.optional() }).strict(),
+  z.object({ command: z.literal("assess_event_effect"), expectedSeq: seq, eventId: eventIdSchema, basisHash: effectBasisSchema, text: text(1500) }).strict(),
   z.object({ command: z.literal("record_limitation"), expectedSeq: seq, cycle: z.enum(CL_CYCLES), description: text(1000), procedureIds: z.array(procedureId).max(20) }).strict(),
   z.object({ command: z.literal("assess_limitation"), expectedSeq: seq, limitationId: z.string().regex(/^L-\d{1,4}$/), text: text(1500) }).strict(),
   z.object({ command: z.literal("record_contradiction"), expectedSeq: seq, left: citationInputSchema, right: citationInputSchema, description: text(1000), procedureIds: z.array(procedureId).max(20) }).strict(),
@@ -140,6 +145,7 @@ export const CL_COMMAND_PERMISSION: Record<ClosingCommandName, "prepare" | "revi
   close_review_point: "review", record_misstatement: "prepare", correct_misstatement: "prepare", assess_misstatement: "review", record_limitation: "prepare", assess_limitation: "review",
   record_contradiction: "prepare", resolve_contradiction: "prepare", validate_closing: "sign", reopen: "sign",
   bind_sheet: "prepare", exclude_sheet: "prepare", set_milestone: "prepare", set_threshold: "prepare", mark_personal_complete: "review",
+  correct_event_effect: "prepare", assess_event_effect: "review",
 };
 export const pieceUploadSchema = z.object({ expectedSeq: seq, label: text(160), kind: z.enum(CL_PIECE_KINDS), pieceId: z.string().regex(/^PC-\d{1,4}$/).optional() }).strict();
 

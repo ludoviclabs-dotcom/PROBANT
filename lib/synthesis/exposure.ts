@@ -67,6 +67,17 @@ export function reviewStageOf(status: string): EffectReviewStage {
   return "pending";
 }
 
+/**
+ * Étape de revue d'un groupe déterminé d'après le statut de revue de son représentant, et part corrigée (correction partielle
+ * explicite, sinon l'effet entier). Règle unique : la déduplication l'applique, et un lecteur de la projection (dossier de clôture)
+ * l'applique à un groupe dont la décision est journalisée ailleurs, sans recalculer le groupe.
+ */
+export function reviewedCluster<T extends Pick<ExposureClusterView, "status" | "retainedCents" | "reviewStage" | "correctedCents">>(cluster: T, reviewStatus: string, correctionCents?: number): T {
+  if (cluster.status !== "determined" || cluster.retainedCents === null) return cluster;
+  const reviewStage = reviewStageOf(reviewStatus);
+  return { ...cluster, reviewStage, correctedCents: reviewStage === "corrected" ? (correctionCents ?? cluster.retainedCents) : null };
+}
+
 export const AGGREGATION_POLICY: AggregationPolicy = {
   policyId: "probant-exposure-aggregation",
   version: "2.1.0",
@@ -340,9 +351,8 @@ export function deduplicateEffects(records: EffectRecord[]): DeduplicationResult
     if (soleRetained) {
       const r = soleRetained;
       determinedParts.push(r.effect.amountCents);
-      const reviewStage = reviewStageOf(r.reviewStatus);
-      const correctedCents = reviewStage === "corrected" ? (r.effect.correction?.amountCents ?? r.effect.amountCents) : null;
-      clusters.push({ ...base, status: "determined", retainedCents: r.effect.amountCents, boundsCents: { minCents, maxCents }, retainedFindingId: r.findingId, reviewStage, correctedCents });
+      clusters.push(reviewedCluster({ ...base, status: "determined" as const, retainedCents: r.effect.amountCents, boundsCents: { minCents, maxCents }, retainedFindingId: r.findingId, reviewStage: null, correctedCents: null },
+        r.reviewStatus, r.effect.correction?.amountCents));
       continue;
     }
     if (sorted.length === 1) {

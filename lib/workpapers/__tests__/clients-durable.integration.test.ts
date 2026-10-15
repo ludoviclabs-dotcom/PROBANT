@@ -501,6 +501,29 @@ describe.skipIf(!databaseUrl)("recette Clients — PostgreSQL jetable, sessions 
         // Droits : une autre organisation ne lit ni le dossier ni sa carte.
         expect((await closingHttp.GET(closingRequest(other))).status).toBe(403);
     });
+    it("C14 suite : décision de revue d’un effet journalisée sur PostgreSQL — appréciation d’I-D par le relecteur, relue, effet périmé refusé", async () => {
+        const closingUrl = config.appOrigin + "/api/workpapers/closing?dossierId=" + dossierA + "&periodId=" + periodId(period);
+        const headers = (s: Session) => ({ cookie: SESSION_COOKIE + "=" + s.secret, origin: config.appOrigin, [CSRF_HEADER]: s.csrf });
+        const read = async () => { const r = await closingHttp.GET(new Request(closingUrl, { headers: headers(preparer) })); expect(r.status, await r.clone().text()).toBe(200); return await r.json() as { seq: number; projection: { findings: { events: ClosingEventEffects } }; evaluation: { blockers: { code: string; ref: { id: string } }[] } }; };
+        const post = (s: Session, body: Record<string, unknown>) => closingHttp.POST(new Request(closingUrl, { method: "POST", headers: { ...headers(s), "Content-Type": "application/json", "Idempotency-Key": randomUUID() }, body: JSON.stringify(body) }));
+        let view = await read();
+        const opened = await post(preparer, { command: "open", expectedSeq: view.seq, period, entity: "Recette Clients (synthétique)" });
+        expect(opened.status, await opened.clone().text()).toBe(200);
+        view = await read();
+        const effect = view.projection.findings.events.effects.find(x => x.invoiceId === "I-D")!;
+        expect(view.evaluation.blockers.some(b => b.code === "EVENT_EFFECT_UNTREATED" && b.ref.id === effect.eventId)).toBe(true);
+        // Effet lu périmé : refusé (409), rien n'est journalisé.
+        expect((await post(reviewer, { command: "assess_event_effect", expectedSeq: view.seq, eventId: effect.eventId, basisHash: "0".repeat(64), text: "Appréciation" })).status).toBe(409);
+        // Le relecteur n'a préparé aucune des feuilles Achats et RPNE : son appréciation est une revue par une autre personne.
+        const assessed = await post(reviewer, { command: "assess_event_effect", expectedSeq: view.seq, eventId: effect.eventId, basisHash: effect.basisHash, text: "600,00 non corrigé, apprécié au regard du résultat" });
+        expect(assessed.status, await assessed.clone().text()).toBe(200);
+        view = await read();
+        const after = view.projection.findings.events.effects.find(x => x.invoiceId === "I-D")!;
+        expect(after).toMatchObject({ stage: "proposed", bridge: { pendingCents: 0, proposedCents: 60000 }, decisions: [{ kind: "assessment", state: "appliquee", assessedBy: "autre_personne", basis: { countedCents: 60000 } }] });
+        expect(view.evaluation.blockers.some(b => b.ref.id === effect.eventId)).toBe(false);
+        const [row] = await client`SELECT count(*)::int AS n FROM cl_events WHERE dossier_id = ${dossierA} AND type = 'assess_event_effect'`;
+        expect(row.n).toBe(1);
+    });
     it("Mission 08 : permissions, auteur serveur, rejeu, conflit et invalidation", async () => {
         const { authorId: _a, authoredAt: _d, schemaVersion: _s, ...draft } = structuredClone(payableRun.payablesWork!);
         void _a;

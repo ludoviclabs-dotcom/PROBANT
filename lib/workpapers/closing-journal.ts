@@ -43,6 +43,15 @@ export interface SheetBinding extends Stamp { procedureId: string; engine: Engin
 export interface SheetExclusion extends Stamp { engine: EngineProcedureId; rootId: string; reason: string; runId: string; revision: number; version: number; contentHash: string }
 export interface Milestone extends Stamp { milestone: ClosingMilestone; label?: string; date: string; citations: ResolvedCitation[] }
 export interface Threshold extends Stamp { threshold: ClosingThreshold; amount: ClosingAmount; basis?: string; rate?: string; rationale: string; citations: ResolvedCitation[] }
+/**
+ * Effect of an event of the transversal events map (C11) as the file saw it when deciding (C14 suite): amount counted once, sense and the sheets
+ * carrying it at their exact version. A decision holds only while the map shows the same effect; otherwise it is to be re-examined, never erased.
+ */
+export interface EventEffectBasis { eventId: string; invoiceId: string; party: string; candidate: string | null; target: "resultat"; direction: "increase" | "decrease"; countedCents: number;
+  contributions: { procedureId: string; runId: string; version: number }[] }
+interface EventDecision extends Stamp { basis: EventEffectBasis; basisHash: string; mapHash: string; text: string }
+/** Review decisions on one event effect: a correction (full, or partial with the corrected part) resting on dossier pieces, or an assessment of the uncorrected effect. */
+export interface EventTreatment { eventId: string; correction?: EventDecision & { citations: ResolvedCitation[]; correctedCents?: number }; assessment?: EventDecision & Attribution }
 /** Solo mode: a personal file marked finished, with the limits visible at that time. Never a professional validation. */
 export interface PersonalCompletion extends Stamp { text: string; reviewerName: string; headHash: string; headSeq: number; cycles: CycleFingerprint[]; limits: { code: string; label: string }[] }
 export interface ClosingState {
@@ -52,9 +61,10 @@ export interface ClosingState {
   conclusions: Record<string, Conclusion>; reviews: Record<string, Review>; reviewPoints: Record<string, ReviewPoint>; misstatements: Record<string, Misstatement>;
   limitations: Record<string, Limitation>; contradictions: Record<string, Contradiction>; validations: ClosingValidation[];
   bindings: Record<string, SheetBinding>; exclusions: Record<string, SheetExclusion>; milestones: Record<string, Milestone>; thresholds: Record<string, Threshold>; personalCompletions: PersonalCompletion[];
+  eventTreatments: Record<string, EventTreatment>;
 }
 export const emptyState = (): ClosingState => ({ seq: 0, headHash: GENESIS_HASH, risks: {}, procedures: {}, populations: {}, applicability: {}, itgcScopes: {}, records: [], requests: {}, pieces: [],
-  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [], bindings: {}, exclusions: {}, milestones: {}, thresholds: {}, personalCompletions: [] });
+  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [], bindings: {}, exclusions: {}, milestones: {}, thresholds: {}, personalCompletions: [], eventTreatments: {} });
 export const exclusionKey = (engine: string, rootId: string) => engine + "|" + rootId;
 const attribution = (p: Record<string, never>): Attribution => ({ ...(p.kind ? { kind: p.kind } : {}), ...(p.reviewerName ? { reviewerName: p.reviewerName } : {}) });
 
@@ -139,6 +149,9 @@ function apply(s: ClosingState, e: ClosingEvent) {
     case "exclude_sheet": s.exclusions[exclusionKey(p.engine, p.rootId)] = { ...stamp, engine: p.engine, rootId: p.rootId, reason: p.reason, runId: p.runId, revision: p.revision, version: p.version, contentHash: p.contentHash }; break;
     case "set_milestone": s.milestones[p.milestone] = { ...stamp, milestone: p.milestone, ...(p.label ? { label: p.label } : {}), date: p.date, citations: p.citations }; break;
     case "set_threshold": s.thresholds[p.threshold] = { ...stamp, threshold: p.threshold, amount: p.amount, ...(p.basis ? { basis: p.basis } : {}), ...(p.rate ? { rate: p.rate } : {}), rationale: p.rationale, citations: p.citations }; break;
+    case "correct_event_effect": (s.eventTreatments[p.eventId] ??= { eventId: p.eventId }).correction = { ...stamp, basis: p.basis, basisHash: p.basisHash, mapHash: p.mapHash, text: p.text, citations: p.citations,
+      ...(p.correctedCents !== undefined ? { correctedCents: p.correctedCents } : {}) }; break;
+    case "assess_event_effect": (s.eventTreatments[p.eventId] ??= { eventId: p.eventId }).assessment = { ...stamp, ...attribution(p), basis: p.basis, basisHash: p.basisHash, mapHash: p.mapHash, text: p.text }; break;
     case "mark_personal_complete": s.personalCompletions.push({ ...stamp, text: p.text, reviewerName: p.reviewerName, headHash: p.headHash, headSeq: p.headSeq, cycles: p.cycles, limits: p.limits }); break;
     default: throw new Error("CL_JOURNAL_CORRUPTED");
   }

@@ -18,8 +18,8 @@ export function dossierMap(change: (input: EventMapInput) => EventMapInput = x =
 }
 export const read = (map: TransversalEventMap): EventMapRead => ({ status: "lue", map, reason: null });
 /** Feuilles observées par le dossier, aux runs et versions que la carte cite (r1 v1, exécutées). */
-export function eventSheets(extra: WorkpaperRun[] = []) {
-  const run = (id: string, template: string) => sheet({ id, template, state: "executed", version: 1, outcome: "exceptions_detected", period: EV_PERIOD });
+export function eventSheets(extra: WorkpaperRun[] = [], preparedBy?: string) {
+  const run = (id: string, template: string) => sheet({ id, template, state: "executed", version: 1, outcome: "exceptions_detected", period: EV_PERIOD, ...(preparedBy ? { preparedBy } : {}) });
   return source("clients", [run("RUN-ACH", "payables.purchases"), run("RUN-RPNE", "payables.rpne"), run("RUN-CLI", "clients.sales"), ...extra]);
 }
 /** Le dossier, ouvert sur l'exercice de la carte : un risque de séparation des exercices, Achats (P-01) et RPNE (P-02) au programme ; Clients et ventes hors programme. */
@@ -29,7 +29,7 @@ export async function eventsProgramme(h: ClosingHarness, options: { purchases?: 
   if (options.purchases !== false) await h.ok({ command: "set_procedure", procedureId: "P-01", riskIds: ["R-01"], assertions: ["flux_separation"], nature: "engine", engine: "payables.purchases", label: "Achats et rattachement", owner: "Collaborateur A" });
   await h.ok({ command: "set_procedure", procedureId: "P-02", riskIds: ["R-01"], assertions: ["flux_separation"], nature: "engine", engine: "payables.rpne", label: "Recherche de passifs non enregistrés", owner: "Collaborateur A" });
 }
-export function eventsHarness(map: TransversalEventMap | (() => EventMapRead | Promise<EventMapRead>), extra: WorkpaperRun[] = []) {
+export function eventsHarness(map: TransversalEventMap | (() => EventMapRead | Promise<EventMapRead>), extra: WorkpaperRun[] = [], options: { preparedBy?: string } = {}) {
   const reader = typeof map === "function" ? map : () => read(map);
-  return createClosingHarness({ cycles: [eventSheets(extra)], periodId: EV_PERIOD_ID, events: async () => reader() });
+  return createClosingHarness({ cycles: [eventSheets(extra, options.preparedBy)], periodId: EV_PERIOD_ID, events: async () => reader() });
 }

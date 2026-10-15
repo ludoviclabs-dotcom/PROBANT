@@ -21,7 +21,7 @@ export const STATUS_LABELS: Record<ProcedureStatus, string> = {
   cycle_absent: "Aucune feuille de cycle", cycle_a_rattacher: "Feuille à rattacher", cycle_en_cours: "Feuille de cycle en cours", cycle_bloque: "Feuille de cycle bloquée",
   cycle_source_remplacee: "Source remplacée depuis le gel", cycle_approuve: "Approuvée, verrouillage attendu", cycle_verrouille: "Feuille verrouillée",
 };
-export type RefKind = "file" | "risk" | "pair" | "procedure" | "request" | "point" | "misstatement" | "limitation" | "contradiction" | "cycle" | "record" | "threshold";
+export type RefKind = "file" | "risk" | "pair" | "procedure" | "request" | "point" | "misstatement" | "limitation" | "contradiction" | "cycle" | "record" | "threshold" | "event";
 export interface RemainingItem { code: string; label: string; ref: { kind: RefKind; id: string }; procedureId?: string }
 export type StepState = "absent" | "documente" | "sans_preuve" | "preuve_remplacee" | "declaration_seule";
 export interface StepView { step: ClosingStep; label: string; state: StepState; recordId?: string; result?: WorkRecord["result"] }
@@ -329,7 +329,9 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   const allPairs = risks.flatMap(r => r.pairs), pairs = allPairs.filter(x => x.status !== "non_applicable"), naPairs = allPairs.length - pairs.length;
   const requests = Object.values(s.requests), activeRequests = requests.filter(r => r.closed?.outcome !== "cancelled"), cancelled = requests.length - activeRequests.length;
   const retainedSheets = sheets.filter(x => x.assignment === "retenue");
-  const eventEffects = projectEventEffects(events, sheets);
+  // Effects of the transversal events map (C14 suite): their open review decisions join the common remaining work, like journaled misstatements.
+  const eventEffects = projectEventEffects(events, sheets, s);
+  blockers.push(...eventEffects.blockers); professionalGaps.push(...eventEffects.professionalGaps);
   const denominators: Denominators = {
     procedures: { declared: procedures.length, applicable: applicable.length, notApplicable: na, done: applicable.filter(p => p.done).length, donePersonal: applicable.filter(p => p.donePersonal).length, concluded: applicable.filter(p => p.concluded).length },
     pairs: { declared: allPairs.length, counted: pairs.length, excludedNotApplicable: naPairs, reviewed: pairs.filter(x => x.status === "revue").length, reviewedPersonal: pairs.filter(x => x.status === "relue").length,
@@ -364,6 +366,10 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
     { id: "contradictions", label: "Contradictions résolues", numerator: contradictions.filter(x => resolutionCurrent(s, x)).length, denominator: contradictions.length, unit: "contradictions déclarées", segments: contradictions.map(x => segment(x.contradictionId, resolutionCurrent(s, x) ? "done" : "blocked", x.contradictionId + " · " + x.description)) },
     { id: "anomalies", label: "Anomalies corrigées", numerator: misstatements.filter(m => correctionCurrent(s, m)).length, denominator: misstatements.length, unit: "anomalies relevées",
       note: "Corrigée = correction documentée par une preuve nouvelle ; une correction partielle laisse un reste résiduel ; une anomalie non corrigée n’est ni acceptée ni jugée par l’outil.", segments: misstatements.map(m => segment(m.misstatementId, correctionCurrent(s, m) ? (m.correction!.correctedAmount ? "partial" : "done") : m.correction ? "blocked" : m.assessment ? "partial" : "todo", m.misstatementId + " · " + m.description)) },
+    ...(eventEffects.block.status === "lue" ? [{ id: "evenements", label: "Effets d’événements transversaux traités", numerator: eventEffects.denominators.decided!, denominator: eventEffects.block.effects.length, unit: "effets comptés une fois (carte C11)",
+      note: "Catégorie distincte des anomalies journalisées. Traité = correction ou appréciation journalisée qui s’applique à l’effet lu ; corrigé ne vaut pas comptabilisé par l’outil, apprécié reste non corrigé.",
+      segments: eventEffects.block.effects.map(x => segment(x.eventId, x.reviewStatus === "corrige" && x.stage === "corrected" && !(x.bridge && x.bridge.residualCents > 0) ? "done" : x.decisions.some(v => v.state === "appliquee") ? "partial"
+        : eventEffects.blockers.some(b => b.ref.id === x.eventId && b.code !== "EVENT_EFFECT_UNTREATED") ? "blocked" : "todo", x.invoiceId + " · " + (x.candidate ?? "effet") + " — " + (x.decisions.find(v => v.state === "appliquee")?.kind === "correction" ? "corrigé" : x.decisions.find(v => v.state === "appliquee") ? "apprécié, non corrigé" : "en attente"))) }] : []),
     { id: "limites", label: "Limites d’étendue appréciées", numerator: limitations.filter(l => l.assessment).length, denominator: limitations.length, unit: "limites d’étendue", segments: limitations.map(l => segment(l.limitationId, l.assessment ? "done" : "todo", l.limitationId + " · " + l.description)) },
   ];
   const mviews = misstatements.map(m => misstatementView(s, m));
@@ -457,6 +463,9 @@ export function journalView(events: ClosingEvent[]): JournalLine[] {
         case "exclude_sheet": return "Feuille « " + (engineProcedure(p.engine)?.label ?? p.engine) + " » racine " + p.rootId + " écartée du programme : " + p.reason;
         case "set_milestone": return "Date déclarée — " + (p.milestone === "autre" ? p.label : CL_MILESTONE_LABELS[p.milestone as ClosingMilestone]) + " : " + p.date + (((p.citations as ResolvedCitation[]) ?? []).length ? cite(p.citations) : "");
         case "set_threshold": return CL_THRESHOLD_LABELS[p.threshold as ClosingThreshold] + " documenté : " + amountText(p.amount) + (p.rate ? " (" + p.rate + " % déclaré, méthode interne)" : "");
+        case "correct_event_effect": { const b = p.basis as { invoiceId: string; candidate: string | null; countedCents: number }; return "Effet d’événement " + b.invoiceId + " (" + (b.candidate ?? "effet") + ", compté une fois " + formatCents(String(b.countedCents)) + ")"
+          + (p.correctedCents !== undefined ? " corrigé partiellement (" + formatCents(String(p.correctedCents)) + ")" : " corrigé") + cite(p.citations) + " — carte " + String(p.mapHash).slice(0, 12) + "…"; }
+        case "assess_event_effect": { const b = p.basis as { invoiceId: string; candidate: string | null }; return "Effet d’événement " + b.invoiceId + " (" + (b.candidate ?? "effet") + ") non corrigé : appréciation documentée" + who(p) + " — carte " + String(p.mapHash).slice(0, 12) + "…"; }
         case "mark_personal_complete": return "Dossier personnel marqué terminé — relecture personnelle nommée : " + p.reviewerName + " ; " + plural((p.limits as unknown[]).length, "limite visible", "limites visibles");
       }
     })();

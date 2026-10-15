@@ -13,10 +13,13 @@ import { amountText, type ClosingEvaluation, type Denominators, type JournalLine
  */
 export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.1.0";
 export const ASSIGNMENT_LABELS: Record<LineageAssignment, string> = { retenue: "Retenue au programme", a_rattacher: "À rattacher ou écarter", ecartee: "Écartée avec motif", hors_programme: "Hors programme" };
-/** C05 stage of an event effect, as the map's projection states it; residual = the part of a corrected effect left uncorrected. */
-export function effectStageLabel(x: Pick<DossierEventEffect, "status" | "stage" | "bridge">): string {
+/** C05 stage of an event effect after the file's review decision (residual = the part of a corrected effect left uncorrected), in the vocabulary of the misstatements. */
+export function effectStageLabel(x: Pick<DossierEventEffect, "status" | "stage" | "bridge" | "decisions">): string {
   if (x.status !== "determined") return x.status === "absent" ? "Aucun groupe C05" : "Indéterminé — aucun montant retenu (bornes conservées)";
-  return x.stage === "corrected" ? (x.bridge && x.bridge.residualCents > 0 ? "Corrigé partiellement — reste résiduel" : "Corrigé") : x.stage === "proposed" ? "Proposé (validé), non corrigé" : x.stage === "dismissed" ? "Écarté en revue" : "En attente — aucune décision de revue";
+  if (x.stage === "corrected") return x.bridge && x.bridge.residualCents > 0 ? "Corrigé partiellement — reste résiduel" : "Corrigé — preuve du dossier";
+  if (x.stage === "proposed") return "Non corrigé — apprécié (anomalie résiduelle)";
+  if (x.stage === "dismissed") return "Écarté en revue";
+  return x.decisions.some(v => v.state === "a_reexaminer") ? "En attente — décision à réexaminer" : "En attente — correction ou appréciation à documenter";
 }
 export const OBSERVATION_LABELS: Record<string, string> = { candidate: "candidat", already_treated: "déjà rattaché", no_difference_on_tested_items: "aucune différence", inconclusive: "non concluant", not_tested: "non testé", observed: "solde ouvert observé" };
 const READ_LABELS = { courante: "version courante de la lignée", version_anterieure: "version antérieure de la feuille", revision_anterieure: "révision antérieure de la lignée" } as const;
