@@ -1,0 +1,53 @@
+import { spawnSync } from "node:child_process";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import path from "node:path";
+import { expect, test } from "@playwright/test";
+const HOME=process.env.PROBANT_E2E_LOCAL_HOME??"";
+const proofPath=path.join(process.cwd(),"docs/recette/c12/CONTEXTE-RECETTE.json");
+test.skip(!HOME||!process.env.PROBANT_E2E_BASE_URL,"Profil C12 local non démarré : non vérifié.");
+const proof=JSON.parse(readFileSync(proofPath,"utf8"));
+const captures=path.join(process.cwd(),"docs/recette/c12/captures");
+for(const width of [390,1024,1440])test("C12 profil local, paie et congés à "+width+" px",async({browser})=>{
+ const next="/paie-personnel?dossierId="+proof.dossierId+"&periodId="+proof.periodId;
+ const login=spawnSync(process.execPath,["scripts/local/probant-local.mjs","login","--home",HOME,"--sans-navigateur","--vers",next],{encoding:"utf8",windowsHide:true});
+ const link=login.stdout.match(/http:\/\/127\.0\.0\.1:\d+\/api\/auth\/local\?code=[^\s]+/)?.[0];expect(link).toBeTruthy();
+ const context=await browser.newContext({viewport:{width,height:1000},locale:"fr-FR",reducedMotion:"reduce"});const page=await context.newPage();
+ await page.goto(link!);await expect(page.getByText("Profil personnel local · sources et versions conservées sur ce PC")).toBeVisible();
+ await expect(page.getByText(/Relecture personnelle nommée · Recette C12 solo/)).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByRole("button",{name:"Qualifier une source"}).click();
+ await expect(page.getByLabel("Date de génération de l’export")).toBeVisible();
+ const template=await page.evaluate(async url=>{const r=await fetch(url);return{status:r.status,text:await r.text()}},"/api/workpapers/paie?dossierId="+proof.dossierId+"&periodId="+proof.periodId+"&operation=template&kind=leave");expect(template.status).toBe(200);expect(template.text).toContain("firstInclusions");
+ await page.getByRole("button",{name:"Fermer les sources"}).click();
+ mkdirSync(captures,{recursive:true});await page.screenshot({path:path.join(captures,"paie-"+width+".jpg"),fullPage:true,type:"jpeg",quality:80});
+ await page.getByRole("link",{name:/Congés documentés/}).click();
+ await expect(page).toHaveURL(new RegExp("/paie-personnel/conges\\?dossierId="+proof.dossierId));
+ await expect(page.getByRole("heading",{name:"Les congés, à part entière."})).toBeVisible();
+ await expect(page.getByText("Version "+proof.version,{exact:true})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ const details=page.locator('table button').first();await details.focus();await page.keyboard.press("Enter");await expect(page.getByRole("dialog")).toBeVisible();
+ await expect(page.getByText(/Inclus : Salaire de base/)).toBeVisible();await expect(page.getByText(/aucun taux appliqué/)).toBeVisible();
+ await page.keyboard.press("Escape");await expect(page.getByRole("dialog")).toHaveCount(0);await expect(details).toBeFocused();
+ await page.addScriptTag({path:path.join(process.cwd(),"node_modules/axe-core/axe.min.js")});
+ const violations=await page.evaluate(async()=>{const a=(window as unknown as {axe:{run:(c:unknown,o:unknown)=>Promise<{violations:{id:string;impact:string}[]}>}}).axe;return(await a.run(document,{runOnly:{type:"tag",values:["wcag2a","wcag2aa","wcag21a","wcag21aa"]}})).violations.filter(v=>["serious","critical"].includes(v.impact)).map(v=>v.id)});expect(violations).toEqual([]);
+ await page.screenshot({path:path.join(captures,"conges-"+width+".jpg"),fullPage:true,type:"jpeg",quality:80});
+ writeFileSync(path.join(captures,"mesures-"+width+".json"),JSON.stringify({width,overflow:false,axeSeriousCritical:violations.length,keyboardEscape:true,reducedMotion:true},null,2));await context.close();
+});
+
+// A separate synthetic dossier exercises the user's import/approval/reload controls.
+test("C12 ouvrir, importer et reprendre depuis l’interface locale",async({browser})=>{
+ const login=spawnSync(process.execPath,["scripts/local/probant-local.mjs","login","--home",HOME,"--sans-navigateur"],{encoding:"utf8",windowsHide:true});
+ const link=login.stdout.match(/http:\/\/127\.0\.0\.1:\d+\/api\/auth\/local\?code=[^\s]+/)?.[0];expect(link).toBeTruthy();
+ const context=await browser.newContext({viewport:{width:390,height:1000},locale:"fr-FR"});const page=await context.newPage();await page.goto(link!);
+ const dossierId=await page.evaluate(async()=>{const session=await(await fetch("/api/auth/session")).json();const r=await fetch("/api/local/dossiers",{method:"POST",headers:{"Content-Type":"application/json","x-probant-csrf":session.csrfToken},body:JSON.stringify({legalName:"C12 interface "+crypto.randomUUID().slice(0,8),financialYear:"2026"})});if(!r.ok)throw Error("Dossier refusé");return(await r.json()).dossier.id as string});
+ await page.goto("/paie-personnel?dossierId="+dossierId);
+ await page.getByLabel("Début",{exact:true}).fill("2026-01-01");await page.getByLabel("Clôture",{exact:true}).fill("2026-12-31");await page.getByLabel("Date de revue",{exact:true}).fill("2027-02-01");
+ await page.getByRole("button",{name:"Ouvrir la revue locale"}).click();await expect(page.getByText("Version 1",{exact:true})).toBeVisible();
+ await page.getByRole("button",{name:"Qualifier une source"}).click();await page.getByLabel("Date de génération de l’export").fill("2027-02-01");await page.getByRole("button",{name:"Complète",exact:true}).click();
+ const text=readFileSync(path.join(process.cwd(),"docs/recette/c12/pieces/journal.csv"),"utf8");
+ await page.locator('input[type="file"]').setInputFiles({name:"journal.csv",mimeType:"text/csv",buffer:Buffer.from(text)});
+ await page.getByRole("button",{name:/Qualifier ce mapping/}).click();await expect(page.getByText("Version 2",{exact:true})).toBeVisible();
+ await page.reload();await expect(page.getByText("Version 2",{exact:true})).toBeVisible();await expect(page.getByText("V1 · qualifiée pour le dossier",{exact:true})).toBeVisible();
+ await expect(page.getByRole("heading",{name:"Synthèse · Paie"})).toBeVisible();
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);await context.close();
+});

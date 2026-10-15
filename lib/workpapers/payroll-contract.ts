@@ -39,7 +39,7 @@ export const mappingSchema = z
   .object({
     version: z.literal(PAYROLL_VERSION),
     kind: z.enum(payrollKinds),
-    synthetic: z.literal(true),
+    synthetic: z.boolean(),
     qualified: z.boolean(),
     coverage: z.enum(["complete", "partial", "unknown"]),
     packId: codeSchema,
@@ -97,6 +97,8 @@ export interface PayrollReview {
   evidenceId: string;
   authorId: string;
   at: string;
+  kind?: import("@/lib/auth/review-kind").ReviewKind;
+  reviewerName?: string;
 }
 export interface PayrollState {
   scope: WorkpaperScope;
@@ -107,6 +109,7 @@ export interface PayrollState {
   reviews: PayrollReview[];
 }
 export interface HRPrincipal extends Principal {
+  personalLocal?: boolean;
   hrGrants: {
     scope: WorkpaperScope;
     permissions: ("read" | "prepare" | "export")[];
@@ -130,7 +133,7 @@ export function authorizePayroll(
     })
   )
     throw Error("HR_FORBIDDEN");
-  if (scope.mode !== "demo") throw Error("HR_REAL_DISABLED");
+  if (scope.mode !== "demo" && !actor.personalLocal) throw Error("HR_REAL_DISABLED");
 }
 export const commandSchema = z.discriminatedUnion("action", [
   z

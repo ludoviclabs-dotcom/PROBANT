@@ -8,6 +8,7 @@ import {
   lines,
   matchesEvent,
   payrollInputHash,
+  payrollGroupHash,
   payrollPopulation,
   sourceReady,
   sumRows,
@@ -70,10 +71,12 @@ export function buildPayrollSettlements(state: PayrollState) {
           ready.journal &&
           ready.ledger &&
           ready.declaration &&
+          [...j, ...gl, ...d].every(x => x.base !== null) &&
           u.every((x) => !x.excluded),
         glDelta = difference(booked, declaration, same),
         journalDelta = difference(sumRows(j), declaration, same),
-        paymentDelta = difference(paid, declaration, same && ready.payments);
+        paymentDelta = difference(paid, declaration, same && ready.payments && p.every(x => x.base !== null));
+      const groupHash = payrollGroupHash(state, "settlements", key);
       const review = state.reviews.find(
           (x) => x.module === "settlements" && x.targetId === stableSha256(key),
         ),
@@ -82,6 +85,7 @@ export function buildPayrollSettlements(state: PayrollState) {
         );
       return {
         id: stableSha256(key),
+        inputHash: groupHash,
         establishment: r.establishment,
         month: r.month,
         rubric: r.rubric,
@@ -102,7 +106,7 @@ export function buildPayrollSettlements(state: PayrollState) {
         evidence: proofs.filter((x) => matchesEvent(x, r)),
         status: blocked
           ? ("blocked" as const)
-          : review?.inputHash === inputHash
+          : review?.inputHash === groupHash
             ? ("documented" as const)
             : review
               ? ("stale" as const)

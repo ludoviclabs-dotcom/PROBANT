@@ -1,0 +1,100 @@
+{
+  "base": "172ddd7",
+  "checks": [
+    {
+      "label": "Déclaration 50, GL 48, écart -2",
+      "status": "PASS"
+    },
+    {
+      "label": "Rappel août après sortie conservé",
+      "status": "PASS"
+    },
+    {
+      "label": "Méthodes 1000 et 1100, retenu 1100",
+      "status": "PASS"
+    },
+    {
+      "label": "Droits restants inconnus sans méthode",
+      "status": "PASS"
+    },
+    {
+      "label": "Jours et heures incompatibles",
+      "status": "PASS"
+    },
+    {
+      "label": "Charges non inventées",
+      "status": "PASS"
+    },
+    {
+      "label": "Écart -2 documenté et conservé",
+      "status": "PASS"
+    },
+    {
+      "label": "Source amendée : septembre périmé, octobre documenté",
+      "status": "PASS"
+    },
+    {
+      "label": "Congés indépendants d'une déclaration amendée",
+      "status": "PASS"
+    },
+    {
+      "label": "Paiement partiel préservé",
+      "status": "PASS"
+    },
+    {
+      "label": "Référence répétée : deux paiements conservés, total inconnu",
+      "status": "PASS"
+    },
+    {
+      "label": "Même commande simultanée : une seule version",
+      "status": "PASS"
+    },
+    {
+      "label": "Relecture personnelle nommée et verrouillée",
+      "status": "PASS"
+    },
+    {
+      "label": "Projection commune sans détail pseudonymisé",
+      "status": "PASS"
+    },
+    {
+      "label": "Ancienne version refusée",
+      "status": "PASS"
+    },
+    {
+      "label": "Pièce originale identique",
+      "status": "PASS"
+    },
+    {
+      "label": "Nouveaux processus Next et PostgreSQL",
+      "status": "PASS"
+    },
+    {
+      "label": "Même données, versions, contexte et synthèse",
+      "status": "PASS"
+    },
+    {
+      "label": "Export identique octet pour octet",
+      "status": "PASS"
+    },
+    {
+      "label": "Pièce identique après reprise",
+      "status": "PASS"
+    }
+  ],
+  "processes": {
+    "before": {
+      "next": 15420,
+      "postgres": 26988
+    },
+    "after": {
+      "next": 14848,
+      "postgres": 10360
+    }
+  },
+  "dossierId": "0be08418-6548-4cd2-b22c-e39586e65cdb",
+  "periodId": "period-cabc536c56357d5fae16cc06e69c90d40da55a8499d93923e3618106228464ee",
+  "version": 13,
+  "exportSha256": "3b6a430f6ce99235eb2eb812738ae2d2dcd654546e33cf2f8bdbecda98316643",
+  "journalSha256": "73babf4abc1ada2cc1d1dbbadd7a0f6af70150696bf2d904ab8c835e078e220e"
+}

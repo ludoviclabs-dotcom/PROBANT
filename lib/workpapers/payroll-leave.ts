@@ -29,11 +29,11 @@ export function buildPayrollLeave(state: PayrollState) {
                 ? {
                     id: p.ruleRef,
                     version: p.ruleVersion,
-                    source: `Pièce synthétique ${p.pieceRef}, page ${p.page}`,
+                    source: `Pièce ${p.pieceRef}, page ${p.page}`,
                     from: p.validFrom,
                     to: p.validTo,
                     approvedBy: source.batch.approval!.actorId,
-                    synthetic: true as const,
+                    synthetic: source.mapping.synthetic,
                   }
                 : null;
             const first = {
@@ -47,11 +47,13 @@ export function buildPayrollLeave(state: PayrollState) {
               },
               numerator: p.firstNumerator,
               denominator: p.firstDenominator,
-              inclusions: ["Base décrite par la méthode importée"],
-              exclusions: ["Charges associées et extrapolation non fournies"],
+              inclusions: p.firstInclusions?.split("|") ?? (state.scope.mode === "demo" ? ["Base décrite par la méthode importée"] : []),
+              exclusions: p.firstExclusions?.split("|") ?? (state.scope.mode === "demo" ? ["Charges associées et extrapolation non fournies"] : []),
             };
             const second = {
               ...first,
+              inclusions: p.secondInclusions?.split("|") ?? (state.scope.mode === "demo" ? first.inclusions : []),
+              exclusions: p.secondExclusions?.split("|") ?? (state.scope.mode === "demo" ? first.exclusions : []),
               rights: {
                 ...rights,
                 unit: p.secondUnit,
@@ -69,7 +71,8 @@ export function buildPayrollLeave(state: PayrollState) {
               context: {
                 scope: state.scope,
                 period: state.period,
-                purpose: "synthetic_technical",
+                purpose: state.scope.mode === "demo" ? "synthetic_technical" : "real",
+                procedure: "payroll.leave",
               },
               rights,
               first,
@@ -77,7 +80,7 @@ export function buildPayrollLeave(state: PayrollState) {
               comparisonMethod: method,
               equivalenceEvidence: [proof],
               booked: null,
-              associatedCharges: null,
+              associatedCharges: p.chargesAmount && p.chargesBasis ? { amount: { amount: p.chargesAmount, currency: "EUR" }, date: p.date, basis: p.chargesBasis, evidence: [proof] } : null,
             };
             try {
               return {
@@ -94,6 +97,7 @@ export function buildPayrollLeave(state: PayrollState) {
                   from: p.validFrom,
                   to: p.validTo,
                 },
+                accounting: { qualification: p.accountingQualification ?? "unqualified", reason: p.accountingReason ?? "Qualification comptable non fournie ; dette de personnel, estimation et provision restent distinctes" },
                 proof,
                 result: comparePaidLeave(input),
                 error: null,
@@ -113,6 +117,7 @@ export function buildPayrollLeave(state: PayrollState) {
                   from: p.validFrom,
                   to: p.validTo,
                 },
+                accounting: { qualification: p.accountingQualification ?? "unqualified", reason: p.accountingReason ?? "Qualification comptable non fournie ; dette de personnel, estimation et provision restent distinctes" },
                 proof,
                 result: null,
                 error: "HR_LEAVE_INCONSISTENT",

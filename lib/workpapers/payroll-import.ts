@@ -67,6 +67,14 @@ export const leaveSchema = z
     acquired: quantity,
     taken: quantity,
     remaining: quantity,
+    firstInclusions: z.string().max(1500).optional(),
+    firstExclusions: z.string().max(1500).optional(),
+    secondInclusions: z.string().max(1500).optional(),
+    secondExclusions: z.string().max(1500).optional(),
+    chargesAmount: nullable(decimal).optional(),
+    chargesBasis: z.string().max(1000).optional(),
+    accountingQualification: z.union([z.literal(""), z.enum(["debt", "estimate", "provision", "unqualified"])]).transform(v => v || undefined).optional(),
+    accountingReason: z.string().max(1500).optional(),
     firstBase: decimal,
     secondBase: decimal,
     firstNumerator: z.string().regex(/^\d{1,8}$/),
@@ -103,7 +111,7 @@ export function payrollProof(
     locator: row.locator,
     precision: "row",
     status: "verified",
-    purpose: "Source structurée synthétique qualifiée",
+    purpose: source.mapping.synthetic ? "Source structurée synthétique qualifiée" : "Source CSV qualifiée du dossier local",
   };
 }
 export function qualifyPayrollSource(source: PayrollSource): void {
@@ -132,11 +140,13 @@ export function qualifyPayrollSource(source: PayrollSource): void {
     if (source.mapping.kind === "leave") {
       const p = parsed as LeaveRow;
       if (
+        (p.accountingQualification && p.accountingQualification !== "unqualified" && !p.accountingReason?.trim()) ||
         p.from > p.to ||
         p.secondFrom > p.secondTo ||
         p.validFrom > p.validTo ||
         cents(money(p.firstBase)) < 0n ||
-        cents(money(p.secondBase)) < 0n
+        cents(money(p.secondBase)) < 0n ||
+        (p.chargesAmount != null && cents(money(p.chargesAmount)) < 0n)
       )
         throw Error("HR_LEAVE_INVALID");
     } else if (source.mapping.kind === "events") {
@@ -167,13 +177,12 @@ export async function previewPayroll(
   actor: Principal,
 ): Promise<PayrollSource> {
   mappingSchema.parse(mapping);
-  if (scope.mode !== "demo") throw Error("HR_REAL_DISABLED");
   if (!file.name.toLowerCase().endsWith(".csv") || file.size > 1024 * 1024)
     throw Error("HR_FORMAT_UNSUPPORTED");
   // Never store an arbitrary client filename; preserve original bytes and the shared parser.
   const neutral = new File(
     [await file.arrayBuffer()],
-    "source-synthetique.csv",
+    scope.mode === "demo" ? "source-synthetique.csv" : "source-paie.csv",
     { type: "text/csv" },
   );
   const batch = await previewImport(
@@ -195,6 +204,7 @@ export async function previewPayroll(
     },
     actor,
     "payroll_" + mapping.kind,
+    "payroll.review",
   );
   const source = { mapping, batch };
   qualifyPayrollSource(source);
