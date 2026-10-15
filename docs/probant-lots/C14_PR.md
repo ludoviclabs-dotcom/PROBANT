@@ -1,6 +1,6 @@
 ## C14 — Synthèse des travaux et clôture locale unifiées
 
-Base `main` `bb919bf` (après la PR #94, C12 Paie/Congés persistants). Le lot réutilise le dossier de clôture de la Mission 19 (PR #72) et les feuilles existantes, lues à leur version courante : aucun moteur de cycle n'est recalculé, aucune opinion n'est générée, aucune migration.
+Base `main` `bb919bf` (après la PR #94, C12 Paie/Congés persistants), puis `main` `32df44d` (PR #95, C13 Emprunts) fusionné dans la branche : registre porté en 1.4.1, la feuille `loans.review` est lue par sa famille avec sa propre règle de sources. Le lot réutilise le dossier de clôture de la Mission 19 (PR #72) et les feuilles existantes, lues à leur version courante : aucun moteur de cycle n'est recalculé, aucune opinion n'est générée, aucune migration.
 
 ### Ce qui change
 
@@ -16,8 +16,21 @@ Base `main` `bb919bf` (après la PR #94, C12 Paie/Congés persistants). Le lot r
 
 Les 8 cas demandés (cycle verrouillé mais programme incomplet ; 2/7 procédures revues ; non applicable motivée ; population absente ; correction avec preuve nouvelle ; source remplacée après clôture ; Paie retrouvée après reprise ; deux feuilles même procédure sur périmètres distincts), le mode solo, les dates et seuils : attendus posés à la main dans `docs/mission-c14/RECETTE.md`. Contrat : `docs/mission-c14/CONTRAT.md`. Bilan des exclusions : `docs/mission-c14/EXCLUSIONS.md`.
 
+### Contrôles
+
+| Contrôle | Résultat |
+|---|---|
+| Recette C14 (`closing-c14.test.ts`, attendus manuels) | 9 / 9 |
+| Recette Mission 19 (`closing-runtime.test.ts`, 2 attendus adaptés et consignés) | 18 / 18 |
+| PostgreSQL 17 jetable local (`closing-durable` dont « Paie retrouvée après reprise », `provision-durable`) | 7 / 7 |
+| Suite unitaire complète après fusion de `main` | 181 fichiers, 1 906 / 1 906 |
+| E2E sur build de production (`closing.spec.ts`, `provisions.spec.ts`) à 1440 / 1024 / 390, axe WCAG 2.1 AA | 11 / 11 (avant fusion de la PR #95) |
+| `tsc --noEmit`, ESLint, `next build` | sans erreur |
+
+Captures : `docs/probant-lots/c14-captures/`.
+
 ### Limites
 
-Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier ; pièces binaires hors paquet d'export ; familles dont la règle ne regarde que les imports figés : source ajoutée après le gel non signalée ; dettes financières sans feuille durable sur `main` (C13, PR #95, non fusionnée).
+Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier ; pièces binaires hors paquet d'export ; familles dont la règle ne regarde que les imports figés : source ajoutée après le gel non signalée .
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
