@@ -82,6 +82,13 @@ describe("C13 — taux absent : aucun taux ni convention par défaut", () => {
     expect(ratePpm("2.15") + ratePpm("1.2")).toBe(3_350_000n);
     expect(() => ratePpm("3,5")).toThrow("LOAN_RATE_FORMAT_INVALID");
   });
+  it("une valeur d’index fixée après la date de révision ou après l’avis qui la publie est refusée à l’import", async () => {
+    const key = "C13-VARIABLE-IDX-20260401";
+    await expect(loanFixture({ edit: rows => edit(rows, "loan_rates", key, d => { d.fixingDate = "2026-04-02"; d.source = { ...(d.source as Record<string, unknown>), date: "2026-04-02" }; }) })).rejects.toThrow("LOAN_RATE_FIXING_DATE_INVALID");
+    await expect(loanFixture({ edit: rows => edit(rows, "loan_rates", key, d => { d.fixingDate = "2026-03-31"; }) })).rejects.toThrow("LOAN_RATE_FIXING_DATE_INVALID");
+    const onRevisionDate = await loanFixture({ edit: rows => edit(rows, "loan_rates", key, d => { d.fixingDate = "2026-04-01"; d.source = { ...(d.source as Record<string, unknown>), date: "2026-04-01" }; }) });
+    expect(due(onRevisionDate.result, "C13-VARIABLE", "2026-07-01").calculatedInterest.amount).toEqual(eur("1626.63"));
+  });
 });
 
 describe("C13 — avenant et échéancier modifié", () => {
@@ -112,6 +119,20 @@ describe("C13 — avenant et échéancier modifié", () => {
     const d = due(result, "C13-ATLAS", "2026-10-01");
     expect(d.versionInForce).toBe("2");
     expect(d.issues.map(i => i.code)).toContain("schedule_version");
+  });
+  it("un avenant en vigueur après la clôture reste dans l’historique : la présentation lit la version en vigueur au 31/12", async () => {
+    const later = await loanFixture({ edit: rows => {
+      const v2 = rows.loan_contracts.find(r => r.key === "C13-ATLAS-V2")!;
+      v2.details.effectiveTo = "2027-01-14";
+      rows.loan_contracts.push({ key: "C13-ATLAS-V3", amount: v2.amount, date: "2027-01-15", details: { ...v2.details, version: "3", effectiveFrom: "2027-01-15", effectiveTo: "2037-12-31", currency: "USD", principalAccount: "168100",
+        source: { ...(v2.details.source as Record<string, unknown>), date: "2027-01-10", clause: "Avenant n° 2 (postérieur à la clôture)" } } });
+    } });
+    const atlas = row(later.result, "C13-ATLAS"), reference = row((await loanFixture()).result, "C13-ATLAS");
+    expect(atlas.presentation).toEqual(reference.presentation);
+    expect(atlas.presentation).toMatchObject({ exclusion: null, declaredPrincipalAccount: "164400", signals: [] });
+    expect(atlas.versionChanges.at(-1)).toMatchObject({ from: "2", to: "3", effective: "2027-01-15" });
+    expect(atlas.accrued.amount).toEqual(eur("2938.89"));
+    expect(atlas.status).toBe(reference.status);
   });
   it("versions chevauchantes : calcul bloqué", async () => {
     const { result } = await loanFixture({ edit: rows => edit(rows, "loan_contracts", "C13-ATLAS-V1", d => { d.effectiveTo = "2026-08-31"; }) });
@@ -307,5 +328,14 @@ describe("C13 — export de la version", () => {
     expect(html).toContain(contentHash(run));
     expect(html).not.toContain("<script");
     expect(JSON.parse(json)).toMatchObject({ schemaVersion: "loans-diagnostic-1", originalsIncluded: false });
+  });
+  it("version antérieure, révision remplacée ou feuille périmée : exportable, signalée comme telle, jamais présentée comme courante", async () => {
+    const { run, facts } = await loanFixture();
+    expect(loanDiagnostic(run, facts, { headVersion: run.version, latestRevision: true, sourcesCurrent: true }).html).not.toMatch(/Version antérieure|Révision remplacée|Feuille périmée/);
+    const older = loanDiagnostic(run, facts, { headVersion: run.version + 3, latestRevision: true, sourcesCurrent: false });
+    expect(older.html).toContain("Version antérieure : la version courante de cette feuille est la " + (run.version + 3));
+    expect(older.html).toContain("Feuille périmée : une source Emprunts a été remplacée ou ajoutée depuis le gel");
+    expect(JSON.parse(older.json).standing).toEqual({ headVersion: run.version + 3, latestRevision: true, sourcesCurrent: false });
+    expect(loanDiagnostic(run, facts, { headVersion: run.version, latestRevision: false, sourcesCurrent: true }).html).toContain("Révision remplacée : une révision plus récente de cette feuille existe");
   });
 });

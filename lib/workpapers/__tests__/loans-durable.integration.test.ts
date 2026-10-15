@@ -33,7 +33,7 @@ describe.skipIf(!databaseUrl)("recette Emprunts — PostgreSQL jetable, sessions
   const profileId = randomUUID(), localAuth: LocalAuthConfig = { profileId, issuer: LOCAL_ISSUER_PREFIX + profileId, organizationId: orgA, ownerName: "Camille Martin (exemple)", ownerReview: "personal", simulationEnabled: false };
   type Session = { secret: string; csrf: string };
   let preparer: Session, reviewer: Session, selfReviewer: Session, other: Session, owner: Session;
-  let run: WorkpaperRun, batches: ImportBatch[] = [];
+  let run: WorkpaperRun, executed: WorkpaperRun, batches: ImportBatch[] = [];
   const pid = periodId(LOAN_PERIOD);
   const request = (s: Session, method = "GET", body?: BodyInit, dossier = dossierA, extra = "", key = randomUUID(), path = "/api/workpapers/emprunts") => new Request(config.appOrigin + path + "?dossierId=" + dossier + "&periodId=" + pid + extra, {
     method, headers: { cookie: SESSION_COOKIE + "=" + s.secret, origin: config.appOrigin, [CSRF_HEADER]: s.csrf, "Idempotency-Key": key, ...(typeof body === "string" ? { "Content-Type": "application/json" } : {}) }, body });
@@ -88,9 +88,14 @@ describe.skipIf(!databaseUrl)("recette Emprunts — PostgreSQL jetable, sessions
     expect((await command({ command: "freeze_loans", ...target(), criteria: "Partiel", importIds: batches.slice(1).map(b => b.id) })).status).toBe(422);
     run = await ok({ command: "freeze_loans", ...target(), criteria: "Tous les contrats et échéances de l’exercice, y compris remboursés", importIds: batches.map(b => b.id) });
     expect(run.population!.unit).toBe("loan_contract_due");
+    const frozenVersion = run.version;
     run = await ok({ command: "execute", ...target() });
     const result = run.result!.result as LoanResult;
     expect(run.state).toBe("executed");
+    // Generated points land in one version: the calculation, then all its notes (never one version per point).
+    expect(run.notes).toHaveLength(10);
+    expect(run.version).toBe(frozenVersion + 2);
+    executed = run;
     expect(result.rows.find(r => r.id === "C13-SIMPLE")!.dues[0].calculatedInterest.amount).toEqual({ kind: "known", value: { amount: "250.00", currency: "EUR" } });
     expect(result.rows.find(r => r.id === "C13-ATLAS")!.residual).toEqual({ kind: "known", value: { amount: "10000.00", currency: "EUR" } });
     expect(result.rows.find(r => r.id === "C13-VARIABLE")!.accrued.status).toBe("blocked");
@@ -145,10 +150,21 @@ describe.skipIf(!databaseUrl)("recette Emprunts — PostgreSQL jetable, sessions
     await importSource("loan_schedule", loanFilesFromRows(rows).loan_schedule);
     const stale = await (await http.GET(request(preparer))).json();
     expect(stale.sourcesCurrent[locked.id]).toBe(false);
-    expect((await exportVersion(locked)).status).toBe(409);
+    // The stale version stays exportable from its own frozen sources, labelled stale; an earlier version of it too.
+    const staleExport = await exportVersion(locked);
+    expect(staleExport.status, await staleExport.clone().text()).toBe(200);
+    const staleHtml = await staleExport.text();
+    expect(staleHtml).toContain("Feuille périmée : une source Emprunts a été remplacée ou ajoutée depuis le gel");
+    expect(staleHtml).toContain("Résidu de principal à expliquer");
+    const earlier = await exportVersion(executed);
+    expect(earlier.status, await earlier.clone().text()).toBe(200);
+    expect(await earlier.text()).toContain("Version antérieure : la version courante de cette feuille est la " + locked.version);
+    expect((await http.exportPOST(request(preparer, "POST", JSON.stringify({ dossierId: dossierA, periodId: pid, id: locked.id, version: executed.version, expectedHash: contentHash(locked), format: "html" }), dossierA))).status).toBe(409);
+    expect((await http.exportPOST(request(preparer, "POST", JSON.stringify({ dossierId: dossierA, periodId: pid, id: locked.id, version: 9999, expectedHash: contentHash(locked), format: "html" }), dossierA))).status).toBe(404);
     expect((await command({ command: "conclude", ...target(locked), text: "x", citation: citation() })).status).toBe(409);
     run = await ok({ command: "revise", ...target(locked) });
     expect(run).toMatchObject({ revision: 2, state: "draft", supersedes: locked.id, previousLockedId: locked.id });
+    expect(await (await exportVersion(locked)).text()).toContain("Révision remplacée : une révision plus récente de cette feuille existe");
     expect(run.loanWork).toBeUndefined(); expect(run.result).toBeUndefined(); expect(run.approval).toBeUndefined();
     const heads = (await (await http.GET(request(preparer))).json()).sourceHeads as { import_id: string }[];
     run = await ok({ command: "freeze_loans", ...target(), criteria: "Révision sur l’échéancier modifié", importIds: heads.map(h => h.import_id) });

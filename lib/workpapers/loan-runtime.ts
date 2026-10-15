@@ -48,14 +48,26 @@ export class LoanRuntime extends ClientsRuntime {
     if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024) throw new ApiError("LOAN_STATE_LIMIT", "État trop volumineux.", 413);
     return response;
   }
+  /** Latest revision of a lineage: an older revision stays readable and exportable, never editable. */
+  private async latestRevisionId(tx: ClientsSql, scope: WorkpaperScope, rootId: string) {
+    const [latest] = await rows<{ id: string }>(tx, sql`SELECT h.id FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId} AND v.run->>'rootId'=${rootId} ORDER BY (v.run->>'revision')::int DESC LIMIT 1`);
+    return latest?.id ?? null;
+  }
+  /**
+   * Diagnostic of the requested version, rebuilt from that version's own frozen sources. A preserved earlier version, a replaced
+   * revision or a version whose sources changed since the freeze stays exportable and is labelled as such, never as the current sheet.
+   */
   async loanExport(request: Request, dossierId: string, pid: string, id: string, version: number, expectedHash: string) {
     return this.transaction(request, dossierId, pid, "download", async (tx, scope) => {
-      const run = await new ClientsWorkpaperRepository(tx).get(scope, id);
-      if (!run || run.template.id !== "loans.review") throw new Error("WORKPAPER_NOT_FOUND");
-      if (run.version !== version || contentHash(run) !== expectedHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
-      await this.assertCurrent(tx, scope, run);
-      const imports = await ClientsImports.load(tx, scope);
-      return loanDiagnostic(run, loanFacts(scope, run.period, imports.batches.filter(b => run.importIds.includes(b.id) && b.approval), run.id));
+      const repository = new ClientsWorkpaperRepository(tx), head = await repository.get(scope, id);
+      if (!head || head.template.id !== "loans.review") throw new Error("WORKPAPER_NOT_FOUND");
+      const run = head.version === version ? head : (await repository.history(scope, id)).find(r => r.version === version);
+      if (!run) throw new Error("WORKPAPER_VERSION_NOT_FOUND");
+      if (contentHash(run) !== expectedHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+      const imports = await ClientsImports.load(tx, scope), heads = (await this.heads(tx, scope)).filter(h => this.sourceTypes.includes(h.document_type as LoanType));
+      const standing = { headVersion: head.version, latestRevision: await this.latestRevisionId(tx, scope, run.rootId) === run.id,
+        sourcesCurrent: run.importIds.every(i => heads.some(h => h.import_id === i)) && (!run.population || heads.every(h => run.importIds.includes(h.import_id))) };
+      return loanDiagnostic(run, loanFacts(scope, run.period, imports.batches.filter(b => run.importIds.includes(b.id) && b.approval), run.id), standing);
     });
   }
   async loanCommand(request: Request, dossierId: string, pid: string, command: LoanCommand, key: string) {
@@ -68,8 +80,7 @@ export class LoanRuntime extends ClientsRuntime {
       }
       const current = await repository.get(scope, command.id);
       if (!current || current.template.id !== "loans.review") throw new Error("WORKPAPER_NOT_FOUND");
-      const [latest] = await rows<{ id: string }>(tx, sql`SELECT h.id FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId} AND v.run->>'rootId'=${current.rootId} ORDER BY (v.run->>'revision')::int DESC LIMIT 1`);
-      if (latest?.id !== current.id) throw new Error("LOAN_REVISION_REPLACED");
+      if (await this.latestRevisionId(tx, scope, current.rootId) !== current.id) throw new Error("LOAN_REVISION_REPLACED");
       if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
       // A decision cites one approved row of the frozen sources: document, pack, page, clause and local version.
       const cite = (c: { documentVersionId: string; rowId: string }, text: string) => {
@@ -103,9 +114,10 @@ export class LoanRuntime extends ClientsRuntime {
           if (run.state === "executed") {
             const result = run.result!.result as LoanResult;
             const points = loanReviewPoints(result);
-            // Each point carries only its own amount; an unknown or not-applicable amount is never shown as zero.
-            for (const p of points) run = await service.addNote(scope, id, run.version, { id: "loan:" + p.key, kind: "observation", text: p.issue.text,
-              amount: p.issue.amount ?? { kind: "unknown", reason: "Point à documenter, sans montant attribué" }, blocking: true });
+            // One compare-and-swap for all generated points (the store caps a dossier's versions). Each point carries only its own amount;
+            // an unknown or not-applicable amount is never shown as zero.
+            if (points.length) run = await service.addNotes(scope, id, run.version, points.map(p => ({ id: "loan:" + p.key, kind: "observation" as const, text: p.issue.text,
+              amount: p.issue.amount ?? { kind: "unknown" as const, reason: "Point à documenter, sans montant attribué" }, blocking: true })));
           }
           break;
         }

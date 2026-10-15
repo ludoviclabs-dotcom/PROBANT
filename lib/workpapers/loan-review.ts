@@ -90,6 +90,8 @@ export function assertLoanBatch(batch: ImportBatch, period: AccountingPeriod) {
     if (type === "loan_schedule" && (d.start >= d.end || d.dueDate < d.end || row.normalized.date !== d.dueDate)) throw new Error("LOAN_SCHEDULE_DATES_INVALID");
     if ((type === "loan_schedule" || type === "loan_payments") && value < 0n) throw new Error("LOAN_MAGNITUDE_INVALID");
     if ((type === "loan_clauses" || type === "loan_rates") && value !== 0n) throw new Error("LOAN_AMOUNT_NOT_APPLICABLE");
+    // An index value is usable only once fixed: at the latest on the revision date and on the notice date (itself not after the review date).
+    if (type === "loan_rates" && (d.fixingDate > row.normalized.date || d.fixingDate > d.source.date)) throw new Error("LOAN_RATE_FIXING_DATE_INVALID");
     if (type === "loan_clauses" && d.reading !== "unread" && (!d.reader || !d.qualification)) throw new Error("LOAN_CLAUSE_READING_EVIDENCE_REQUIRED");
     if (type === "loan_balance" && (row.normalized.date !== period.closingDate || row.normalized.key !== d.account)) throw new Error("LOAN_BALANCE_ROW_INVALID");
   }
@@ -377,8 +379,11 @@ export function evaluateLoans(scope: WorkpaperScope, period: AccountingPeriod, b
     const terms = versions.map(f => contractSchema.parse(f.details)), ledger = fs.filter(f => f.type === "loan_ledger"), payments = fs.filter(f => f.type === "loan_payments"), rates = fs.filter(f => f.type === "loan_rates");
     const clauses = fs.filter(f => f.type === "loan_clauses"), issues: LoanIssue[] = [];
     const closingRows = ledger.filter(f => f.details.basis === "closing_principal" && f.date === period.closingDate), accruedRows = ledger.filter(f => f.details.basis === "accrued_interest" && f.date === period.closingDate);
-    const presentation = presentationOf(id, terms, versions, closingRows, accruedRows, rules, regime, work);
-    const name = terms.at(-1)?.name ?? id + " · contrat à identifier", lender = terms.at(-1)?.lender ?? "Prêteur non identifié";
+    // Presentation reads the versions in force up to the closing date: an amendment effective after closing (known by the review date)
+    // stays in the version history, never applied to the closing balance. A contract with no version yet in force keeps its first one.
+    const inForce = terms.filter(t => t.effectiveFrom <= period.closingDate).length || Math.min(1, terms.length);
+    const presentation = presentationOf(id, terms.slice(0, inForce), versions.slice(0, inForce), closingRows, accruedRows, rules, regime, work);
+    const name = terms[inForce - 1]?.name ?? id + " · contrat à identifier", lender = terms[inForce - 1]?.lender ?? "Prêteur non identifié";
     const opening = at(ledger, "opening_principal", period.startDate, "principal d’ouverture"), closing = at(ledger, "closing_principal", period.closingDate, "principal de clôture");
     const versionChanges = terms.slice(1).map((t, i) => ({ from: terms[i].version, to: t.version, effective: t.effectiveFrom,
       fields: (["maturity", "dayCount", "rateKind", "fixedRatePercent", "indexName", "spreadPercent", "revisionDates", "feesTreatment", "principalAccount"] as const)
@@ -490,9 +495,11 @@ export function evaluateLoans(scope: WorkpaperScope, period: AccountingPeriod, b
       else if (k.kind === "covenant" && (!k.definition || !k.testDate)) issues.push(issue("covenant_definition", `Covenant « ${k.source.clause} » lu sans définition contractuelle ou date de test transcrite : citer la clause.`));
     }
 
+    // Without an applicable text read for the period, accounts and balance-sheet line are not checked: never a clean result.
+    if (!rules.textId) issues.push(issue("rules_unresolved", "Texte applicable non déterminé pour cet exercice : comptes et poste de bilan non vérifiés."));
     const unknownDue = dues.some(d => [d.principalDifference, d.paymentDifference, d.interestDifference, d.interestGLDifference, d.interestPaymentDifference, d.feeGLDifference, d.feePaymentDifference].some(v => v.kind === "unknown"));
     const inconclusive = unlinked.length > 0 || overlaps || expectedClosing.kind === "unknown" || closing.kind === "unknown" || accruedDifference.kind === "unknown" || confirmationDifference.kind === "unknown"
-      || terms.some(t => t.scheduleComplete !== true) || unknownDue;
+      || terms.some(t => t.scheduleComplete !== true) || unknownDue || !rules.textId;
     const status: LoanReview["status"] = inconclusive ? "inconclusive" : issues.length || dues.some(d => d.issues.length) ? "explain" : "documented";
     return { ...base, status, draws, repaid, expectedClosing, residual, confirmation, confirmationDifference, openingAccrued, accrued, bookedAccrued, accruedDifference, dues, issues };
   });
@@ -501,7 +508,7 @@ export function evaluateLoans(scope: WorkpaperScope, period: AccountingPeriod, b
   const contractUnits = population.items.filter(i => i.id.startsWith("contract:")).length, dueUnits = population.items.length - contractUnits;
   const coverage = { selected: selection.selectedIds.length, denominator: population.items.length, contracts: contractUnits, dues: dueUnits, exclusions: selection.exclusions };
   const affectsOutcome = rows.some(r => r.status === "inconclusive" || (r.status === "excluded" && r.presentation.exclusion?.kind === "unsupported"));
-  const outcome: LoanResult["outcome"] = affectsOutcome || coverage.selected < coverage.denominator || framing.status !== "complete" ? "inconclusive"
+  const outcome: LoanResult["outcome"] = affectsOutcome || !rules.textId || coverage.selected < coverage.denominator || framing.status !== "complete" ? "inconclusive"
     : rows.some(r => r.status === "explain") ? "exceptions_detected" : "no_exception_detected";
   return frozen({
     schemaVersion: "loans-result-1", ruleVersion: LOAN_RULE_VERSION, runId, work, rules, presentationRegime: regime, rows, framing, framingIssues, evidence: facts.map(f => f.proof), outcome, coverage,

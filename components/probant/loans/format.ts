@@ -51,6 +51,7 @@ const MESSAGES: Record<string, string> = {
   LOAN_SCHEDULE_DATES_INVALID: "Échéancier : intervalle ou date d’exigibilité incohérents.",
   LOAN_REVISION_DATES_INVALID: "Dates de révision non triées ou en double.",
   LOAN_AMOUNT_NOT_APPLICABLE: "Colonne Amount sans objet pour cette source : 0.00 attendu.",
+  LOAN_RATE_FIXING_DATE_INVALID: "Révision de taux : la date de fixation de l’index doit précéder ou égaler la date de révision et la date de l’avis.",
   LOAN_BALANCE_ROW_INVALID: "Balance : la clé doit être le compte et la date celle de la clôture.",
   LOAN_COMPLETE_SOURCE_ASSOCIATIONS_REQUIRED: "Toutes les lignes approuvées doivent être associées à la feuille.",
   LOAN_POPULATION_PERIOD_REQUIRED: "La population se fige sur l’exercice de la feuille.",

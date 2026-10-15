@@ -21,11 +21,11 @@ Lues le 15/10/2026, PDF de l'ANC retéléchargés, empreintes identiques au regi
 
 | Contrôle | Résultat |
 |---|---|
-| Moteur (`loans.test.ts`) : recette simple 90 000 / 250 (30/360) et contre-épreuves, taux absent (index, taux fixe, convention, marge), révision hors calendrier, plancher exclu, avenant et échéancier modifié, versions chevauchantes, frais séparés, remboursement anticipé, mismatch de périmètre, balance absente, textes 2024 / 2025 / 2026 / 2027, signaux de compte, avance conditionnée (C09), termes manquants, covenants, intégrité, observation par le dossier de clôture, export | 30 / 30 |
+| Moteur (`loans.test.ts`) : recette simple 90 000 / 250 (30/360) et contre-épreuves, taux absent (index, taux fixe, convention, marge), révision hors calendrier, plancher exclu, avenant et échéancier modifié, versions chevauchantes, frais séparés, remboursement anticipé, mismatch de périmètre, balance absente, textes 2024 / 2025 / 2026 / 2027, signaux de compte, avance conditionnée (C09), termes manquants, covenants, intégrité, observation par le dossier de clôture, export ; après revue : fixation d'index postérieure refusée, avenant postérieur à la clôture, export d'une version conservée ; texte non déterminé (`loans-rules-unresolved.test.ts`) | 33 / 33 et 1 / 1 |
 | Passerelle (`loan-gate.test.ts`) et écran (`components/probant/__tests__/loans.test.tsx`) | 6 / 6 et 5 / 5 |
 | Recette PostgreSQL 17 jetable (`loans-durable.integration.test.ts`) : imports natifs, gel partiel refusé, calcul, autorité serveur, idempotence, concurrence, citations, auto-relecture OIDC refusée, relecture distincte, verrouillage, export et CSRF, reconnexion, échéancier remplacé → périmée → révision, ancienne version lisible, **relecture personnelle nommée du profil local**, garde de retour arrière 0020 | 6 / 6 |
 | Toutes les recettes PostgreSQL du dépôt (base neuve, 23 migrations) | 10 fichiers, 59 / 59 |
-| Suite unitaire complète (`--pool=forks`) | 176 fichiers, 1 874 / 1 874 (état final) ; recettes PostgreSQL à part ci-dessus |
+| Suite unitaire complète (`--pool=forks`) | 176 fichiers, 1 874 / 1 874 ; après revue 177 fichiers, 1 878 / 1 878 ; recettes PostgreSQL à part ci-dessus (rejouées après revue sur base neuve : 59 / 59) |
 | E2E sur build de production, exemple `/emprunts?demo=1` à 1440, 1024 et 390 px : débordement, axe WCAG 2.1 AA serious/critical, filtre par mois, panneau et retour par Échap, mouvement réduit, recette simple, taux absent, vue vide, export, chaîne fermée sans profil | 5 / 5 |
 | E2E sur profil personnel local de recette (`recette-c13`, ports 54369 / 3240) : import par l'écran de six sources → gel et calcul → conclusion citée → relecture personnelle nommée → verrouillage → export ; pack complet aux trois largeurs (exceptions, panneau, cadrage) ; échéancier remplacé → feuille périmée | 2 / 2 |
 | E2E `c07-profil-local.spec.ts` sur le même profil (page `/local` : 13 liens de travail, dont Emprunts) | 4 / 4 |
@@ -35,6 +35,13 @@ Lues le 15/10/2026, PDF de l'ANC retéléchargés, empreintes identiques au regi
 Captures : `docs/probant-lots/c13-captures/` (exemple et panneau aux trois largeurs, recette simple, sans session à 390, profil local : sources, feuille verrouillée, pack complet aux trois largeurs, exceptions à 390, feuille périmée) ; export réel du profil local : `local-diagnostic.html`.
 
 Défauts trouvés et corrigés pendant la recette : population non reproductible par le registre de calcul (période non transmise) ; taille du store dépassée (faits recopiés) ; focus du panneau perdu sous charge (test intermittent ~50 %, effet lié à la sélection) ; débordement à 390 px des listes « Pièce citée » (formulaires contraints) ; table des contrats tronquée à 1440 px (cellules resserrées) ; valeurs d'avenant affichées en JSON brut.
+
+**Revue automatique de la PR #95 (15/10/2026).** Cinq remarques vérifiées dans le code, toutes fondées, corrigées sans changer les attendus de la recette :
+- notes générées par l'exécution ajoutées en une seule version (`addNotes`) au lieu d'une version par point : le store refuse un dossier au-delà de 500 versions ; recette PostgreSQL : 10 points, une seule version de notes ;
+- texte applicable non déterminé pour l'exercice (aucun texte lu ne couvre la période) : comptes et poste non vérifiés, point « rules_unresolved », contrat et feuille non concluants au lieu de « aucune différence relevée » (test avec la réponse réelle du résolveur pour 2010) ;
+- présentation au bilan lue sur la version du contrat en vigueur à la clôture : un avenant effectif après la clôture (connu avant la date de revue) reste dans l'historique sans changer nature, comptes, devise ni classement du solde de clôture ;
+- export d'une version conservée (version antérieure, révision remplacée ou feuille périmée) depuis ses propres sources figées, avec la mention correspondante ; l'export d'une version périmée était refusé (409) ;
+- date de fixation de l'index contrôlée à l'import : au plus tard la date de révision et la date de l'avis, sinon source refusée (`LOAN_RATE_FIXING_DATE_INVALID`).
 
 ## Limites restantes
 

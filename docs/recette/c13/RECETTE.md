@@ -39,7 +39,7 @@ Cas qualitatifs : avance conditionnée (art. 316-1) → autres fonds propres, ex
 
 ## Résultats (15/10/2026)
 
-Tous les attendus ci-dessus sont retrouvés par le moteur (`loans.test.ts` 30 / 30, valeurs comparées à l'identique). Recette PostgreSQL Emprunts 6 / 6 ; toutes les recettes PostgreSQL du dépôt 59 / 59 ; suite unitaire 1 874 / 1 874 ; e2e C13 7 / 7 (exemple 5, profil local 2) ; suite e2e du dépôt 292 réussis, 7 ignorés faute de profil ou de dossier FEC (non vérifiés dans ce passage ; C07 et C13 local rejoués à part : 4 / 4 et 2 / 2).
+Tous les attendus ci-dessus sont retrouvés par le moteur (`loans.test.ts` 30 / 30, valeurs comparées à l'identique ; 33 / 33 et `loans-rules-unresolved.test.ts` 1 / 1 après les corrections de revue du 15/10/2026, attendus inchangés). Recette PostgreSQL Emprunts 6 / 6 ; toutes les recettes PostgreSQL du dépôt 59 / 59 ; suite unitaire 1 874 / 1 874 ; e2e C13 7 / 7 (exemple 5, profil local 2) ; suite e2e du dépôt 292 réussis, 7 ignorés faute de profil ou de dossier FEC (non vérifiés dans ce passage ; C07 et C13 local rejoués à part : 4 / 4 et 2 / 2).
 
 Écart consigné pendant la recette : l'attendu T3 du contrat variable, d'abord estimé de tête à 1 626,56, vaut 1 626,61 au calculateur indépendant ; seul le calculateur fait foi. Le contrat remboursé a été redéfini avant exécution (intérêts annuels au 1er janvier : 1 500,00 d'ouverture au lieu d'un semestre).
 

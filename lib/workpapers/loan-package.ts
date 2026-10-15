@@ -14,8 +14,20 @@ function table(headers: string[], rows: unknown[][]) {
   return "<table><thead><tr>" + headers.map(h => "<th>" + esc(h) + "</th>").join("") + "</tr></thead><tbody>" + rows.map(r => "<tr>" + r.map(c => "<td>" + esc(c) + "</td>").join("") + "</tr>").join("") + "</tbody></table>";
 }
 
+/** Where the exported version stands against the dossier today; absent for the read-only synthetic example (current by construction). */
+export interface LoanExportStanding { headVersion: number; latestRevision: boolean; sourcesCurrent: boolean }
+function standingNotice(run: WorkpaperRun, standing: LoanExportStanding | undefined) {
+  if (!standing) return "";
+  const lines = [
+    !standing.latestRevision ? "Révision remplacée : une révision plus récente de cette feuille existe ; ce diagnostic décrit la version " + run.version + " telle qu’elle a été conservée."
+      : standing.headVersion !== run.version ? "Version antérieure : la version courante de cette feuille est la " + standing.headVersion + " ; ce diagnostic décrit la version " + run.version + " telle qu’elle a été conservée." : "",
+    !standing.sourcesCurrent ? "Feuille périmée : une source Emprunts a été remplacée ou ajoutée depuis le gel ; résultats et décisions portent sur les sources figées de cette version, non sur les sources courantes." : "",
+  ].filter(Boolean);
+  return lines.map(l => "<p><strong>" + esc(l) + "</strong></p>").join("");
+}
+
 /** Diagnostic of one sheet version: index of its frozen sources (no originals), method, results, decisions and limits. */
-export function loanDiagnostic(run: WorkpaperRun, facts: LoanFact[]) {
+export function loanDiagnostic(run: WorkpaperRun, facts: LoanFact[], standing?: LoanExportStanding) {
   const result = run.result?.result as LoanResult | undefined;
   if (!result || result.schemaVersion !== "loans-result-1") throw new Error("LOAN_RESULT_REQUIRED");
   const byRow = new Map(facts.map(f => [f.rowId, f]));
@@ -49,7 +61,7 @@ export function loanDiagnostic(run: WorkpaperRun, facts: LoanFact[]) {
   const conventions = "<p>Conventions de jours reconnues (paramètres de contrat, formules de la méthode) : " + Object.entries(DAY_COUNT_DEFINITIONS).map(([k, v]) => esc(k + " — " + v)).join(" ; ") + ". " + esc(INTERVAL_CONVENTION_LABEL) + "</p>";
   const review = run.approval ? approvalLabel(run.approval) : "Aucune relecture enregistrée sur cette version";
   const html = "<!doctype html><html lang=\"fr\"><meta charset=\"utf-8\"><title>PROBANT · Emprunts</title><style>body{font:14px/1.5 system-ui;margin:30px;color:#17243b}table{border-collapse:collapse;width:100%;margin:12px 0}th,td{border:1px solid #aab5c4;padding:6px 8px;text-align:left;vertical-align:top;overflow-wrap:anywhere}thead{display:table-header-group}section{break-inside:avoid;margin:24px 0}@media print{body{margin:0}}</style>"
-    + "<h1>Emprunts · diagnostic de la version " + run.version + "</h1><p>Dossier " + esc(run.scope.dossierId) + " · exercice " + esc(run.period.startDate) + " → " + esc(run.period.closingDate) + " · revue au " + esc(run.period.asOfDate) + " · EUR · état " + esc(STATES[run.state] ?? run.state) + " · règle loans.review " + esc(result.ruleVersion) + "</p>"
+    + "<h1>Emprunts · diagnostic de la version " + run.version + "</h1><p>Dossier " + esc(run.scope.dossierId) + " · exercice " + esc(run.period.startDate) + " → " + esc(run.period.closingDate) + " · revue au " + esc(run.period.asOfDate) + " · EUR · état " + esc(STATES[run.state] ?? run.state) + " · règle loans.review " + esc(result.ruleVersion) + "</p>" + standingNotice(run, standing)
     + "<p><strong>" + OUTCOME[result.outcome] + "</strong> · " + result.coverage.selected + " / " + result.coverage.denominator + " unités (" + result.coverage.contracts + " contrats, " + result.coverage.dues + " échéances de l’exercice).</p>"
     + "<p>Relecture : " + esc(review) + ". Diagnostic de revue : ni opinion sur les comptes, ni dette omise affirmée, ni conformité de financement déduite. Originaux non inclus ; un hash local n’est pas une signature.</p>"
     + "<h2>Texte applicable</h2>" + rules + conventions + body + "<h2>Cadrage du périmètre</h2>" + framing + "<p>" + esc(result.framing.convention) + "</p>"
@@ -58,5 +70,5 @@ export function loanDiagnostic(run: WorkpaperRun, facts: LoanFact[]) {
     + "<h2>Conclusion</h2><p>" + esc(run.conclusion ?? "Conclusion absente") + "</p>"
     + "<h2>Sources figées</h2>" + table(["Source", "Document / clause / pack / date", "Fichier", "Version (SHA-256)", "Ligne"], facts.map(f => [LOAN_LABELS[f.type], source(f), f.fileName, f.hash, f.line ?? "—"]))
     + "<h2>Limites</h2><ul>" + result.limitations.map(l => "<li>" + esc(l) + "</li>").join("") + "</ul><p>Empreinte locale de la version : " + contentHash(run) + "</p></html>";
-  return { html, json: JSON.stringify({ schemaVersion: "loans-diagnostic-1", snapshotHash: contentHash(run), run, originalsIncluded: false }, null, 2) };
+  return { html, json: JSON.stringify({ schemaVersion: "loans-diagnostic-1", snapshotHash: contentHash(run), ...(standing ? { standing } : {}), run, originalsIncluded: false }, null, 2) };
 }
