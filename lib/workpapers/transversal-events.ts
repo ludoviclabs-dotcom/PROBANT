@@ -171,10 +171,14 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
         allocated: validated.map((a) => ({ eventId: eventOfInvoice(p.flow, p.party, a.invoiceId)[0]?.eventId ?? null, invoiceId: a.invoiceId, amount: a.amount })), unallocatedTtc: cancelled ? ZERO : unallocated,
         reason: cancelled ? "Paiement annulé : ses affectations historiques restent tracées et ne réduisent plus aucun solde." : targets.size > 1 ? "Règlement global affecté à plusieurs clés : résidus suivis par clé, sans répartition linéaire." : cents(unallocated) !== 0n ? "Reliquat non affecté : aucune imputation automatique." : p.kind === "advance" ? "Acompte : affectation documentée requise." : "Règlement groupé." });
   }
-  const sheets = [...input.vatSheets].sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
+  // Une feuille TVA périmée ne date aucune période d'exigibilité ; elle reste une dépendance de l'événement.
+  const sheets = input.vatSheets.filter((v) => !v.stale).sort((a, b) => a.period.startDate.localeCompare(b.period.startDate));
   const events: TransversalEvent[] = shells.map((s) => {
-    const lead = s.facts.find((f) => !f.run.stale) ?? s.facts[0] ?? null;
-    const contractDate = s.facts.map((f) => f.qualification.contractDate).find(Boolean) ?? null;
+    // Calculs courants (dates, montants, TVA, résidu) : seuls les faits, soldes et avoirs de feuilles non périmées. Les
+    // faits périmés restent visibles comme observations, sources et dépendances, jamais comme valeur courante.
+    const lead = s.facts.find((f) => !f.run.stale) ?? null, open = s.open.filter((o) => !o.run.stale);
+    const documentKind = (lead ?? s.facts[0])?.documentKind ?? "invoice";
+    const contractDate = s.facts.filter((f) => !f.run.stale).map((f) => f.qualification.contractDate).find(Boolean) ?? null;
     const rule = resolveCutoffRule({ startDate: period.startDate, closingDate: close, flow: s.flow, anticipated: input.framework.anticipated, contractDate });
     // Une ligne de procédure (écriture testée, paiement alloué) prime sur l'analyse de l'événement ; sans ligne, l'analyse vaut observation.
     const observations: EventObservation[] = s.facts.map((f) => {
@@ -216,26 +220,30 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
     // Règlements par clé : seules les affectations validées et non annulées réduisent le reste ; une proposition n'affecte rien.
     const payments = liveSettlements.flatMap((p) => p.flow === s.flow && p.party === s.party ? p.allocations.filter((a) => a.invoiceId === s.invoiceId && a.status === "validated").map((a) => ({ id: p.id, date: p.date, amountTtc: a.amount, kind: p.kind, cancelledOn: p.cancelledOn, procedureId: p.run.procedureId, multi: new Set(p.allocations.filter((x) => x.status === "validated").map((x) => x.invoiceId)).size > 1 })) : []);
     const active = payments.filter((p) => !p.cancelledOn || p.cancelledOn > review);
-    const credits = input.credits.filter((c) => c.party === s.party && c.invoiceId === s.invoiceId && s.flow === "sale").map((c) => ({ id: c.id, date: c.issuedOn, amountTtc: c.amountTtc, status: c.status }));
+    const creditsOf = input.credits.filter((c) => c.party === s.party && c.invoiceId === s.invoiceId && s.flow === "sale"), staleCredits = creditsOf.filter((c) => c.run.stale);
+    const credits = creditsOf.filter((c) => !c.run.stale).map((c) => ({ id: c.id, date: c.issuedOn, amountTtc: c.amountTtc, status: c.status }));
     const applied = credits.filter((c) => c.status === "applied");
     const allocatedTtc = sumMoney(active.map((p) => p.amountTtc)), creditsTtc = sumMoney(applied.map((c) => c.amountTtc));
-    const gross = lead?.amounts.gross ?? (s.open[0] ? unknown("TTC d’origine de la facture non reconstitué : seul le solde ouvert à la clôture est sourcé") : unknown("Facture non sourcée"));
-    const residualTtc = s.open[0] ? known(s.open[0].dueAtReview) : gross.kind === "known" ? known(money(cents(gross.value) - cents(allocatedTtc) - cents(creditsTtc))) : unknown("TTC de la facture inconnu");
-    const settlement = { invoiceTtc: gross, allocatedTtc, creditsTtc, residualTtc, dueAtClosing: s.open[0]?.dueAtClosing ?? null, dueAtReview: s.open[0]?.dueAtReview ?? null,
+    const gross = lead?.amounts.gross ?? (open[0] ? unknown("TTC d’origine de la facture non reconstitué : seul le solde ouvert à la clôture est sourcé")
+      : s.facts.length || s.open.length ? unknown("Facture lue seulement dans une feuille périmée : montant non retenu tant que la feuille n’est pas relancée") : unknown("Facture non sourcée"));
+    const residualTtc = open[0] ? known(open[0].dueAtReview) : gross.kind === "known" ? known(money(cents(gross.value) - cents(allocatedTtc) - cents(creditsTtc))) : unknown("TTC de la facture inconnu");
+    const settlement = { invoiceTtc: gross, allocatedTtc, creditsTtc, residualTtc, dueAtClosing: open[0]?.dueAtClosing ?? null, dueAtReview: open[0]?.dueAtReview ?? null,
       partial: residualTtc.kind === "known" && cents(residualTtc.value) !== 0n && cents(allocatedTtc) + cents(creditsTtc) > 0n, groupedPaymentIds: [...new Set(payments.filter((p) => p.multi || p.kind === "grouped").map((p) => p.id))] };
     // Encaissements « complets » seulement si la facture est soldée par des affectations validées : les sources ultérieures
     // (fenêtre après clôture) ne disent rien des acomptes antérieurs.
-    const invoiceDate = lead?.dates.invoice ?? s.open[0]?.issuedOn ?? null;
+    const invoiceDate = lead?.dates.invoice ?? open[0]?.issuedOn ?? null;
     const settledAll = gross.kind === "known" && cents(gross.value) > 0n && cents(allocatedTtc) === cents(gross.value);
-    const settlementStatus: "complete" | "partial" | "unknown" = settledAll ? "complete" : active.length || s.open.length ? "partial" : "unknown";
+    const settlementStatus: "complete" | "partial" | "unknown" = settledAll ? "complete" : active.length || open.length ? "partial" : "unknown";
     const incompleteWindows = input.windows.filter((w) => w.flow === s.flow && (w.coverage !== "documented" || w.endDate !== review || w.startDate > addDays(close, 1)));
     const vatSettlements: VatSettlement[] = active.map((p) => ({ id: p.id, date: p.date, amountTtc: p.amountTtc, kind: p.kind === "advance" ? "advance" : "payment", source: p.procedureId }));
-    const exigibility = qualifyVatExigibility({ flow: s.flow, documentKind: lead?.documentKind ?? "invoice", category: lead?.qualification.category ?? null, debitOption: lead?.qualification.debitOption ?? null,
+    const exigibility = qualifyVatExigibility({ flow: s.flow, documentKind, category: lead?.qualification.category ?? null, debitOption: lead?.qualification.debitOption ?? null,
       performance: lead?.dates.performance ?? null, debitDate: s.flow === "sale" ? lead?.dates.booking ?? null : null,
       net: lead?.amounts.net ?? unknown("HT non sourcé"), tax: lead?.amounts.tax ?? unknown("TVA non sourcée"), gross, settlements: { status: settlementStatus, items: vatSettlements, reviewDate: review } });
     const sheet = exigibility.firstDate ? sheets.find((v) => v.period.startDate <= exigibility.firstDate! && exigibility.firstDate! <= v.period.endDate) : undefined;
     const exigibilityPeriod = !exigibility.firstDate ? null : sheet ? { ...sheet.period, basis: "vat_sheet" as const } : { ...monthOf(exigibility.firstDate), basis: "calendar_month_unconfirmed" as const };
-    const entries = input.vatEntries.filter((v) => v.pieceRef === s.invoiceId && v.direction === (s.flow === "sale" ? "collected" : "deductible"));
+    // Période observée et décalage : écritures des seules feuilles TVA courantes.
+    const vatOf = input.vatEntries.filter((v) => v.pieceRef === s.invoiceId && v.direction === (s.flow === "sale" ? "collected" : "deductible"));
+    const entries = vatOf.filter((v) => !v.run.stale), staleVat = vatOf.filter((v) => v.run.stale);
     const observedPeriods = [...new Map(entries.map((e) => [e.run.runId + e.period.startDate, { startDate: e.period.startDate, endDate: e.period.endDate, runId: e.run.runId, entryIds: entries.filter((x) => x.run.runId === e.run.runId).map((x) => x.entryId) }])).values()];
     // Décalage : comparé seulement pour une qualification complète ; une qualification partielle ne dit qu'un retard
     // (un acompte inconnu ne pourrait qu'avancer l'exigibilité).
@@ -253,12 +261,12 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
     for (const f of s.facts) for (const src of f.sources) addSource(src, src.role === "invoice" ? ["accounting", "vat", "settlement"] : src.role === "performance" ? ["accounting", "vat"] : ["accounting"]);
     for (const o of s.open) for (const src of o.sources) addSource(src, ["settlement", "vat"]);
     for (const p of input.settlements.filter((p) => p.flow === s.flow && p.party === s.party && p.allocations.some((a) => a.invoiceId === s.invoiceId))) for (const src of p.sources) addSource(src, ["settlement", "vat"]);
-    for (const c of input.credits.filter((c) => c.party === s.party && c.invoiceId === s.invoiceId && s.flow === "sale")) for (const src of c.sources) addSource(src, ["settlement", "accounting"]);
-    for (const e of entries) for (const src of e.sources) addSource(src, ["vat"]);
+    for (const c of creditsOf) for (const src of c.sources) addSource(src, ["settlement", "accounting"]);
+    for (const e of vatOf) for (const src of e.sources) addSource(src, ["vat"]);
     const dependencies: EventDependency[] = [
       ...[...new Map([...s.facts.map((f) => f.run), ...s.open.map((o) => o.run), ...input.settlements.filter((p) => p.flow === s.flow && p.party === s.party && p.allocations.some((a) => a.invoiceId === s.invoiceId)).map((p) => p.run)].map((r) => [r.runId + ":" + r.version, r])).values()]
         .map((r) => ({ part: r.procedureId === "clients.sales" || r.procedureId === "payables.rpne" ? "settlement" as const : "accounting" as const, kind: "run" as const, ref: `${r.procedureId} · ${r.runId} v${r.version}`, label: r.stale ? `Feuille périmée : ${r.staleReasons.join(" ")}` : "Feuille courante", stale: r.stale })),
-      ...entries.map((e) => e.run).filter((r, i, all) => all.findIndex((x) => x.runId === r.runId) === i).map((r) => ({ part: "vat" as const, kind: "vat_sheet" as const, ref: `tva.reconciliation · ${r.runId} v${r.version}`, label: r.stale ? "Feuille TVA périmée" : "Période TVA observée", stale: r.stale })),
+      ...vatOf.map((e) => e.run).filter((r, i, all) => all.findIndex((x) => x.runId === r.runId) === i).map((r) => ({ part: "vat" as const, kind: "vat_sheet" as const, ref: `tva.reconciliation · ${r.runId} v${r.version}`, label: r.stale ? "Feuille TVA périmée" : "Période TVA observée", stale: r.stale })),
       { part: "accounting", kind: "framework", ref: `Référentiel C04 · ${rule.textId ?? "texte à déterminer"}`, label: `Options d’anticipation : ${input.framework.anticipated.length ? input.framework.anticipated.join(", ") : "aucune déclarée"} (${input.framework.basis})`, stale: false },
     ];
     const info = [...(information.get(s.eventId) ?? [])];
@@ -267,9 +275,13 @@ export function buildTransversalEventMap(input: EventMapInput): TransversalEvent
     info.push(...exigibility.missing);
     const staleHere = staleSettlements.filter((p) => p.flow === s.flow && p.party === s.party && p.allocations.some((a) => a.invoiceId === s.invoiceId));
     if (staleHere.length) info.push(`Règlements lus dans une feuille périmée (${[...new Set(staleHere.map((p) => p.id))].join(", ")}) : non retenus tant que la feuille n’est pas relancée.`);
+    if (s.facts.length && !lead) info.push("Facture lue seulement dans des feuilles périmées : dates, montants et TVA non retenus tant qu’une feuille n’est pas relancée.");
+    if (s.open.length && !open.length) info.push("Solde ouvert lu seulement dans une feuille Clients périmée : reste à la revue non retenu tant que la feuille n’est pas relancée.");
+    if (staleCredits.length) info.push(`Avoirs lus dans une feuille périmée (${[...new Set(staleCredits.map((c) => c.id))].join(", ")}) : non retenus tant que la feuille n’est pas relancée.`);
+    if (staleVat.length) info.push(`TVA lue dans une feuille périmée (${[...new Set(staleVat.map((v) => v.run.runId))].join(", ")}) : période observée non retenue tant que la feuille n’est pas relancée.`);
     for (const w of incompleteWindows) info.push(`Source ultérieure incomplète (${w.procedureId}, ${w.startDate} → ${w.endDate}, ${w.coverage === "documented" ? "fenêtre ne couvrant pas la période clôture–revue" : "couverture non documentée"}) : règlements non tous documentés.`);
     if (s.flow === "sale" && credits.length && !s.facts.some((f) => f.documentKind === "credit_note")) info.push("Avoir postérieur à la clôture : date de sa cause (retour, défaut, accord) requise pour décider d’un avoir à établir.");
-    const performance = lead?.dates.performance ?? null, documentKind = lead?.documentKind ?? "invoice";
+    const performance = lead?.dates.performance ?? null;
     const timeline: TransversalEvent["dates"]["timeline"] = [
       { key: "invoice", role: "accounting" as const, label: documentKind === "credit_note" ? "Avoir" : "Facture", date: invoiceDate },
       { key: "performance", role: "accounting" as const, label: documentKind === "credit_note" ? "Cause de l’avoir" : s.flow === "sale" ? "Livraison ou prestation réalisée" : "Réception ou prestation reçue", date: performance?.date ?? null },

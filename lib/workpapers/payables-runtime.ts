@@ -13,7 +13,7 @@ import type { PayablesCommand } from "./payables-commands";
 import { buildPayablesMission, payableHref } from "./payables-mission";
 import type { ClientsSalesResult } from "./clients-sales";
 import { buildTransversalEventMap } from "./transversal-events";
-import { eventMapInput, type ClientsSalesObservation, type PayablesObservation, type VatObservation, type VatObservationReader } from "./transversal-events-adapter";
+import { eventMapInput, latestExecutedPerRoot, SUPERSEDED_REASON, type ClientsSalesObservation, type PayablesObservation, type VatObservation, type VatObservationReader } from "./transversal-events-adapter";
 import type { MissionSelection } from "./client-mission";
 import { buildPayablesPackage } from "@/lib/evidence/payables-package";
 import { executionProfile } from "@/lib/runtime/profile";
@@ -165,16 +165,9 @@ export class PayablesRuntime extends ClientsRuntime {
             const versions = (await rows<{ run: WorkpaperRun }>(tx, sql `SELECT run FROM clients_workpaper_versions WHERE ${scopeWhere(scope)} ORDER BY id,version`)).map(r => r.run)
                 .filter(r => (PAYABLE_PROCEDURES as readonly string[]).includes(r.template.id) || r.template.id === "clients.sales");
             // Dernière version exécutée de chaque feuille ; une révision plus récente (même en préparation) la périme sans l'effacer.
-            const newer = (a: WorkpaperRun, b: WorkpaperRun) => a.revision > b.revision || a.revision === b.revision && a.version > b.version;
-            const latest = new Map<string, WorkpaperRun>(), executed = new Map<string, WorkpaperRun>();
-            for (const v of versions) {
-                const old = latest.get(v.rootId);
-                if (!old || newer(v, old)) latest.set(v.rootId, v);
-                const done = executed.get(v.rootId);
-                if (v.result?.execution === "completed" && (!done || newer(v, done))) executed.set(v.rootId, v);
-            }
-            const staleOf = (run: WorkpaperRun) => [...(latest.get(run.rootId) !== run ? ["Une révision ou version plus récente existe : cette version ne compte plus."] : []), ...(run.importIds.some(id => !heads.some(h => h.import_id === id)) ? ["Une source approuvée a été remplacée."] : [])];
-            const runs = [...executed.values()].sort((a, b) => a.id.localeCompare(b.id));
+            const current = latestExecutedPerRoot(versions), superseded = new Set(current.filter(c => c.superseded).map(c => c.run));
+            const staleOf = (run: WorkpaperRun) => [...(superseded.has(run) ? [SUPERSEDED_REASON] : []), ...(run.importIds.some(id => !heads.some(h => h.import_id === id)) ? ["Une source approuvée a été remplacée."] : [])];
+            const runs = current.map(c => c.run);
             const payables: PayablesObservation[] = runs.filter(r => (PAYABLE_PROCEDURES as readonly string[]).includes(r.template.id)).map(run => {
                 const batches = imports.batches.filter(b => run.importIds.includes(b.id) && b.approval);
                 let facts: ReturnType<typeof buildPayablesFacts> | null = null;

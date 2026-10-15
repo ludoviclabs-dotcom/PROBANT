@@ -24,7 +24,7 @@ import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
 import { executionProfile } from "@/lib/runtime/profile";
 import type { VatResult } from "./fiscal-vat-contract";
-import type { VatObservation } from "./transversal-events-adapter";
+import { latestExecutedPerRoot, SUPERSEDED_REASON, type VatObservation } from "./transversal-events-adapter";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -120,10 +120,13 @@ export class FiscalRuntime {
   async vatObservations(request: Request, dossierId: string, pid: string): Promise<VatObservation[]> {
     return this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
       await this.bounded(tx, scope);
-      const heads = await tx.heads(scope), runs = (await Promise.all((await tx.runIds(scope)).map(id => tx.currentRun(scope, id)))).filter((r): r is WorkpaperRun => !!r);
-      return runs.filter(r => r.template.id === "tva.reconciliation" && r.result?.execution === "completed").map(r => {
-        const result = r.result!.result as VatResult, stale = !fiscalSourcesCurrent(r.importIds, heads, fiscalRelevance(r, heads));
-        return { runId: r.id, rootId: r.rootId, version: r.version, revision: r.revision, state: r.state, stale, staleReasons: stale ? ["Une source de la période déclarative a été remplacée."] : [],
+      // Une seule révision par feuille, comme pour les feuilles Achats et Clients : deux révisions d'une même période ne
+      // sont jamais lues comme deux périodes observées.
+      const heads = await tx.heads(scope), versions = (await tx.allVersions(scope)).filter(r => r.template.id === "tva.reconciliation");
+      return latestExecutedPerRoot(versions).map(({ run: r, superseded }) => {
+        const result = r.result!.result as VatResult, replaced = !fiscalSourcesCurrent(r.importIds, heads, fiscalRelevance(r, heads));
+        const staleReasons = [...(superseded ? [SUPERSEDED_REASON] : []), ...(replaced ? ["Une source de la période déclarative a été remplacée."] : [])];
+        return { runId: r.id, rootId: r.rootId, version: r.version, revision: r.revision, state: r.state, stale: staleReasons.length > 0, staleReasons,
           href: "/fiscal?" + new URLSearchParams({ dossierId: scope.dossierId, periodId: scope.periodId, id: r.id, version: String(r.version) }), result: { period: result.period, frequency: result.frequency, entries: result.entries } };
       });
     });

@@ -171,6 +171,37 @@ describe("C11 — carte des événements : dates, TVA, règlements, pont et C03"
     expect(e.dates.vat.exigibility.status).toBe("information_required");
     expect(e.information.some((i) => i.startsWith("Règlements lus dans une feuille périmée (P-201)"))).toBe(true);
   });
+  it("facture lue seulement dans des feuilles périmées : visible, sans date, montant ni TVA courants", () => {
+    const base = recette(), stale = { stale: true, staleReasons: ["Une source approuvée a été remplacée."] };
+    const e = byInvoice(buildTransversalEventMap({ ...base, cutoffEvents: base.cutoffEvents.map((f) => f.invoiceId === "F-101" ? { ...f, run: { ...f.run, ...stale } } : f) }).events, "F-101");
+    expect(e.observations.map((o) => o.stale)).toEqual([true, true]);
+    expect(e).toMatchObject({ accounting: { status: "not_evaluated" }, effect: null, dates: { invoice: null, performance: null, booking: null } });
+    expect(e.settlement.invoiceTtc).toMatchObject({ kind: "unknown", reason: expect.stringContaining("feuille périmée") });
+    expect(e.dates.vat.exigibility).toMatchObject({ status: "information_required", firstDate: null });
+    expect(e.dates.vat).toMatchObject({ exigibilityPeriod: null, shift: "not_comparable" });
+    expect(e.information).toContain("Facture lue seulement dans des feuilles périmées : dates, montants et TVA non retenus tant qu’une feuille n’est pas relancée.");
+    expect(e.dependencies.filter((d) => d.kind === "run").every((d) => d.stale)).toBe(true);
+  });
+  it("solde ouvert et avoir d'une feuille Clients périmée : visibles, jamais retenus dans le résidu", () => {
+    const base = recette(), OLD = run("clients.sales", "RUN-CLI-OLD", true);
+    const e = byInvoice(buildTransversalEventMap({ ...base, openInvoices: base.openInvoices.map((o) => o.invoiceId === "F-107" ? { ...o, run: OLD } : o), credits: base.credits.map((c) => ({ ...c, run: OLD })) }).events, "F-107");
+    expect(e.settlement).toMatchObject({ creditsTtc: m("0.00"), residualTtc: { kind: "unknown" }, dueAtClosing: null, dueAtReview: null, partial: false });
+    expect(e.dates.credits).toEqual([]);
+    expect(e.observations).toMatchObject([{ basis: "open_balance", stale: true }]);
+    expect(e.information).toEqual(expect.arrayContaining([expect.stringMatching(/^Solde ouvert lu seulement dans une feuille Clients périmée/), expect.stringMatching(/^Avoirs lus dans une feuille périmée \(AV-107\)/)]));
+    expect(e.sources.some((s) => s.rowId === "AV-107")).toBe(true);
+  });
+  it("feuille TVA périmée : ni période d'exigibilité confirmée, ni période observée, ni décalage ; reste une dépendance", () => {
+    const base = recette(), stale = { stale: true, staleReasons: ["Une source de la période déclarative a été remplacée."] };
+    const map2 = buildTransversalEventMap({ ...base, vatSheets: base.vatSheets.map((v) => v.runId === "RUN-TVA-MAR" ? { ...v, stale: true } : v),
+      vatEntries: base.vatEntries.map((v) => v.run.runId === "RUN-TVA-MAR" ? { ...v, run: { ...v.run, ...stale } } : v) });
+    const f101 = byInvoice(map2.events, "F-101"), f104 = byInvoice(map2.events, "F-104");
+    expect(f101.dates.vat.exigibilityPeriod).toMatchObject({ startDate: "2026-03-01", basis: "calendar_month_unconfirmed" });
+    expect(f104.dates.vat).toMatchObject({ observedPeriods: [], shift: "not_comparable" });
+    expect(f104.dependencies).toContainEqual(expect.objectContaining({ kind: "vat_sheet", stale: true, label: "Feuille TVA périmée" }));
+    expect(f104.information.some((i) => i.startsWith("TVA lue dans une feuille périmée (RUN-TVA-MAR)"))).toBe(true);
+    expect(f104.accounting.status).toBe("already_treated");
+  });
   it("une observation périmée reste visible mais ne compte pas ; deux montants divergents rendent l'effet inconnu", () => {
     const base = recette();
     const stale = buildTransversalEventMap({ ...base, cutoffEvents: [facts(SPEC.c1, run("payables.purchases", "RUN-ACH", true)), facts(SPEC.c1, RPNE)] });

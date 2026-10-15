@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { buildPayablesFacts, type PayableProcedure, type PayablesResult } from "../payables-investigation";
 import { buildTransversalEventMap } from "../transversal-events";
-import { eventMapInput, type PayablesObservation } from "../transversal-events-adapter";
+import { eventMapInput, latestExecutedPerRoot, type PayablesObservation } from "../transversal-events-adapter";
+import type { WorkpaperRun } from "../model";
 import { fixture, presentationRun } from "./payables-fixture";
 
 /**
@@ -46,5 +47,13 @@ describe("C11 — carte des événements sur la chaîne réelle Achats / RPNE", 
     expect(d.observations.find((o) => o.procedureId === "payables.purchases")).toMatchObject({ stale: true });
     expect(d.effect).toMatchObject({ contributors: 1 });
     expect(d.dependencies.some((x) => x.stale && x.kind === "run")).toBe(true);
+  });
+  it("une feuille par racine : la dernière révision exécutée ; une révision plus récente, même en préparation, la périme", () => {
+    const v = (rootId: string, revision: number, version: number, executed: boolean) => ({ id: revision === 1 ? rootId : `${rootId}:r${revision}`, rootId, revision, version,
+      result: executed ? { execution: "completed" } : undefined }) as unknown as WorkpaperRun;
+    const a1 = v("A", 1, 3, true), a2 = v("A", 2, 2, true), b1 = v("B", 1, 2, true), b2 = v("B", 2, 1, false), c1 = v("C", 1, 1, false);
+    const read = latestExecutedPerRoot([a1, v("A", 2, 1, false), a2, v("B", 1, 1, true), b1, b2, c1]);
+    // Deux révisions exécutées de A : seule r2 v2, courante ; B : r1 v2 exécutée, périmée par r2 en préparation ; C jamais exécutée.
+    expect(read).toEqual([{ run: a2, superseded: false }, { run: b1, superseded: true }]);
   });
 });

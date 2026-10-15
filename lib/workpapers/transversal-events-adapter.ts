@@ -20,6 +20,23 @@ const mapRun = (run: Pick<WorkpaperRun, "id" | "rootId" | "version" | "revision"
   ({ procedureId: run.template.id, runId: run.id, rootId: run.rootId, version: run.version, revision: run.revision, state: run.state, stale, staleReasons, href });
 const iso = (fec: string) => /^\d{8}$/.test(fec) ? `${fec.slice(0, 4)}-${fec.slice(4, 6)}-${fec.slice(6, 8)}` : fec;
 
+export const SUPERSEDED_REASON = "Une révision ou version plus récente existe : cette version ne compte plus.";
+/**
+ * Feuilles lues par la carte : la dernière version exécutée de chaque racine. Une révision ou version plus récente (même
+ * en préparation) la périme sans l'effacer ; deux révisions d'une même feuille ne sont jamais lues comme courantes.
+ */
+export function latestExecutedPerRoot(versions: readonly WorkpaperRun[]): { run: WorkpaperRun; superseded: boolean }[] {
+  const newer = (a: WorkpaperRun, b: WorkpaperRun) => a.revision > b.revision || a.revision === b.revision && a.version > b.version;
+  const latest = new Map<string, WorkpaperRun>(), executed = new Map<string, WorkpaperRun>();
+  for (const v of versions) {
+    const old = latest.get(v.rootId);
+    if (!old || newer(v, old)) latest.set(v.rootId, v);
+    const done = executed.get(v.rootId);
+    if (v.result?.execution === "completed" && (!done || newer(v, done))) executed.set(v.rootId, v);
+  }
+  return [...executed.values()].sort((a, b) => a.id.localeCompare(b.id)).map((run) => ({ run, superseded: latest.get(run.rootId) !== run }));
+}
+
 /**
  * Statut unique de la procédure pour un événement ; des lignes divergentes restent non concluantes. Une ligne RPNE non
  * analysée (fenêtre non documentée, facture absente) n'a pas d'identité d'événement : elle est rattachée par facture et tiers.
