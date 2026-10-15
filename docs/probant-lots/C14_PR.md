@@ -10,7 +10,7 @@ Base `main` `bb919bf` (après la PR #94, C12 Paie/Congés persistants), puis `ma
 - **Parcours de dossier** : onglet « Synthèse des travaux » par cycle (feuille rattachée ou travaux manuels, résultats dont « non concluant », pièces, constats, reste à faire), autres feuilles listées, corrections / preuves nouvelles / anomalies résiduelles (vocabulaire C05, correction partielle), contradictions avec les déclarations reçues depuis, dates utiles, seuils documentés (NEP 450 §06, §07, §18 a ; aucun barème légal, aucune comparaison), exclusions encore pertinentes.
 - **Mode solo** : relecture personnelle nommée admise et comptée à part ; « dossier personnel terminé » avec limites visibles, périmé par tout changement ; la validation professionnelle reste réservée à `dossier:sign` et à l'habilitation de clôture (accordée à personne par défaut).
 - **Provisions** : synthèse de mission à version exacte (`/provisions/synthese`, `operation=mission`) et export diagnostic / approuvé, masquage confidentiel identique à la feuille (deux fuites antérieures corrigées : copie des lignes d'un calcul bloqué, totaux d'une source masquée).
-- **Registre 1.3.1** : route de synthèse Provisions, portée locale du transversal ; mention « paie non observable » retirée (caduque depuis C12).
+- **Registre 1.4.1** (1.4.0 C13 + C14) : route de synthèse Provisions, portée locale du transversal ; mention « paie non observable » retirée (caduque depuis C12).
 
 ### Recette
 
@@ -31,6 +31,6 @@ Captures : `docs/probant-lots/c14-captures/`.
 
 ### Limites
 
-Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier ; pièces binaires hors paquet d'export ; familles dont la règle ne regarde que les imports figés : source ajoutée après le gel non signalée .
+Constats C05 de la carte des événements transversaux (C11) non versés dans le dossier ; pièces binaires hors paquet d'export ; familles dont la règle ne regarde que les imports figés : source ajoutée après le gel non signalée.
 
 🤖 Generated with [Claude Code](https://claude.com/claude-code)
