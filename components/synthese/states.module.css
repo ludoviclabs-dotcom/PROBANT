@@ -1,0 +1,147 @@
+/*
+  États de la Synthèse : chargement, vide, erreur. Même langue que la page — une ligne de preuve, un titre serif,
+  des faits, des actions. Aucune animation en boucle.
+*/
+
+.state {
+  max-width: 880px;
+  padding: 96px 0 48px;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-2);
+}
+
+.eyebrowAlert {
+  color: var(--pb-signal);
+}
+
+.title {
+  margin: 16px 0 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 380;
+  font-size: clamp(30px, 3.4cqw, 48px);
+  line-height: 1.12;
+}
+
+.titleSoft {
+  color: var(--pb-ink-2);
+}
+
+.lead {
+  margin: 20px 0 0;
+  max-width: 60ch;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--pb-ink-2);
+}
+
+.proofLine {
+  display: block;
+  margin-top: 40px;
+  max-width: 600px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 40px;
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: minmax(0, 180px) minmax(0, 1fr);
+  gap: 8px 24px;
+  margin: 32px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.fact {
+  display: contents;
+}
+
+.fact dt {
+  color: var(--pb-ink-3);
+}
+
+.fact dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.progress {
+  position: relative;
+  margin-top: 48px;
+  height: 24px;
+}
+
+.progressTrack {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 11px;
+  height: 1px;
+  background: var(--pb-rule-strong);
+}
+
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: 11px;
+  height: 1px;
+  background: var(--pb-ink);
+}
+
+.progressTick {
+  position: absolute;
+  top: 7px;
+  width: 1px;
+  height: 10px;
+  background: var(--pb-rule-strong);
+  transform: translateX(-50%);
+}
+
+.progressTick[data-state="fait"],
+.progressTick[data-state="en cours"] {
+  top: 5px;
+  width: 2px;
+  height: 14px;
+  background: var(--pb-ink);
+}
+
+.steps {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+}
+
+.steps > li {
+  display: grid;
+  grid-template-columns: 32px minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--pb-rule);
+  font-size: 14px;
+  color: var(--pb-ink);
+}
+
+.steps > li[data-state="à venir"] {
+  color: var(--pb-ink-3);
+}
+
+.stepNum,
+.stepState {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+}
+
+.stepNum {
+  color: var(--pb-ink-3);
+}

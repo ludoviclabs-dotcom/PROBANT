@@ -1,0 +1,192 @@
+/*
+  PROBANT — tokens de la charte de direction artistique v1 « Le grand livre rendu vivant ».
+
+  Deux ambiances d'un même système, posées par l'attribut `data-ambiance` :
+    - papier       landing et documents      fond chaud, encre graphite, bleu de vérification
+    - instruments  tableau de bord           fond graphite, ivoire, bleu de vérification clair
+
+  Écart assumé avec la charte : ces couleurs ne sont PAS posées sur :root. Les pages qui ne sont pas
+  encore refondues lisent toujours `--pb-bg` & co. (globals.css) ; les redéfinir globalement les
+  basculerait en clair. Les ambiances s'appliquent donc par sous-arbre, sans effet de bord ailleurs.
+
+  Règles de la charte : aucune ombre portée (profondeur par plans), rayons 0 / 2 / 4 px, filets de 1 px
+  (2 px pour une rupture de chapitre), gravité codée par luminosité + forme + libellé (jamais la teinte
+  seule), trois familles de traits (plein, tirets, pointillé), animations finies et réduites sur demande.
+*/
+
+[data-ambiance="papier"] {
+  color-scheme: light;
+  --pb-bg: #F3EFE6;
+  --pb-plane-2: #EAE4D7;
+  --pb-plane-3: #E0D9C9;
+  --pb-ink: #18191B;
+  --pb-ink-2: #45474B;
+  --pb-ink-3: #66676A;
+  --pb-rule: #CEC6B4;
+  --pb-rule-strong: #18191B;
+  --pb-verif: #2447B8;
+  --pb-on-verif: #F3EFE6;
+  --pb-signal: #B83419;
+  --pb-sev-bloquant: #B83419;
+  --pb-sev-majeur: #C55A3B;
+  --pb-sev-mineur: #A07A6C;
+  --pb-sev-informatif: #8C8984;
+  --pb-selection: rgba(36, 71, 184, 0.18);
+  --pb-scroll: #CEC6B4;
+}
+
+[data-ambiance="instruments"] {
+  color-scheme: dark;
+  --pb-bg: #111214;
+  --pb-plane-2: #17191C;
+  --pb-plane-3: #1E2124;
+  --pb-ink: #ECE8DF;
+  --pb-ink-2: #ADA9A0;
+  --pb-ink-3: #8A877F;
+  --pb-rule: #2A2D31;
+  --pb-rule-strong: #3D4146;
+  --pb-verif: #85A3F2;
+  --pb-on-verif: #111214;
+  --pb-signal: #F06A3C;
+  --pb-sev-bloquant: #F06A3C;
+  --pb-sev-majeur: #B9573A;
+  --pb-sev-mineur: #8A5F50;
+  --pb-sev-informatif: #66645F;
+  --pb-selection: rgba(133, 163, 242, 0.35);
+  --pb-scroll: #3D4146;
+}
+
+/* Polices : les variables `--font-*` viennent de next/font (app/fonts.ts), posées sur le même élément. */
+[data-ambiance] {
+  --pb-font-serif: var(--font-newsreader), "Newsreader", Georgia, serif;
+  --pb-font-sans: var(--font-geist), "Geist", system-ui, sans-serif;
+  --pb-font-mono: var(--font-plex-mono), "IBM Plex Mono", ui-monospace, monospace;
+}
+
+:root {
+  --pb-space-1: 4px;
+  --pb-space-2: 8px;
+  --pb-space-3: 16px;
+  --pb-space-4: 24px;
+  --pb-space-5: 32px;
+  --pb-space-6: 48px;
+  --pb-space-7: 64px;
+  --pb-space-8: 96px;
+  --pb-space-9: 128px;
+
+  --pb-radius-0: 0;
+  --pb-radius-1: 2px;
+  --pb-radius-2: 4px;
+  --pb-rule-w: 1px;
+  --pb-break-w: 2px;
+
+  /* Trois familles de traits : droit dur (plein), présomption d'audit (tirets), paramètre interne (pointillé). */
+  --pb-fam-droit-dur: 2px solid;
+  --pb-fam-presomption: 1.5px dashed;
+  --pb-fam-interne: 1.2px dotted;
+
+  --pb-ease: cubic-bezier(0.2, 0, 0, 1);
+  --pb-ease-flow: cubic-bezier(0.45, 0, 0.25, 1);
+  --pb-dur-fast: 180ms;
+  --pb-dur-base: 240ms;
+  --pb-dur-rule: 360ms;
+  --pb-dur-count: 600ms;
+  --pb-dur-flow: 700ms;
+  --pb-stagger: 40ms;
+  --pb-stagger-flow: 45ms;
+  --pb-dim: 0.12;
+  --pb-parallax-max: 24px;
+}
+
+/*
+  Tailwind 4 : utilitaires `text-ink`, `bg-plane-2`, `border-rule`, `text-verif`, `font-serif`, etc.
+  Valables à l'intérieur d'un élément `data-ambiance`. Les noms `--color-bloquant`, `--font-sans` et
+  `--font-mono` de la charte sont déjà pris par la palette et les polices des pages non migrées : la
+  gravité s'expose ici sous `sev-*`, et sans/mono se lisent par `var(--pb-font-sans|mono)`.
+*/
+@theme inline {
+  --color-plane-2: var(--pb-plane-2);
+  --color-plane-3: var(--pb-plane-3);
+  --color-ink: var(--pb-ink);
+  --color-ink-2: var(--pb-ink-2);
+  --color-ink-3: var(--pb-ink-3);
+  --color-rule: var(--pb-rule);
+  --color-rule-strong: var(--pb-rule-strong);
+  --color-verif: var(--pb-verif);
+  --color-signal: var(--pb-signal);
+  --color-sev-bloquant: var(--pb-sev-bloquant);
+  --color-sev-majeur: var(--pb-sev-majeur);
+  --color-sev-mineur: var(--pb-sev-mineur);
+  --color-sev-informatif: var(--pb-sev-informatif);
+  --font-serif: var(--pb-font-serif);
+}
+
+/*
+  Base des ambiances. `:where()` donne une spécificité nulle : toute classe de composant l'emporte,
+  ces règles ne servent que de socle (couleur du texte, liens, focus, sélection, barres de défilement).
+*/
+:where([data-ambiance]) {
+  color: var(--pb-ink);
+  font-family: var(--pb-font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+:where([data-ambiance]) a {
+  color: var(--pb-verif);
+  text-underline-offset: 3px;
+  text-decoration-thickness: 1px;
+}
+
+:where([data-ambiance]) a:hover {
+  color: var(--pb-ink);
+}
+
+:where([data-ambiance]) :is(button, input, select, textarea) {
+  font: inherit;
+  color: inherit;
+}
+
+:where([data-ambiance]) :focus-visible {
+  outline: 2px solid var(--pb-verif);
+  outline-offset: 2px;
+}
+
+:where([data-ambiance]) ::selection {
+  background: var(--pb-selection);
+}
+
+:where([data-ambiance]) * {
+  scrollbar-width: thin;
+  scrollbar-color: var(--pb-scroll) transparent;
+}
+
+/*
+  La landing défile avec le document : sans cette règle, la zone de rebond et la barre de défilement
+  du document gardent le fond sombre global. Le sélecteur disparaît avec la landing (navigation client).
+*/
+html:has([data-ambiance="papier"][data-document-surface]),
+html:has([data-ambiance="papier"][data-document-surface]) body {
+  background-color: #F3EFE6;
+  scrollbar-width: thin;
+  scrollbar-color: #CEC6B4 transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --pb-dur-fast: 0ms;
+    --pb-dur-base: 0ms;
+    --pb-dur-rule: 0ms;
+    --pb-dur-count: 0ms;
+    --pb-dur-flow: 0ms;
+    --pb-parallax-max: 0px;
+  }
+
+  /* Toutes les animations passent à none : les états finaux s'affichent directement. */
+  [data-ambiance],
+  [data-ambiance] *,
+  [data-ambiance] *::before,
+  [data-ambiance] *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -1,0 +1,154 @@
+/*
+  Exports du dossier de preuve et journal de revue — ambiance « salle d'instruments ». Texte et filets : des
+  boutons à bord fin (rayon 2 px), aucune carte arrondie, aucune ombre. Rendus à l'intérieur d'un `data-ambiance`.
+*/
+
+.exports {
+  margin: 24px 0 0;
+  padding: 16px 0 0;
+  border-top: 1px solid var(--pb-rule);
+}
+
+.exportRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.exportBtn {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: transparent;
+  color: var(--pb-ink);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.exportBtn:hover:not(:disabled) {
+  border-color: var(--pb-ink);
+}
+
+.exportBtn:disabled {
+  cursor: default;
+  color: var(--pb-ink-3);
+}
+
+.exportStatus {
+  min-height: 20px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.exportStatus[data-error] {
+  color: var(--pb-signal);
+}
+
+/* ── Journal de revue ────────────────────────────────────────────────────── */
+
+.review {
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.review > summary {
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  font-family: var(--pb-font-serif);
+  font-size: 20px;
+  line-height: 26px;
+}
+
+.reviewBody {
+  padding: 4px 0 24px;
+}
+
+.reviewForm {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px 16px;
+  align-items: end;
+}
+
+.reviewField {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--pb-ink-3);
+}
+
+.reviewField :is(select, input) {
+  min-height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-2);
+  color: var(--pb-ink);
+  font-size: 13px;
+}
+
+.reviewSubmit {
+  min-height: 40px;
+  padding: 0 16px;
+  border: 1px solid var(--pb-verif);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-verif);
+  color: var(--pb-on-verif);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.reviewSubmit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.reviewMessage {
+  min-height: 20px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.reviewTable {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+}
+
+.reviewTable caption {
+  padding-bottom: 8px;
+  text-align: left;
+  color: var(--pb-ink-3);
+}
+
+.reviewTable th {
+  padding: 8px 12px 8px 0;
+  text-align: left;
+  font-weight: 500;
+  color: var(--pb-ink-3);
+}
+
+.reviewTable td {
+  padding: 8px 12px 8px 0;
+  border-top: 1px solid var(--pb-rule);
+  vertical-align: top;
+}
+
+.reviewTable code {
+  font-family: var(--pb-font-mono);
+}
+
+.scrollX {
+  overflow-x: auto;
+}

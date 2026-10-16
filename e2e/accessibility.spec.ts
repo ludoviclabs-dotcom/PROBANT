@@ -30,7 +30,8 @@ interface PageUnderTest {
 const PAGES: readonly PageUnderTest[] = [
   { name: "landing", path: "/", seriousBaseline: {} },
   { name: "depot", path: "/dashboard/depot", seriousBaseline: { "color-contrast": 9 } },
-  { name: "synthese", path: "/dashboard/synthese", seriousBaseline: { "color-contrast": 13 } },
+  // Refonte « salle d'instruments » : la Synthèse et son châssis (rail, ruban, barre basse) n'ont plus de dette « serious ».
+  { name: "synthese", path: "/dashboard/synthese", seriousBaseline: {} },
   { name: "risques", path: "/dashboard/risques", seriousBaseline: {} },
   { name: "cloisons", path: "/dashboard/cloisons", seriousBaseline: { "color-contrast": 15 } },
   {

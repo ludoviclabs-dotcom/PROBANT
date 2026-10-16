@@ -47,6 +47,8 @@ async function lockedSheet(h: FiscalHarness) {
   return h.ok({ command: "lock", id: run.id, expectedVersion: run.version }, "reviewer");
 }
 async function check(page: Page, width: number, info: TestInfo, name: string) {
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   const state = await page.evaluate(() => ({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(state.scrollWidth, name).toBeLessThanOrEqual(width);
   await page.addScriptTag({ path: path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js") });
@@ -72,10 +74,10 @@ for (const width of [390, 1024, 1440]) {
     await expect(notice).toHaveAttribute("data-incidence", "available");
     await expect(notice).toContainText(`Scénario d'IS avant/après sur la feuille IS verrouillée (v${sheet.version}, moteur tax-05-corporate-income-tax-1.1.0) : 1 ajustement(s)`);
     await expect(notice.getByRole("link", { name: `Ouvrir la feuille IS (v${sheet.version})` })).toHaveAttribute("href", /\/fiscal\?.*tax=cit/);
-    const amountOf = (label: string) => page.locator("span", { hasText: label }).first().locator("xpath=following-sibling::span[1]");
-    await expect(amountOf("Effet d'impôt — résultat (connu)")).toHaveText(/^250,00\s€$/);
-    await expect(page.locator("span", { hasText: "Effet d'impôt — résultat (connu)" }).first()).toContainText("− ");
-    await expect(amountOf("Effet net sur le résultat après impôt")).toHaveText(/^750,00\s€$/);
+    // Les montants se lisent dans le tableau des étapes du pont (alternative accessible du graphique), une ligne par étape.
+    const row = (label: string) => page.locator("tr", { has: page.locator("th", { hasText: label }) });
+    await expect(row("Effet d'impôt — résultat (connu)")).toContainText(/−250\s€/);
+    await expect(row("Effet net sur le résultat après impôt")).toContainText(/750\s€/);
     await check(page, width, info, `c10-synthese-incidence-${width}.png`);
   });
 }
@@ -89,6 +91,6 @@ test("Synthèse — feuille IS non verrouillée : incidence inconnue, motif et l
   await expect(notice).toHaveAttribute("data-incidence", "unavailable");
   await expect(notice).toContainText("Feuille IS non verrouillée (executed) : le calcul de base n'a pas été approuvé en revue.");
   await expect(notice.getByRole("link", { name: /Ouvrir la feuille IS/ })).toBeVisible();
-  await expect(page.locator("span", { hasText: "Effet d'impôt — résultat (inconnu)" }).first().locator("xpath=following-sibling::span[1]")).toHaveText("inconnu");
+  await expect(page.locator("tr", { has: page.locator("th", { hasText: "Effet d'impôt — résultat (inconnu)" }) })).toContainText("inconnu");
   await check(page, 1024, info, "c10-synthese-incidence-inconnue-1024.png");
 });

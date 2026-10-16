@@ -33,16 +33,21 @@ for (const width of [1440, 1024, 390] as const) {
     test("Synthèse : un pont par poste et sens, aucune exposition tous postes, aucun zéro négatif", async ({ page }) => {
       await page.goto("/dashboard/synthese");
       await expect(page.getByRole("heading", { name: "Synthèse", level: 1 })).toBeVisible();
-      const waterfall = page.locator("[data-waterfall-group]").first().locator("xpath=ancestor::*[@role='img'][1]");
+      const waterfall = page.locator("figure[data-anim-group='wf']");
       await expect(waterfall).toBeVisible();
-      await expect(page.locator('[data-waterfall-group="Résultat · diminution"]')).toContainText("457 000,00 €");
-      await expect(page.locator('[data-waterfall-group="Résultat · augmentation"]')).toContainText("18 000,00 €");
+      const decrease = page.locator('[data-waterfall-group="Résultat · diminution"]');
+      const increase = page.locator('[data-waterfall-group="Résultat · augmentation"]');
+      await expect(decrease).toContainText("457 000 €");
+      await expect(increase).toContainText("18 000 €");
       await expect(page.locator('[data-waterfall-group="Effet sur le résultat"]')).toContainText("Effet net sur le résultat après impôt");
+      // Un graphique par poste et sens : jamais de total « tous postes ».
+      await expect(page.locator("[data-waterfall-group]")).toHaveCount(3);
       await expect(waterfall).not.toContainText("Exposition brute détectée");
-      await expect(waterfall).not.toContainText("-0,00");
-      // Les déductions portent leur signe dans le libellé, le montant en valeur absolue.
-      await expect(page.locator('[data-waterfall-group="Résultat · diminution"]')).not.toContainText("-457 000,00");
-      await shotOf(page, waterfall.locator("xpath=ancestor::section[1]"), `synthese-waterfall-${width}`);
+      await expect(waterfall).not.toContainText(/[−-]0(?:,00)? €/);
+      // Les déductions portent le signe typographique « − » (U+2212), jamais un trait d'union.
+      await expect(decrease).not.toContainText("-457");
+      await expect(decrease.getByRole("img")).toHaveAttribute("aria-label", /En attente d'arbitrage −457\s000\s€/);
+      await shotOf(page, waterfall, `synthese-waterfall-${width}`);
     });
 
     test("Revue par cloison : exposition initiale par poste et sens, plus de cumul d'écarts au seuil", async ({ page }) => {

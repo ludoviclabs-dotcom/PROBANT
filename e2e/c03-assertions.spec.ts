@@ -28,6 +28,8 @@ async function shotOf(page: Page, locator: ReturnType<Page["locator"]>, name: st
   await page.setViewportSize(viewport);
 }
 async function strictAxe(page: Page) {
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   // axe ne juge le contraste que des nœuds visibles : la zone principale défilant dans son conteneur, on déplie tout le contenu.
   const viewport = page.viewportSize()!;
   await page.setViewportSize({ width: viewport.width, height: 8000 });
@@ -49,13 +51,16 @@ for (const width of [1440, 1024, 390] as const) {
       await page.goto("/dashboard/synthese");
       await expect(page.getByRole("heading", { name: "Synthèse", level: 1 })).toBeVisible();
       const decision = page.getByRole("region", { name: "Décision" });
-      await expect(decision).toContainText("Non qualifiée");
-      await expect(decision).not.toContainText("Substantielle");
+      await expect(decision).toContainText(/non qualifiée/i);
+      await expect(decision).not.toContainText(/Substantielle/i);
       const coverage = page.getByRole("img", { name: /Couverture non qualifiée/ });
       await expect(coverage).toBeVisible();
       await expect(coverage).toContainText("Population manquante");
       await expect(coverage).toContainText("Dénominateur non qualifié");
       await expect(coverage).not.toContainText("%");
+      // La phrase de mesure dit que la couverture des travaux n'est pas établie ; le détail vit dans « Méthode ».
+      await expect(decision).toContainText(/couverture des travaux non établie/i);
+      await page.locator("details#methode > summary").click();
       const work = page.getByRole("region", { name: "Couverture des travaux" });
       await expect(work).toBeVisible();
       await expect(work.getByRole("status")).toContainText(/couverture des travaux non établie/i);
@@ -63,9 +68,9 @@ for (const width of [1440, 1024, 390] as const) {
       await expect(matrix).toBeVisible();
       await expect(page.getByText(/NEP 500 §09/).first()).toBeVisible();
       // Un constat qualitatif (titres non dépréciés, sans effet financier) figure en « Évaluation et imputation · solde », pas en « non qualifiée ».
-      await expect(matrix.getByText("Évaluation et imputation · solde", { exact: true }).first()).toBeVisible(); // en-tête de colonne (grille et table de données)
+      await expect(matrix.getByText("Évaluation et imputation · solde", { exact: true }).first()).toBeVisible(); // en-tête de colonne (libellé complet pour les lecteurs d'écran)
       await shot(page, `synthese-${width}`);
-      await shotOf(page, page.getByRole("region", { name: "Couverture de l'analyse" }), `synthese-couverture-analyse-${width}`);
+      await shotOf(page, coverage.locator("xpath=ancestor::div[contains(@class,'measure')][1]"), `synthese-couverture-analyse-${width}`);
       await shotOf(page, work, `synthese-couverture-travaux-${width}`);
       await shotOf(page, matrix, `synthese-matrice-constats-${width}`);
       await strictAxe(page);

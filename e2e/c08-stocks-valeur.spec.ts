@@ -132,7 +132,12 @@ for (const width of [1440, 1024, 390] as const) {
   test(`registre C01 : capacité Stocks sans inventaire physique annoncé, ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 900 });
     await page.goto("/dashboard/synthese");
-    await page.getByRole("link", { name: "Ouvrir Stocks", exact: true }).click();
+    // Registre des cycles : on ouvre tout le registre, puis la ligne « Stocks », puis son accès à la feuille.
+    await page.getByRole("button", { name: /^Afficher les \d+ cycles$/ }).click();
+    const row = page.getByRole("button", { name: "Stocks", exact: true });
+    await row.click();
+    await expect(row).toHaveAttribute("aria-expanded", "true");
+    await page.getByRole("link", { name: "Feuille Stocks", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Stocks", exact: true })).toBeVisible();
     const scope = page.getByText(/^Feuille versionnée : quantités comptées transcrites/);
     await expect(scope).toContainText("coûts déclarés (non reconstitués), revue de valeur bornée à la valeur comptable");

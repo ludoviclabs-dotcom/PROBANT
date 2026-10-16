@@ -28,7 +28,6 @@ const WIDTHS = [1440, 1024, 390] as const;
 const CAPTURE = process.env.BORDURES_CAPTURE !== "0";
 /** `--pb-border` (#243044) : la couleur que la règle globale imposait à toutes les bordures. */
 const PB_BORDER = "rgb(36, 48, 68)";
-const PB_ACCENT = "rgb(91, 157, 255)";
 const PB_WARN = "rgb(245, 158, 11)";
 
 /** Vues où le recensement a trouvé des classes de bordure colorée (voir le handoff). */
@@ -182,22 +181,31 @@ for (const width of WIDTHS) {
       });
     }
 
-    test("synthese — l'action prioritaire porte l'accent par classe, sans style inline", async ({ page }) => {
+    test("synthese — l'action prioritaire n'a aucun style inline et son lien porte l'accent du jeton", async ({ page }) => {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto("/dashboard/synthese");
       const section = page.getByRole("region", { name: "Action prioritaire" });
       await expect(section).toBeVisible();
-      const probe = await section.evaluate((el) => ({ left: getComputedStyle(el).borderLeftColor, top: getComputedStyle(el).borderTopColor, inline: el.getAttribute("style") }));
-      // Pastille « source du dossier » du bandeau (app/dashboard/layout.tsx) : `border-[#3b82f6]/50`, sans style inline.
+      // Refonte « salle d'instruments » : le ruban de contexte est stylé par module CSS ; la couleur d'accent est celle
+      // du jeton `--pb-verif`, résolue sur le même élément (clair ou sombre), et aucun style n'est posé en ligne.
+      const probe = await section.evaluate((el) => {
+        const link = el.querySelector("a");
+        const reference = document.createElement("span");
+        reference.style.color = "var(--pb-verif)";
+        el.appendChild(reference);
+        const accent = getComputedStyle(reference).color;
+        reference.remove();
+        return { left: getComputedStyle(el).borderLeftColor, top: getComputedStyle(el).borderTopColor, inline: el.getAttribute("style"), linkInline: link?.getAttribute("style") ?? null, linkColor: link ? getComputedStyle(link).color : null, accent };
+      });
       const badge = page.locator('header span[class*="border-[#3b82f6]/50"]').first();
       const badgeColor = (await badge.count()) ? await badge.evaluate((el) => getComputedStyle(el).borderTopColor) : null;
       await mkdir(OUT, { recursive: true });
       await writeFile(path.join(OUT, `synthese-action-prioritaire-${width}.json`), JSON.stringify({ phase: PHASE, width, ...probe, badgeColor }, null, 1), "utf8");
       if (CAPTURE) await section.screenshot({ path: path.join(OUT, `synthese-action-prioritaire-${width}.jpg`), type: "jpeg", quality: 80 });
       if (PHASE === "avant") return;
-      expect(probe.left).toBe(PB_ACCENT);
-      expect(probe.top).toBe(PB_BORDER);
       expect(probe.inline).toBeNull();
+      expect(probe.linkInline).toBeNull();
+      expect(probe.linkColor).toBe(probe.accent);
       if (badgeColor !== null) expect(badgeColor, "pastille source du bandeau : classe border-[#3b82f6]/50").not.toBe(PB_BORDER);
     });
 

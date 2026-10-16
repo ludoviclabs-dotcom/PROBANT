@@ -6,10 +6,9 @@ import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import { navigationContext } from "@/lib/dossier/navigation-context";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { periodId } from "@/lib/workpapers/model";
-import { priorityCycle, projectCycleRows, projectSourceState, sortCycleRows } from "@/lib/dossier/cycle-registry";
+import { projectCycleRows, sortCycleRows } from "@/lib/dossier/cycle-registry";
 import { ModuleAvailability } from "./ModuleAvailability";
 import { CycleRegistryList } from "./CycleRegistryList";
-import { DossierContextBar } from "./DossierContextBar";
 
 function download(name: string, text: string, mime: string) {
   const url = URL.createObjectURL(new Blob([new TextEncoder().encode(text)], { type: mime }));
@@ -23,8 +22,6 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
   const [bundle, setBundle] = useState<ReturnType<typeof buildWorkpaperPackage> | null>(null);
   const [message, setMessage] = useState("");
   const rows = useMemo(() => sortCycleRows(projectCycleRows(snapshot, { synthetic: true })), [snapshot]);
-  const sources = useMemo(() => projectSourceState(snapshot), [snapshot]);
-  const priority = useMemo(() => priorityCycle(rows), [rows]);
   function prepareExport() {
     try {
       if (!snapshot.dossier.period) throw new Error("PÉRIODE_INDISPONIBLE");
@@ -33,18 +30,17 @@ export function SyntheticSummary({ snapshot }: { snapshot: DossierSnapshot }) {
       setMessage("Export figé prêt pour ce dossier synthétique.");
     } catch (error) { setBundle(null); setMessage(error instanceof Error ? error.message : "Export indisponible"); }
   }
-  const period = snapshot.dossier.period ? `${snapshot.dossier.period.startDate} → ${snapshot.dossier.period.closingDate}` : "Période indisponible";
-  return <main className="min-h-screen bg-[var(--pb-bg)] p-4 text-[var(--pb-text)] md:p-6">
+  // Le dossier, l'état des sources et l'action prioritaire sont lus dans le ruban de contexte du châssis du tableau de bord.
+  return <div className="bg-[var(--pb-bg)] p-4 text-[var(--pb-text)] md:p-6">
     <header className="mb-4">
       <h1 className="text-2xl font-semibold">Synthèse du dossier synthétique</h1>
       <p className="mt-1 text-[13px] text-[var(--pb-text-muted)]">Les anciens constats de DEMO SA ne sont pas dans ce dossier. Les résultats proviennent des feuilles exécutées dans le laboratoire.</p>
     </header>
-    <DossierContextBar className="mb-4" dossier={{ name: snapshot.dossier.societe.raisonSociale, period, id: snapshot.dossier.id }} sources={sources} priority={priority} />
     <CycleRegistryList rows={rows} synthetic className="mb-4" title="Cycles du scénario" />
     <CapabilityAccess context={navigationContext(snapshot, { organizationId: snapshot.dossier.organizationId ?? "SYNTHETIC-DEMO", dossierId: snapshot.dossier.id })} />
     <ModuleAvailability snapshot={snapshot} />
     <div className="flex flex-wrap items-center gap-x-5 gap-y-2"><Link className={linkClass} href="/dashboard/tests">Revenir aux travaux et aux revues →</Link><button type="button" className={linkClass} onClick={prepareExport}>Préparer l’export du dossier</button></div>
     <p role="status" className="mt-2 text-[13px] text-[var(--pb-text-muted)]">{message}</p>
     {bundle && bundle.manifest.sourceSnapshotHash === snapshot.snapshotHash && <div className="my-4 flex flex-wrap gap-x-4 gap-y-2"><button type="button" className={linkClass} onClick={() => download("workpapers.json", bundle.json, "application/json")}>Snapshot JSON</button><button type="button" className={linkClass} onClick={() => download("workpapers.md", bundle.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className={linkClass} onClick={() => download("manifest.json", JSON.stringify(bundle.manifest, null, 2), "application/json")}>Manifeste</button></div>}
-  </main>;
+  </div>;
 }
