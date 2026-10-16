@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ApiError } from "@/lib/api/errors";
 import { eventDenominatorText } from "../closing-events";
-import { CL_DOSSIER, type ClosingHarness, type ClosingViewBody } from "./closing-harness";
-import { addSolo } from "./closing-c14-fixtures";
-import { dossierMap, eventsHarness, eventsProgramme, read } from "./closing-events-fixtures";
+import { CL_DOSSIER, createClosingHarness, type ClosingHarness, type ClosingViewBody } from "./closing-harness";
+import { addSolo, sheet, source } from "./closing-c14-fixtures";
+import { dossierMap, eventsHarness, eventsProgramme, EV_PERIOD, EV_PERIOD_ID, read } from "./closing-events-fixtures";
 import type { EventMapInput } from "../transversal-events";
 
 /**
@@ -40,6 +40,8 @@ describe("C14 suite — décisions de revue des effets d’événements dans le 
     const indicator = v.evaluation.indicators.find(i => i.id === "evenements")!;
     expect([indicator.numerator, indicator.denominator, indicator.segments.find(sg => sg.label.startsWith("F-101"))!.state]).toEqual([1, 4, "partial"]);
     expect(eventDenominatorText(v.projection.denominators.events, null)).toContain("étape C05 : 3 en attente, 0 apprécié(s) non corrigé(s), 1 corrigé(s)");
+    // La limite de la projection (reprise par l'export) décrit les décisions enregistrées, jamais leur absence.
+    expect(v.projection.limitations.find(l => l.startsWith("Effets des événements transversaux"))).toContain("Étape C05 de chaque effet issue des décisions journalisées par le dossier (corrections et appréciations) : 1 effet(s) avec une décision qui s’applique, 0 décision(s) à réexaminer ; aucun effet n’est recalculé.");
     expect(v.journal.at(-1)!.label).toMatch(/^Effet d’événement F-101 \(FAE, compté une fois 1 000,00 €\) corrigé partiellement \(600,00 €\) — Écriture FAE F-101 passée au 31\/03\/2026 v1 — carte [a-f0-9]{12}…$/);
     // Catégorie distincte : aucune anomalie journalisée n'est créée ni corrigée.
     expect(v.projection.findings.totals).toMatchObject({ total: 0, knownCorrected: { amount: "0.00" } });
@@ -66,6 +68,25 @@ describe("C14 suite — décisions de revue des effets d’événements dans le 
     expect((await blind.command({ command: "assess_event_effect", eventId: f202.eventId, basisHash: f202.basisHash!, text: "Appréciation" }, "reviewer")).body.error).toBe("CL_EVENT_MAP_UNREAD");
     // Rien n'a été journalisé par ces refus.
     expect((await h.view()).projection.findings.events.effects.every(x => !x.decisions.length)).toBe(true);
+  });
+
+  it("course carte / dossier : une feuille porteuse avancée ou une source remplacée depuis la lecture de la carte rend la décision discordante (409) ; rien n'est journalisé", async () => {
+    // La carte lit RPNE r1 v1 comme courante ; la transaction du dossier observe déjà la révision 2 (brouillon) de la même lignée.
+    const revised = sheet({ id: "RUN-RPNE-R2", rootId: "RUN-RPNE", revision: 2, version: 1, state: "draft", template: "payables.rpne", period: EV_PERIOD });
+    const h = eventsHarness(dossierMap(), [revised]);
+    await eventsProgramme(h);
+    const refused = await decide(h, "assess_event_effect", "FS-202", {}, "reviewer");
+    expect([refused.status, refused.body.error]).toEqual([409, "CL_EVENT_EFFECT_STALE"]);
+    // AV-106 n'est porté que par Achats (r1 v1, toujours courante) : la décision s'applique.
+    expect((await decide(h, "assess_event_effect", "AV-106", {}, "reviewer")).status).toBe(200);
+    expect((await h.view()).journal.filter(l => l.type === "assess_event_effect").map(l => l.label)).toEqual([expect.stringMatching(/^Effet d’événement AV-106 /)]);
+    // Source Achats remplacée depuis le gel (adaptateur Clients : l'import figé n'est plus en tête) : AV-106 refusé à son tour.
+    const run = (id: string, template: string, importIds: string[] = []) => sheet({ id, template, state: "executed", version: 1, outcome: "exceptions_detected", period: EV_PERIOD, importIds });
+    const replaced = createClosingHarness({ periodId: EV_PERIOD_ID, events: async () => read(dossierMap()),
+      cycles: [source("clients", [run("RUN-ACH", "payables.purchases", ["IMP-ANCIEN"]), run("RUN-RPNE", "payables.rpne"), run("RUN-CLI", "clients.sales")], [{ document_type: "payables_invoices", import_id: "IMP-NOUVEAU" }])] });
+    await eventsProgramme(replaced);
+    expect((await decide(replaced, "assess_event_effect", "AV-106", {}, "reviewer")).body.error).toBe("CL_EVENT_EFFECT_STALE");
+    expect((await replaced.view()).journal.some(l => l.type === "assess_event_effect")).toBe(false);
   });
 
   it("appréciation : par une autre personne (non corrigé, apprécié), en relecture personnelle nommée (condition de revue professionnelle), jamais par le préparateur des feuilles", async () => {

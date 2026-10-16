@@ -121,7 +121,8 @@ export function projectDossier(input: { dossierId: string; periodId: string; seq
     exclusions, noOpinion: e.noOpinion,
     limitations: ["Projection du journal et des feuilles observées à leur version courante : aucun moteur n’est recalculé ici.", "Une feuille verrouillée ne couvre que la procédure et la population rattachées ; les autres feuilles restent listées.",
       "La relecture personnelle nommée (mode solo) ne vaut pas revue par une autre personne ; la validation professionnelle reste distincte.", "Montants inconnus comptés à part, jamais pour zéro ; aucune comparaison aux seuils documentés.",
-      e.events.status === "lue" ? "Effets des événements transversaux lus dans la carte C11 (empreinte " + e.events.map!.hash.slice(0, 12) + "…) à leur étape C05 : catégorie distincte des anomalies journalisées, sans total commun ; aucune décision de revue n’y est enregistrée par le dossier."
+      e.events.status === "lue" ? "Effets des événements transversaux lus dans la carte C11 (empreinte " + e.events.map!.hash.slice(0, 12) + "…) : catégorie distincte des anomalies journalisées, sans total commun. Étape C05 de chaque effet issue des décisions journalisées par le dossier (corrections et appréciations) : "
+        + e.denominators.events.decided + " effet(s) avec une décision qui s’applique, " + e.denominators.events.toReexamine + " décision(s) à réexaminer" + (e.denominators.events.orphanDecisions ? ", " + e.denominators.events.orphanDecisions + " décision(s) sans effet dans la carte" : "") + " ; aucun effet n’est recalculé."
         : "Effets des événements transversaux non établis (" + e.events.reason + ") : inconnus, jamais comptés pour zéro.",
       "Le chaînage d’empreintes est un contrôle d’intégrité local : ni signature ni archivage à valeur probante."],
   };

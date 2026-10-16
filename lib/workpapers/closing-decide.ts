@@ -4,7 +4,7 @@ import type { ReviewKind } from "@/lib/auth/review-kind";
 import { engineProcedure, isControl, stepsFor, type CitationInput, type ClosingCommand, type PieceKind, type ResolvedCitation } from "./closing-contract";
 import { fingerprint, sheetLineages, type CycleObservation } from "./closing-cycles";
 import { evaluateClosing } from "./closing-evaluate";
-import { currentEffect, EVENT_MAP_NOT_READ, type EventMapRead } from "./closing-events";
+import { contributionsDiscordance, currentEffect, EVENT_MAP_NOT_READ, type EventMapRead } from "./closing-events";
 import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type Attribution, type ClosingEventType, type ClosingState } from "./closing-journal";
 
 /**
@@ -221,6 +221,8 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const now = currentEffect(read, command.eventId);
       if (!now) throw new Error(read.map.events.some(e => e.eventId === command.eventId && e.effect) ? "CL_EVENT_EFFECT_UNDETERMINED" : "CL_EVENT_EFFECT_UNKNOWN");
       if (now.basisHash !== command.basisHash) throw new Error("CL_EVENT_EFFECT_STALE");
+      // The map was read before this transaction: a sheet carrying the effect that has moved since (new version or revision, replaced source) makes the read discordant.
+      if (contributionsDiscordance(now.basis, ctx.observations)) throw new Error("CL_EVENT_EFFECT_STALE");
       // A group the map already carries past « pending » is not decided twice.
       if (now.cluster.reviewStage !== "pending") throw new Error("CL_EVENT_EFFECT_DECIDED_ELSEWHERE");
       const t = s.eventTreatments[command.eventId], c = t?.correction;

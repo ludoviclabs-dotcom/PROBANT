@@ -7,6 +7,7 @@ import type { ResolvedCitation } from "./closing-contract";
 import type { EventObservation, TransversalEvent, TransversalEventMap } from "./transversal-events";
 import type { LineageAssignment, LineageView, RemainingItem, ReviewBasis } from "./closing-evaluate";
 import { isSuperseded, type ClosingState, type EventEffectBasis, type EventTreatment } from "./closing-journal";
+import { sheetLineages, type CycleObservation } from "./closing-cycles";
 
 /**
  * Effets des événements transversaux (carte C11) versés dans le dossier de clôture.
@@ -112,6 +113,20 @@ export function currentEffect(read: EventMapRead, eventId: string) {
   if (read.status !== "lue") return null;
   const e = read.map.events.find(x => x.eventId === eventId), basis = e ? effectBasis(e) : null;
   return e && basis ? { event: e, basis, basisHash: effectBasisHash(basis), cluster: e.effect!.exposure.clusters[0], mapHash: read.map.hash } : null;
+}
+/**
+ * Concordance of the map, read before the file transaction, with the cycle sheets the transaction observes: each sheet carrying the effect must still be
+ * the current head of its lineage, at the version the map read, with its sources current for its family. Returns the discordance, or null.
+ */
+export function contributionsDiscordance(basis: EventEffectBasis, observations: CycleObservation[]): string | null {
+  const lineages = sheetLineages(observations);
+  for (const c of basis.contributions) {
+    const l = lineages.find(x => x.procedure === c.procedureId && (x.current.runId === c.runId || x.previous.some(p => p.runId === c.runId)));
+    if (!l) return c.procedureId + " " + c.runId + " non observée par le dossier";
+    if (l.current.runId !== c.runId || l.current.version !== c.version) return c.procedureId + " " + c.runId + " v" + c.version + " lue par la carte, " + l.current.runId + " r" + l.current.revision + " v" + l.current.version + " courante dans le dossier";
+    if (l.current.sourcesCurrent === false) return c.procedureId + " " + c.runId + " : source remplacée depuis le gel";
+  }
+  return null;
 }
 const basisOf = (kind?: string): ReviewBasis => !kind ? "autre_personne" : kind === "personal" ? "personnelle" : kind === "simulated_second_identity" ? "simulation" : "autre_personne";
 

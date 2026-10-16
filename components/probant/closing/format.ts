@@ -49,7 +49,7 @@ const MESSAGES: Record<string, string> = {
   CL_EVENT_MAP_UNREAD: "Carte des événements non lue sur ce serveur : aucune décision sur un effet ne peut être enregistrée.",
   CL_EVENT_EFFECT_UNKNOWN: "Effet introuvable dans la carte actuelle : rechargez le dossier.",
   CL_EVENT_EFFECT_UNDETERMINED: "Groupe C05 indéterminé pour cet effet : aucune décision avant que les feuilles concordent.",
-  CL_EVENT_EFFECT_STALE: "L’effet a changé depuis votre lecture (montant, sens ou feuilles sources) : rechargez avant de décider.",
+  CL_EVENT_EFFECT_STALE: "L’effet ou une feuille qui le porte a changé depuis votre lecture (montant, sens, version ou source) : rechargez avant de décider.",
   CL_EVENT_EFFECT_DECIDED_ELSEWHERE: "La carte porte déjà une étape C05 pour cet effet : aucune décision du dossier ne s’y ajoute.",
   CL_EVENT_EFFECT_ALREADY_CORRECTED: "Une correction applicable est déjà enregistrée pour cet effet.",
   CL_PERSONAL_PROFILE_REQUIRED: "Marquage personnel réservé au profil local solo avec relecture personnelle nommée.",

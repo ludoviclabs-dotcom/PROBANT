@@ -32,7 +32,7 @@ Lot rédigé le 15/10/2026, en deux étapes. Il lève la première réserve du c
 
 | Élément | Règle |
 |---|---|
-| Ce que la décision vise | L'effet tel que le serveur le lit au moment de la commande : événement, montant compté une fois, sens, feuilles porteuses à leur version (« fondement », empreinte `basisHash`). Le navigateur renvoie l'empreinte qu'il a lue ; un effet changé depuis = conflit (409), jamais une décision reportée en silence |
+| Ce que la décision vise | L'effet tel que le serveur le lit au moment de la commande : événement, montant compté une fois, sens, feuilles porteuses à leur version (« fondement », empreinte `basisHash`). Le navigateur renvoie l'empreinte qu'il a lue ; un effet changé depuis = conflit (409), jamais une décision reportée en silence. La carte étant lue avant la transaction du dossier, le serveur revérifie dans cette transaction que chaque feuille porteuse est encore la tête de sa lignée, à la version lue par la carte, sources en tête pour sa famille ; sinon, conflit (409) |
 | Correction | Permission de préparation ; pièces du dossier, version courante, pas une déclaration de la direction seule (même règle que `correct_misstatement`) ; montant partiel facultatif, positif et strictement inférieur à l'effet compté une fois : le reste est résiduel. Statut C05 « corrige » |
 | Appréciation | Permission de revue ; par une autre personne que les préparateurs des feuilles qui portent l'effet, ou en relecture personnelle nommée (C07), comptée à part comme condition de revue professionnelle ; seconde identité simulée : ne vaut pas appréciation. Statut C05 « valide » (non corrigé), affiché « Non corrigé — apprécié (anomalie résiduelle) » |
 | Préséance | Une correction applicable prime ; une appréciation antérieure est alors « remplacée ». Une correction applicable ne se double pas et interdit l'appréciation (comme pour une anomalie) |
@@ -76,6 +76,7 @@ Attendus posés à la main avant exécution, à partir de `docs/recette/c11/RECE
 | Cas | Attendu à la main |
 |---|---|
 | Correction partielle de F-101 | 600,00 corrigés sur 1 000,00 → résiduel **400,00** ; pont hausse : 0 en attente, 600,00 corrigé, 400,00 résiduel ; baisse inchangée (3 500,00 en attente) ; 3 travaux restants ; indicateur 1 / 4 ; totaux des anomalies inchangés (0) |
+| Course carte / dossier | RPNE déjà en révision 2 dans le dossier → appréciation de FS-202 refusée (409) ; AV-106, porté par Achats seul, accepté ; source Achats remplacée depuis le gel → AV-106 refusé (409) ; rien de journalisé pour les refus |
 | Refus | Effet lu périmé → 409 ; montant partiel 1 000,00, 1 200,00, 0,00, −100,00 → refusés ; déclaration de la direction seule → refusée ; événement sans effet → inconnu ; préparateur qui apprécie → 403 ; carte non lue → refusé ; rien de journalisé |
 | Appréciation | FS-202 par le relecteur et AV-106 en relecture personnelle → baisse : **2 000,00** en attente, **1 500,00** apprécié non corrigé ; AV-106 en condition de revue professionnelle ; relecteur préparateur des feuilles → refusé |
 | Péremption ciblée | Pièce citée remplacée → correction de F-101 à réexaminer, FS-202 intacte ; nouvelle correction sur la v2 → s'applique ; RPNE retirée pour F-101 → effet changé (1 observation), décision à réexaminer, ancienne empreinte refusée (409) ; AV-106 retiré de la carte → décision orpheline, sans blocage, 3 effets comptés |
@@ -90,7 +91,7 @@ Le dossier lit la carte par `PayablesRuntime.cutoffEvents` + `eventMapRead` (com
 
 À 1440, 1024 et 390 px : même phrase dans le bandeau, la carte de couverture, la synthèse et l'export ; `/cutoff` affiche les mêmes nombres. Parcours de décision depuis l'onglet Anomalies : correction partielle de F-101 par le préparateur (pièce citée), puis appréciation de FS-202 par le relecteur → « 2 en attente, 1 apprécié(s) non corrigé(s), 1 corrigé(s) » dans les cinq lectures ; dès 1024 px le tableau des effets tient sans défilement ; axe sans violation grave à 1440.
 
-Contrôle des tests : quatre mutations volontaires font échouer la recette (toute observation déclarée « comptée » ; étape forcée « en attente » ; péremption de l'effet ignorée ; décision non appliquée au groupe C05).
+Contrôle des tests : cinq mutations volontaires font échouer la recette (toute observation déclarée « comptée » ; étape forcée « en attente » ; péremption de l'effet ignorée ; décision non appliquée au groupe C05 ; revérification des feuilles porteuses retirée).
 
 ### Exécutions (15/10/2026)
 
@@ -106,7 +107,7 @@ Captures : `docs/probant-lots/c14-evenements-captures/` (synthèse et décisions
 
 ## 6. Limites restantes
 
-- **Deux lectures, pas une transaction.** La carte est lue juste avant la transaction du dossier, par son propre runtime : une feuille modifiée entre les deux lectures apparaît comme « lecture discordante », une décision sur un effet changé est refusée (409) et l'export de l'état précédent aussi, mais les deux lectures ne sont pas atomiques.
+- **Deux lectures, pas une transaction.** La carte est lue juste avant la transaction du dossier, par son propre runtime. Une feuille modifiée entre les deux lectures apparaît comme « lecture discordante » ; une décision est refusée (409) si une feuille porteuse a avancé ou si une source a été remplacée (revérification dans la transaction du dossier, revue de PR #97) ; l'export de l'état précédent aussi. Les deux lectures ne sont pas atomiques : une feuille qui n'existait pas à la lecture de la carte n'est pas un effet de la carte.
 - **Comptabilisation non vérifiée par l'outil.** « Corrigé » signifie qu'une correction est documentée par une pièce du dossier ; l'outil ne relit pas le FEC pour constater l'écriture.
 - **Pas de décision « écarté ».** C05 connaît l'étape « écarté » ; le dossier ne l'offre pas (un candidat erroné se traite dans sa feuille de cycle, qui le fait disparaître de la carte).
 - **TVA hors effet.** L'effet est comptable (poste résultat) ; la période de TVA et les règlements restent sur `/cutoff`.
