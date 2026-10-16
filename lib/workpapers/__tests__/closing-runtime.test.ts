@@ -26,7 +26,7 @@ describe("CL-1901 recette synthétique : programme, travaux manuels, clôture", 
     expect(v.evaluation.entity).toBe("ALPHA SAS (synthétique)");
     expect(Object.fromEntries(v.evaluation.procedures.map(p => [p.procedureId, p.status]))).toEqual({
       "P-01": "cycle_verrouille", "P-02": "en_cours", "P-03": "en_cours", "P-04": "population_absente", "P-05": "revue", "P-06": "en_cours", "P-07": "perimetre_requis", "P-08": "non_applicable" });
-    expect(proc(v, "P-01").engine!.best).toMatchObject({ procedure: "provisions.register", state: "locked", family: "pv" });
+    expect(proc(v, "P-01").engine!.retained).toMatchObject({ procedure: "provisions.register", state: "locked", family: "pv" });
     expect(indicator(v, "cycles")).toEqual([1, 1]);
     expect(indicator(v, "revues")).toEqual([2, 7]);
     expect(indicator(v, "conclues")).toEqual([2, 7]);
@@ -42,7 +42,8 @@ describe("CL-1901 recette synthétique : programme, travaux manuels, clôture", 
     expect(codes(v)).toEqual(expect.arrayContaining(["PAIR_UNCOVERED:R-03:solde_evaluation", "CONTRADICTION_OPEN:C-01", "REVIEW_POINT_OPEN:RP-02", "MISSTATEMENT_UNASSESSED:A-03", "LIMITATION_UNASSESSED:L-01"]));
     // No opinion is ever generated; the authorised professional cannot validate an incomplete file either.
     expect(v.evaluation.noOpinion).toContain("aucune opinion");
-    expect(JSON.stringify(v)).not.toMatch(/certifi|sans réserve|opinion favorable/i);
+    // C14: the capability exclusions now listed say what is « non certifié(e)s »; an explicit negation is not a certification claim.
+    expect(JSON.stringify(v)).not.toMatch(/(?<!non )certifi|sans réserve|opinion favorable/i);
     expect(await h.error({ command: "validate_closing", text: "Clôture" }, "signer")).toEqual({ status: 422, error: "CL_CLOSING_BLOCKED" });
     expect(await h.error({ command: "validate_closing", text: "Clôture" }, "signer-nocap")).toEqual({ status: 403, error: "CL_CLOSING_AUTHORITY_FORBIDDEN" });
     expect((await h.error({ command: "validate_closing", text: "Clôture" }, "preparer")).status).toBe(403);
@@ -271,7 +272,10 @@ describe("CL-1902 péremption, validation de clôture, concurrence et accès", {
     expect(await h.error({ command: "record_work", procedureId: "P-01", step: "execution", performedOn: "2027-01-10", object: "x", done: "x", itemsExamined: null, result: "sans_exception", citations: [] })).toEqual({ status: 422, error: "CL_ENGINE_WORK_IN_CYCLE" });
     expect(await h.error({ command: "set_population", procedureId: "P-01", population: { status: "absent", reason: "x" } })).toEqual({ status: 422, error: "CL_ENGINE_POPULATION_FROM_CYCLE" });
     expect(await h.error({ command: "conclude_procedure", procedureId: "P-01", text: "x", citations: [] })).toEqual({ status: 422, error: "CL_ENGINE_CONCLUDED_IN_CYCLE" });
-    expect(await h.error({ command: "set_procedure", procedureId: "P-10", riskIds: ["R-01"], assertions: ["solde_evaluation"], nature: "engine", engine: "provisions.register", label: "x", owner: "x" })).toEqual({ status: 422, error: "CL_ENGINE_ALREADY_LINKED" });
+    // C14: a second programme procedure may observe the same cycle procedure (another perimeter); neither is then resolved implicitly.
+    const shared = (await h.ok({ command: "set_procedure", procedureId: "P-10", riskIds: ["R-01"], assertions: ["solde_evaluation"], nature: "engine", engine: "provisions.register", label: "x", owner: "x" })).view;
+    expect([proc(shared, "P-01").status, proc(shared, "P-10").status]).toEqual(["cycle_a_rattacher", "cycle_a_rattacher"]);
+    expect(proc(shared, "P-01").remaining.map(r => r.code)).toEqual(["SHEET_BINDING_REQUIRED"]);
     expect(await h.error({ command: "set_procedure", procedureId: "P-10", riskIds: ["R-01"], assertions: ["solde_evaluation"], nature: "engine", label: "x", owner: "x" })).toEqual({ status: 422, error: "CL_ENGINE_REQUIRED" });
     expect(await h.error({ command: "set_procedure", procedureId: "P-10", riskIds: ["R-04"], assertions: ["flux_classification"], nature: "detail", label: "x", owner: "x" })).toEqual({ status: 422, error: "CL_ASSERTION_NOT_IN_RISK" });
     expect(await h.error({ command: "set_risk", riskId: "R-04", cycle: "tresorerie", label: "x", assertions: ["solde_existence"], assessment: null })).toEqual({ status: 422, error: "CL_RISK_ASSERTION_IN_USE" });

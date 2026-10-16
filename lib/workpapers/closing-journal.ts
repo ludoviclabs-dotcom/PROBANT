@@ -1,7 +1,9 @@
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { stableSha256 } from "@/lib/synthesis/canonical";
+import type { Money } from "@/lib/canonical-model/money";
+import type { ReviewKind } from "@/lib/auth/review-kind";
 import type { CycleFingerprint } from "./closing-cycles";
-import type { ClosingAmount, ClosingAssertion, ClosingCommandName, ClosingCycle, ClosingNature, ClosingStep, EngineProcedureId, PieceKind, ResolvedCitation } from "./closing-contract";
+import type { ClosingAmount, ClosingAssertion, ClosingCommandName, ClosingCycle, ClosingMilestone, ClosingNature, ClosingStep, ClosingThreshold, CycleFamily, EngineProcedureId, PieceKind, ResolvedCitation } from "./closing-contract";
 
 /**
  * Append-only journal of the professional file. Every event carries its author and server time; the state is a pure fold of the journal.
@@ -23,23 +25,38 @@ export type RequestClosure = Stamp & ({ outcome: "received"; piece: ResolvedCita
 export interface PieceRequest extends Stamp { requestId: string; procedureId: string; description: string; requestedFrom: string; closed?: RequestClosure }
 export interface PieceVersion extends Stamp { pieceVersionId: string; pieceId: string; version: number; fileName: string; label: string; sha256: string; size: number; kind: PieceKind }
 export interface Conclusion extends Stamp { text: string; reach?: "conception_mise_en_oeuvre" | "fonctionnement"; citations: ResolvedCitation[]; basisHash: string }
-export interface Review extends Stamp { decision: "approved" | "changes_requested"; text: string; conclusionSeq: number; basisHash: string }
+/** Review type of a human decision (C07 vocabulary), set by the server: absent = review by another identity (historical shape). */
+export interface Attribution { kind?: ReviewKind; reviewerName?: string }
+export interface Review extends Stamp, Attribution { decision: "approved" | "changes_requested"; text: string; conclusionSeq: number; basisHash: string }
 export type ReviewTarget = { kind: "procedure"; id: string } | { kind: "misstatement"; id: string } | { kind: "contradiction"; id: string } | { kind: "dossier" };
-export interface ReviewPoint extends Stamp { pointId: string; target: ReviewTarget; text: string; answers: (Stamp & { text: string; citations: ResolvedCitation[] })[]; closed?: Stamp & { text: string } }
+export interface ReviewPoint extends Stamp { pointId: string; target: ReviewTarget; text: string; answers: (Stamp & { text: string; citations: ResolvedCitation[] })[]; closed?: Stamp & Attribution & { text: string } }
+/** A correction is full unless a corrected amount, smaller than the known misstatement, is recorded: the remainder stays a residual misstatement (C05 vocabulary). */
 export interface Misstatement extends Stamp { misstatementId: string; procedureId?: string; cycle: ClosingCycle; description: string; amount: ClosingAmount; citations: ResolvedCitation[];
-  correction?: Stamp & { text: string; citations: ResolvedCitation[] }; assessment?: Stamp & { text: string } }
-export interface Limitation extends Stamp { limitationId: string; cycle: ClosingCycle; description: string; procedureIds: string[]; assessment?: Stamp & { text: string } }
+  correction?: Stamp & { text: string; citations: ResolvedCitation[]; correctedAmount?: Money }; assessment?: Stamp & Attribution & { text: string } }
+export interface Limitation extends Stamp { limitationId: string; cycle: ClosingCycle; description: string; procedureIds: string[]; assessment?: Stamp & Attribution & { text: string } }
 export interface Contradiction extends Stamp { contradictionId: string; left: ResolvedCitation; right: ResolvedCitation; description: string; procedureIds: string[]; resolution?: Stamp & { text: string; citations: ResolvedCitation[] } }
 export interface ClosingValidation extends Stamp { text: string; headHash: string; headSeq: number; cycles: CycleFingerprint[]; reopened?: Stamp & { reason: string } }
+/** What a programme procedure covers in a cycle (C14): one sheet lineage (root), with the entity, exercise, perimeter, run, version and fingerprint seen when it was bound. */
+export interface SheetBinding extends Stamp { procedureId: string; engine: EngineProcedureId; rootId: string; perimeter: string; family: CycleFamily; runId: string; revision: number; version: number; state: string;
+  contentHash: string; populationHash: string | null; populationSize: number | null; period: { startDate: string; closingDate: string; asOfDate: string }; entity: string; exercise: { startDate: string; closingDate: string } }
+/** A sheet lineage deliberately left out of the programme, with its reason: listed, excluded from the denominators, never silently covered. */
+export interface SheetExclusion extends Stamp { engine: EngineProcedureId; rootId: string; reason: string; runId: string; revision: number; version: number; contentHash: string }
+export interface Milestone extends Stamp { milestone: ClosingMilestone; label?: string; date: string; citations: ResolvedCitation[] }
+export interface Threshold extends Stamp { threshold: ClosingThreshold; amount: ClosingAmount; basis?: string; rate?: string; rationale: string; citations: ResolvedCitation[] }
+/** Solo mode: a personal file marked finished, with the limits visible at that time. Never a professional validation. */
+export interface PersonalCompletion extends Stamp { text: string; reviewerName: string; headHash: string; headSeq: number; cycles: CycleFingerprint[]; limits: { code: string; label: string }[] }
 export interface ClosingState {
   seq: number; headHash: string; opened?: Stamp & { period: AccountingPeriod; entity: string };
   risks: Record<string, RiskEntry>; procedures: Record<string, ProcedureEntry>; populations: Record<string, PopulationEntry>; applicability: Record<string, ApplicabilityEntry>;
   itgcScopes: Record<string, ItgcScopeEntry>; records: WorkRecord[]; requests: Record<string, PieceRequest>; pieces: PieceVersion[];
   conclusions: Record<string, Conclusion>; reviews: Record<string, Review>; reviewPoints: Record<string, ReviewPoint>; misstatements: Record<string, Misstatement>;
   limitations: Record<string, Limitation>; contradictions: Record<string, Contradiction>; validations: ClosingValidation[];
+  bindings: Record<string, SheetBinding>; exclusions: Record<string, SheetExclusion>; milestones: Record<string, Milestone>; thresholds: Record<string, Threshold>; personalCompletions: PersonalCompletion[];
 }
 export const emptyState = (): ClosingState => ({ seq: 0, headHash: GENESIS_HASH, risks: {}, procedures: {}, populations: {}, applicability: {}, itgcScopes: {}, records: [], requests: {}, pieces: [],
-  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [] });
+  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [], bindings: {}, exclusions: {}, milestones: {}, thresholds: {}, personalCompletions: [] });
+export const exclusionKey = (engine: string, rootId: string) => engine + "|" + rootId;
+const attribution = (p: Record<string, never>): Attribution => ({ ...(p.kind ? { kind: p.kind } : {}), ...(p.reviewerName ? { reviewerName: p.reviewerName } : {}) });
 
 /** Identifiers generated by the server, in journal order: two concurrent writers can never pick the same one. */
 export const nextId = {
@@ -87,8 +104,11 @@ function apply(s: ClosingState, e: ClosingEvent) {
   switch (e.type) {
     case "open": s.opened = { ...stamp, period: p.period, entity: p.entity }; break;
     case "set_risk": s.risks[p.riskId] = { ...stamp, riskId: p.riskId, cycle: p.cycle, label: p.label, assertions: p.assertions, assessment: p.assessment, revision: (s.risks[p.riskId]?.revision ?? 0) + 1 }; break;
-    case "set_procedure": s.procedures[p.procedureId] = { ...stamp, procedureId: p.procedureId, riskIds: p.riskIds, assertions: p.assertions, nature: p.nature, label: p.label, owner: p.owner,
-      ...(p.engine ? { engine: p.engine } : {}), revision: (s.procedures[p.procedureId]?.revision ?? 0) + 1 }; break;
+    case "set_procedure":
+      // A binding follows its engine: changing the nature or the observed cycle procedure drops it.
+      if (s.bindings[p.procedureId] && s.bindings[p.procedureId].engine !== p.engine) delete s.bindings[p.procedureId];
+      s.procedures[p.procedureId] = { ...stamp, procedureId: p.procedureId, riskIds: p.riskIds, assertions: p.assertions, nature: p.nature, label: p.label, owner: p.owner,
+        ...(p.engine ? { engine: p.engine } : {}), revision: (s.procedures[p.procedureId]?.revision ?? 0) + 1 }; break;
     case "set_population": s.populations[p.procedureId] = { ...stamp, ...(p.population as object) } as PopulationEntry; break;
     case "set_applicability": s.applicability[p.procedureId] = { ...stamp, applicable: p.applicable, ...(p.reason ? { reason: p.reason } : {}), citations: p.citations }; break;
     case "set_itgc_scope": s.itgcScopes[p.procedureId] = { ...stamp, systems: p.systems, processes: p.processes, from: p.from, to: p.to, method: p.method, citations: p.citations }; break;
@@ -97,19 +117,29 @@ function apply(s: ClosingState, e: ClosingEvent) {
     case "close_piece_request": s.requests[p.requestId] = { ...s.requests[p.requestId], closed: { ...stamp, ...(p.outcome === "received" ? { outcome: "received", piece: p.piece } : { outcome: "cancelled", reason: p.reason }) } as RequestClosure }; break;
     case "upload_piece": s.pieces.push({ ...stamp, pieceVersionId: p.pieceVersionId, pieceId: p.pieceId, version: p.version, fileName: p.fileName, label: p.label, sha256: p.sha256, size: p.size, kind: p.kind }); break;
     case "conclude_procedure": s.conclusions[p.procedureId] = { ...stamp, text: p.text, ...(p.reach ? { reach: p.reach } : {}), citations: p.citations, basisHash: p.basisHash }; break;
-    case "review_procedure": s.reviews[p.procedureId] = { ...stamp, decision: p.decision, text: p.text, conclusionSeq: p.conclusionSeq, basisHash: p.basisHash }; break;
+    case "review_procedure": s.reviews[p.procedureId] = { ...stamp, ...attribution(p), decision: p.decision, text: p.text, conclusionSeq: p.conclusionSeq, basisHash: p.basisHash }; break;
     case "raise_review_point": s.reviewPoints[p.pointId] = { ...stamp, pointId: p.pointId, target: p.target, text: p.text, answers: [] }; break;
     case "answer_review_point": s.reviewPoints[p.pointId].answers.push({ ...stamp, text: p.text, citations: p.citations }); break;
-    case "close_review_point": s.reviewPoints[p.pointId].closed = { ...stamp, text: p.text }; break;
+    case "close_review_point": s.reviewPoints[p.pointId].closed = { ...stamp, ...attribution(p), text: p.text }; break;
     case "record_misstatement": s.misstatements[p.misstatementId] = { ...stamp, misstatementId: p.misstatementId, ...(p.procedureId ? { procedureId: p.procedureId } : {}), cycle: p.cycle, description: p.description, amount: p.amount, citations: p.citations }; break;
-    case "correct_misstatement": s.misstatements[p.misstatementId].correction = { ...stamp, text: p.text, citations: p.citations }; break;
-    case "assess_misstatement": s.misstatements[p.misstatementId].assessment = { ...stamp, text: p.text }; break;
+    case "correct_misstatement": s.misstatements[p.misstatementId].correction = { ...stamp, text: p.text, citations: p.citations, ...(p.correctedAmount ? { correctedAmount: p.correctedAmount } : {}) }; break;
+    case "assess_misstatement": s.misstatements[p.misstatementId].assessment = { ...stamp, ...attribution(p), text: p.text }; break;
     case "record_limitation": s.limitations[p.limitationId] = { ...stamp, limitationId: p.limitationId, cycle: p.cycle, description: p.description, procedureIds: p.procedureIds }; break;
-    case "assess_limitation": s.limitations[p.limitationId].assessment = { ...stamp, text: p.text }; break;
+    case "assess_limitation": s.limitations[p.limitationId].assessment = { ...stamp, ...attribution(p), text: p.text }; break;
     case "record_contradiction": s.contradictions[p.contradictionId] = { ...stamp, contradictionId: p.contradictionId, left: p.left, right: p.right, description: p.description, procedureIds: p.procedureIds }; break;
     case "resolve_contradiction": s.contradictions[p.contradictionId].resolution = { ...stamp, text: p.text, citations: p.citations }; break;
     case "validate_closing": s.validations.push({ ...stamp, text: p.text, headHash: p.headHash, headSeq: p.headSeq, cycles: p.cycles }); break;
     case "reopen": s.validations[s.validations.length - 1].reopened = { ...stamp, reason: p.reason }; break;
+    case "bind_sheet": {
+      const binding = { ...stamp, ...(p as object) } as SheetBinding;
+      s.bindings[binding.procedureId] = binding;
+      delete s.exclusions[exclusionKey(binding.engine, binding.rootId)];
+      break;
+    }
+    case "exclude_sheet": s.exclusions[exclusionKey(p.engine, p.rootId)] = { ...stamp, engine: p.engine, rootId: p.rootId, reason: p.reason, runId: p.runId, revision: p.revision, version: p.version, contentHash: p.contentHash }; break;
+    case "set_milestone": s.milestones[p.milestone] = { ...stamp, milestone: p.milestone, ...(p.label ? { label: p.label } : {}), date: p.date, citations: p.citations }; break;
+    case "set_threshold": s.thresholds[p.threshold] = { ...stamp, threshold: p.threshold, amount: p.amount, ...(p.basis ? { basis: p.basis } : {}), ...(p.rate ? { rate: p.rate } : {}), rationale: p.rationale, citations: p.citations }; break;
+    case "mark_personal_complete": s.personalCompletions.push({ ...stamp, text: p.text, reviewerName: p.reviewerName, headHash: p.headHash, headSeq: p.headSeq, cycles: p.cycles, limits: p.limits }); break;
     default: throw new Error("CL_JOURNAL_CORRUPTED");
   }
 }

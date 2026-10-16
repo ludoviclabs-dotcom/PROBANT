@@ -9,12 +9,13 @@ export * from "./procedures";
  * 1.3.0 (C12): local payroll and leave procedures, hr persistence family, separate RH access.
  * 1.2.1: Capitaux propres sheet rule 1.1.1 (SCA through the renvoi of C. com. L226-1); a 1.1.0 sheet stays current unless declared SCA.
  * 1.4.0 (C13): Dettes financières — journal cycle and versioned loans sheet /emprunts (loans.review) over the historical reconciliation.
+ * 1.4.1 (C14): Provisions mission restitution and export at exact version; the closing file binds one sheet lineage per programme procedure and reads sources through family adapters.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.4.0";
+export const CAPABILITY_REGISTRY_VERSION = "1.4.1";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
-const synthesisRoutes: Partial<Record<CapabilityCycleId, string>> = { clients: "/clients-framing/synthesis", achats: "/payables/synthesis", tresorerie: "/tresorerie/synthese", immobilisations: "/immobilisations/synthese", capitaux_propres: "/capitaux-propres/synthese", fiscal: "/fiscal/synthese" };
+const synthesisRoutes: Partial<Record<CapabilityCycleId, string>> = { clients: "/clients-framing/synthesis", achats: "/payables/synthesis", tresorerie: "/tresorerie/synthese", immobilisations: "/immobilisations/synthese", provisions: "/provisions/synthese", capitaux_propres: "/capitaux-propres/synthese", fiscal: "/fiscal/synthese" };
 const workshopCycles: Record<string, CapabilityCycleId> = { cash: "tresorerie", cutoff: "transversal", fournisseurs: "achats", clients: "clients", immobilisations: "immobilisations", capitaux: "capitaux_propres", achats: "achats", conges: "paie", participations: "participations", is: "fiscal" };
 export const WORKSHOPS = WORKSHOP_DEFINITIONS.map(([id, label, maturity, limitation]) => ({ id, cycle: workshopCycles[id], label, maturity, limitation, route: "/dashboard/tests#cycle-demo-title" }));
 const sources: Record<CapabilityCycleId, string[]> = {
@@ -49,6 +50,8 @@ const exclusions: Record<CapabilityCycleId, string[]> = {
 };
 /** Local scope stated per cycle when the generic wording would overstate or blur what the sheet establishes. */
 const localScopes: Partial<Record<CapabilityCycleId, string>> = {
+  transversal: "Programme de clôture et synthèse des travaux : une feuille rattachée par procédure (racine, version, empreinte, périmètre), autres feuilles listées, mêmes dénominateurs dans la carte, le bandeau et l’export ; relecture personnelle nommée et dossier personnel terminé distincts de la validation professionnelle.",
+  provisions: "Registre versionné : ponts, estimation / écriture, événement / annexe ; synthèse de mission et export à version exacte, contenu confidentiel masqué par le serveur ; activation locale et accès autorisé requis.",
   dettes_financieres: "Feuille versionnée /emprunts : contrats et échéances de l’exercice, pont de principal, intérêts et intérêts courus sur paramètres contractuels sourcés, cadrage sur la balance, présentation selon le texte applicable ; activation locale et accès autorisé requis.",
   paie: "Paie et congés séparés, CSV qualifiés et versions conservés sur le PC ; comparaison sur les mêmes droits, sans estimation automatique des droits restants ni DSN native.",
   capitaux_propres: "Parcours unique /capitaux-propres/parcours : feuille décisions et PV versionnés (règle 1.1.1, travaux nouveaux ; une feuille 1.1.0 reste à jour sauf déclarée en SCA) et dossier /equity (règle 1.0.0, historique) lus à leur version exacte ; activation locale et accès autorisé requis.",

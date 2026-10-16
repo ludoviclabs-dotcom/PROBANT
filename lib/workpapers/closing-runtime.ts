@@ -9,8 +9,11 @@ import { detectSignature } from "@/lib/security/magic-bytes";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { CL_COMMAND_PERMISSION, CL_HASH_NOTICE, type ClosingCommand, type PieceKind } from "./closing-contract";
 import { observeRuns, type CycleObservation } from "./closing-cycles";
+import { sourcesCurrentAdapter } from "./closing-adapters";
 import { decide, decideUpload, type Decision } from "./closing-decide";
 import { evaluateClosing, journalView } from "./closing-evaluate";
+import { projectDossier } from "./closing-projection";
+import { buildClosingDossierPackage, type ClosingExportFormat } from "@/lib/evidence/closing-dossier-package";
 import { eventHash, fold, type ClosingEvent } from "./closing-journal";
 import { ClosingConflict, type ClosingDatabase, type ClosingTx } from "./closing-store";
 import { periodId, type WorkpaperScope } from "./model";
@@ -53,11 +56,20 @@ export class ClosingRuntime {
     const size = await tx.sizes(scope);
     if (size.events > LIMITS.events || size.eventBytes > LIMITS.eventBytes || size.pieceBytes > LIMITS.pieceBytes) throw new ApiError("CL_STATE_LIMIT", "Dossier trop volumineux pour cette recette.", 413);
   }
-  /** Read model: journal, folded state, evaluation and observed cycle sheets, computed in the same transaction. */
+  /** Current heads of every family with their sources checked by each family's own adapter (C14): a source replaced after a lock is seen, nothing is recalculated. */
+  private async observe(tx: ClosingTx, scope: WorkpaperScope) { return observeRuns(await tx.cycleRuns(scope), sourcesCurrentAdapter(await tx.cycleSourceHeads(scope))); }
+  /** Evaluation and single projection of the file, from the same journal and observation. */
+  private async model(tx: ClosingTx, scope: WorkpaperScope, observed?: CycleObservation[]) {
+    const events = await tx.events(scope), state = fold(events), observations = observed ?? await this.observe(tx, scope);
+    const evaluation = evaluateClosing(state, observations), journal = journalView(events);
+    return { state, evaluation, journal, projection: projectDossier({ dossierId: scope.dossierId, periodId: scope.periodId, seq: state.seq, headHash: state.headHash, evaluation, journal }) };
+  }
+  /** Read model: journal, folded state, evaluation, projection and observed cycle sheets, computed in the same transaction. */
   private async view(tx: ClosingTx, scope: WorkpaperScope, identity: AuthenticatedPrincipal, observed?: CycleObservation[]) {
-    const events = await tx.events(scope), state = fold(events), observations = observed ?? observeRuns(await tx.cycleRuns(scope));
-    const response = { actorId: identity.subject, permissions: this.granted(identity), executionProfile: executionProfile(process.env), closingAuthority: this.closingAuthority(identity, scope) === true, dossierId: scope.dossierId, periodId: scope.periodId,
-      seq: state.seq, headHash: state.headHash, hashNotice: CL_HASH_NOTICE, pieces: state.pieces, evaluation: evaluateClosing(state, observations), journal: journalView(events) };
+    const { state, evaluation, journal, projection } = await this.model(tx, scope, observed);
+    const response = { actorId: identity.subject, permissions: this.granted(identity), executionProfile: executionProfile(process.env), closingAuthority: this.closingAuthority(identity, scope) === true,
+      reviewKind: identity.reviewKind, reviewerName: identity.reviewKind === "personal" ? identity.displayName : undefined, dossierId: scope.dossierId, periodId: scope.periodId,
+      seq: state.seq, headHash: state.headHash, hashNotice: CL_HASH_NOTICE, pieces: state.pieces, evaluation, projection, journal };
     if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("CL_STATE_LIMIT", "Dossier trop volumineux pour cette recette.", 413);
     return response;
   }
@@ -85,12 +97,13 @@ export class ClosingRuntime {
     return this.transaction(request, dossierId, pid, permission, async (tx, scope, identity) => {
       await this.bounded(tx, scope);
       // The cycle sheets are observed once per transaction: the decision and the returned view rest on the same observation.
-      const observations = observeRuns(await tx.cycleRuns(scope));
+      const observations = await this.observe(tx, scope);
       const applied = await this.receipt(tx, scope, identity.subject, key, command, async () => {
         const state = fold(await tx.events(scope)), at = new Date(this.now() * 1000).toISOString();
         if (command.command === "open" && periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
         if (command.expectedSeq !== state.seq) throw new ClosingConflict(state.seq, command.expectedSeq);
-        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations });
+        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations,
+          ...(identity.reviewKind ? { reviewKind: identity.reviewKind } : {}), ...(identity.displayName ? { displayName: identity.displayName } : {}) });
         return this.append(tx, scope, identity.subject, at, decision, { seq: state.seq, hash: state.headHash });
       });
       return { applied, view: await this.view(tx, scope, identity, observations) };
@@ -116,6 +129,20 @@ export class ClosingRuntime {
       });
       return { applied, view: await this.view(tx, scope, identity) };
     });
+  }
+  /**
+   * Export of the single projection (C14): the same denominators as the matrix and the cockpit. The browser names the projection it has read;
+   * a newer state is a conflict, and the session, permission and state are checked again after rendering, before any byte is returned.
+   */
+  async export(request: Request, dossierId: string, pid: string, format: ClosingExportFormat, expectedSnapshot: string) {
+    const { projection, journal } = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {
+      const model = await this.model(tx, scope);
+      if (model.projection.hash !== expectedSnapshot) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+      return { projection: model.projection, journal: model.journal };
+    });
+    const pack = await buildClosingDossierPackage(projection, journal, format);
+    await this.transaction(request, dossierId, pid, "download", async (tx, scope) => { if ((await this.model(tx, scope)).projection.hash !== expectedSnapshot) throw new Error("EXPORT_SNAPSHOT_CONFLICT"); });
+    return pack;
   }
   async download(request: Request, dossierId: string, pid: string, pieceVersionId: string) {
     return this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

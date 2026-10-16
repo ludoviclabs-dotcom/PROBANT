@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { createClosingHarness, CL_DOSSIER, CL_PERIOD_ID, lockedProvisionSource, type ClosingHarness } from "../lib/workpapers/__tests__/closing-harness";
 import { buildRecipe } from "../lib/workpapers/__tests__/closing-fixtures";
+import { addSolo, sheet, small, source } from "../lib/workpapers/__tests__/closing-c14-fixtures";
 
 /**
  * Browser recipe of the professional file (Mission 19). Requests are routed to the real ClosingRuntime and handlers over the in-memory TEST store,
@@ -76,9 +77,10 @@ test("Dossier — cycle verrouillé mais dossier incomplet : programme par risqu
   await page.keyboard.press("Escape");
   await expect(p3).toBeFocused();
   await page.getByRole("button", { name: "Ouvrir la fiche P-01 · Registre des provisions et engagements" }).click();
-  await expect(panel(page)).toContainText("Feuille de cycle observée");
+  await expect(panel(page)).toContainText("Feuille de cycle rattachée");
   await expect(panel(page)).toContainText("verrouillée");
-  await expect(panel(page)).toContainText("Le dossier observe cette feuille ; il ne la recalcule pas");
+  await expect(panel(page)).toContainText("Rattachement implicite : une seule feuille observée");
+  await expect(panel(page)).toContainText("Le dossier observe ces feuilles ; il ne les recalcule pas");
   await capture(page, testInfo, "cl-cycle-locked-1440.png", false);
   await page.setViewportSize({ width: 1024, height: 768 });
   await noGlobalOverflow(page, 1024);
@@ -159,4 +161,112 @@ test("Dossier — travail manuel documenté depuis la fiche (pièce déposée pu
   await expect(page.getByRole("list").filter({ hasText: "W-06 · Test de fonctionnement réalisé le 2027-01-20" })).toBeVisible();
   await axe(page);
   await capture(page, testInfo, "cl-journal-1440.png");
+});
+
+/* ── C14 — synthèse des travaux, rattachement des feuilles, mode solo ─────────────────────────────────────────────── */
+async function denominatorTexts(page: Page) {
+  const cockpit = await page.getByTestId("cockpit-denominators").innerText();
+  return { cockpit: cockpit.replace(/\s+/g, " ") };
+}
+test("C14 — synthèse des travaux : mêmes dénominateurs dans le bandeau, la carte, la synthèse et l’export ; exclusions encore pertinentes ; 1440 / 1024 / 390", async ({ page }, testInfo) => {
+  await recipe(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(file());
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Dossier professionnel — contrôle interne et clôture");
+  const { cockpit } = await denominatorTexts(page);
+  expect(cockpit).toContain("2 / 7 procédures revues (1 non applicable(s) motivée(s) exclue(s))");
+  expect(cockpit).toContain("4 / 13 couples risque × assertion");
+  expect(cockpit).toContain("1 / 1 feuilles de cycle du programme verrouillées");
+  await expect(page.getByTestId("matrix-denominator")).toContainText("4 / 13 couples risque × assertion avec une procédure revue · 8 en cours · 1 sans procédure · 2 exclu(s)");
+  await page.getByRole("tab", { name: /^Synthèse des travaux/ }).click();
+  await expect(page.getByRole("heading", { name: "Synthèse des travaux" })).toBeVisible();
+  const synthesis = page.getByTestId("synthesis-denominator");
+  await expect(synthesis).toContainText("2 / 7 procédures revues par une autre personne");
+  await expect(synthesis).toContainText("4 / 13 couples");
+  await expect(synthesis).toContainText("1 / 1 feuilles verrouillées");
+  await expect(page.getByRole("navigation", { name: "Cycles du dossier" }).getByRole("link")).toHaveCount(6);
+  const provisions = page.getByRole("region", { name: "Provisions et engagements" }).or(page.locator("#cyc-provisions"));
+  await expect(provisions.getByRole("row", { name: /P-01 · Registre des provisions/ })).toContainText("rattachement implicite (feuille unique)");
+  await expect(page.getByRole("heading", { name: /^Exclusions encore pertinentes/ })).toContainText("15 élément(s)");
+  await expect(page.locator("#cl-synth-excl").locator("..")).toContainText("Aucun emprunt à la clôture : compte 164 soldé au 31/12/2026");
+  await expect(page.getByRole("region", { name: "Anomalies : relevé, corrigé, résiduel" }).getByRole("row", { name: /^A-01/ })).toContainText("Corrigée — preuve nouvelle");
+  await expect(provisions.getByRole("row", { name: /P-02 · Lettres aux avocats/ })).toContainText("Exécution : documentée");
+  // The export link names the projection read by the browser; the downloaded JSON carries the same denominators.
+  const href = await page.getByRole("link", { name: "JSON canonique" }).getAttribute("href");
+  expect(href).toMatch(/operation=export&format=json&snapshot=[a-f0-9]{64}/);
+  const exported = await page.evaluate(async url => (await fetch(url!)).json(), href);
+  expect(exported.projection.denominators.procedures).toEqual({ declared: 8, applicable: 7, notApplicable: 1, done: 2, donePersonal: 2, concluded: 2 });
+  expect(exported.projection.denominators.pairs).toMatchObject({ counted: 13, reviewed: 4, excludedNotApplicable: 2 });
+  await axe(page);
+  await capture(page, testInfo, "c14-synthese-1440.png");
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await noGlobalOverflow(page, 1024);
+  await capture(page, testInfo, "c14-synthese-1024.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "c14-synthese-390.png");
+});
+
+test("C14 — deux feuilles de la même procédure sur des périmètres distincts : rattachement explicite depuis la fiche, l’autre feuille reste listée", async ({ page }, testInfo) => {
+  const cash = source("cash", [sheet({ id: "cash-B1", state: "locked", outcome: "no_exception_detected", population: ["512-B1"] }), sheet({ id: "cash-B2", state: "executed", outcome: "exceptions_detected", population: ["512-B2"] })]);
+  const h = createClosingHarness({ cycles: [cash] });
+  await small(h);
+  await h.ok({ command: "set_risk", riskId: "R-02", cycle: "tresorerie", label: "Ponts bancaires", assertions: ["solde_existence"], assessment: { level: "modere", rationale: "Deux banques." } });
+  await h.ok({ command: "set_procedure", procedureId: "P-02", riskIds: ["R-02"], assertions: ["solde_existence"], nature: "engine", engine: "cash.reconciliation", label: "Pont bancaire", owner: "Collaborateur B" });
+  await serve(page, h);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(file({ p: "P-02" }));
+  await expect(panel(page).getByRole("heading", { name: "P-02 · Pont bancaire" })).toBeVisible();
+  await expect(panel(page)).toContainText("Feuille à rattacher");
+  await expect(panel(page)).toContainText("l’état le plus avancé ne sélectionne pas une population");
+  const lineages = panel(page).getByRole("list", { name: "Feuilles observées pour cette procédure de cycle" });
+  await expect(lineages.getByRole("listitem")).toHaveCount(2);
+  const b1 = lineages.getByRole("listitem").filter({ hasText: "racine cash-B1" });
+  await b1.getByText("Rattacher cette feuille").click();
+  await b1.getByLabel(/^Périmètre couvert/).fill("Compte 512-B1 (banque B1)");
+  await b1.getByRole("button", { name: "Rattacher" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Enregistré" })).toBeVisible();
+  await expect(panel(page)).toContainText("Feuille verrouillée");
+  await expect(panel(page)).toContainText("périmètre : Compte 512-B1 (banque B1)");
+  await expect(lineages.getByRole("listitem").filter({ hasText: "racine cash-B1" })).toContainText("Retenue ici");
+  await axe(page);
+  await capture(page, testInfo, "c14-rattachement-1440.png", false);
+  await page.keyboard.press("Escape");
+  await page.getByRole("tab", { name: /^Synthèse des travaux/ }).click();
+  const tresorerie = page.locator("#cyc-tresorerie");
+  await expect(tresorerie).toContainText("Autres feuilles listées");
+  await expect(tresorerie.getByRole("listitem").filter({ hasText: "racine cash-B2" })).toContainText("À rattacher ou écarter");
+  await page.getByRole("tab", { name: /^Clôture/ }).click();
+  await expect(page.getByRole("heading", { name: /^Feuilles à rattacher, réviser ou écarter/ })).toBeVisible();
+  await expect(page.getByText(/Feuille « Pont bancaire et apurement » \(racine cash-B2/)).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "c14-cloture-feuilles-390.png");
+});
+
+test("C14 — mode solo : relecture personnelle nommée et dossier personnel terminé avec limites visibles, validation professionnelle distincte", async ({ page }, testInfo) => {
+  const h = createClosingHarness(); addSolo(h);
+  await small(h, "solo");
+  await h.ok({ command: "conclude_procedure", procedureId: "P-01", text: "Solde justifié", citations: [] }, "solo");
+  await h.ok({ command: "review_procedure", procedureId: "P-01", decision: "approved", text: "Relu sous mon nom." }, "solo");
+  await serve(page, h); session.current = "solo";
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto(file({ tab: "cloture" }));
+  await expect(page.getByRole("heading", { name: /^Conditions d’une revue professionnelle non remplies/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /^Procédures relues \(relecture personnelle nommée incluse\) : 1 sur 1/ })).toBeVisible();
+  await expect(page.getByRole("group", { name: /^Procédures conclues et revues : 0 sur 1/ })).toBeVisible();
+  const solo = page.locator("section").filter({ has: page.getByRole("heading", { name: "Dossier personnel (mode solo)" }) });
+  await solo.getByLabel(/^Note de fin de dossier/).fill("Dossier personnel terminé ; limites relues.");
+  await solo.getByRole("button", { name: "Marquer le dossier personnel terminé" }).click();
+  await expect(page.getByRole("status").filter({ hasText: "Enregistré" })).toBeVisible();
+  await expect(solo).toContainText("Marqué terminé");
+  await expect(solo).toContainText("relecture personnelle nommée : Camille Martin");
+  await expect(solo).toContainText("Limites visibles au marquage (1)");
+  await expect(page.getByText("Dossier personnel marqué terminé, avec ses limites visibles : ce n’est pas une validation professionnelle.")).toBeVisible();
+  await expect(page.getByText("Cette identité ne détient pas l’habilitation de clôture")).toBeVisible();
+  await axe(page);
+  await capture(page, testInfo, "c14-solo-1440.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "c14-solo-390.png");
 });

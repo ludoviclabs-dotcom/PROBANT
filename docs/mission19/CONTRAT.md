@@ -39,6 +39,7 @@ La vue est la route `/dossier-cloture`, reliée depuis `/dashboard/synthese` et 
 
   Le dossier en lit l'état, la version, la révision, la revue, les assertions déclarées, la taille de population, le nombre de sources et l'empreinte de contenu. Il ne recalcule, ne revoit et ne verrouille jamais une feuille.
 - **La paie (Mission 18).** Elle n'a pas de feuille durable : elle n'est pas observable et se documente comme procédure manuelle.
+  *Mise à jour C14 (15/10/2026) : caduc depuis C12 (PR #94) ; Paie et Congés sont lus dans la famille `hr`. Voir `docs/mission-c14/EXCLUSIONS.md`.*
 
 ## Questions professionnelles
 

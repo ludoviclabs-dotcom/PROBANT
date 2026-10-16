@@ -1,4 +1,4 @@
-import { readStoreHeads } from "@/lib/capabilities/store-readers";
+import { readSourceHeads, readStoreHeads } from "@/lib/capabilities/store-readers";
 import { sql, type SQL } from "drizzle-orm";
 import type { WorkpaperRun, WorkpaperScope } from "./model";
 import { type CycleFamily } from "./closing-contract";
@@ -19,6 +19,8 @@ export interface ClosingTx {
   receipt(scope: WorkpaperScope, actorId: string, key: string): Promise<{ requestHash: string; response: unknown } | null>;
   putReceipt(scope: WorkpaperScope, actorId: string, key: string, requestHash: string, response: unknown): Promise<void>;
   cycleRuns(scope: WorkpaperScope): Promise<{ family: CycleFamily; run: WorkpaperRun }[]>;
+  /** Current source heads of each family, for the observation adapters (C14). */
+  cycleSourceHeads(scope: WorkpaperScope): Promise<Partial<Record<CycleFamily, { document_type: string; import_id: string }[]>>>;
 }
 export interface ClosingDatabase { transaction<T>(body: (tx: ClosingTx) => Promise<T>): Promise<T> }
 
@@ -67,6 +69,7 @@ class PostgresClosingTx implements ClosingTx {
       VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${actorId},${key},${requestHash},${JSON.stringify(response)}::jsonb)`);
   }
   async cycleRuns(scope: WorkpaperScope) { return readStoreHeads(this.tx, scope); }
+  async cycleSourceHeads(scope: WorkpaperScope) { return readSourceHeads(this.tx, scope); }
 }
 export class PostgresClosingDatabase implements ClosingDatabase {
   constructor(private readonly db: ClosingSqlDatabase) {}

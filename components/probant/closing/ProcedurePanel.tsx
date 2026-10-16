@@ -3,7 +3,8 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 
 import { forwardRef, useImperativeHandle, useRef } from "react";
 import { assertionLabel, CL_REACH, CL_REACH_LABELS, CL_RESULT_LABELS, CL_RESULTS, CL_STEP_LABELS, CL_PIECE_KIND_LABELS, isControl, stepsFor, type ResolvedCitation } from "@/lib/workpapers/closing-contract";
-import type { ProcedureView } from "@/lib/workpapers/closing-evaluate";
+import type { LineageView, ProcedureView } from "@/lib/workpapers/closing-evaluate";
+import { ASSIGNMENT_LABELS } from "@/lib/workpapers/closing-projection";
 import type { PieceVersion } from "@/lib/workpapers/closing-journal";
 import { citationText, dateFr, STEP_STATE_LABELS, stampFr, TONE, type ClosingView } from "./format";
 import { STATE_LABELS } from "../cash/format";
@@ -32,12 +33,30 @@ export function Cites({ list, download }: { list: ResolvedCitation[]; download?:
   </li>)}</ul>;
 }
 
+/** Candidate sheet lineages of an engine procedure: each one with its assignment; binding or excluding is an explicit, journalled decision. */
+function LineageList({ lineages, self, engine, canPrepare, send, busy, drift }: { lineages: LineageView[]; self: string; engine: string; canPrepare: boolean; send: Send; busy: boolean; drift: boolean }) {
+  const submit = (build: (f: FormData) => Record<string, unknown>) => async (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const form = ev.currentTarget; if (await send(build(new FormData(form)))) form.reset(); };
+  return <ul className={cl.remaining} aria-label="Feuilles observées pour cette procédure de cycle">{lineages.map(l => {
+    const mine = l.procedureId === self, o = l.current;
+    return <li key={l.rootId}><span><strong>racine {l.rootId}</strong> · r{o.revision} v{o.version} · {STATE_LABELS[o.state] ?? o.state} · {o.populationSize !== null ? o.populationSize + (o.populationSize > 1 ? " éléments" : " élément") : "population non figée"} · période {dateFr(o.period.startDate)} → {dateFr(o.period.closingDate)}
+      {" "}<span className={cl.pill} data-tone={mine && l.assignment === "retenue" ? "ok" : l.assignment === "ecartee" ? "muted" : l.assignment === "retenue" ? "info" : "danger"}>{mine ? (l.assignment === "retenue" ? "Retenue ici" : "À confirmer ici") : l.procedureId ? (l.assignment === "retenue" ? "Retenue par " : "À confirmer par ") + l.procedureId : ASSIGNMENT_LABELS[l.assignment]}</span>
+      {l.exclusion ? <span className={cl.small}> · motif : {l.exclusion.reason}</span> : null}{l.previous.length ? <span className={cl.small}> · {l.previous.length} révision(s) antérieure(s) listée(s), sans effet</span> : null}</span>
+      {canPrepare && (mine ? drift : !l.procedureId) ? <details><summary>{mine ? "Confirmer le rattachement de la révision courante" : "Rattacher cette feuille"}</summary>
+        <form className={cl.form} onSubmit={submit(f => ({ command: "bind_sheet", procedureId: self, rootId: l.rootId, perimeter: f.get("perimeter") }))}>
+          <label>Périmètre couvert (compte, période déclarative, site…)<input name="perimeter" required maxLength={300}/></label><button className={cl.submit} disabled={busy}>Rattacher</button></form></details> : null}
+      {canPrepare && !l.procedureId && l.assignment !== "ecartee" ? <details><summary>Écarter du programme (motif)</summary>
+        <form className={cl.form} onSubmit={submit(f => ({ command: "exclude_sheet", engine, rootId: l.rootId, reason: f.get("reason") }))}>
+          <label>Motif<textarea name="reason" required maxLength={1000}/></label><button className={cl.submit} disabled={busy}>Écarter</button></form></details> : null}
+    </li>;
+  })}</ul>;
+}
+
 export const ProcedurePanel = forwardRef<ProcedurePanelHandle, { view: ClosingView; p: ProcedureView; onClose: () => void; canPrepare: boolean; canReview: boolean; send: Send; busy: boolean; download?: (id: string) => string; error?: string }>(
   function ProcedurePanel({ view, p, onClose, canPrepare, canReview, send, busy, download, error }, ref) {
     const heading = useRef<HTMLHeadingElement>(null);
     useImperativeHandle(ref, () => ({ focus: () => heading.current?.focus() }), []);
     const risks = view.evaluation.risks.filter(r => p.riskIds.includes(r.riskId)), control = isControl(p.nature), manual = p.nature !== "engine";
-    const pop = p.population, best = p.engine?.best;
+    const pop = p.population, retained = p.engine?.retained, binding = p.engine?.binding;
     const submit = (build: (f: FormData) => Record<string, unknown>) => async (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const form = ev.currentTarget; if (await send(build(new FormData(form)))) form.reset(); };
     return <aside className={cl.panel} aria-labelledby="cl-panel-title" tabIndex={0} onKeyDown={e => { if (e.key === "Escape") { e.stopPropagation(); onClose(); } }}>
       <div className={cl.panelHead}>
@@ -55,14 +74,17 @@ export const ProcedurePanel = forwardRef<ProcedurePanelHandle, { view: ClosingVi
           <ul className={cl.chips}>{p.assertions.map(a => <li key={a} className={cl.chip}>{assertionLabel(a)}</li>)}</ul></li>
         {p.applicability && !p.applicability.applicable ? <li className={cl.node} data-tone="muted"><h3>Non applicable — motif</h3><p>{p.applicability.reason}</p>
           <p className={cl.who}>Déclaré par {p.applicability.by} le {stampFr(p.applicability.at)}</p><Cites list={p.applicability.citations} download={download}/></li> : null}
-        {p.engine ? <li className={cl.node} data-tone={TONE[p.status]}><h3>Feuille de cycle observée</h3>
-          {best ? <><p><DossierContextAnchor href={p.engine.route}>{p.engine.label}</DossierContextAnchor> · {STATE_LABELS[best.state] ?? best.state} · r{best.revision} v{best.version}</p>
-            <p className={cl.who}>Préparée par {best.preparedBy}{best.approval ? " · revue : " + reviewAuthor(best.approval) + " le " + stampFr(best.approval.at) : " · non revue"}</p>
-            <p className={cl.small}>{best.populationSize !== null ? best.populationSize + " éléments de population · " : "Population non figée · "}{best.sourceCount} source{best.sourceCount > 1 ? "s" : ""} figée{best.sourceCount > 1 ? "s" : ""}{best.openBlockingNotes ? " · " + best.openBlockingNotes + " point(s) bloquant(s) ouvert(s)" : ""}</p>
-            <p className={cl.hash}>empreinte de contenu {best.contentHash.slice(0, 16)}…</p>
-            {p.engine.all.length > 1 ? <p className={cl.small}>Autres feuilles : {p.engine.all.slice(1).map(o => o.runId + " (" + (STATE_LABELS[o.state] ?? o.state) + ")").join(", ")}</p> : null}
-            <p className={cl.small}>Le dossier observe cette feuille ; il ne la recalcule pas, ne la revoit pas et ne la verrouille pas.</p></>
-            : <p>Aucune feuille « {p.engine.label} » pour cet exercice. <DossierContextAnchor href={p.engine.route}>Ouvrir le cycle</DossierContextAnchor></p>}</li> : null}
+        {p.engine && binding ? <li className={cl.node} data-tone={TONE[p.status]}><h3>Feuille de cycle rattachée</h3>
+          <p className={cl.small}>Rattachement {binding.mode === "explicite" ? "explicite" : binding.mode === "implicite" ? "implicite : une seule feuille observée" : "à faire"}{binding.perimeter ? " · périmètre : " + binding.perimeter : ""}{binding.by && binding.at ? " · par " + binding.by + " le " + stampFr(binding.at) : ""}</p>
+          {binding.recorded ? <p className={cl.hash}>Vu au rattachement : {binding.recorded.runId} r{binding.recorded.revision} v{binding.recorded.version} · période {dateFr(binding.recorded.period.startDate)} → {dateFr(binding.recorded.period.closingDate)} · {binding.recorded.entity} · empreinte {binding.recorded.contentHash.slice(0, 12)}…</p> : null}
+          {retained ? <><p><DossierContextAnchor href={p.engine.route}>{p.engine.label}</DossierContextAnchor> · {STATE_LABELS[retained.state] ?? retained.state} · r{retained.revision} v{retained.version}</p>
+            <p>{p.engine.resultLabel}{retained.outcome === "inconclusive" && retained.state === "locked" ? " — conservé tel quel malgré le verrouillage" : ""}</p>
+            <p className={cl.who}>Préparée par {retained.preparedBy}{retained.approval ? " · revue : " + reviewAuthor(retained.approval) + " le " + stampFr(retained.approval.at) : " · non revue"}</p>
+            <p className={cl.small}>{retained.populationSize !== null ? retained.populationSize + (retained.populationSize > 1 ? " éléments" : " élément") + " de population · " : "Population non figée · "}{retained.sourceCount} source{retained.sourceCount > 1 ? "s" : ""} figée{retained.sourceCount > 1 ? "s" : ""}{retained.sourcesCurrent === false ? " · source remplacée depuis le gel" : retained.sourcesCurrent === null ? " · fraîcheur des sources non lue" : ""}{retained.openBlockingNotes ? " · " + retained.openBlockingNotes + " point(s) bloquant(s) ouvert(s)" : ""}</p>
+            <p className={cl.hash}>racine {retained.rootId} · empreinte de contenu {retained.contentHash.slice(0, 16)}…</p></>
+            : p.engine.lineages.length ? <p>Aucune feuille retenue : rattachez celle que couvre cette procédure.</p> : <p>Aucune feuille « {p.engine.label} » pour cet exercice. <DossierContextAnchor href={p.engine.route}>Ouvrir le cycle</DossierContextAnchor></p>}
+          {p.engine.lineages.length ? <LineageList lineages={p.engine.lineages} self={p.procedureId} engine={p.engine.id} canPrepare={canPrepare} send={send} busy={busy} drift={!!binding.drift}/> : null}
+          <p className={cl.small}>Le dossier observe ces feuilles ; il ne les recalcule pas, ne les revoit pas et ne les verrouille pas. L’état le plus avancé ne choisit jamais seul une population.</p></li> : null}
         {manual ? <li className={cl.node} data-tone={!pop ? "open" : pop.status === "absent" ? "danger" : "ok"}><h3>Population — sur quoi</h3>
           {!pop ? <p>Non définie.</p> : pop.status === "absent" ? <p><strong>Population absente :</strong> {pop.reason}</p>
             : <><p>{pop.description} · {pop.size !== null ? pop.size + " élément" + (pop.size > 1 ? "s" : "") : "taille non déclarée"}</p><Cites list={pop.citations} download={download}/></>}
@@ -86,8 +108,9 @@ export const ProcedurePanel = forwardRef<ProcedurePanelHandle, { view: ClosingVi
         {manual ? <li className={cl.node} data-tone={!p.conclusion ? "open" : p.conclusion.stale ? "danger" : "info"}><h3>Conclusion du préparateur</h3>
           {p.conclusion ? <><p>{p.conclusion.text}</p>{p.conclusion.reach ? <p className={cl.small}>Portée : {CL_REACH_LABELS[p.conclusion.reach]}</p> : null}
             <p className={cl.who}>Par {p.conclusion.by} le {stampFr(p.conclusion.at)}{p.conclusion.stale ? " · périmée" : ""}</p><Cites list={p.conclusion.citations} download={download}/></> : <p className={cl.small}>Attendue. Aucune conclusion n’est déduite des travaux.</p>}</li> : null}
-        {manual ? <li className={cl.node} data-tone={p.review?.current ? (p.review.decision === "approved" ? "ok" : "danger") : "open"}><h3>Revue</h3>
-          {p.review ? <><p>{p.review.decision === "approved" ? "Approuvée" : "Modifications demandées"} — {p.review.text}</p><p className={cl.who}>Par {p.review.by} le {stampFr(p.review.at)}{p.review.current ? "" : " · porte sur une conclusion antérieure"}</p></>
+        {manual ? <li className={cl.node} data-tone={p.review?.current ? (p.review.decision === "approved" ? (p.review.kind === "personal" ? "info" : "ok") : "danger") : "open"}><h3>Revue</h3>
+          {p.review ? <><p>{p.review.decision === "approved" ? "Approuvée" : "Modifications demandées"} — {p.review.text}</p><p className={cl.who}>{reviewAuthor({ actorId: p.review.by, ...(p.review.kind ? { kind: p.review.kind } : {}), ...(p.review.reviewerName ? { reviewerName: p.review.reviewerName } : {}) })} le {stampFr(p.review.at)}{p.review.current ? "" : " · porte sur une conclusion antérieure"}</p>
+            {p.review.kind === "personal" ? <p className={cl.small}>Relecture personnelle nommée : elle ne vaut pas revue par une autre personne.</p> : null}</>
             : <p className={cl.small}>Attendue, par une autre personne que l’auteur des travaux et de la conclusion.</p>}</li> : null}
       </ol>
 

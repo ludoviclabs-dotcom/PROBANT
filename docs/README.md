@@ -48,6 +48,14 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission-c13/CONTRAT.md`](./mission-c13/CONTRAT.md) | Chantier Mission 14 retrouvé et porté (ce qui est gardé, ce qui change), sources du pack, population, calculs, taux et révisions sourcés, covenants sans ratio, postes de bilan selon le texte applicable, autres fonds propres par le moteur C09, exclusions nommées, attendus |
 | [`recette/c13/`](./recette/c13/) | Attendus recalculés indépendamment (`attendus.py`), packs synthétiques et protocole de recette |
 
+## Synthèse des travaux et clôture locale — C14
+
+| Document | À quoi il sert |
+|---|---|
+| [`mission-c14/CONTRAT.md`](./mission-c14/CONTRAT.md) | Avant / après, projection unique du dossier (dénominateurs partagés par la carte, le bandeau et l'export), rattachement des feuilles par racine, adaptateurs de sources, mode solo, seuils NEP 450 |
+| [`mission-c14/RECETTE.md`](./mission-c14/RECETTE.md) | Dénominateurs calculés à la main, 8 cas demandés et cas complémentaires, corrections consignées |
+| [`mission-c14/EXCLUSIONS.md`](./mission-c14/EXCLUSIONS.md) | Bilan des exclusions caduques et encore pertinentes |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

@@ -3,14 +3,14 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 
 import { useState } from "react";
 import { assertionLabel, CL_ASSERTION_GROUPS, CL_ASSERTION_LABELS, CL_ASSERTIONS, CL_CYCLE_LABELS, CL_CYCLES, CL_ENGINE_PROCEDURES, CL_NATURE_LABELS, CL_NATURES, CL_RISK_LEVEL_LABELS, CL_RISK_LEVELS, CL_STEP_LABELS, type ClosingAssertion } from "@/lib/workpapers/closing-contract";
-import { STATUS_LABELS, type PairView, type ProcedureStatus, type ProcedureView, type RiskView } from "@/lib/workpapers/closing-evaluate";
+import { STATUS_LABELS, type Denominators, type PairView, type ProcedureStatus, type ProcedureView, type RiskView } from "@/lib/workpapers/closing-evaluate";
 import { STEP_STATE_LABELS, stampFr, TONE, type ClosingView } from "./format";
 import cl from "./closing.module.css";
 
 export interface ProgramFilters { nature: string; status: string; owner: string; q: string }
-const PAIR_SYMBOL: Record<PairView["status"], string> = { revue: "✓", en_cours: "◐", aucune: "✕", non_applicable: "—" };
+const PAIR_SYMBOL: Record<PairView["status"], string> = { revue: "✓", relue: "◕", en_cours: "◐", aucune: "✕", non_applicable: "—" };
 const SHORT_GROUP: Record<string, string> = { flux: "Flux", solde: "Soldes", annexe: "Annexe" };
-const PAIR_TEXT: Record<PairView["status"], string> = { revue: "au moins une procédure revue", en_cours: "procédure en cours", aucune: "aucune procédure applicable", non_applicable: "non applicable motivé" };
+const PAIR_TEXT: Record<PairView["status"], string> = { revue: "au moins une procédure revue", relue: "relecture personnelle seulement", en_cours: "procédure en cours", aucune: "aucune procédure applicable", non_applicable: "non applicable motivé" };
 type Send = (body: Record<string, unknown>) => Promise<boolean>;
 
 export function matches(p: ProcedureView, f: ProgramFilters) {
@@ -19,11 +19,12 @@ export function matches(p: ProcedureView, f: ProgramFilters) {
 }
 
 /** Risks × NEP 500 assertions: each cell says whether the couple has a reviewed procedure, work in progress, nothing, or only motivated non-applicable procedures. */
-function CoverageMap({ risks, pair, onPair }: { risks: RiskView[]; pair: string | null; onPair: (key: string | null) => void }) {
+function CoverageMap({ risks, pair, onPair, pairs }: { risks: RiskView[]; pair: string | null; onPair: (key: string | null) => void; pairs: Denominators["pairs"] }) {
   if (!risks.length) return <p className={cl.small}>Aucun risque au programme : la carte de couverture est vide, pas couverte.</p>;
-  return <div className={cl.mapWrap} role="region" aria-label="Carte de couverture risques × assertions" tabIndex={0}>
+  return <><p className={cl.small} data-testid="matrix-denominator"><strong>{pairs.reviewed} / {pairs.counted}</strong> couples risque × assertion avec une procédure revue{pairs.reviewedPersonal ? " · " + pairs.reviewedPersonal + " relu(s) personnellement seulement" : ""} · {pairs.inProgress} en cours · {pairs.uncovered} sans procédure{pairs.excludedNotApplicable ? " · " + pairs.excludedNotApplicable + " exclu(s) : non applicable(s) motivé(s)" : ""}</p>
+  <div className={cl.mapWrap} role="region" aria-label="Carte de couverture risques × assertions" tabIndex={0}>
     <table className={cl.coverage}>
-      <caption className="sr-only">Couverture des couples risque × assertion (NEP 500 §09). ✓ procédure revue, ◐ en cours, ✕ aucune procédure applicable, — non applicable motivé.</caption>
+      <caption className="sr-only">Couverture des couples risque × assertion (NEP 500 §09). ✓ procédure revue, ◕ relecture personnelle seulement, ◐ en cours, ✕ aucune procédure applicable, — non applicable motivé.</caption>
       <thead>
         <tr><td/>{CL_ASSERTION_GROUPS.map(g => <th key={g.id} scope="colgroup" colSpan={CL_ASSERTIONS.filter(a => a.startsWith(g.id + "_")).length} title={g.label}>{SHORT_GROUP[g.id]}<span className="sr-only"> — {g.label}</span></th>)}</tr>
         <tr><td/>{CL_ASSERTIONS.map(a => <th key={a} scope="col"><span className={cl.vhead}>{CL_ASSERTION_LABELS[a]}</span></th>)}</tr>
@@ -42,7 +43,7 @@ function CoverageMap({ risks, pair, onPair }: { risks: RiskView[]; pair: string 
         </tr>)}
       </tbody>
     </table>
-  </div>;
+  </div></>;
 }
 
 function ProcedureRow({ p, lit, selected, onOpen }: { p: ProcedureView; lit: boolean; selected: boolean; onOpen: (id: string, origin: HTMLElement) => void }) {
@@ -53,7 +54,8 @@ function ProcedureRow({ p, lit, selected, onOpen }: { p: ProcedureView; lit: boo
     <td>{p.natureLabel}{p.engine ? <><br/><DossierContextAnchor href={p.engine.route} className={cl.small}>Feuille « {p.engine.label} »</DossierContextAnchor></> : null}</td>
     <td><ul className={cl.chips}>{p.assertions.map(a => <li key={a} className={cl.chip}>{assertionLabel(a)}</li>)}</ul></td>
     <td>{p.owner}</td>
-    <td>{p.engine ? (p.engine.best ? <span>v{p.engine.best.version} · r{p.engine.best.revision}{p.engine.best.populationSize !== null ? " · " + p.engine.best.populationSize + " éléments" : ""}</span> : <span className={cl.small}>aucune feuille</span>)
+    <td>{p.engine ? (p.engine.retained ? <span>r{p.engine.retained.revision} v{p.engine.retained.version}{p.engine.retained.populationSize !== null ? " · " + p.engine.retained.populationSize + (p.engine.retained.populationSize > 1 ? " éléments" : " élément") : ""}{p.engine.binding.perimeter ? <><br/><span className={cl.small}>{p.engine.binding.perimeter}</span></> : null}{p.engine.retained.outcome === "inconclusive" ? <><br/><span className={cl.small}>résultat non concluant</span></> : null}</span>
+      : <span className={cl.small}>{p.engine.lineages.length ? p.engine.lineages.length + " feuille(s) à rattacher" : "aucune feuille"}</span>)
       : <span>{control ? <span className={cl.steps} role="img" aria-label={p.steps.map(s => CL_STEP_LABELS[s.step] + " : " + STEP_STATE_LABELS[s.state]).join(" ; ")}>{p.steps.map(s => <i key={s.step} className={cl.dot} data-state={s.state}/>)}</span> : null}
         {" "}{p.records.length} trav. · {p.evidence.pieces} pièce{p.evidence.pieces > 1 ? "s" : ""}</span>}
       {p.remaining.length ? <><br/><span className={cl.small}>{p.remaining.length} reste{p.remaining.length > 1 ? "nt" : ""} à faire</span></> : null}</td>
@@ -71,7 +73,7 @@ export function ClosingProgram({ view, filters, setFilters, selected, onOpen, ca
   return <div>
     <h2>Carte de couverture</h2>
     <p className={cl.small}>Une case par couple risque × assertion retenu au programme. Sélectionner une case met en évidence les procédures qui la couvrent ; une case ✕ est un trou du programme, pas un oubli silencieux.</p>
-    <CoverageMap risks={e.risks} pair={pair} onPair={setPair}/>
+    <CoverageMap risks={e.risks} pair={pair} onPair={setPair} pairs={e.denominators.pairs}/>
     {pair ? <p className={cl.small} role="status">Mise en évidence : {lit.size ? [...lit].join(", ") : "aucune procédure"} pour {pair.split(":")[0]} · {assertionLabel(pair.split(":")[1] as ClosingAssertion)}. <button type="button" className={cl.link} onClick={() => setPair(null)}>Effacer</button></p> : null}
     <h2>Programme de travail</h2>
     <div className={cl.toolbar} role="search">

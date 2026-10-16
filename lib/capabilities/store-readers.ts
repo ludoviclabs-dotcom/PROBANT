@@ -14,6 +14,14 @@ export function scopedFamilyRuns(scope: WorkpaperScope, rows: { family: StoreFam
     return row;
   });
 }
+/** Current source heads of each family (document type → approved import), read without writing: the observation adapters compare a sheet's frozen sources to them. */
+export async function readSourceHeads(db: CycleSqlReader, scope: WorkpaperScope, families: readonly StoreFamily[] = STORE_FAMILIES) {
+  if (scope.mode !== "real") throw new Error("CL_REAL_SCOPE_REQUIRED");
+  const out: Partial<Record<StoreFamily, { document_type: string; import_id: string }[]>> = {};
+  for (const family of families) out[family] = await db.execute(sql`SELECT document_type,import_id FROM ${sql.raw(family + "_source_heads")}
+      WHERE organization_id=${scope.organizationId} AND dossier_id=${scope.dossierId} AND period_id=${scope.periodId} ORDER BY document_type`) as { document_type: string; import_id: string }[];
+  return out;
+}
 export async function readStoreHeads(db: CycleSqlReader, scope: WorkpaperScope, families: readonly StoreFamily[] = STORE_FAMILIES) {
   if (scope.mode !== "real") throw new Error("CL_REAL_SCOPE_REQUIRED");
   const out: { family: StoreFamily; run: WorkpaperRun }[] = [];

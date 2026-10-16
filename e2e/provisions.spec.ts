@@ -3,6 +3,7 @@ import { mkdir } from "node:fs/promises";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
 import { createProvisionHarness, PV_DOSSIER, type ProvisionHarness } from "../lib/workpapers/__tests__/provision-harness";
 import { pvScope } from "../lib/workpapers/__tests__/provision-fixtures";
+import { lockedProvisionSource } from "../lib/workpapers/__tests__/closing-harness";
 
 /**
  * Browser recipe of the provisions and commitments register (Mission 16). Requests are routed to the real ProvisionRuntime and handlers over the in-memory TEST store:
@@ -28,7 +29,7 @@ async function serve(page: Page, h: ProvisionHarness) {
     const headers: Record<string, string> = { "x-test-session": session.current, ...(sent["idempotency-key"] ? { "Idempotency-Key": sent["idempotency-key"] } : {}), ...(sent["content-type"] ? { "Content-Type": sent["content-type"] } : {}) };
     const posted = req.method() === "POST" ? req.postDataBuffer() : null;
     const request = new Request("https://probant.test" + url.pathname + url.search, { method: req.method(), headers, body: posted ? new Uint8Array(posted) : undefined });
-    const handler = url.pathname.endsWith("/imports") ? h.handlers.importsPOST : req.method() === "POST" ? h.handlers.POST : h.handlers.GET;
+    const handler = url.pathname.endsWith("/imports") ? h.handlers.importsPOST : url.pathname.endsWith("/export") ? h.handlers.exportPOST : req.method() === "POST" ? h.handlers.POST : h.handlers.GET;
     const response = await handler(request);
     await route.fulfill({ status: response.status, headers: Object.fromEntries(response.headers), body: Buffer.from(await response.arrayBuffer()) });
   });
@@ -176,4 +177,26 @@ test("Provisions — préparation et revue dans l’interface : informations des
   await expect(page.getByText(/^Déclaration retenue :/).locator("..")).toContainText("informations des avocats obtenues et citées");
   await axe(page);
   await capture(page, testInfo, "pv-locked-1440.png");
+});
+
+test("C14 — synthèse de mission Provisions à version exacte : six contrôles du programme, revue et export ; contenu confidentiel masqué ; 1440 / 1024 / 390", async ({ page }, testInfo) => {
+  const src = await lockedProvisionSource();
+  await serve(page, src.harness);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.goto("/provisions/synthese?" + new URLSearchParams({ dossierId: PV_DOSSIER, periodId: pvScope.periodId, id: src.runId, version: String(src.version) }));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Revue et synthèse Provisions et engagements");
+  await expect(page.getByRole("heading", { name: /^Export de cet état serveur/ })).toBeVisible();
+  await expect(page.locator("main")).toContainText("Pont par événement");
+  await expect(page.locator("main")).toContainText("Informations des avocats");
+  // The preparer has no confidential capability: the server withholds the content, the page never recomputes it.
+  const text = await page.locator("main").innerText();
+  for (const secret of ["Client Alpha", "assignation", "Issue défavorable", "SYN-06"]) expect(text).not.toContain(secret);
+  await axe(page);
+  await capture(page, testInfo, "c14-provisions-synthese-1440.png");
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await noGlobalOverflow(page, 1024);
+  await capture(page, testInfo, "c14-provisions-synthese-1024.png");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await noGlobalOverflow(page, 390);
+  await capture(page, testInfo, "c14-provisions-synthese-390.png");
 });

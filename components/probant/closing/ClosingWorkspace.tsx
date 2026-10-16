@@ -11,6 +11,7 @@ import { ProcedurePanel, type ProcedurePanelHandle } from "./ProcedurePanel";
 import { ClosingPieces } from "./ClosingPieces";
 import { ClosingFindings } from "./ClosingFindings";
 import { ClosingClose, ClosingJournal, ClosingReview } from "./ClosingClose";
+import { ClosingSynthesis } from "./ClosingSynthesis";
 import { closingFailureMessage, dateFr, type ClosingTab, type ClosingView } from "./format";
 import styles from "../cash/cash.module.css";
 import cl from "./closing.module.css";
@@ -18,7 +19,7 @@ import { executionProfileLabel } from "@/lib/runtime/profile";
 
 type SaveState = "idle" | "saving" | "saved" | "failed" | "conflict";
 const SAVE_LABELS: Record<SaveState, string> = { idle: "Aucune modification en attente", saving: "Enregistrement en cours…", saved: "Enregistré — accusé serveur reçu", failed: "Échec de l’enregistrement", conflict: "Conflit : le journal a avancé" };
-const TABS: { id: ClosingTab; label: string }[] = [{ id: "programme", label: "Programme" }, { id: "pieces", label: "Pièces" }, { id: "anomalies", label: "Anomalies et limites" }, { id: "revue", label: "Revue" }, { id: "cloture", label: "Clôture" }, { id: "journal", label: "Journal" }];
+const TABS: { id: ClosingTab; label: string }[] = [{ id: "programme", label: "Programme" }, { id: "pieces", label: "Pièces" }, { id: "anomalies", label: "Anomalies et limites" }, { id: "revue", label: "Revue" }, { id: "synthese", label: "Synthèse des travaux" }, { id: "cloture", label: "Clôture" }, { id: "journal", label: "Journal" }];
 const emptyPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
 const emptyFilters: ProgramFilters = { nature: "", status: "", owner: "", q: "" };
 export interface ClosingRequested { periodId: string; tab?: ClosingTab; p?: string; filters: ProgramFilters }
@@ -36,6 +37,7 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
   const canSign = !!view?.permissions.includes("sign") && !!view.closingAuthority;
   const procedure = e?.procedures.find(p => p.procedureId === selected) ?? null, saving = status === "saving";
   const download = view?.permissions.includes("download") ? (id: string) => endpoint() + "&operation=download&id=" + encodeURIComponent(id) : undefined;
+  const exportHref = view?.permissions.includes("download") ? (format: string) => endpoint() + "&" + new URLSearchParams({ operation: "export", format, snapshot: view.projection.hash }) : undefined;
 
   // The context (tab, procedure, filters) lives in the URL: coming back to the file restores it.
   useEffect(() => {
@@ -93,7 +95,7 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
   const goTab = (t: ClosingTab) => { setTab(t); requestAnimationFrame(() => tabRefs.current[t]?.focus()); };
   const onSegment = (indicator: string, id: string) => {
     if (/^P-\d+$/.test(id)) { open(id, document.activeElement as HTMLElement); return; }
-    goTab(/^R-/.test(id) ? "programme" : /^RP-/.test(id) ? "revue" : /^(A|L|C)-/.test(id) ? "anomalies" : /^D-/.test(id) ? "pieces" : indicator === "cycles" ? "cloture" : "programme");
+    goTab(/^R-/.test(id) ? "programme" : /^RP-/.test(id) ? "revue" : /^(A|L|C)-/.test(id) ? "anomalies" : /^D-/.test(id) ? "pieces" : indicator === "cycles" ? "synthese" : "programme");
   };
   const onItem = (b: RemainingItem, origin: HTMLElement) => {
     if (b.procedureId) { open(b.procedureId, origin); return; }
@@ -106,8 +108,8 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
     const next = ev.key === "Home" ? 0 : ev.key === "End" ? TABS.length - 1 : (index + (ev.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
     goTab(TABS[next].id);
   };
-  const counts: Record<ClosingTab, number | null> = e ? { programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution || e.items.staleResolutions.includes(c.contradictionId)).length + e.items.limitations.length,
-    revue: e.items.reviewPoints.filter(r => !r.closed).length, cloture: e.blockers.length, journal: view!.journal.length } : { programme: null, pieces: null, anomalies: null, revue: null, cloture: null, journal: null };
+  const counts: Record<ClosingTab, number | null> = e ? { synthese: view!.projection.cycles.length, programme: e.procedures.length, pieces: e.missing.length, anomalies: e.items.misstatements.length + e.items.contradictions.filter(c => !c.resolution || e.items.staleResolutions.includes(c.contradictionId)).length + e.items.limitations.length,
+    revue: e.items.reviewPoints.filter(r => !r.closed).length, cloture: e.blockers.length, journal: view!.journal.length } : { synthese: null, programme: null, pieces: null, anomalies: null, revue: null, cloture: null, journal: null };
 
   return <main className={`${styles.page} ${cl.root}`}>
     <nav aria-label="Familles de travaux" className={styles.families}><DossierContextAnchor href="/dashboard/synthese">Synthèse</DossierContextAnchor><DossierContextAnchor href="/tresorerie">Trésorerie</DossierContextAnchor><DossierContextAnchor href="/stocks">Stocks</DossierContextAnchor><DossierContextAnchor href="/provisions">Provisions et engagements</DossierContextAnchor><DossierContextAnchor href="/fiscal">Fiscalité</DossierContextAnchor><span aria-current="page">Dossier professionnel et clôture</span></nav>
@@ -144,7 +146,8 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
             {tab === "pieces" ? <ClosingPieces view={view} onOpen={open} canPrepare={canPrepare} send={send} upload={upload} busy={saving} download={download}/> : null}
             {tab === "anomalies" ? <ClosingFindings view={view} canPrepare={canPrepare} canReview={canReview} send={send} busy={saving} onOpen={open} download={download}/> : null}
             {tab === "revue" ? <ClosingReview view={view} canPrepare={canPrepare} canReview={canReview} send={send} busy={saving} onOpen={open} download={download}/> : null}
-            {tab === "cloture" ? <ClosingClose view={view} canSign={canSign} send={send} busy={saving} onItem={onItem}/> : null}
+            {tab === "synthese" ? <ClosingSynthesis view={view} onOpen={open} canPrepare={canPrepare} send={send} busy={saving} exportHref={exportHref}/> : null}
+            {tab === "cloture" ? <ClosingClose view={view} canSign={canSign} canMarkPersonal={view.reviewKind === "personal" && !closed} send={send} busy={saving} onItem={onItem} onOpen={open}/> : null}
             {tab === "journal" ? <ClosingJournal view={view} onOpen={open}/> : null}
           </div>
           {procedure ? <ProcedurePanel key={procedure.procedureId} ref={panelRef} view={view} p={procedure} onClose={closePanel} canPrepare={canPrepare} canReview={canReview} send={send} busy={saving} download={download} error={status === "failed" || status === "conflict" ? error : undefined}/> : null}

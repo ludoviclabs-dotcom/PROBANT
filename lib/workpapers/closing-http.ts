@@ -4,8 +4,10 @@ import { ApiError } from "@/lib/api/errors";
 import { closingCommandSchema, pieceUploadSchema } from "./closing-contract";
 import type { ClosingRuntime } from "./closing-runtime";
 import { ClosingConflict } from "./closing-store";
+import { CLOSING_EXPORT_FORMATS } from "@/lib/evidence/closing-dossier-package";
 
-const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.literal("download").optional(), id: z.string().regex(/^PC-\d{1,4}-v\d{1,3}$/).optional() }).strict();
+const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(["download", "export"]).optional(), id: z.string().regex(/^PC-\d{1,4}-v\d{1,3}$/).optional(),
+  format: z.enum(CLOSING_EXPORT_FORMATS).optional(), snapshot: z.string().regex(/^[a-f0-9]{64}$/).optional() }).strict();
 const headers = { "Cache-Control": "private, no-store" };
 /** Disposable recipe infrastructure only; production stays closed even with the flag. */
 export function requireDisposableClosing(env: Record<string, string | undefined> = process.env) {
@@ -29,6 +31,7 @@ function scope(request: Request) {
   if (new Set(params.keys()).size !== [...params.keys()].length) throw new Error("CL_QUERY_INVALID");
   const parsed = query.parse(Object.fromEntries(params));
   if ((parsed.operation === "download") !== !!parsed.id) throw new Error("CL_QUERY_INVALID");
+  if ((parsed.operation === "export") !== !!parsed.format || (parsed.operation === "export") !== !!parsed.snapshot) throw new Error("CL_QUERY_INVALID");
   return parsed;
 }
 async function bounded(request: Request, max: number) {
@@ -64,6 +67,11 @@ export function closingHandlers(create: () => ClosingRuntime, enabled: () => voi
           const found = await runtime.download(request, q.dossierId, q.periodId, q.id!);
           if (!found) return Response.json({ error: "CL_PIECE_NOT_FOUND" }, { status: 404, headers });
           return new Response(Uint8Array.from(found.bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": attachmentName(found.fileName), "X-Content-Type-Options": "nosniff" } });
+        }
+        if (q.operation === "export") {
+          const pack = await runtime.export(request, q.dossierId, q.periodId, q.format!, q.snapshot!);
+          return new Response(typeof pack.content === "string" ? pack.content : Uint8Array.from(pack.content).buffer, { headers: { ...headers, "Content-Type": pack.mediaType, "Content-Disposition": attachmentName(pack.fileName),
+            "X-Content-Type-Options": "nosniff", "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'", "X-Probant-Snapshot": pack.snapshot } });
         }
         return Response.json(await runtime.read(request, q.dossierId, q.periodId), { headers });
       } catch (error) { return fail(error); }

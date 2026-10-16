@@ -8,6 +8,7 @@ import { stampFr, type ClosingView } from "./format";
 import { STATE_LABELS } from "../cash/format";
 import cl from "./closing.module.css";
 import { reviewAuthor } from "@/lib/auth/review-kind";
+import { ASSIGNMENT_LABELS } from "@/lib/workpapers/closing-projection";
 
 type Send = (body: Record<string, unknown>) => Promise<boolean>;
 const submit = (send: Send, build: (f: FormData) => Record<string, unknown>) => async (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const form = ev.currentTarget; if (await send(build(new FormData(form)))) form.reset(); };
@@ -44,17 +45,18 @@ export function ClosingReview({ view, canPrepare, canReview, send, busy, onOpen,
 
 const FAMILIES: { id: string; label: string; codes: RegExp }[] = [
   { id: "programme", label: "Programme et couverture", codes: /^(FILE_|PROGRAM_|RISK_|PAIR_)/ },
-  { id: "procedures", label: "Procédures à documenter, conclure ou revoir", codes: /^(ITGC_|POPULATION_|NO_WORK|STEP_|RECORD_|REPRESENTATION_|NOT_|CONCLUSION_|CHANGES_|CYCLE_ABSENT|CYCLE_NOT|CYCLE_BLOCKED|CYCLE_IN|CYCLE_NOTES)/ },
+  { id: "procedures", label: "Procédures à documenter, conclure ou revoir", codes: /^(ITGC_|POPULATION_|NO_WORK|STEP_|RECORD_|REPRESENTATION_|NOT_|CONCLUSION_|CHANGES_|CYCLE_ABSENT|CYCLE_NOT|CYCLE_BLOCKED|CYCLE_IN|CYCLE_NOTES|CYCLE_SIMULATED)/ },
+  { id: "feuilles", label: "Feuilles à rattacher, réviser ou écarter", codes: /^(SHEET_|CYCLE_SOURCE_)/ },
   { id: "pieces", label: "Pièces attendues", codes: /^REQUEST_/ },
   { id: "revue", label: "Points de revue", codes: /^REVIEW_POINT/ },
-  { id: "contradictions", label: "Contradictions et incohérences", codes: /^(CONTRADICTION_|CYCLE_OUTSIDE|NA_WITH|MISSTATEMENT_IN)/ },
+  { id: "contradictions", label: "Contradictions et incohérences", codes: /^(CONTRADICTION_|CYCLE_OUTSIDE|NA_WITH|MISSTATEMENT_IN|THRESHOLD_)/ },
   { id: "anomalies", label: "Anomalies et limites à apprécier", codes: /^(MISSTATEMENT_UNASSESSED|MISSTATEMENT_CORRECTION_|LIMITATION_)/ },
   { id: "validation", label: "Validation", codes: /^VALIDATION_/ },
 ];
 
 /** Closing view: remaining work and contradictions by family, observed cycle sheets, and the human validation reserved to the authorised professional. */
-export function ClosingClose({ view, canSign, send, busy, onItem }: { view: ClosingView; canSign: boolean; send: Send; busy: boolean; onItem: (item: RemainingItem, origin: HTMLElement) => void }) {
-  const e = view.evaluation, v = e.validation, closed = v.status === "validee" || v.status === "perimee";
+export function ClosingClose({ view, canSign, canMarkPersonal, send, busy, onItem, onOpen }: { view: ClosingView; canSign: boolean; canMarkPersonal: boolean; send: Send; busy: boolean; onItem: (item: RemainingItem, origin: HTMLElement) => void; onOpen: (id: string, origin: HTMLElement) => void }) {
+  const e = view.evaluation, v = e.validation, closed = v.status === "validee" || v.status === "perimee", personal = e.personal;
   const grouped = FAMILIES.map(f => ({ ...f, items: e.blockers.filter(b => f.codes.test(b.code)) }));
   const other = e.blockers.filter(b => !FAMILIES.some(f => f.codes.test(b.code)));
   if (other.length) grouped.push({ id: "autres", label: "Autres", codes: /./, items: other });
@@ -67,17 +69,36 @@ export function ClosingClose({ view, canSign, send, busy, onItem }: { view: Clos
           : <p className={cl.small}>Rien de détecté — ce n’est pas une attestation.</p>}
       </div>)}</div>
     </section>
+    {e.professionalGaps.length ? <section className={cl.section} aria-labelledby="cl-gaps">
+      <h2 id="cl-gaps">Conditions d’une revue professionnelle non remplies <span className={cl.small}>{e.professionalGaps.length} élément{e.professionalGaps.length > 1 ? "s" : ""} relu{e.professionalGaps.length > 1 ? "s" : ""} seulement sous relecture personnelle nommée</span></h2>
+      <ul className={cl.remaining}>{e.professionalGaps.map((b, i) => <li key={b.code + b.ref.id + i}>{b.procedureId ? <button type="button" className={cl.link} style={{ fontWeight: 400 }} onClick={ev => onOpen(b.procedureId!, ev.currentTarget)}>{b.label}</button> : b.label}</li>)}</ul>
+    </section> : null}
     <section className={cl.section} aria-labelledby="cl-cycles">
-      <h2 id="cl-cycles">Feuilles de cycle observées <span className={cl.small}>{e.observations.length} feuille{e.observations.length > 1 ? "s" : ""} courante{e.observations.length > 1 ? "s" : ""} pour ce dossier et cet exercice</span></h2>
-      <div className={cl.tableScroll}><table className={cl.grid}>
-        <caption className="sr-only">États lus dans les cycles ; le dossier ne les modifie pas.</caption>
-        <thead><tr><th scope="col">Feuille</th><th scope="col">État</th><th scope="col">Version</th><th scope="col">Revue</th><th scope="col">Au programme</th></tr></thead>
-        <tbody>{e.observations.map(o => { const linked = e.procedures.find(p => p.engine?.id === o.procedure);
-          return <tr key={o.runId}><td>{o.route ? <DossierContextAnchor href={o.route}>{o.label}</DossierContextAnchor> : o.label}<br/><span className={cl.hash}>{o.runId}</span></td><td>{STATE_LABELS[o.state] ?? o.state}</td><td className={cl.num}>r{o.revision} v{o.version}</td>
-            <td className={cl.small}>{o.approval ? reviewAuthor(o.approval) + " · " + stampFr(o.approval.at) : "—"}</td><td>{linked ? linked.procedureId + " · " + linked.riskIds.join(", ") : <span className={cl.pill} data-tone="danger">Hors programme</span>}</td></tr>; })}</tbody>
+      <h2 id="cl-cycles">Feuilles de cycle observées <span className={cl.small}>{e.sheets.length} lignée{e.sheets.length > 1 ? "s" : ""} (une par racine : population ou périmètre) · {e.denominators.sheets.previousRevisions} révision(s) antérieure(s) listée(s)</span></h2>
+      <div className={cl.tableScroll} role="region" tabIndex={0} aria-label="Feuilles de cycle observées"><table className={cl.grid}>
+        <caption className="sr-only">Feuilles lues dans les cycles, une ligne par racine, avec leur affectation au programme ; le dossier ne les modifie pas.</caption>
+        <thead><tr><th scope="col">Feuille</th><th scope="col">Version courante</th><th scope="col">Résultat et sources</th><th scope="col">Revue</th><th scope="col">Affectation</th></tr></thead>
+        <tbody>{e.sheets.map(x => { const o = x.current;
+          return <tr key={x.procedure + x.rootId}><td>{x.route ? <DossierContextAnchor href={x.route}>{x.label}</DossierContextAnchor> : x.label}<br/><span className={cl.hash}>racine {x.rootId} · {o.runId}</span></td>
+            <td>{STATE_LABELS[o.state] ?? o.state} · r{o.revision} v{o.version}<br/><span className={cl.small}>{o.populationSize !== null ? o.populationSize + (o.populationSize > 1 ? " éléments" : " élément") : "population non figée"}{x.previous.length ? " · antérieures : " + x.previous.map(p => "r" + p.revision + " " + (STATE_LABELS[p.state] ?? p.state)).join(", ") : ""}</span></td>
+            <td className={cl.small}>{o.outcome === "inconclusive" ? <strong>Non concluant</strong> : o.outcome === "exceptions_detected" ? "Exceptions conservées" : o.outcome === "no_exception_detected" ? "Aucune exception" : "Non exécutée"}{o.sourcesCurrent === false ? " · source remplacée" : o.sourcesCurrent === null ? " · sources non lues" : ""}</td>
+            <td className={cl.small}>{o.approval ? reviewAuthor(o.approval) + " · " + stampFr(o.approval.at) : "—"}</td>
+            <td>{x.procedureId ? <button type="button" className={cl.link} onClick={ev => onOpen(x.procedureId!, ev.currentTarget)}>{x.procedureId}{x.assignment === "retenue" ? (x.binding === "implicite" ? " (implicite)" : "") : " — rattachement à confirmer"}</button>
+              : <span className={cl.pill} data-tone={x.assignment === "ecartee" ? "muted" : "danger"}>{ASSIGNMENT_LABELS[x.assignment]}</span>}{x.exclusion ? <><br/><span className={cl.small}>Motif : {x.exclusion.reason}</span></> : null}</td></tr>; })}</tbody>
       </table></div>
-      {!e.observations.length ? <p className={cl.small}>Aucune feuille de cycle pour ce dossier et cet exercice.</p> : null}
-      <p className={cl.small}>La paie (Mission 18) n’a pas de feuille durable observable : ses travaux se documentent ici comme procédures manuelles.</p>
+      {!e.sheets.length ? <p className={cl.small}>Aucune feuille de cycle pour ce dossier et cet exercice.</p> : null}
+      <p className={cl.small}>Paie et congés (C12) sont lus comme les autres familles, à leur version courante. Une révision antérieure verrouillée ne couvre jamais la révision courante ni une autre population.</p>
+    </section>
+    <section className={cl.personal} data-status={personal.status} aria-labelledby="cl-personal">
+      <h2 id="cl-personal">Dossier personnel (mode solo)</h2>
+      <p className={cl.small}>{personal.notice}</p>
+      {personal.status !== "absent" ? <p><strong>{personal.status === "marque" ? "Marqué terminé" : "Marquage périmé"}</strong> par {personal.by} le {stampFr(personal.at!)} — relecture personnelle nommée : {personal.reviewerName}. {personal.text}{personal.changed.length ? <> <span className={cl.small}>Depuis : {personal.changed.join(", ")}.</span></> : null}</p> : <p className={cl.small}>Aucun marquage personnel.</p>}
+      {personal.limits.length ? <><h3 className={cl.subhead}>Limites visibles au marquage ({personal.limits.length})</h3><ul className={cl.limits}>{personal.limits.map((l, i) => <li key={l.code + i}>{l.label}</li>)}</ul></> : personal.status !== "absent" ? <p className={cl.small}>Aucune limite détectée au marquage — ce n’est pas une attestation.</p> : null}
+      {canMarkPersonal ? <form className={cl.form} onSubmit={submit(send, f => ({ command: "mark_personal_complete", text: f.get("text") }))}>
+        <p className={cl.small}>{e.blockers.length + e.professionalGaps.length === 0 ? "Aucun travail restant ni condition de revue professionnelle détecté : le marquage n’en vaut pas attestation." : (e.blockers.length + e.professionalGaps.length) + (e.blockers.length + e.professionalGaps.length > 1 ? " éléments restants (travaux et conditions de revue professionnelle) seront enregistrés comme limites visibles" : " élément restant (travail ou condition de revue professionnelle) sera enregistré comme limite visible") + " ; aucun n’est clos par ce marquage, aucune contradiction n’est résolue."}</p>
+        <label>Note de fin de dossier (relecture personnelle nommée : {view.reviewerName ?? "nom requis"})<textarea name="text" required maxLength={1500}/></label>
+        <button className={cl.submit} disabled={busy}>{personal.status === "absent" ? "Marquer le dossier personnel terminé" : "Marquer à nouveau sur l’état courant"}</button></form>
+        : personal.status === "absent" ? <p className={cl.small}>Réservé au profil personnel local avec relecture personnelle nommée.</p> : null}
     </section>
     <section className={cl.validation} data-status={v.status} aria-labelledby="cl-validation">
       <h2 id="cl-validation">Validation de clôture</h2>

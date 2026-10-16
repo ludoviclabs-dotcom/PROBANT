@@ -7,8 +7,10 @@ import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { PROVISION_TEMPLATE, ProvisionRegistry } from "./provision-adapter";
 import type { ProvisionCommand } from "./provision-commands";
+import { buildProvisionMissionPackage, type ProvisionExportKind } from "@/lib/evidence/provision-mission-package";
+import { buildProvisionMission, type ProvisionMissionSelection } from "./provision-mission";
 import { evaluateProvisions, provisionNoteCitation, provisionWorkSchema, PV_UNCERTAINTY_CODES, resolveProvisionCitation, stampProvisionWork, type ProvisionCitationInput, type ProvisionResult } from "./provision-review";
-import { confidentialContext, provisionBatchConfidential, redactProvisionBatch, redactProvisionRun } from "./provision-redaction";
+import { confidentialContext, provisionBatchConfidential, redactProvisionBatch, redactProvisionRun, redactProvisionSource } from "./provision-redaction";
 import { assertProvisionBatch, PV_TYPES, provisionSourcesCurrent, ProvisionSourceError, type ProvisionSourceType } from "./provision-sources";
 import { ProvisionImports, ProvisionWorkpaperRepository, type ProvisionDatabase, type ProvisionTx } from "./provision-store";
 import { previewImport, type ImportBatch, type ImportMapping } from "./imports";
@@ -19,7 +21,7 @@ import { WorkpaperService } from "./service";
 import { executionProfile } from "@/lib/runtime/profile";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
-const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024 };
+const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
 /** Human decisions that must cite a frozen piece and its version. */
 const CITED_NOTE_KINDS = ["judgment", "validated_anomaly"];
 /** Rows returned to the browser: register and pieces in full (the registry and citations need them); the others are summarized. */
@@ -104,10 +106,39 @@ export class ProvisionRuntime {
       const sliced = imports.batches.map(b => ({ ...b, rows: b.rows.slice(0, ROWS_SENT[b.document.documentType as ProvisionSourceType] ?? 0), rowCount: b.rows.length }));
       const response = { actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), confidentialAccess: confidential, runs: runs.map(show), sourcesCurrent, expectedSources: pvHeads.map(h => h.import_id).sort(), lineageCurrent, versions,
         currentVersions: Object.fromEntries(currentRuns.map(r => [r.id, r.version])),
-        imports: confidential ? sliced : sliced.map(b => redactProvisionBatch(b, ctx)), sourceHeads: heads, ...(history && id ? { history: (await repository.history(scope, id)).map(show) } : {}) };
+        imports: confidential ? sliced : sliced.map(b => redactProvisionSource(b, ctx)), sourceHeads: heads, ...(history && id ? { history: (await repository.history(scope, id)).map(show) } : {}) };
       if (Buffer.byteLength(JSON.stringify(response)) > LIMITS.response) throw new ApiError("PV_STATE_LIMIT", "État trop volumineux pour cette recette.", 413);
       return response;
     });
+  }
+  /** Mission synthesis at an exact version, masked like the sheet for a reader without the confidential capability. */
+  private async missionData(tx: ProvisionTx, scope: WorkpaperScope, selection: ProvisionMissionSelection, confidential: boolean) {
+    await this.bounded(tx, scope);
+    const versions = await tx.allVersions(scope), imports = ProvisionImports.from(await tx.imports(scope)), heads = await tx.heads(scope), createdAt = await tx.dossierCreatedAt(scope);
+    if (!createdAt) throw new Error("WORKPAPER_NOT_FOUND");
+    const mission = buildProvisionMission(scope, versions, imports.batches, heads, selection, createdAt, { confidential });
+    if (Buffer.byteLength(JSON.stringify(mission)) > LIMITS.response) throw new ApiError("PV_MISSION_LIMIT", "Synthèse trop volumineuse pour cette recette.", 413);
+    return { mission, run: versions.find(r => r.id === mission.procedure.runId && r.version === mission.procedure.version) ?? null, imports: imports.batches };
+  }
+  async mission(request: Request, dossierId: string, pid: string, selection: ProvisionMissionSelection = {}) {
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor, confidential) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env),
+      confidentialAccess: confidential, mission: (await this.missionData(tx, scope, selection, confidential)).mission }));
+  }
+  /**
+   * Export of the displayed server state. The snapshot hash includes the reader's confidential capability: a state or a
+   * capability that changed since the display is refused, before and again after rendering, before any byte is returned.
+   */
+  async missionExport(request: Request, dossierId: string, pid: string, selection: ProvisionMissionSelection, kind: ProvisionExportKind, expectedSnapshotHash: string) {
+    const data = await this.transaction(request, dossierId, pid, "download", async (tx, scope, _actor, confidential) => {
+      const data = await this.missionData(tx, scope, selection, confidential);
+      if (data.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+      return data;
+    });
+    const pack = await buildProvisionMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!);
+    if (Buffer.byteLength(pack.canonicalJson) > LIMITS.export || pack.pdf.byteLength > LIMITS.export || Buffer.byteLength(pack.html) > LIMITS.export) throw new ApiError("PV_EXPORT_LIMIT", "Export trop volumineux pour cette recette.", 413);
+    // Session, permission, capability and state are checked again after rendering, before any byte is returned.
+    await this.transaction(request, dossierId, pid, "download", async (tx, scope, _actor, confidential) => { if ((await this.missionData(tx, scope, selection, confidential)).mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT"); });
+    return pack;
   }
   async download(request: Request, dossierId: string, pid: string, documentId: string) {
     return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor, confidential) => {

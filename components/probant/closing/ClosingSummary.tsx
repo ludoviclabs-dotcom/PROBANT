@@ -7,14 +7,17 @@ const SEGMENT_LABELS = { done: "atteint", partial: "en cours", todo: "à faire",
 
 /** The honest headline: what is locked, what remains, and that no opinion is generated. */
 export function ClosingVerdict({ view }: { view: ClosingView }) {
-  const e = view.evaluation, cycles = e.indicators.find(i => i.id === "cycles")!, validated = e.validation.status === "validee";
+  // Cockpit: the same denominators as the coverage matrix and the export (C14), never a recount in the browser.
+  const e = view.evaluation, d = e.denominators, validated = e.validation.status === "validee", personal = e.personal.status === "marque";
   const tone = validated ? "ok" : "open";
   return <section className={cl.verdict} data-tone={tone} aria-labelledby="cl-verdict">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true"><path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
     <div>
-      <p id="cl-verdict"><strong>{validated ? "Validation de clôture enregistrée par le professionnel habilité." : cycles.numerator > 0 && !e.closable ? "Des feuilles de cycle sont verrouillées, mais le dossier n’est pas complet." : e.closable ? "Aucun travail restant détecté : la validation reste une décision du professionnel habilité." : "Dossier en cours : un ensemble de cycles n’est pas un audit complet."}</strong></p>
-      <ul className={cl.facts}>
-        <li><strong>{cycles.numerator} / {cycles.denominator}</strong> feuilles de cycle du programme verrouillées</li>
+      <p id="cl-verdict"><strong>{validated ? "Validation de clôture enregistrée par le professionnel habilité." : personal ? "Dossier personnel marqué terminé, avec ses limites visibles : ce n’est pas une validation professionnelle." : d.engines.locked > 0 && !e.closable ? "Des feuilles de cycle sont verrouillées, mais le dossier n’est pas complet." : e.closable ? "Aucun travail restant détecté : la validation reste une décision du professionnel habilité." : "Dossier en cours : un ensemble de cycles n’est pas un audit complet."}</strong></p>
+      <ul className={cl.facts} data-testid="cockpit-denominators">
+        <li><strong>{d.procedures.done} / {d.procedures.applicable}</strong> procédures revues{d.procedures.notApplicable ? " (" + d.procedures.notApplicable + " non applicable(s) motivée(s) exclue(s))" : ""}</li>
+        <li><strong>{d.pairs.reviewed} / {d.pairs.counted}</strong> couples risque × assertion</li>
+        <li><strong>{d.engines.locked} / {d.engines.applicable}</strong> feuilles de cycle du programme verrouillées{d.engines.toBind ? " · " + d.engines.toBind + " à rattacher" : ""}</li>
         <li><strong>{e.blockers.length}</strong> {e.blockers.length > 1 ? "travaux restants ou contradictions" : "travail restant ou contradiction"}</li>
         <li><strong>{e.missing.length}</strong> {e.missing.length > 1 ? "pièces ou éléments manquants" : "pièce ou élément manquant"}</li>
         <li>{e.noOpinion}</li>
