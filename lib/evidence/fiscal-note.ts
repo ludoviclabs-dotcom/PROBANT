@@ -183,8 +183,8 @@ export function buildFiscalNoteHtml(input: FiscalNoteInput): string {
 
   <section><h2>IS</h2>
     ${table(["Calcul", "Montant", "Niveau de preuve", "Conclusion élémentaire"], [[
-      "Impôt brut calculé dans le périmètre des données disponibles",
-      nullableAmount(corporate?.grossTaxCents),
+      `Impôt calculé dans le périmètre des données disponibles, arrondi à l'euro (CGI art. 1724) — ${nullableAmount(corporate?.grossTaxCents)} avant arrondi`,
+      nullableAmount(corporate?.liquidatedTaxCents),
       corporate ? EVIDENCE_STRENGTH_LABEL[corporate.evidenceStrength] : "non disponible",
       corporate ? TAX_OUTCOME_LABEL[corporate.outcome] : "non disponible",
     ]])}

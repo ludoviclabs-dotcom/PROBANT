@@ -48,6 +48,8 @@ import type {
   ExposureDimension,
   NetEffectByTarget,
   TaxEffectBlock,
+  TaxIncidenceProvider,
+  TaxIncidenceRequest,
 } from "./types";
 
 /** Statuts de revue par étape (alignés sur lib/dossier/review). */
@@ -78,13 +80,15 @@ export function reviewedCluster<T extends Pick<ExposureClusterView, "status" | "
   return { ...cluster, reviewStage, correctedCents: reviewStage === "corrected" ? (correctionCents ?? cluster.retainedCents) : null };
 }
 
+/** 2.2.0 : incidence fiscale par scénario d'IS avant/après quand un fournisseur est branché (C05 / C10). */
 export const AGGREGATION_POLICY: AggregationPolicy = {
   policyId: "probant-exposure-aggregation",
-  version: "2.1.0",
+  version: "2.2.0",
   exactRepeatRule: "count_once",
   sameIdentityDistinctContentRule: "version_chain_or_conflict",
   overlapRule: "indeterminate_with_bounds",
   oppositeDirectionsRule: "no_netting_indeterminate",
+  taxIncidenceRule: "is_scenario_when_provided_else_qualified_explicit_rate",
 };
 
 /** Un effet rattaché à son constat porteur, prêt pour la déduplication. */
@@ -479,8 +483,16 @@ export interface ExposureProjection {
   records: EffectRecord[];
   dedup: DeduplicationResult;
   adjustments: EffectAdjustment[];
-  taxKnown: { findingId: string; target: EffectTarget; taxCents: number }[];
+  taxKnown: { findingId: string; target: EffectTarget; taxCents: number; method: "is_scenario" | "explicit_rate" | "no_tax_effect" }[];
   taxUnknown: { findingId: string; reason: string }[];
+}
+
+export interface ExposureOptions {
+  /**
+   * Fournisseur d'incidence fiscale par scénario d'IS (moteur de C10). Sans fournisseur, l'incidence d'un
+   * ajustement déductible ne se chiffre qu'avec un taux explicite ; une différence temporaire reste inconnue.
+   */
+  taxIncidence?: TaxIncidenceProvider;
 }
 
 const signed = (cents: number, direction: EffectDirection) => (direction === "decrease" ? -cents : cents);
@@ -493,6 +505,7 @@ export function projectExposure(
   findings: Finding[],
   sourceDocument: string,
   statusOf?: ReadonlyMap<string, string>,
+  options: ExposureOptions = {},
 ): ExposureProjection {
   const { records, withoutEffect } = collectEffects(findings, sourceDocument, statusOf);
   const dedup = deduplicateEffects(records);
@@ -517,16 +530,28 @@ export function projectExposure(
     }
   }
 
-  // Incidence fiscale : taux explicite ET qualification fiscale. Un taux sans qualification ne valide aucun net ;
-  // une différence temporaire attend le moteur fiscal (C10) ; sans taux, inconnu.
+  // Incidence fiscale. Ajustement du résultat qualifié déductible + fournisseur branché : scénario d'IS avant/après,
+  // sans repli sur un taux saisi (le moteur décide, ou l'incidence reste inconnue). Sinon : taux explicite ET
+  // qualification ; un taux sans qualification ne valide aucun net ; une différence temporaire reste hors couverture.
+  const provider = options.taxIncidence;
+  const scenarioRequests: TaxIncidenceRequest[] = provider
+    ? adjustments.filter((a) => a.target === "resultat" && recordOf.get(a.findingId)!.effect.taxQualification === "deductible")
+      .map((a) => ({ findingId: a.findingId, target: "resultat" as const, signedCents: a.signedCents }))
+    : [];
+  const scenario = provider && scenarioRequests.length > 0 ? provider.incidence(scenarioRequests) : null;
   const taxKnown: ExposureProjection["taxKnown"] = [];
   const taxUnknown: ExposureProjection["taxUnknown"] = [];
   for (const a of adjustments) {
     const e = recordOf.get(a.findingId)!.effect;
     const q = e.taxQualification;
-    if (q === "non_deductible" || q === "reclassification") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: 0 });
-    else if (q === "deductible" && e.taxRatePct !== undefined) taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: applyRatePct(a.signedCents, e.taxRatePct) });
-    else if (q === "temporary_difference") taxUnknown.push({ findingId: a.findingId, reason: "différence temporaire : incidence fiscale à calculer par le moteur fiscal (scénario avant/après), non disponible" });
+    const answer = scenario?.answers.get(a.findingId);
+    if (scenario && scenarioRequests.some((r) => r.findingId === a.findingId)) {
+      if (answer?.status === "computed") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: answer.taxCents, method: "is_scenario" });
+      else taxUnknown.push({ findingId: a.findingId, reason: answer?.reason ?? "scénario d'IS sans réponse : incidence fiscale inconnue" });
+    } else if (q === "non_deductible" || q === "reclassification") taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: 0, method: "no_tax_effect" });
+    else if (q === "deductible" && e.taxRatePct !== undefined) taxKnown.push({ findingId: a.findingId, target: a.target, taxCents: applyRatePct(a.signedCents, e.taxRatePct), method: "explicit_rate" });
+    else if (q === "temporary_difference") taxUnknown.push({ findingId: a.findingId, reason: "différence temporaire : hors couverture du scénario d'IS (impôt différé non modélisé), incidence fiscale inconnue" });
+    else if (q === "deductible" && provider) taxUnknown.push({ findingId: a.findingId, reason: "ajustement d'un poste de bilan : contrepartie au résultat fiscal non établie, hors couverture du scénario d'IS" });
     else if (e.taxRatePct === undefined) taxUnknown.push({ findingId: a.findingId, reason: "taux d'impôt absent : incidence fiscale inconnue" });
     else taxUnknown.push({ findingId: a.findingId, reason: "taux explicite sans qualification fiscale (déductibilité non établie) : aucun net validé" });
   }
@@ -571,7 +596,14 @@ export function projectExposure(
     stages,
     tax,
     netByTarget,
-    taxIncidence: { provider: "none", method: "before_after_is_scenario", pendingFindingIds: taxUnknown.map((t) => t.findingId) },
+    taxIncidence: {
+      provider: provider ? provider.id : "none",
+      method: "before_after_is_scenario",
+      providerVersion: provider ? provider.version : null,
+      computedFindingIds: taxKnown.filter((t) => t.method === "is_scenario").map((t) => t.findingId),
+      scenarioHash: scenario?.scenarioHash ?? null,
+      pendingFindingIds: taxUnknown.map((t) => t.findingId),
+    },
     clusters: dedup.clusters,
     findingsWithoutEffect: withoutEffect,
     policy: AGGREGATION_POLICY,
@@ -585,6 +617,6 @@ export function reviewStatusMap(findings: Finding[], reviewEvents: DossierSnapsh
 }
 
 /** Projection d'un DossierSnapshot : mêmes entrées que la Synthèse, donc mêmes groupes et mêmes montants. */
-export function projectSnapshotExposure(snapshot: Pick<DossierSnapshot, "findings" | "reviewEvents" | "dossier">): ExposureProjection {
-  return projectExposure(snapshot.findings, snapshot.dossier.fecFingerprint, reviewStatusMap(snapshot.findings, snapshot.reviewEvents));
+export function projectSnapshotExposure(snapshot: Pick<DossierSnapshot, "findings" | "reviewEvents" | "dossier">, options: ExposureOptions = {}): ExposureProjection {
+  return projectExposure(snapshot.findings, snapshot.dossier.fecFingerprint, reviewStatusMap(snapshot.findings, snapshot.reviewEvents), options);
 }

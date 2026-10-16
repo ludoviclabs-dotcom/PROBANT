@@ -227,7 +227,7 @@ function collectControlRows(source: TaxCockpitSource, scope: TaxCockpitScope): U
       title: "Calcul du résultat fiscal et de l'impôt sur les sociétés",
       outcome: snapshot.outcome,
       evidenceStrength: snapshot.evidenceStrength,
-      detail: `Impôt brut ${AMOUNT_STATUS_LABEL.computed.toLowerCase()} : ${cents(snapshot.grossTaxCents)} (${snapshot.taxImpactStatus === "not_computed" ? "non calculé" : "statut " + snapshot.taxImpactStatus}).`,
+      detail: `Impôt ${AMOUNT_STATUS_LABEL.computed.toLowerCase()}, arrondi à l'euro (CGI art. 1724) : ${cents(snapshot.liquidatedTaxCents)}, soit ${cents(snapshot.grossTaxCents)} avant arrondi (${snapshot.taxImpactStatus === "not_computed" ? "non calculé" : "statut " + snapshot.taxImpactStatus}).`,
       differenceCents: null,
       sourceRefs: snapshot.sourceRefs,
     });
@@ -559,7 +559,7 @@ function buildWaterfall(
     title: "Du résultat comptable au résultat fiscal et à l'IS",
     summary: snapshot
       ? snapshot.status === "computed"
-        ? `Résultat comptable ${cents(snapshot.accountingResultCents)}, résultat fiscal retenu ${cents(snapshot.waterfall.confirmedTaxResultCents)}, borne proposée ${cents(snapshot.waterfall.proposedTaxResultCents)}, impôt brut ${cents(snapshot.grossTaxCents)}. Montants en euros, ${periodLabel(source)}.`
+        ? `Résultat comptable ${cents(snapshot.accountingResultCents)}, résultat fiscal retenu ${cents(snapshot.waterfall.confirmedTaxResultCents)}, borne proposée ${cents(snapshot.waterfall.proposedTaxResultCents)}, impôt ${cents(snapshot.liquidatedTaxCents)} arrondi à l'euro (${cents(snapshot.grossTaxCents)} avant arrondi). Montants en euros, ${periodLabel(source)}.`
         : "Le calcul d'impôt sur les sociétés est bloqué : les données nécessaires sont absentes du dossier. Chaque étape reste « non disponible » — aucun montant n'est inventé."
       : "Aucun calcul d'impôt sur les sociétés disponible sur ce périmètre : le passage résultat comptable → résultat fiscal ne peut pas être affiché.",
     columns,

@@ -2427,3 +2427,32 @@
   font-size: 14px;
   color: var(--pb-ink-2);
 }
+
+/* Incidence fiscale des ajustements : une ligne de source sous le pont, filet à gauche. */
+.taxNote {
+  margin-top: 40px;
+  padding: 4px 0 4px 16px;
+  border-left: 2px solid var(--pb-rule-strong);
+}
+
+.taxNote[data-incidence="available"] {
+  border-left-color: var(--pb-verif);
+}
+
+.taxKey {
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.taxText {
+  margin: 8px 0 0;
+  max-width: 90ch;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--pb-ink-2);
+}

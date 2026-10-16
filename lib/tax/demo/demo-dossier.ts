@@ -423,8 +423,9 @@ export function buildDemoTaxCockpitSource(options: DemoTaxCockpitOptions = {}): 
       accountedPositions: withDocuments
         ? {
             // Charge d'impôt comptabilisée volontairement inférieure de
-            // 24 850,00 EUR à l'impôt brut recalculé : l'écart de démonstration.
-            chargeCents: euros(101_562.5),
+            // 24 850,00 EUR à l'impôt liquidé recalculé (arrondi à l'euro,
+            // CGI art. 1724) : l'écart de démonstration.
+            chargeCents: euros(101_563),
             liabilityCents: null,
             snapshotId: "fec-snapshot-demo",
             contentHash: "f".repeat(64),

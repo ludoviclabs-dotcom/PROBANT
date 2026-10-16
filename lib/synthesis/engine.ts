@@ -37,6 +37,7 @@ import type {
   ReviewDimension,
   RiskDimension,
   SynthesisSnapshot,
+  TaxIncidenceProvider,
   Verdict,
 } from "./types";
 
@@ -58,6 +59,11 @@ export { CLOSED_REVIEW };
 export interface SynthesisOptions {
   /** Horloge injectée — ISO 8601. Jamais de Date.now() dans le moteur. */
   clock: () => string;
+  /**
+   * Incidence fiscale par scénario d'IS avant/après (moteur de C10, `corporateTaxIncidenceProvider`). Absente :
+   * l'incidence d'un ajustement n'est chiffrée que sur un taux explicite qualifié, sinon elle reste inconnue.
+   */
+  taxIncidence?: TaxIncidenceProvider;
 }
 
 const SEVERITIES: Severity[] = ["bloquant", "majeur", "mineur", "informatif"];
@@ -258,7 +264,7 @@ export function buildSynthesisSnapshot(
   });
 
   /* ── 4. Exposure (C05) — projection partagée (lib/synthesis/exposure) ── */
-  const { exposure, records, dedup, adjustments, taxKnown, taxUnknown } = projectExposure(findings, input.dossier.fecFingerprint, statusOf);
+  const { exposure, records, dedup, adjustments, taxKnown, taxUnknown } = projectExposure(findings, input.dossier.fecFingerprint, statusOf, { taxIncidence: options.taxIncidence });
   const withoutEffect = exposure.findingsWithoutEffect;
   const tax = exposure.tax;
   trace.push({
@@ -291,13 +297,15 @@ export function buildSynthesisSnapshot(
     formulaVersion: "2.0.0",
     inputs: {
       adjustments: adjustments.map((a) => `${a.findingId}:${a.target}:${a.signedCents}:${a.proposed ? "proposé" : "résiduel"}`),
-      taxKnownFindings: taxKnown.map((t) => t.findingId),
+      taxKnownFindings: taxKnown.map((t) => `${t.findingId}:${t.method}`),
       taxStatus: tax.status,
+      taxIncidenceProvider: exposure.taxIncidence.providerVersion ?? "none",
+      taxScenarioHash: exposure.taxIncidence.scenarioHash ?? "none",
     },
     excludedItems: taxUnknown.map((t) => ({ id: t.findingId, reason: t.reason })),
     output: exposure.netByTarget.map((n) => `${n.target}: proposé ${n.proposedSignedCents}, non corrigé ${n.uncorrectedSignedCents}, net ${n.netAfterKnownTaxCents ?? "inconnu"} (${n.taxStatus})`).join(" ; ") || "aucun ajustement",
     unit: "cents",
-    rounding: "effet d'impôt arrondi au centime par effet (applyRatePct)",
+    rounding: "scénario d'IS : différence d'impôts liquidés, arrondis à l'euro par le moteur (CGI art. 1724) ; taux explicite : arrondi au centime par effet (applyRatePct)",
     explanation:
       "Par poste et par sens, jamais additionnés entre postes. Net après impôt seulement si chaque effet du poste a un taux explicite ET une qualification fiscale ; sinon net inconnu, avec un sous-total partiel nommé.",
   });

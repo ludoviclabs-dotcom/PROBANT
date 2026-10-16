@@ -123,6 +123,11 @@ export interface AggregationPolicy {
   overlapRule: "indeterminate_with_bounds";
   /** Sens opposés dans un même groupe : aucune compensation, indéterminé. */
   oppositeDirectionsRule: "no_netting_indeterminate";
+  /**
+   * Incidence fiscale (2.2.0) : ajustement du résultat qualifié déductible → scénario d'IS avant/après si un
+   * fournisseur est branché (sans repli sur un taux) ; sinon taux explicite avec qualification ; sinon inconnue.
+   */
+  taxIncidenceRule: "is_scenario_when_provided_else_qualified_explicit_rate";
 }
 
 export type EffectTarget = "resultat" | "bilan_actif" | "bilan_passif" | "capitaux_propres" | "presentation";
@@ -208,7 +213,10 @@ export interface EffectStage {
 
 export interface TaxEffectBlock {
   status: AmountStatus;
-  /** Effet d'impôt connu : taux explicite ET qualification fiscale déductible (ou non déductible : 0). */
+  /**
+   * Effet d'impôt connu : scénario d'IS avant/après pour un ajustement du résultat qualifié déductible (si un
+   * fournisseur est branché), sinon taux explicite ET qualification déductible ; non déductible ou reclassement : 0.
+   */
   knownCents: number;
   knownFindingIds: string[];
   /** Effets d'ajustement dont l'incidence fiscale est inconnue, avec le motif. */
@@ -230,12 +238,44 @@ export interface NetEffectByTarget {
   partialNetKnownSubsetCents: number;
 }
 
-/** Interface réservée à C10 : incidence fiscale incrémentale avant/après par scénario d'IS. */
+/** Incidence fiscale incrémentale avant/après par scénario d'IS (C05, fournie par le moteur IS de C10). */
 export interface TaxIncidenceInterface {
   provider: "none" | "c10_is_engine";
   method: "before_after_is_scenario";
+  /** Version du fournisseur (moteur IS et comparateur de scénarios) ; null sans fournisseur. */
+  providerVersion: string | null;
+  /** Effets dont l'incidence vient du scénario d'IS avant/après. */
+  computedFindingIds: string[];
+  /** Empreinte de la comparaison de scénarios (impôts liquidés avant/après) ; null sans scénario calculé. */
+  scenarioHash: string | null;
   /** Effets d'ajustement en attente d'une incidence calculée par le moteur fiscal. */
   pendingFindingIds: string[];
+}
+
+/** Demande d'incidence : un ajustement proposé ou résiduel, sur le résultat, qualifié déductible par la revue. */
+export interface TaxIncidenceRequest {
+  findingId: string;
+  target: "resultat";
+  /** Ajustement signé : augmentation du résultat +, diminution −. */
+  signedCents: number;
+}
+
+/** Réponse d'un fournisseur : incidence chiffrée (variation de l'impôt, + = impôt supplémentaire) ou motif d'indisponibilité. */
+export type TaxIncidenceAnswer =
+  | { status: "computed"; taxCents: number }
+  | { status: "unavailable"; reason: string };
+
+/**
+ * Fournisseur d'incidence fiscale par scénario (C05 / C10). Il répond à chaque demande ; une demande sans
+ * réponse calculée reste inconnue. Aucun taux n'est appliqué à sa place.
+ */
+export interface TaxIncidenceProvider {
+  readonly id: "c10_is_engine";
+  readonly version: string;
+  incidence(requests: readonly TaxIncidenceRequest[]): {
+    answers: ReadonlyMap<string, TaxIncidenceAnswer>;
+    scenarioHash: string | null;
+  };
 }
 
 /**

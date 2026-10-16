@@ -8,6 +8,7 @@ import { charteFonts } from "@/app/fonts";
 import { prefersReducedMotion } from "@/components/charte/motion";
 import { formatEuroCents } from "@/lib/format/fr";
 import { useActiveDossier } from "@/lib/dossier/client";
+import { useTaxIncidence } from "@/lib/dossier/tax-incidence-client";
 import { projectCycleRows, sortCycleRows } from "@/lib/dossier/cycle-registry";
 import { CLOISONS } from "@/lib/canonical-model/taxonomy";
 import type { Severity } from "@/lib/canonical-model/finding";
@@ -45,6 +46,7 @@ import { MeasureStrip, worksCoverageNote } from "./MeasureStrip";
 import { MethodPanel } from "./MethodPanel";
 import { SectionHead, type Variant } from "./SectionHead";
 import { SignalScale } from "./SignalScale";
+import { TaxIncidenceLine } from "./TaxIncidenceLine";
 import { VerdictSentence } from "./VerdictSentence";
 import { EmptyState } from "./states";
 import { NO_FILTER, matches, type CrossFilter } from "./filter";
@@ -68,14 +70,17 @@ const EXPLORATION: { key: ExplorationKey; n: string; title: string }[] = [
  * dans le dossier, le snapshot est recalculé par le moteur, la page se relit.
  */
 export function SyntheseView() {
-  const { snapshot, appendReviewDecision, resetToDemo } = useActiveDossier();
+  const { snapshot, context, appendReviewDecision, resetToDemo } = useActiveDossier();
+  // C05 / C10 : base IS lue sur la feuille IS verrouillée du dossier ; sans elle, l'incidence reste inconnue hors taux qualifié.
+  const incidence = useTaxIncidence(snapshot, context);
+  const taxIncidence = incidence.status === "available" ? incidence.provider : undefined;
   const search = useSearchParams();
   const variant: Variant = search?.get("variante") === "B" ? "B" : "A";
   const rootRef = useRef<HTMLDivElement>(null);
   useEntryMotion(rootRef);
 
   const findings = snapshot.findings;
-  const synthesis = useMemo(() => buildSynthesisSnapshot(snapshot, { clock: () => new Date().toISOString() }), [snapshot]);
+  const synthesis = useMemo(() => buildSynthesisSnapshot(snapshot, { clock: () => new Date().toISOString(), taxIncidence }), [snapshot, taxIncidence]);
   const datasets = useMemo(
     () => buildSynthesisDatasets({ synthesis, societe: snapshot.dossier.societe, findings, admissibilityFindings: snapshot.admissibilityFindings, dossier: snapshot }),
     [synthesis, snapshot, findings],
@@ -331,6 +336,7 @@ export function SyntheseView() {
               tableRows={waterfallRows}
               onOpenChain={openChain}
             />
+            <TaxIncidenceLine state={incidence} incidence={synthesis.exposure.taxIncidence} />
             <div className={s.pair}>
               <AssertionMosaic
                 model={mosaic}

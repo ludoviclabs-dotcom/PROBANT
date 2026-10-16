@@ -24,7 +24,7 @@ Les pages historiques mélangeaient calcul, mise en forme et styles en ligne. R�
 
 1. **Pont d'exposition** : la maquette montre une cascade « résultat comptable → effets → IS à 25 % → résultat ajusté ». Le dossier n'a ni résultat comptable ni taux d'IS qualifié : l'application affiche les étapes réelles du moteur (effets détectés, écartés, exposition initiale, en attente d'arbitrage, corrigé, non corrigé) et l'effet net « inconnu » tant que le taux et la qualification manquent.
 2. **Couverture** : « non qualifiée » (population et dénominateur manquants) au lieu de « 2 840 écritures lues ».
-3. **Chiffres** : 21 constats bloquants ou majeurs et un signal de 82 (maquette : 19 et 81) — valeurs du moteur 1.2.0 sur DEMO SA.
+3. **Chiffres** : 21 constats bloquants ou majeurs et un signal de 82 (maquette : 19 et 81) — valeurs du moteur 1.3.0 sur DEMO SA.
 4. **Mosaïque** : 11 colonnes d'assertions (NEP 500 §09, y compris « non résolue » et « conformité du fichier ») au lieu de 8.
 5. **Rail** : 8 écrans (la Fiscalité existe) au lieu de 7 ; la liste vient du registre de capacités.
 6. **Ruban** : « clôture 31/12/2024 » quand le dossier ne porte pas de date de début (aucune période reconstituée).

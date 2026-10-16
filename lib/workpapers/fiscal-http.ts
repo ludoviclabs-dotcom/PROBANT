@@ -8,7 +8,7 @@ import { FiscalConflict } from "./fiscal-store";
 import { periodId } from "./model";
 import type { FiscalExportKind } from "@/lib/evidence/fiscal-mission-package";
 
-const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(["list", "history", "download", "mission", "version"]).optional(),
+const query = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), operation: z.enum(["list", "history", "download", "mission", "version", "incidence"]).optional(),
   id: z.string().min(1).max(200).optional(), rootId: z.string().min(1).max(200).optional(), version: z.coerce.number().int().min(1).max(100000).optional() }).strict();
 const exportBody = z.object({ dossierId: z.string().uuid(), periodId: z.string().min(1).max(100), rootId: z.string().min(1).max(200).optional(), id: z.string().min(1).max(200).optional(), version: z.number().int().min(1).max(100000).optional(),
   kind: z.enum(["diagnostic", "approved"]), format: z.enum(["json", "html", "pdf", "manifest", "exceptions_csv", "decisions_csv", "procedures_csv", "sources_csv"]), expectedSnapshotHash: z.string().regex(/^[0-9a-f]{64}$/) }).strict();
@@ -68,6 +68,7 @@ export function fiscalHandlers(create: () => FiscalRuntime, enabled: () => void 
           return new Response(Uint8Array.from(bytes).buffer, { headers: { ...headers, "Content-Type": "application/octet-stream", "Content-Disposition": 'attachment; filename="source-fiscale"', "X-Content-Type-Options": "nosniff" } });
         }
         if (q.operation === "mission") return Response.json(await runtime.mission(request, q.dossierId, q.periodId, { rootId: q.rootId, id: q.id, version: q.version }), { headers });
+        if (q.operation === "incidence") return Response.json(await runtime.citIncidenceBase(request, q.dossierId, q.periodId), { headers });
         if (q.operation === "version" && (!q.id || q.version === undefined)) throw new Error("WORKPAPER_VERSION_REQUIRED");
         if (q.version !== undefined && q.operation !== "version") throw new Error("FX_QUERY_INVALID");
         return Response.json(await runtime.read(request, q.dossierId, q.periodId, q.id, q.operation === "history", q.version), { headers });

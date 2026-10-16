@@ -56,17 +56,19 @@ export interface TaxGoldenCaseDefinition<Id extends string> {
   readonly requiredEvidence: readonly string[];
 }
 
+// Empreintes refigees pour le moteur IS 1.1.0 (C10, 16/10/2026) : statut, outcome et montants
+// des dix cas inchanges (bases entieres en euros) ; seule la version et la trace d'arrondi changent.
 export const CORPORATE_TAX_GOLDEN_CASES: readonly TaxGoldenCaseDefinition<CorporateTaxGoldenCaseId>[] = Object.freeze([
-  { id: "is-zero-adjustment", label: "Zéro retraitement", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "0eb1b5028ad63493a81c04c0a94666c17146f2572c0eb9b1af9dec38577c4033", requiredEvidence: ["2058-A"] },
-  { id: "is-reintegration", label: "Réintégration", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "77cbdf1fb3194d6368ce0734f85a0f6521cfb975ba0cdb246850d81a73038f99", requiredEvidence: ["2058-A"] },
-  { id: "is-deduction", label: "Déduction", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "142f79f59651eb0fb15070453d3dec1eb1f53fd8e66822667d3f63848d17d71f", requiredEvidence: ["2058-A"] },
-  { id: "is-loss", label: "Perte", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "5ddc0ce75d098fd4046084659a14e97b7f3de3f99cd51a89d730f43aa06ecdb5", requiredEvidence: ["2058-A"] },
-  { id: "is-deficit", label: "Déficit", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "02b976ff9468994cdb9d9df7f624af882b5add36243d6aee836265d2b22544cc", requiredEvidence: ["2058-A", "2058-B"] },
-  { id: "is-reduced-rate", label: "Taux réduit démontré", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "cd41520ded4f57dacc6d7a37047758444bc7356f6dae62e160deb7fa077d1c84", requiredEvidence: ["2058-A", "profil confirmé"] },
-  { id: "is-reduced-rate-unproven", label: "Taux réduit non démontré", expectedStatus: "computed", expectedOutcome: "missing_information", expectedSnapshotHash: "9d895ab3e6db92fd5b57977a4d0198cc4bcae18a7c2c0cffe3ee6a57e52b818f", requiredEvidence: ["2058-A", "capital et détention"] },
-  { id: "is-inconsistent-return", label: "Liasse incohérente", expectedStatus: "blocked", expectedOutcome: "reconciliation_difference", expectedSnapshotHash: "786df5411eafb9101c29731585ce708f9bacbaa6bf8f7b383434050fe95937c9", requiredEvidence: ["2058-A"] },
-  { id: "is-divergent-tax-charge", label: "Charge d’IS divergente", expectedStatus: "computed", expectedOutcome: "reconciliation_difference", expectedSnapshotHash: "3e98b2fbf98e986ec550f080ddc1e3f40947dbb10ac6be6a8c8ea3cf8f58f4f1", requiredEvidence: ["2058-A", "FEC"] },
-  { id: "is-missing-declaration", label: "Déclaration absente", expectedStatus: "blocked", expectedOutcome: "missing_information", expectedSnapshotHash: "4fe975b0b3e2ef33a7eaeb04c2a339018838009ced9cbf8336977cdd44121fae", requiredEvidence: ["2058-A ou 2033-B"] },
+  { id: "is-zero-adjustment", label: "Zéro retraitement", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "a93c546ccbfa985534378b4c7d78c2cd5f256a1ad669059716e54bcf7b3e6b64", requiredEvidence: ["2058-A"] },
+  { id: "is-reintegration", label: "Réintégration", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "ae6549de5f10f95be89825b6f9e3a92dc66647338600e55c0fc9041066672e73", requiredEvidence: ["2058-A"] },
+  { id: "is-deduction", label: "Déduction", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "531e56c6ac73ff629b8ce4dde86e5393af4922abcfb8c47942f2c3ca81af215f", requiredEvidence: ["2058-A"] },
+  { id: "is-loss", label: "Perte", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "c860d3d2cb9be193b765ec4dfbab6f1aa412db607e24a0ae99b8353eb1844edf", requiredEvidence: ["2058-A"] },
+  { id: "is-deficit", label: "Déficit", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "0918bbb29696f94d218b6d7d0c04ac2402915d79ce3519ed1638f0d895ce5535", requiredEvidence: ["2058-A", "2058-B"] },
+  { id: "is-reduced-rate", label: "Taux réduit démontré", expectedStatus: "computed", expectedOutcome: "passed", expectedSnapshotHash: "2a9d035410f684a64bb5feb3ce04028c8dec9b78275eef1cbf75958ced2258bb", requiredEvidence: ["2058-A", "profil confirmé"] },
+  { id: "is-reduced-rate-unproven", label: "Taux réduit non démontré", expectedStatus: "computed", expectedOutcome: "missing_information", expectedSnapshotHash: "242316c11f934a3f76bedcec5a98663a3694cfac9cd867d2949e95aa5d76c487", requiredEvidence: ["2058-A", "capital et détention"] },
+  { id: "is-inconsistent-return", label: "Liasse incohérente", expectedStatus: "blocked", expectedOutcome: "reconciliation_difference", expectedSnapshotHash: "ca6ac77833bc0815c843ead98704448d9db9f905e04570abd2e0a10f33a602da", requiredEvidence: ["2058-A"] },
+  { id: "is-divergent-tax-charge", label: "Charge d’IS divergente", expectedStatus: "computed", expectedOutcome: "reconciliation_difference", expectedSnapshotHash: "e9713b27536330a4f4ed6cba8f018296359b41f06462ed3e94b51e11b0ef8759", requiredEvidence: ["2058-A", "FEC"] },
+  { id: "is-missing-declaration", label: "Déclaration absente", expectedStatus: "blocked", expectedOutcome: "missing_information", expectedSnapshotHash: "2c76163260ed9bdc5c7bfa379a9b7f1ef8c983c633cf46b646b14211eb7d62b8", requiredEvidence: ["2058-A ou 2033-B"] },
 ]);
 
 export const VAT_GOLDEN_CASES: readonly TaxGoldenCaseDefinition<VatGoldenCaseId>[] = Object.freeze([

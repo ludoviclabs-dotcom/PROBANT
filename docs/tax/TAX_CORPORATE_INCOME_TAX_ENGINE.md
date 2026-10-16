@@ -30,10 +30,21 @@ résultat comptable            WA / WS      (2058-A)   ou 312 / 314 (2033-B)
   − déductions confirmées     XH
   = résultat fiscal avant déficits         comparé à XI / XJ
   − déficits imputés          XL           plafond CGI art. 209, I
-  = base imposable                         comparé à XN / XO
+  = bénéfice imposable (centimes)          comparé à XN / XO
+  → arrondi à l'euro, 0,50 compté pour 1   CGI art. 219, I        (1.1.0)
+  = base imposable (euros entiers)
   → ventilation par tranche                comparé à la 2065
-  → impôt brut
+  → impôt avant arrondi (somme des tranches)
+  → arrondi unique à l'euro du décompte    CGI art. 1724          (1.1.0)
+  = impôt liquidé                          comparé à la charge 695 / dette 444
 ```
+
+Depuis la version 1.1.0 (C10), le moteur ne traite que l'exercice de **douze
+mois** : un exercice plus court (plafond de 42 500 € et chiffre d'affaires
+ajustés prorata temporis, BOI-IS-LIQ-20-20 § 50, BOI-IS-LIQ-20-10 § 70) ou plus
+long (deux périodes d'imposition sans bilan dans l'année civile, CGI art. 37,
+BOI-IS-LIQ-20-20 § 60) est bloqué par `NON_ANNUAL_PERIOD_NOT_SUPPORTED`. Le
+plafond annuel n'est jamais appliqué à un exercice d'une autre durée.
 
 Les retraitements **candidats** (issus des comptes) sont calculés et affichés
 mais n'entrent jamais dans la chaîne retenue.
@@ -107,8 +118,18 @@ par `proposedTaxResultCents`.
 
 Tous les montants sont des entiers de centimes. Les produits `base × taux`
 passent par `bigint` : au-delà de quelques centaines de millions d'euros, le
-calcul en `number` sortirait de la plage sûre. L'arrondi est celui déclaré par
-le barème (`half_up_cent`), donc tracé et non implicite.
+calcul en `number` sortirait de la plage sûre.
+
+Trois arrondis distincts, chacun tracé avec sa source (moteur 1.1.0) :
+
+- le pont comptable, les retraitements et l'imputation des déficits restent au
+  **centime**, sans arrondi ;
+- le bénéfice imposable est arrondi **une fois à l'euro** avant ventilation
+  (`step-taxable-base`, CGI art. 219, I) ;
+- l'impôt de chaque tranche est affiché au centime (`half_up_cent` du barème ;
+  exact pour une base en euros entiers et des taux de 15 % et 25 %), mais la
+  liquidation arrondit **une fois à l'euro la somme exacte** des tranches
+  (`step-liquidation`, CGI art. 1724), jamais tranche par tranche.
 
 ## Tests golden
 

@@ -8,6 +8,10 @@ import { getDatabase } from "@/lib/db/client";
 import { buildEvidenceExportPackage } from "@/lib/evidence/package";
 import { recordMetric } from "@/lib/observability/metrics";
 import { buildSynthesisSnapshot } from "@/lib/synthesis";
+import { isCivilDate } from "@/lib/canonical-model/period";
+import { corporateTaxIncidenceProvider } from "@/lib/tax/corporate-tax/scenario";
+import { citIncidenceBaseFor } from "@/lib/workpapers/fiscal-server";
+import { periodId } from "@/lib/workpapers/model";
 
 export const runtime = "nodejs";
 
@@ -74,8 +78,13 @@ export async function POST(request: Request) {
     if (!snapshot) throw new ApiError("SNAPSHOT_NOT_FOUND", "Snapshot introuvable.", 404);
     assertRowBelongsToPrincipal(principal, trustedContext.organizationId, "contexte d'export");
 
+    // C05 / C10 : même base IS que l'écran Synthèse (feuille IS verrouillée de l'exercice), sinon incidence inconnue.
+    const period = snapshot.dossier.period;
+    const base = period && isCivilDate(period.startDate) && isCivilDate(period.closingDate) && isCivilDate(period.asOfDate)
+      ? await citIncidenceBaseFor(request, trustedContext.dossierId, periodId(period)) : null;
     const synthesis = buildSynthesisSnapshot(snapshot, {
       clock: () => snapshot.dossier.createdAt ?? new Date(0).toISOString(),
+      taxIncidence: base?.status === "available" ? corporateTaxIncidenceProvider(base.input) : undefined,
     });
     const pack = await buildEvidenceExportPackage(snapshot, synthesis, {
       applicationVersion: process.env.npm_package_version ?? "0.1.0",

@@ -34,7 +34,7 @@ describe("dossier fiscal de démonstration", () => {
     );
     expect(line).toBeDefined();
     expect(line!.status).toBe("different");
-    // 126 412,50 EUR calculés − 101 562,50 EUR comptabilisés = 24 850,00 EUR.
+    // 126 412,50 EUR avant arrondi, liquidés à 126 413 EUR (CGI art. 1724) − 101 563,00 EUR comptabilisés = 24 850,00 EUR.
     expect(Math.abs(line!.differenceAmountCents ?? 0)).toBe(2_485_000);
   });
 
