@@ -7,7 +7,7 @@ import { createTaxPeriod, createTaxProfile } from "@/lib/tax/canonical";
 import { computeCorporateTax } from "@/lib/tax/corporate-tax/engine";
 import { amountFor, CORPORATE_TAX_FORM_MAPPINGS, DECLARATION_BOXES, DECLARATION_FORM, DEFICIT_BOXES, DEFICIT_FOLLOW_UP_FORM, readDeclarationBoxes } from "@/lib/tax/corporate-tax/liasse";
 import { eurosToCents, fecDateToIso } from "@/lib/tax/vat/ledger";
-import { CIT_LIMITATIONS, CIT_METHOD_TEXT, citDraftSchema, citResultSchema, citWorkSchema, type CitDraft, type CitResult, type CitWork } from "./fiscal-cit-contract";
+import { CIT_LIMITATIONS, CIT_METHOD_TEXT, CIT_RESULT_SCHEMA_VERSION, citDraftSchema, citResultSchema, citWorkSchema, type CitDraft, type CitResult, type CitWork } from "./fiscal-cit-contract";
 import { blockedRules, otherTaxCapabilities, ruleSource } from "./fiscal-rules";
 import { declarationSnapshot, fecEntries, type FiscalDeclaration } from "./fiscal-sources";
 import { resolveCitation } from "./fiscal-work";
@@ -129,7 +129,8 @@ export function evaluateCit(scope: WorkpaperScope, accountingPeriod: AccountingP
       readByEngine: readBoxes.has(r.formNumber + "|" + row.original.fieldCode), rowId: row.id, importId: r.batch.id, locator: row.locator, processingStatus: row.original.processingStatus }))) };
   const computation: CitResult["computation"] = !computed ? null : { accountingResultCents: snapshot.accountingResultCents, reintegrationsConfirmedCents: snapshot.reintegrationsConfirmedCents, deductionsConfirmedCents: snapshot.deductionsConfirmedCents,
     reintegrationsProposedCents: snapshot.reintegrationsProposedCents, deductionsProposedCents: snapshot.deductionsProposedCents, taxResultBeforeDeficitsCents: snapshot.taxResultBeforeDeficitsCents,
-    deficitOffsetCents: snapshot.deficits.appliedOffsetCents, deficitStatus: snapshot.deficits.status, taxableBaseCents: snapshot.taxableBaseCents, grossTaxCents: snapshot.grossTaxCents,
+    deficitOffsetCents: snapshot.deficits.appliedOffsetCents, deficitStatus: snapshot.deficits.status, taxableProfitBeforeRoundingCents: snapshot.taxableProfitBeforeRoundingCents ?? undefined,
+    taxableBaseCents: snapshot.taxableBaseCents, grossTaxCents: snapshot.grossTaxCents, liquidatedTaxCents: snapshot.liquidatedTaxCents ?? undefined,
     steps: snapshot.waterfall.steps.map(s => ({ code: s.code, label: s.label, kind: s.kind, deltaCents: s.deltaCents, runningTotalCents: s.runningTotalCents, status: s.status })),
     brackets: snapshot.brackets.map(b => ({ code: b.code, label: b.label, rateBasisPoints: b.rateBasisPoints, baseCapCents: b.baseCapCents, allocatedBaseCents: b.allocatedBaseCents, taxCents: b.taxCents, applied: b.applied, eligibility: b.eligibility.status,
       conditions: b.eligibility.conditions.map(c => ({ code: c.code, label: c.label, status: c.status, observedValue: c.observedValue, expected: c.expected })), ruleVersionId: b.ruleVersionId, sourceRefs: b.sourceRefs.map(r => ({ sourceId: r.sourceId, sourceVersionId: r.sourceVersionId, locator: r.locator })) })) };
@@ -152,7 +153,7 @@ export function evaluateCit(scope: WorkpaperScope, accountingPeriod: AccountingP
   for (const r of rules.filter(r => r.category === "source")) exceptions.push({ id: "SOURCE:" + r.code, code: "SOURCE_NOT_COVERED", label: r.label, message: r.requiredSource, amount: na("Source requise"), controlId: null });
   if (computed && snapshot.outcome === "missing_information") exceptions.push({ id: "MISSING", code: "MISSING_INFORMATION", label: "Information manquante pour le calcul", message: snapshot.limitations.map(l => l.message).join(" · ") || "Voir les limitations du moteur.", amount: na("Information manquante"), controlId: null });
   return frozen(citResultSchema.parse({
-    schemaVersion: "fiscal-cit-result-1", tax: "cit", scope, runId, period: w.period, fiscalYear, formVintage: w.formVintage, resultBasis: w.resultBasis, accountingPeriod: { startDate: accountingPeriod.startDate, closingDate: accountingPeriod.closingDate },
+    schemaVersion: CIT_RESULT_SCHEMA_VERSION, tax: "cit", scope, runId, period: w.period, fiscalYear, formVintage: w.formVintage, resultBasis: w.resultBasis, accountingPeriod: { startDate: accountingPeriod.startDate, closingDate: accountingPeriod.closingDate },
     profile: { id: profile.id, contentHash: profile.contentHash, status: p.status, regime: p.regime, groupStatus: p.groupStatus, turnoverCents: p.turnoverCents, capitalPaid: p.capitalPaid, ownershipBasisPoints: p.ownershipBasisPoints, confirmedBy: p.confirmedBy, confirmedAt: p.confirmedAt, evidence: p.evidence },
     engine: { name: "computeCorporateTax", version: snapshot.engineVersion, calculationVersion: snapshot.calculationVersion, snapshotId: snapshot.id, snapshotHash: snapshot.snapshotHash, status: snapshot.status, outcome: snapshot.outcome, taxImpactStatus: snapshot.taxImpactStatus,
       rateScheduleId: snapshot.rateScheduleId, notes: snapshot.notes.map(n => ({ code: n.code, kind: n.kind, message: n.message })), limitations: snapshot.limitations.map(l => ({ code: l.code, message: l.message, scope: l.scope })) },

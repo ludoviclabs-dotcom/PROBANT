@@ -38,6 +38,40 @@ export function applyBasisPoints(amountCents: CentAmount, basisPoints: BasisPoin
   return assertSafeCentAmount(negative ? -rounded : rounded, "applyBasisPoints");
 }
 
+/**
+ * Somme exacte de produits `base x taux`, en centimes x points de base. Aucune
+ * etape intermediaire n'est arrondie : la liquidation arrondit ce total une
+ * seule fois (CGI art. 1724, « au niveau du decompte de chaque impot »).
+ */
+export function exactBasisPointProducts(
+  items: readonly { readonly amountCents: CentAmount; readonly basisPoints: BasisPoints }[],
+): bigint {
+  let total = 0n;
+  for (const item of items) {
+    assertCentAmount(item.amountCents, "exactBasisPointProducts");
+    total += BigInt(item.amountCents) * BigInt(item.basisPoints);
+  }
+  return total;
+}
+
+/**
+ * Arrondit a l'euro le plus proche un montant positif exprime en centimes x
+ * points de base ; la fraction d'euro egale a 0,50 est comptee pour 1 (CGI
+ * art. 219, I et art. 1724). Resultat en centimes, multiple de 100.
+ */
+export function roundToNearestEuroHalfUp(exactCentBasisPoints: bigint, operation: string): CentAmount {
+  if (exactCentBasisPoints < 0n) throw new Error(`TAX_EURO_ROUNDING_NEGATIVE:${operation}`);
+  const euroScale = BASIS_POINT_SCALE * 100n;
+  const euros = (exactCentBasisPoints * 2n + euroScale) / (euroScale * 2n);
+  return assertSafeCentAmount(euros * 100n, operation);
+}
+
+/** Arrondi a l'euro d'un montant positif en centimes (meme regle que ci-dessus). */
+export function roundCentsToNearestEuroHalfUp(amountCents: CentAmount, operation: string): CentAmount {
+  assertCentAmount(amountCents, operation);
+  return roundToNearestEuroHalfUp(BigInt(amountCents) * BASIS_POINT_SCALE, operation);
+}
+
 export function sumCents(values: readonly CentAmount[], operation: string): CentAmount {
   let total = 0n;
   for (const value of values) {

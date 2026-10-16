@@ -37,8 +37,11 @@ import {
   addCents,
   applyBasisPoints,
   clampToNonNegative,
+  exactBasisPointProducts,
   maxCents,
   minCents,
+  roundCentsToNearestEuroHalfUp,
+  roundToNearestEuroHalfUp,
   subtractCents,
   sumCents,
 } from "./arithmetic";
@@ -55,6 +58,7 @@ import {
   type DeclarationReading,
 } from "./liasse";
 import { CorporateTaxNoteCollector } from "./notes";
+import { corporateTaxPeriodLength } from "./period";
 import type {
   CorporateTaxAdjustmentCategory,
   CorporateTaxAdjustmentLine,
@@ -68,8 +72,30 @@ import type {
 } from "./types";
 import { buildWaterfall } from "./waterfall";
 
-export const CORPORATE_TAX_ENGINE_VERSION = "tax-05-corporate-income-tax-1.0.0";
-export const CORPORATE_TAX_CALCULATION_VERSION = "2026.1.0";
+/**
+ * 1.1.0 (C10) : base imposable arrondie a l'euro (CGI art. 219, I), impot liquide
+ * arrondi une seule fois a l'euro (CGI art. 1724), exercice d'une duree differente
+ * de douze mois refuse explicitement (CGI art. 219, I-b ; BOI-IS-LIQ-20-20 § 50 et 60).
+ */
+export const CORPORATE_TAX_ENGINE_VERSION = "tax-05-corporate-income-tax-1.1.0";
+export const CORPORATE_TAX_CALCULATION_VERSION = "2026.2.0";
+
+/** Sources des arrondis et du perimetre de duree, publiees dans le registre fiscal. */
+const TAXABLE_BASE_ROUNDING_SOURCE: TaxSourceRef = {
+  sourceId: "cgi-art-219",
+  sourceVersionId: "cgi-art-219-v2026-02-21",
+  locator: "article 219, I, premier alinea",
+};
+const LIQUIDATION_ROUNDING_SOURCE: TaxSourceRef = {
+  sourceId: "cgi-art-1724",
+  sourceVersionId: "cgi-art-1724-v2002-03-31",
+  locator: "article 1724, premier et second alineas",
+};
+const PERIOD_LENGTH_SOURCES: readonly TaxSourceRef[] = [
+  { sourceId: "cgi-art-219", sourceVersionId: "cgi-art-219-v2026-02-21", locator: "article 219, I-b" },
+  { sourceId: "bofip-is-liq-20-20", sourceVersionId: "bofip-is-liq-20-20-v2023-06-21", locator: "BOI-IS-LIQ-20-20, paragraphes 50 et 60" },
+  { sourceId: "bofip-is-liq-20-10", sourceVersionId: "bofip-is-liq-20-10-v2023-06-21", locator: "BOI-IS-LIQ-20-10, paragraphes 70 a 100" },
+];
 
 /** Observation comptable : un compte ou un libelle ne produit qu'un candidat. */
 export interface CorporateTaxLedgerObservation {
@@ -403,6 +429,15 @@ export class CorporateTaxComputationEngine {
     const blocking = this.collectBlockingConditions({ input, regime, schedule });
     if (blocking.length > 0) {
       limitations.push(...blocking);
+      if (blocking.some((item) => item.code === "NON_ANNUAL_PERIOD_NOT_SUPPORTED")) {
+        notes.add({
+          code: "PERIOD_LENGTH_RULE",
+          kind: "method",
+          message: "Le plafond du taux reduit s'entend par periode de douze mois et le chiffre d'affaires est ramene a douze mois : un exercice plus court les ajuste prorata temporis, un exercice plus long sans bilan dans l'annee civile recouvre deux periodes d'imposition. Ces ajustements ne sont pas modelises : aucun plafond n'est applique sans eux.",
+          relatedStepCodes: ["gross_tax"],
+          sourceRefs: PERIOD_LENGTH_SOURCES,
+        });
+      }
       notes.add({
         code: "COMPUTATION_BLOCKED",
         kind: "prudence",
@@ -426,9 +461,11 @@ export class CorporateTaxComputationEngine {
             remainingStockCents: null,
             sourceRefs: [],
           },
+          taxableProfitBeforeRoundingCents: null,
           taxableBaseCents: 0,
           brackets: [],
           grossTaxCents: null,
+          liquidatedTaxCents: null,
           taxImpactStatus: "not_computed",
           outcome: "missing_information",
           evidenceStrength: "insufficient",
@@ -580,16 +617,34 @@ export class CorporateTaxComputationEngine {
     }));
 
     // 6. Base imposable -----------------------------------------------------
-    const taxableBase = clampToNonNegative(
-      subtractCents(taxResultBeforeDeficits, deficits.appliedOffsetCents, "taxable_base"),
+    // Le pont comptable et l'imputation des deficits restent au centime ; seule
+    // la base servant au calcul de l'impot est arrondie, une fois, a l'euro.
+    const taxableProfit = clampToNonNegative(
+      subtractCents(taxResultBeforeDeficits, deficits.appliedOffsetCents, "taxable_profit"),
     );
     trace.record({
-      id: "step-taxable-base",
+      id: "step-taxable-profit",
       operation: "tax_result_minus_applied_deficits_floored_at_zero",
       inputRefs: ["tax_result_before_deficits", "deficits_applied"],
-      outputRef: "taxable_base",
+      outputRef: "taxable_profit",
       sourceRefs: deficits.sourceRefs,
       inputs: { taxResultBeforeDeficits, applied: deficits.appliedOffsetCents },
+    });
+    const taxableBase = roundCentsToNearestEuroHalfUp(taxableProfit, "taxable_base");
+    trace.record({
+      id: "step-taxable-base",
+      operation: "round_taxable_profit_to_nearest_euro_half_counted_as_one",
+      inputRefs: ["taxable_profit"],
+      outputRef: "taxable_base",
+      sourceRefs: [TAXABLE_BASE_ROUNDING_SOURCE],
+      inputs: { beforeCents: taxableProfit, afterCents: taxableBase, deltaCents: taxableBase - taxableProfit },
+    });
+    notes.add({
+      code: "TAXABLE_BASE_ROUNDED_TO_EURO",
+      kind: "method",
+      message: `Benefice imposable de ${taxableProfit} centimes arrondi a l'euro le plus proche (fraction de 0,50 comptee pour 1) : base de ${taxableBase} centimes avant ventilation par taux.`,
+      relatedStepCodes: ["taxable_base"],
+      sourceRefs: [TAXABLE_BASE_ROUNDING_SOURCE],
     });
 
     // 7 et 8. Ventilation par taux et IS brut -------------------------------
@@ -640,9 +695,33 @@ export class CorporateTaxComputationEngine {
       }));
     }
 
-    // 9 et 10. Comparaisons declaration et comptabilite ----------------------
+    // 9. Liquidation : arrondi unique du decompte -----------------------------
+    const liquidatedTax = roundToNearestEuroHalfUp(
+      exactBasisPointProducts(allocation.allocations.map((bracket) => ({
+        amountCents: bracket.allocatedBaseCents,
+        basisPoints: bracket.rateBasisPoints,
+      }))),
+      "liquidated_tax",
+    );
+    trace.record({
+      id: "step-liquidation",
+      operation: "round_exact_bracket_total_to_nearest_euro_half_counted_as_one",
+      inputRefs: ["gross_tax"],
+      outputRef: "liquidated_tax",
+      sourceRefs: [LIQUIDATION_ROUNDING_SOURCE],
+      inputs: { grossTaxCents: allocation.grossTaxCents, liquidatedTaxCents: liquidatedTax },
+    });
+    notes.add({
+      code: "LIQUIDATION_ROUNDED_TO_EURO",
+      kind: "method",
+      message: `Impot de ${allocation.grossTaxCents} centimes avant arrondi, liquide a ${liquidatedTax} centimes : un seul arrondi a l'euro au niveau du decompte de l'impot, jamais tranche par tranche.`,
+      relatedStepCodes: ["gross_tax"],
+      sourceRefs: [LIQUIDATION_ROUNDING_SOURCE],
+    });
+
+    // 10 et 11. Comparaisons declaration et comptabilite --------------------
     reconciliationLines.push(...this.compareDeclaration2065({ input, allocation }));
-    reconciliationLines.push(...this.compareAccountedPositions({ input, grossTaxCents: allocation.grossTaxCents }));
+    reconciliationLines.push(...this.compareAccountedPositions({ input, liquidatedTaxCents: liquidatedTax }));
 
     const differenceFound = reconciliationLines.some((line) => line.status === "different");
     const missingOperand = reconciliationLines.some((line) => line.status === "missing_operand");
@@ -687,6 +766,8 @@ export class CorporateTaxComputationEngine {
       formSourceRef,
       ...allocation.allocations.flatMap((bracket) => bracket.sourceRefs),
       ...deficits.sourceRefs,
+      TAXABLE_BASE_ROUNDING_SOURCE,
+      LIQUIDATION_ROUNDING_SOURCE,
     ]);
 
     const snapshot = this.finalize({
@@ -698,9 +779,11 @@ export class CorporateTaxComputationEngine {
       adjustmentLines,
       taxResultBeforeDeficitsCents: taxResultBeforeDeficits,
       deficits,
+      taxableProfitBeforeRoundingCents: taxableProfit,
       taxableBaseCents: taxableBase,
       brackets: allocation.allocations,
       grossTaxCents: allocation.grossTaxCents,
+      liquidatedTaxCents: liquidatedTax,
       taxImpactStatus: allocation.hasUnknownEligibility ? "estimated" : "computed",
       outcome,
       evidenceStrength,
@@ -788,6 +871,25 @@ export class CorporateTaxComputationEngine {
         requiredInputs: ["period:accountingPeriodAlignment"],
         relatedIds: [input.period.id, input.profile.id],
         resolvability: "human_review",
+      }));
+    }
+    const length = corporateTaxPeriodLength(input.period.startDate, input.period.endDate);
+    if (length !== "twelve_months") {
+      const span = `du ${input.period.startDate} au ${input.period.endDate}`;
+      const detail = length === "longer_than_twelve_months"
+        ? `L'exercice ${span} depasse douze mois : en l'absence de bilan dresse au cours d'une annee civile, il recouvre deux periodes d'imposition, chacune avec son plafond de taux reduit, sa base arrondie et sa liquidation (CGI art. 37 ; BOI-IS-LIQ-20-20 § 60).`
+        : length === "shorter_than_twelve_months"
+          ? `L'exercice ${span} est inferieur a douze mois : le plafond du taux reduit et le chiffre d'affaires s'ajustent prorata temporis (CGI art. 219, I-b ; BOI-IS-LIQ-20-20 § 50 ; BOI-IS-LIQ-20-10 § 70).`
+          : `Les dates de l'exercice ${span} ne forment pas une periode valide.`;
+      found.push(limitation({
+        code: "NON_ANNUAL_PERIOD_NOT_SUPPORTED",
+        scope: "period",
+        reason: length === "invalid" ? "period_mismatch" : "unsupported_period_length",
+        message: `${detail} Le moteur ne traite que l'exercice de douze mois : aucun impot n'est calcule et le plafond de 42 500 EUR n'est jamais applique sans son ajustement.`,
+        requiredInputs: ["period:duration"],
+        relatedIds: [input.period.id],
+        capabilityStatus: length === "invalid" ? "available" : "future",
+        resolvability: length === "invalid" ? "user_can_supply" : "future_engine",
       }));
     }
     if (!schedule) {
@@ -1487,9 +1589,9 @@ export class CorporateTaxComputationEngine {
 
   private compareAccountedPositions(options: {
     readonly input: CorporateTaxComputationInput;
-    readonly grossTaxCents: CentAmount;
+    readonly liquidatedTaxCents: CentAmount;
   }): readonly TaxReconciliationLine[] {
-    const { input, grossTaxCents } = options;
+    const { input, liquidatedTaxCents } = options;
     const positions = input.accountedPositions;
     if (!positions) return [];
     const lines: TaxReconciliationLine[] = [];
@@ -1497,22 +1599,22 @@ export class CorporateTaxComputationEngine {
       lines.push(this.reconciliation({
         input,
         lineKey: "accounted_tax_charge",
-        label: "Impot brut estime et charge d'impot comptabilisee",
-        left: { amountCents: grossTaxCents, snapshotId: input.snapshotId, fieldCode: null },
+        label: "Impot liquide estime et charge d'impot comptabilisee",
+        left: { amountCents: liquidatedTaxCents, snapshotId: input.snapshotId, fieldCode: null },
         right: { amountCents: positions.chargeCents, snapshotId: positions.snapshotId, fieldCode: null },
         toleranceFamily: "methodology",
         normalizationNotes: [
           "La charge comptabilisee peut inclure des elements hors perimetre du calcul (credits d'impot, contributions additionnelles) ; l'ecart n'est pas une non-conformite.",
         ],
-        traceStepIds: ["step-gross-tax"],
+        traceStepIds: ["step-gross-tax", "step-liquidation"],
       }));
     }
     if (positions.liabilityCents !== null) {
       lines.push(this.reconciliation({
         input,
         lineKey: "accounted_tax_liability",
-        label: "Impot brut estime et dette d'impot comptabilisee",
-        left: { amountCents: grossTaxCents, snapshotId: input.snapshotId, fieldCode: null },
+        label: "Impot liquide estime et dette d'impot comptabilisee",
+        left: { amountCents: liquidatedTaxCents, snapshotId: input.snapshotId, fieldCode: null },
         right: { amountCents: positions.liabilityCents, snapshotId: positions.snapshotId, fieldCode: null },
         toleranceFamily: "methodology",
         normalizationNotes: [
@@ -1576,9 +1678,11 @@ export class CorporateTaxComputationEngine {
           remainingStockCents: null,
           sourceRefs: [],
         },
+        taxableProfitBeforeRoundingCents: null,
         taxableBaseCents: 0,
         brackets: [],
         grossTaxCents: null,
+        liquidatedTaxCents: null,
         taxImpactStatus: "not_computed",
         outcome: options.outcome,
         evidenceStrength: "insufficient",
@@ -1601,9 +1705,11 @@ export class CorporateTaxComputationEngine {
     readonly adjustmentLines: readonly CorporateTaxAdjustmentLine[];
     readonly taxResultBeforeDeficitsCents: CentAmount;
     readonly deficits: CorporateTaxDeficitOutcome;
+    readonly taxableProfitBeforeRoundingCents: CentAmount | null;
     readonly taxableBaseCents: CentAmount;
     readonly brackets: readonly CorporateTaxBracketAllocation[];
     readonly grossTaxCents: CentAmount | null;
+    readonly liquidatedTaxCents: CentAmount | null;
     readonly taxImpactStatus: CorporateTaxSnapshot["taxImpactStatus"];
     readonly outcome: TaxControlOutcome;
     readonly evidenceStrength: EvidenceStrength;
@@ -1656,9 +1762,11 @@ export class CorporateTaxComputationEngine {
       deductionsProposedCents,
       taxResultBeforeDeficitsCents: options.taxResultBeforeDeficitsCents,
       deficits: options.deficits,
+      taxableProfitBeforeRoundingCents: options.taxableProfitBeforeRoundingCents,
       taxableBaseCents: options.taxableBaseCents,
       brackets: options.brackets,
       grossTaxCents: options.grossTaxCents,
+      liquidatedTaxCents: options.liquidatedTaxCents,
       taxImpactStatus: options.taxImpactStatus,
       reconciliationLineIds: [...options.reconciliationLineIds].sort(),
       waterfall,

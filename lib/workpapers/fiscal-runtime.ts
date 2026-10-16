@@ -6,7 +6,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { buildFiscalMissionPackage, type FiscalExportKind } from "@/lib/evidence/fiscal-mission-package";
-import { CIT_TEMPLATE, FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
+import { CIT_RULE, CIT_TEMPLATE, FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
 import { buildFiscalMission, type FiscalMissionSelection } from "./fiscal-mission";
 import type { FiscalCommand } from "./fiscal-commands";
 import { parseFiscalWork, type FiscalResult } from "./fiscal-review";
@@ -220,6 +220,9 @@ export class FiscalRuntime {
       if (!current.fiscalWork) throw new Error("FX_WORK_REQUIRED");
       parseFiscalWork(current.fiscalWork);
       const isCit = current.fiscalWork.tax === "cit", service = serviceFor(isCit ? "is.computation" : "tva.reconciliation");
+      // An IS sheet established under an earlier rule version stays readable; nothing may advance or finalize it
+      // (execution, notes, conclusion, submission, review, lock): only a revision, which adopts the current rule.
+      if (isCit && command.command !== "revise" && current.template.rule?.version !== CIT_RULE.version) throw new Error("FX_RULE_REPLACED_REVISION_REQUIRED");
       /** Draft of the run's own tax, stamped by the server against the given frozen sources. */
       const stamp = (batches: ImportBatch[], draft: unknown, previous: FiscalWork): FiscalWork => previous.tax === "cit"
         ? stampCitWork({ scope, runId: current.id, imports: batches, draft: citDraftSchema.parse(draft), actor, at, previous })
@@ -270,7 +273,7 @@ export class FiscalRuntime {
         case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
         case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
         case "lock": run = await service.lock(scope, id, v); break;
-        case "revise": run = await service.revise(scope, id, v); break;
+        case "revise": run = isCit ? await service.revise(scope, id, v, CIT_TEMPLATE) : await service.revise(scope, id, v); break;
       }
       return { run };
     }));

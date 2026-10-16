@@ -41,13 +41,14 @@ export const citWorkSchema = z.object({
   if (w.adjustments.some(a => a.treatment === "proposed_correction" && !a.legalSource)) ctx.addIssue({ code: "custom", message: "FX_CIT_CORRECTION_SOURCE_REQUIRED" });
 });
 export type CitWork = z.infer<typeof citWorkSchema>;
-export const CIT_METHOD_TEXT = "Le moteur IS (TAX-05) part du résultat comptable déclaré (2058-A ou 2033-B), reprend les retraitements déclarés, impute les déficits sous le plafond publié et ventile la base par tranche du barème publié pour l’exercice et le millésime. La feuille cadre ce résultat sur le FEC (classes 6 et 7, table interne documentée) et documente les retraitements par pièce ; elle ne liquide pas l’impôt.";
+export const CIT_METHOD_TEXT = "Le moteur IS (TAX-05) part du résultat comptable déclaré (2058-A ou 2033-B), reprend les retraitements déclarés et impute les déficits sous le plafond publié, au centime. Il arrondit ensuite le bénéfice imposable à l’euro (CGI art. 219, I), ventile cette base par tranche du barème publié pour l’exercice et le millésime, puis arrondit une seule fois l’impôt à l’euro (CGI art. 1724). La feuille cadre ce résultat sur le FEC (classes 6 et 7, table interne documentée) et documente les retraitements par pièce ; elle ne déclare ni ne paie l’impôt.";
 export const CIT_LIMITATIONS = [
   "Le moteur reprend les totaux déclarés de retraitements ; un retraitement documenté qui les détaille n’est pas ajouté une seconde fois. Seule une correction proposée, absente de la déclaration, entre dans le calcul.",
   "Aucun retraitement n’est déduit d’un numéro de compte : sans pièce et source citées, il n’existe pas.",
   "Un barème ou un millésime non publié bloque le calcul ; aucun barème voisin n’est appliqué.",
+  "Exercice de douze mois seulement : un exercice plus court (plafond et chiffre d’affaires ajustés prorata temporis) ou plus long (deux périodes d’imposition) est refusé, jamais calculé avec le plafond annuel.",
   "Taux réduit seulement si toutes ses conditions sont renseignées dans un profil confirmé ; une condition inconnue laisse l’impôt estimé au taux normal et le résultat non concluant.",
-  "Aucun intérêt, aucune pénalité, aucune liquidation ni télétransmission ; intégration fiscale et contributions additionnelles hors périmètre.",
+  "Aucun acompte, aucun intérêt, aucune pénalité, aucune déclaration ni télétransmission ; intégration fiscale et contributions additionnelles hors périmètre.",
   "Les autres impôts et taxes sont des capacités séparées : cette feuille ne les couvre pas.",
 ];
 const CIT_EXCEPTION_CODES = ["FRAMING_DIFFERENCE", "BRIDGE_UNEXPLAINED", "ENGINE_DIFFERENCE", "PROPOSED_CORRECTION",
@@ -56,8 +57,13 @@ export type CitExceptionCode = typeof CIT_EXCEPTION_CODES[number];
 export const CIT_UNCERTAINTY_CODES: CitExceptionCode[] = ["ENGINE_BLOCKED", "PROFILE_UNCONFIRMED", "LIASSE_ABSENT", "SOURCE_NOT_COVERED", "MISSING_INFORMATION"];
 const locatorSchema = z.object({ sheet: z.string().optional(), row: z.number().int().positive().optional(), cell: z.string().optional(), page: z.number().int().positive().optional(), zone: z.string().optional() }).strict();
 const outcomes = z.enum(["passed", "confirmed_non_compliance", "reconciliation_difference", "potential_tax_risk", "missing_information", "inconclusive", "review_recommendation"]);
+/**
+ * `fiscal-cit-result-1` : moteur IS 1.0.0, base non arrondie, impôt au centime. Toujours lisible, jamais réécrit.
+ * `fiscal-cit-result-2` (C10) : moteur IS 1.1.0, bénéfice avant arrondi, base arrondie à l’euro et impôt liquidé.
+ */
+export const CIT_RESULT_SCHEMA_VERSION = "fiscal-cit-result-2" as const;
 export const citResultSchema = z.object({
-  schemaVersion: z.literal("fiscal-cit-result-1"), tax: z.literal("cit"), scope: scopeSchema, runId: id, period: declarativePeriodSchema, fiscalYear: z.number().int(), formVintage: z.number().int(), resultBasis: z.enum(["after_tax", "before_tax"]),
+  schemaVersion: z.enum(["fiscal-cit-result-1", CIT_RESULT_SCHEMA_VERSION]), tax: z.literal("cit"), scope: scopeSchema, runId: id, period: declarativePeriodSchema, fiscalYear: z.number().int(), formVintage: z.number().int(), resultBasis: z.enum(["after_tax", "before_tax"]),
   accountingPeriod: z.object({ startDate: civilDate, closingDate: civilDate }).strict(),
   profile: z.object({ id, contentHash: z.string(), status: z.enum(["draft", "confirmed"]), regime: z.enum(CIT_REGIMES), groupStatus: z.enum(CIT_GROUP_STATUSES), turnoverCents: z.string().nullable(), capitalPaid: text, ownershipBasisPoints: z.number().int().nullable(),
     confirmedBy: id.nullable(), confirmedAt: text.nullable(), evidence: resolvedCitationSchema.nullable() }).strict(),
@@ -72,7 +78,7 @@ export const citResultSchema = z.object({
   adjustments: z.array(z.object({ id, label: text, category: z.enum(CIT_CATEGORIES), direction: z.enum(["reintegration", "deduction"]), amountCents: cents, treatment: z.enum(CIT_TREATMENTS), citation: resolvedCitationSchema, authorId: id, at: text,
     legalSource: z.object({ sourceId: id, sourceVersionId: id, locator: text, title: text, url: text, coverage: z.enum(["covered", "partially_covered", "not_covered"]), lastVerifiedAt: text }).strict().nullable(), inEngine: z.boolean() }).strict()),
   computation: z.object({ accountingResultCents: cents, reintegrationsConfirmedCents: cents, deductionsConfirmedCents: cents, reintegrationsProposedCents: cents, deductionsProposedCents: cents, taxResultBeforeDeficitsCents: cents,
-    deficitOffsetCents: cents, deficitStatus: text, taxableBaseCents: cents, grossTaxCents: cents.nullable(),
+    deficitOffsetCents: cents, deficitStatus: text, taxableProfitBeforeRoundingCents: cents.optional(), taxableBaseCents: cents, grossTaxCents: cents.nullable(), liquidatedTaxCents: cents.optional(),
     steps: z.array(z.object({ code: id, label: text, kind: text, deltaCents: cents, runningTotalCents: cents, status: text }).strict()),
     brackets: z.array(z.object({ code: id, label: text, rateBasisPoints: z.number().int(), baseCapCents: cents.nullable(), allocatedBaseCents: cents, taxCents: cents, applied: z.boolean(), eligibility: text,
       conditions: z.array(z.object({ code: id, label: text, status: text, observedValue: text.nullable(), expected: text }).strict()), ruleVersionId: text, sourceRefs: z.array(z.object({ sourceId: id, sourceVersionId: id, locator: text }).strict()) }).strict()) }).strict().nullable(),
@@ -90,6 +96,10 @@ export const citResultSchema = z.object({
   if (b.documentedResultCents !== (b.startCents === null ? null : b.startCents + b.reintegrationsCents - b.deductionsCents)) ctx.addIssue({ code: "custom", message: "FX_CIT_BRIDGE_INVARIANT" });
   if (b.status === "known" ? b.declaredCents === null || b.documentedResultCents === null || b.residualCents !== b.declaredCents - b.documentedResultCents : b.residualCents !== null) ctx.addIssue({ code: "custom", message: "FX_CIT_BRIDGE_RESIDUAL_INVARIANT" });
   if (new Set(r.exceptions.map(e => e.id)).size !== r.exceptions.length) ctx.addIssue({ code: "custom", message: "FX_EXCEPTION_DUPLICATE" });
+  // A v2 computation carries both legal roundings; a v1 one never claims them.
+  const c = r.computation, rounded = !!c && c.taxableProfitBeforeRoundingCents !== undefined && c.liquidatedTaxCents !== undefined;
+  if (c && (r.schemaVersion === CIT_RESULT_SCHEMA_VERSION) !== rounded) ctx.addIssue({ code: "custom", message: "FX_CIT_ROUNDING_CONTRACT" });
+  if (c && rounded && (c.taxableBaseCents % 100 !== 0 || c.liquidatedTaxCents! % 100 !== 0)) ctx.addIssue({ code: "custom", message: "FX_CIT_ROUNDING_TO_EURO" });
 });
 export type CitResult = z.infer<typeof citResultSchema>;
 export function citOutcome(r: CitResult): "no_exception_detected" | "exceptions_detected" | "inconclusive" {

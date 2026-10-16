@@ -198,10 +198,24 @@ export interface CorporateTaxSnapshot {
   readonly deductionsProposedCents: CentAmount;
   readonly taxResultBeforeDeficitsCents: CentAmount;
   readonly deficits: CorporateTaxDeficitOutcome;
+  /**
+   * Benefice imposable en centimes, apres imputation des deficits et plancher a
+   * zero, avant l'arrondi legal. `null` lorsque le calcul est bloque.
+   */
+  readonly taxableProfitBeforeRoundingCents: CentAmount | null;
+  /** Base imposable arrondie a l'euro (CGI art. 219, I) : multiple de 100 quand le calcul est execute. */
   readonly taxableBaseCents: CentAmount;
   readonly brackets: readonly CorporateTaxBracketAllocation[];
-  /** `null` lorsque le calcul est bloqué avant liquidation de l'impôt brut. */
+  /**
+   * Somme des impots par tranche, avant arrondi de liquidation. `null` lorsque
+   * le calcul est bloqué avant liquidation de l'impôt brut.
+   */
   readonly grossTaxCents: CentAmount | null;
+  /**
+   * Impot liquide : somme exacte des tranches arrondie une seule fois a l'euro
+   * (CGI art. 1724). `null` lorsque le calcul est bloque.
+   */
+  readonly liquidatedTaxCents: CentAmount | null;
   readonly taxImpactStatus: "not_computed" | "estimated" | "computed" | "reviewed";
 
   readonly reconciliationLineIds: readonly string[];

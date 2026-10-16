@@ -76,6 +76,10 @@ export function blockedRules(taxType: TaxType, limitations: readonly TaxLimitati
       const sources = IS_SCHEDULE_SOURCES.map(s => ruleSource(s, period.start, period.end));
       rules.push({ ...base, category: "source", label: `Barème d’IS non publié pour l’exercice ${period.fiscalYear ?? "—"}`, sources,
         requiredSource: `Barème de l’exercice ${period.fiscalYear ?? "—"} (millésime ${period.formVintage ?? "—"}) absent du registre : seuls les exercices ${taxRateSchedules.map(s => s.fiscalYear).join(", ")} sont publiés. ${describeSources(sources) || "Les sources citées par les barèmes publiés ne couvrent pas l’exercice."} Aucun barème voisin n’est appliqué.` });
+    } else if (l.code === "NON_ANNUAL_PERIOD_NOT_SUPPORTED") {
+      const sources = ["cgi-art-219", "bofip-is-liq-20-20", "bofip-is-liq-20-10"].map(s => ruleSource(s, period.start, period.end));
+      rules.push({ ...base, category: "scope", label: "Exercice d’une durée différente de douze mois", sources,
+        requiredSource: "Le plafond du taux réduit s’entend par période de douze mois (CGI art. 219, I-b) : prorata temporis pour un exercice court, deux périodes d’imposition pour un exercice long sans bilan dans l’année civile (BOI-IS-LIQ-20-20 § 50 et 60). Ces ajustements ne sont pas modélisés : aucun impôt n’est calculé, aucun plafond annuel n’est appliqué à la place." });
     } else if (/REGIME|GROUP|ELIGIBILITY|FREQUENCY/.test(l.code) && l.requiredInputs.some(i => i.startsWith("profile:") || i.startsWith("period:"))) {
       rules.push({ ...base, category: l.resolvability === "human_review" ? "profile" : "scope", label: l.resolvability === "human_review" ? "Profil fiscal à confirmer" : "Hors périmètre du moteur",
         requiredSource: l.resolvability === "human_review" ? `Profil confirmé par une pièce citée : ${describeInputs(l.requiredInputs)}.` : `Cas hors périmètre du moteur (${describeInputs(l.requiredInputs)}) : aucune conclusion produite.` });

@@ -314,7 +314,7 @@ describe("CorporateTaxComputationEngine — provenance des taux", () => {
     expect(snapshot.grossTaxCents).toBe(2_000_000);
   });
 
-  it("arrondit au centime le plus proche, demi s'ecartant de zero", () => {
+  it("arrondit la base a l'euro (CGI 219 I) puis la liquidation a l'euro (CGI 1724), pas chaque etape au centime", () => {
     const engine = new CorporateTaxComputationEngine(() => TaxRateScheduleSchema.parse({
       ...alternateSchedule,
       brackets: [{ ...alternateSchedule.brackets[0], rateBasisPoints: 1_500 }],
@@ -323,8 +323,21 @@ describe("CorporateTaxComputationEngine — provenance des taux", () => {
       documentSnapshots: [coherentLiasse({ accountingProfitCents: 3_333_333 })],
     }));
 
-    // 3 333 333 x 15 % = 499 999,95 centimes -> 500 000 centimes
-    expect(snapshot.grossTaxCents).toBe(500_000);
+    // Benefice 33 333,33 EUR -> base 33 333 EUR ; 33 333 x 15 % = 4 999,95 EUR -> liquide 5 000 EUR.
+    // Le moteur 1.0.0 calculait 33 333,33 x 15 % = 4 999,99995 arrondi au centime : 5 000,00 EUR.
+    expect(snapshot.taxableProfitBeforeRoundingCents).toBe(3_333_333);
+    expect(snapshot.taxableBaseCents).toBe(3_333_300);
+    expect(snapshot.grossTaxCents).toBe(499_995);
+    expect(snapshot.liquidatedTaxCents).toBe(500_000);
+    const steps = snapshot.trace.map((step) => step.id);
+    expect(steps.indexOf("step-taxable-base")).toBeGreaterThan(steps.indexOf("step-taxable-profit"));
+    expect(steps.indexOf("step-liquidation")).toBeGreaterThan(steps.indexOf("step-gross-tax"));
+    expect(snapshot.trace.find((step) => step.id === "step-taxable-base")?.sourceRefs).toEqual([
+      { sourceId: "cgi-art-219", sourceVersionId: "cgi-art-219-v2026-02-21", locator: "article 219, I, premier alinea" },
+    ]);
+    expect(snapshot.trace.find((step) => step.id === "step-liquidation")?.sourceRefs).toEqual([
+      { sourceId: "cgi-art-1724", sourceVersionId: "cgi-art-1724-v2002-03-31", locator: "article 1724, premier et second alineas" },
+    ]);
   });
 });
 
