@@ -137,6 +137,11 @@ export function generateSynthesisNote(
     );
   }
   if (s.exposure.netByTarget.length > 0) push();
+  const incidence = s.exposure.taxIncidence;
+  if (incidence.provider !== "none" && incidence.computedFindingIds.length > 0) {
+    push(`Incidence fiscale chiffrée par scénario d'IS avant/après (${incidence.providerVersion}) pour ${incidence.computedFindingIds.length} effet(s) qualifié(s) déductible(s) : différence des impôts liquidés, aucun taux saisi appliqué ; empreinte du scénario ${incidence.scenarioHash}.`);
+    push();
+  }
   const undetermined = s.exposure.clusters.filter((c) => c.status !== "determined");
   if (undetermined.length > 0) {
     push(

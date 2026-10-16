@@ -79,6 +79,51 @@ Dossier fiscal de démonstration :
 
 Les 10 golden cases IS de TAX-10 gardent leur statut, leur outcome et leurs montants : leurs bases sont en euros entiers. Seules les empreintes sont refigées, puisque la version et la trace changent.
 
+## Suite C05 — incidence fiscale d'un ajustement par scénario d'IS avant / après
+
+Item facultatif du lot, livré ensuite dans la même branche (16/10/2026).
+
+**Avant (politique d'exposition 2.1.0).**
+- Un ajustement qualifié « déductible » n'avait d'incidence chiffrée qu'avec un taux saisi : 1 000 € à 25 % donnaient 250 €, quels que soient le barème, le plafond du taux réduit ou les arrondis légaux.
+- Une différence temporaire restait « en attente du moteur fiscal », et `taxIncidence.provider` valait `none`.
+
+**Après.**
+- **Comparateur, côté moteur** (`lib/tax/corporate-tax/scenario.ts`, version `is-scenario-1.0.0`, sans moteur parallèle) :
+  - `compareCorporateTaxScenarios` calcule le scénario de base avec le moteur IS 1.1.0, puis des scénarios cumulés. Chaque ajustement y entre comme correction du résultat confirmée par la revue : réintégration pour une hausse, déduction pour une baisse.
+  - L'incidence est la différence des impôts liquidés.
+  - L'attribution est séquentielle, dans l'ordre des identifiants : la somme des pas égale l'incidence conjointe, même au franchissement du plafond de 42 500 €.
+  - Le scénario est refusé, et l'incidence reste inconnue, si le moteur est bloqué (exercice non annuel, millésime absent…) ou si l'impôt n'est qu'estimé (éligibilité au taux réduit inconnue).
+  - Seul l'impôt de l'exercice est mesuré : l'effet sur un déficit reportable ou sur un impôt différé n'est pas estimé.
+- **Fournisseur** `corporateTaxIncidenceProvider(baseInput)`, d'identifiant `c10_is_engine` et de version `tax-05-corporate-income-tax-1.1.0+is-scenario-1.0.0`.
+- **Synthèse.**
+  - Nouvelle option `SynthesisOptions.taxIncidence` ; `projectExposure` et `projectSnapshotExposure` acceptent le même fournisseur.
+  - Avec un fournisseur, un ajustement du **résultat** qualifié déductible prend son incidence dans le scénario, **sans repli sur un taux saisi**.
+  - Hors couverture du scénario, l'incidence reste inconnue : différence temporaire, poste de bilan sans taux, ajustement non qualifié.
+  - Un poste de bilan qualifié avec taux garde la règle 2.1.0, faute de contrepartie établie au résultat fiscal.
+- **Versions.**
+  - Politique d'exposition 2.2.0, avec la règle `taxIncidenceRule`.
+  - Schéma de Synthèse 2.1.0 : `taxIncidence` porte le fournisseur, sa version, les effets chiffrés par scénario et l'empreinte du scénario.
+  - Moteur de Synthèse 1.3.0.
+- **Restitution.** La note de synthèse et l'étape « Effet d'impôt » du waterfall nomment le scénario et sa version. Sans fournisseur, rien n'est ajouté.
+
+**Cas contrôlés** (`lib/synthesis/__tests__/tax-incidence-scenario.test.ts`, attendus calculés à la main, base PME de 50 000 € → 8 250 €) :
+
+| Cas | Attendu | Obtenu |
+|---|---|---|
+| +1 000 € validé, déductible | 51 000 → 8 500 : impôt +250 €, net +750 € | conforme |
+| Même cas avec 15 % saisi | +250 € : le taux saisi est ignoré | conforme |
+| −1 000 € | 49 000 → 8 000 : impôt −250 €, net −750 € | conforme |
+| Base 42 000 € (6 300), +1 000 (« a ») puis +1 000 (« b ») | 43 000 → 6 500 (+200) ; 44 000 → 6 750 (+250) ; conjoint +450 | conforme |
+| +0,50 € / +1,50 € | base 50 001 → 8 250,25 → liquidé 8 250 (0) ; base 50 002 → 8 250,50 → 8 251 (+1 €) | conforme |
+| Non qualifié avec taux 25 % | net inconnu, fournisseur non interrogé | conforme |
+| Différence temporaire ; poste de bilan sans taux | inconnus, « hors couverture du scénario d'IS » | conforme |
+| Base sur un exercice de 18 mois | inconnu (`NON_ANNUAL_PERIOD_NOT_SUPPORTED`), aucun taux à la place | conforme |
+| Éligibilité inconnue | inconnu (« seulement estimé ») | conforme |
+| Ordre d'entrée inversé | même incidence, même empreinte de scénario et de Synthèse | conforme |
+| Sans fournisseur | règle 2.1.0 inchangée, interface vide tracée | conforme |
+
+Contrôles de cette suite : `tsc` sans erreur ; ESLint propre sur `lib/synthesis`, `lib/tax` et `lib/visualization` ; vitest complet (pool `forks`) : 196 fichiers, **1 954 réussis**, 62 ignorés (recettes PostgreSQL sans base), **0 échec**.
+
 ## Matrice C15
 
 Le fichier `lib/recette/__tests__/c15-matrice.test.ts` est sur la branche C15 `claude/recette-finale-controle-c85076`, qui n'est pas encore sur `main`. La vérification a été faite sur une intégration locale C15 + C10 :
@@ -119,6 +164,6 @@ Non vérifié dans ce passage : le parcours e2e sur un profil personnel local Po
   - la correspondance entre exercice et millésime n'est pas établie, puisque le registre marque lui-même le millésime 2026 « période d'application exacte review_required ».
 
   Ouvrir ces exercices sera un ajout de données (barème, millésimes), sans modification du moteur.
-- **Incidence fiscale d'un ajustement (C05).** Elle n'est pas livrée : c'était l'item facultatif. `exposure.taxIncidence.provider` reste `none`, donc l'effet fiscal reste « inconnu, hors couverture ». La comparaison de scénarios IS avant / après reste à brancher sur ce moteur.
+- **Incidence fiscale par scénario : pas encore branchée dans l'application.** Le fournisseur existe et la Synthèse l'accepte (voir « Suite C05 » ci-dessous). Mais l'écran `/dashboard/synthese` et l'export `/api/export` construisent la Synthèse depuis le dossier d'analyse, qui ne porte aucun calcul d'IS de base. Sans fournisseur, le comportement 2.1.0 est conservé. Il reste à alimenter le fournisseur depuis la feuille IS verrouillée du même dossier, par une route serveur qui vérifie les droits.
 - **Cockpit `/dashboard/fiscalite` et paquet TAX.** Ils affichent encore l'« impôt brut », désormais avant arrondi de liquidation, sans l'impôt liquidé.
 - **Dette 444.** Elle reste comparée à l'impôt liquidé, alors qu'elle est nette des acomptes : la note de normalisation le signale, comme avant.

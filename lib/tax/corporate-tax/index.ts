@@ -6,3 +6,4 @@ export * from "./notes";
 export * from "./waterfall";
 export * from "./engine";
 export * from "./findings";
+export * from "./scenario";
