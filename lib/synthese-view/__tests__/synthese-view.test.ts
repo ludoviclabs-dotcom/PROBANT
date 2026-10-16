@@ -399,3 +399,29 @@ describe("limites de l'analyse", () => {
     expect(buildLimits({ synthesis: demo.synthesis, demoSociete: null }).some((l) => l.startsWith("Mode démo"))).toBe(false);
   });
 });
+
+describe("bornes d'effets indéterminés : le sens du groupe est conservé", () => {
+  const cluster = (direction: "increase" | "decrease" | "mixed") =>
+    ({ status: "indeterminate", retainedCents: null, retainedFindingId: null, findingIds: ["A", "B"], direction, boundsCents: { minCents: 14_500_000, maxCents: 20_000_000 }, reviewStage: null }) as never;
+
+  it("une baisse garde ses bornes négatives, une hausse positives, un sens mixte reste explicitement non signé", () => {
+    expect(buildEffectRows([cluster("decrease")], []).map((r) => [r.direction, r.bounds])).toEqual([["decrease", { minCents: 14_500_000, maxCents: 20_000_000 }]]);
+    expect(buildEffectRows([cluster("increase")], [])[0].direction).toBe("increase");
+    expect(buildEffectRows([cluster("mixed")], [])[0].direction).toBe("mixed");
+    expect(buildEffectRows([cluster("decrease")], [])[0].signedCents).toBeNull();
+  });
+});
+
+describe("admissibilité avec alertes non bloquantes : gravité et décompte réels", () => {
+  const synthesis = (status: string) => ({ admissibility: { status, blockingCount: 0 } }) as never;
+  const finding = (severity: string, lines: number[]) => ({ severity, lignesSource: lines }) as never;
+  const quality = { rows: [] } as never;
+
+  it("le glyphe est la gravité la plus forte des alertes, pas « majeur » par défaut", () => {
+    const measure = buildAdmissibilityMeasure(synthesis("admissible_with_alerts"), quality, [finding("mineur", [3]), finding("informatif", [4])]);
+    expect(measure.glyph).toBe("mineur");
+    expect(measure.text).toContain("2 alertes non bloquantes (1 mineur, 1 informatif)");
+    expect(measure.text).toContain("2 lignes");
+    expect(buildAdmissibilityMeasure(synthesis("admissible_with_alerts"), quality, [finding("majeur", [1])]).glyph).toBe("majeur");
+  });
+});

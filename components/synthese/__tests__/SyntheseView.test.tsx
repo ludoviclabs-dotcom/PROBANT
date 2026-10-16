@@ -207,5 +207,8 @@ describe("Synthèse — variantes et états", () => {
     fireEvent.click(screen.getByRole("button", { name: /Ouvrir la démo DEMO SA/ }));
     expect(resetToDemo).toHaveBeenCalledTimes(1);
     expect(document.body.textContent).not.toMatch(/\b82\b\s*\/100/);
+    // L'absence de FEC n'est pas l'absence de travail : le registre des cycles et la méthode restent lisibles.
+    expect(screen.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeTruthy();
+    expect(document.querySelector("details#methode")).toBeTruthy();
   });
 });

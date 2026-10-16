@@ -45,6 +45,16 @@ function paintOf(column: BridgeColumn, uid: string): Paint {
   }
 }
 
+/** Montant d'un effet : signé s'il est déterminé ; sinon bornes lues dans le sens du groupe, non signées si le sens est mixte. */
+function effectAmountText(effect: EffectRow): string {
+  if (effect.signedCents !== null) return formatEuroCents(effect.signedCents, { sign: true });
+  if (!effect.bounds) return "—";
+  const { minCents, maxCents } = effect.bounds;
+  if (effect.direction === "decrease") return `${formatEuroCents(-minCents, { sign: true })} à ${formatEuroCents(-maxCents, { sign: true })}`;
+  if (effect.direction === "increase") return `${formatEuroCents(minCents, { sign: true })} à ${formatEuroCents(maxCents, { sign: true })}`;
+  return `${formatEuroCents(minCents)} à ${formatEuroCents(maxCents)} (sens non établi)`;
+}
+
 function amountText(column: BridgeColumn): string {
   if (column.amountCents === null) return "inconnu";
   return formatEuroCents(column.amountCents, { sign: column.kind === "delta" });
@@ -216,7 +226,7 @@ export function ExposureBridge({
                 {effect.id}
               </button>
               <span className={s.mono}>
-                {effect.signedCents !== null ? formatEuroCents(effect.signedCents, { sign: true }) : effect.bounds ? `${formatEuroCents(effect.bounds.minCents)} à ${formatEuroCents(effect.bounds.maxCents)}` : "—"}
+                {effectAmountText(effect)}
               </span>
               <span className={s.effectStatus} data-validated={effect.stage === "proposed" || effect.stage === "corrected" ? "" : undefined}>
                 {effect.title} · {effect.status}

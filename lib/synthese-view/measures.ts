@@ -1,4 +1,5 @@
-import type { Finding, Severity } from "@/lib/canonical-model/finding";
+import { SEVERITY_LABEL, type Finding, type Severity } from "@/lib/canonical-model/finding";
+import { SEVERITIES as SEVERITY_ORDER } from "./common";
 import type { SynthesisSnapshot } from "@/lib/synthesis/types";
 import type { VisualizationDataset } from "@/lib/visualization/types";
 import type { ReviewStage, ReviewTally } from "./review";
@@ -54,13 +55,24 @@ export function buildAdmissibilityMeasure(
   const { status, blockingCount } = synthesis.admissibility;
   const ticks = fecQuality.rows.map((row) => ({ zone: String(row.cells.zone), flagged: row.emphasis === "critical" }));
   const zones = ticks.filter((t) => t.flagged).map((t) => t.zone);
-  const lines = new Set(admissibilityFindings.filter((f) => f.severity === "bloquant").flatMap((f) => f.lignesSource));
-  const word = status === "rejected" ? "rejetée" : status === "admissible_with_alerts" ? "avec alertes" : "admissible";
-  const glyph: Severity | null = status === "rejected" ? "bloquant" : status === "admissible_with_alerts" ? "majeur" : null;
+  const withAlerts = status === "admissible_with_alerts";
+  // Rejeté : les lignes citées sont celles des alertes bloquantes ; avec alertes non bloquantes : toutes celles du fichier.
+  const lines = new Set(admissibilityFindings.filter((f) => withAlerts || f.severity === "bloquant").flatMap((f) => f.lignesSource));
+  const word = status === "rejected" ? "rejetée" : withAlerts ? "avec alertes" : "admissible";
+  // Gravité réelle : « avec alertes » garantit seulement l'absence d'alerte bloquante, pas une gravité donnée.
+  const strongest = SEVERITY_ORDER.find((s) => admissibilityFindings.some((f) => f.severity === s)) ?? null;
+  const glyph: Severity | null = status === "rejected" ? "bloquant" : withAlerts ? strongest : null;
 
   let text: string;
   if (status === "admissible") {
     text = `aucune alerte d’admissibilité · ${ticks.length} zones réglementaires`;
+  } else if (withAlerts) {
+    const counts = SEVERITY_ORDER.map((s) => [s, admissibilityFindings.filter((f) => f.severity === s).length] as const).filter(([, n]) => n > 0);
+    const total = counts.reduce((sum, [, n]) => sum + n, 0);
+    const parts = [`${total} ${total > 1 ? "alertes non bloquantes" : "alerte non bloquante"}${counts.length ? ` (${counts.map(([s, n]) => `${n} ${SEVERITY_LABEL[s].toLowerCase()}`).join(", ")})` : ""}`];
+    if (zones.length) parts.push(`${zones.length > 1 ? "zones" : "zone"} ${zones.join(", ")}`);
+    if (lines.size) parts.push(`${lines.size} ${lines.size > 1 ? "lignes" : "ligne"}`);
+    text = parts.join(" · ");
   } else {
     const parts = [`${blockingCount} ${blockingCount > 1 ? "alertes bloquantes" : "alerte bloquante"}`];
     if (zones.length) parts.push(`${zones.length > 1 ? "zones" : "zone"} ${zones.join(", ")}`);

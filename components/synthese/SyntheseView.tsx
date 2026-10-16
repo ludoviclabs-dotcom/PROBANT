@@ -248,6 +248,9 @@ export function SyntheseView() {
               </>
             }
           />
+          {/* L'absence de FEC n'est pas l'absence de travail : les feuilles, versions, preuves et accès restent lisibles. */}
+          <CycleRegister rows={cycleRows} onProof={openProof} />
+          <MethodPanel open={methodOpen} onToggle={setMethodOpen} snapshot={snapshot} datasets={datasets} />
         </div>
       </div>
     );

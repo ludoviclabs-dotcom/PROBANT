@@ -142,6 +142,8 @@ export interface EffectRow {
   /** Montant signé retenu ; null si le groupe est indéterminé (aucune somme, bornes seulement). */
   signedCents: number | null;
   bounds: { minCents: number; maxCents: number } | null;
+  /** Sens du groupe : les bornes sont des grandeurs non signées, ce sens dit comment les lire (« mixed » : sens non établi). */
+  direction: "increase" | "decrease" | "mixed";
   stage: ReviewStage | null;
   indeterminate: boolean;
   status: string;
@@ -164,6 +166,7 @@ export function buildEffectRows(clusters: readonly ExposureClusterView[], findin
       severity: strongest(cluster.findingIds),
       signedCents: determined ? (cluster.direction === "decrease" ? -(cluster.retainedCents as number) : (cluster.retainedCents as number)) : null,
       bounds: determined ? null : cluster.boundsCents,
+      direction: cluster.direction,
       stage,
       indeterminate: !determined,
       status: determined ? REVIEW_WORD[stage ?? "pending"] : "agrégation indéterminée",
