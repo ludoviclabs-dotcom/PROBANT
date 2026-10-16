@@ -73,6 +73,27 @@ describe("C05 / C10 — base IS de l'incidence fiscale", () => {
     expect(body.reason).toBe("Feuille IS établie sous la règle 1.0.0 : une révision en 1.1.0 est requise.");
   });
 
+  it("lignée 1.0.0 conservée à côté d'une feuille 1.1.0 verrouillée : la lignée courante sert de base, jamais comparée à l'autre", async () => {
+    const h = createFiscalHarness();
+    const run = await locked(h);
+    const byRun = Object.values(h.db.state.versions).find((v) => v[run.id])!;
+    // Lignée antérieure (autre racine : l'identifiant inclut la version du gabarit), à révision et version plus élevées.
+    const legacyId = "workpaper-legacy-cit-1-0-0";
+    byRun[legacyId] = [{ ...byRun[run.id].at(-1)!, id: legacyId, rootId: legacyId, revision: 9, version: 99,
+      template: { ...run.template, version: "1.0.0", rule: { ...run.template.rule!, version: "1.0.0" } } }];
+    const { body } = await incidence(h);
+    expect(body).toMatchObject({ status: "available", sheet: { runId: run.id, ruleVersion: "1.1.0" } });
+  });
+
+  it("deux feuilles IS courantes pour le même exercice : base ambiguë, incidence inconnue", async () => {
+    const h = createFiscalHarness();
+    const run = await locked(h);
+    const byRun = Object.values(h.db.state.versions).find((v) => v[run.id])!;
+    byRun["workpaper-second-cit"] = [{ ...byRun[run.id].at(-1)!, id: "workpaper-second-cit", rootId: "workpaper-second-cit" }];
+    const { body } = await incidence(h);
+    expect(body).toMatchObject({ status: "unavailable", sheet: null, reason: "2 feuilles IS en règle 1.1.0 pour le même exercice : base ambiguë, incidence fiscale inconnue." });
+  });
+
   it("calcul non reproductible (empreinte approuvée différente) : indisponible, jamais une base approchée", async () => {
     const h = createFiscalHarness();
     const run = await locked(h);

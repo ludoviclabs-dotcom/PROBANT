@@ -32,8 +32,18 @@ const newer = (a: WorkpaperRun, b: WorkpaperRun) => a.revision > b.revision || (
 export function citIncidenceBase(scope: WorkpaperScope, versions: readonly WorkpaperRun[], imports: readonly ImportBatch[], heads: readonly FiscalSourceHead[]): CitIncidenceBase {
   const runs = versions.filter((r) => r.template.id === CIT_PROCEDURE && r.fiscalWork?.tax === "cit");
   if (!runs.length) return { status: "unavailable", reason: "Aucune feuille IS pour cet exercice : incidence fiscale inconnue.", sheet: null };
-  // L'exercice n'a qu'une feuille IS ; sa dernière révision, dans sa dernière version, fait seule foi.
-  const run = runs.reduce((latest, r) => (newer(r, latest) ? r : latest));
+  // Une lignée par racine : sa dernière révision, dans sa dernière version, fait foi. Une feuille créée sous une autre
+  // règle forme une autre racine (l'identifiant inclut la version du gabarit) : les lignées ne se comparent jamais
+  // entre elles, et une lignée antérieure, conservée avec ses preuves, ne masque pas la lignée courante.
+  const lastByRoot = new Map<string, WorkpaperRun>();
+  for (const r of runs) { const latest = lastByRoot.get(r.rootId); if (!latest || newer(r, latest)) lastByRoot.set(r.rootId, r); }
+  const lineages = [...lastByRoot.values()].sort((a, b) => a.rootId.localeCompare(b.rootId));
+  const current = lineages.filter((r) => r.template.rule?.version === CIT_RULE.version);
+  if (current.length > 1) {
+    return { status: "unavailable", reason: `${current.length} feuilles IS en règle ${CIT_RULE.version} pour le même exercice : base ambiguë, incidence fiscale inconnue.`, sheet: null };
+  }
+  // Sans lignée courante, la plus récente des lignées antérieures explique le motif (révision requise).
+  const run = current[0] ?? lineages.reduce((latest, r) => (newer(r, latest) ? r : latest));
   const result = run.result?.result as CitResult | undefined;
   const sheet: CitIncidenceSheet = {
     runId: run.id, rootId: run.rootId, version: run.version, revision: run.revision, state: run.state,
