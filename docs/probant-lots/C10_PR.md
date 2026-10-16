@@ -88,9 +88,27 @@ Le fichier `lib/recette/__tests__/c15-matrice.test.ts` est sur la branche C15 `c
 
 Voir la section « Livraison » pour l'ordre de fusion.
 
-## Contrôles
+## Contrôles (16/10/2026)
 
-Voir le bilan en fin de lot (`tsc`, ESLint, vitest pool `forks`, e2e IS à 1440 / 1024 / 390).
+| Contrôle | Résultat |
+|---|---|
+| `tsc --noEmit` | aucune erreur |
+| ESLint (dépôt entier) | 0 erreur ; 7 avertissements préexistants, hors fichiers du lot |
+| vitest (`vitest.config.mjs`, pool `forks`), suite complète | 195 fichiers : **1 940 réussis**, 62 ignorés (recettes PostgreSQL sans base), 1 échec : `provision-mission.test.ts` (export, délai de 5 s dépassé sous la charge), déjà constaté sur `main` par C15 ; **rejoué seul : 12 / 12 réussis** |
+| Tests IS, feuille, exports et TAX-10 | `lib/tax` 212 + fichier C10 du moteur ; feuille `fiscal-cit-c10.test.ts` 4 ; exports `lib/evidence` verts |
+| Intégration C15 + C10 (`claude/c10-sur-c15-matrice`) | `lib/recette` (matrice C15 entière, **aucun `it.fails` restant**), `lib/tax`, feuilles IS : 19 fichiers, 276 tests réussis |
+| `next build` | réussi |
+| e2e IS (`e2e/fiscal.spec.ts`, « IS 2026 », serveur de production, magasin de test en mémoire) | **réussi** : table « Arrondis légaux » avec ses deux sources, axe sans violation critique ou sérieuse, aucun débordement de page à 1024 ni à 390. Le tableau défile dans sa région à 390, comme celui des tranches. Captures dans `docs/probant-lots/c10-captures/` (1440, 1024, 390) |
+
+Non vérifié dans ce passage : le parcours e2e sur un profil personnel local PostgreSQL (C07 / C15) et la suite e2e complète. Le cas de démonstration de la feuille a une base en euros entiers : à l'écran, les montants avant et après arrondi y sont identiques. Les cas qui changent réellement (,49 / ,50) sont couverts par les tests unitaires.
+
+## Livraison
+
+- Branche `claude/inspiring-rosalind-d180f8`, commit `1a060ca`, sur `main` `e25a4ad`. Non poussée, non fusionnée.
+- La matrice C15 n'existe pas sur `main` : la bascule des deux `it.fails` est un commit séparé, `219f6d6`, sur la branche locale `claude/c10-sur-c15-matrice`. Cette branche est faite de la branche C15, d'une fusion de C10 et de cette bascule.
+- **Ordre de fusion.**
+  - Si C15 est fusionnée avant C10 : fusionner C10, puis reprendre `219f6d6`.
+  - Si C10 est fusionnée avant : la branche C15 doit intégrer `219f6d6`. Sinon, ses deux `it.fails` échoueront, puisque les cas passent désormais.
 
 ## Limites restantes
 
