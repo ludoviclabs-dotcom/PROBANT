@@ -25,6 +25,7 @@ import { WorkpaperService } from "./service";
 import { executionProfile } from "@/lib/runtime/profile";
 import type { VatResult } from "./fiscal-vat-contract";
 import { latestExecutedPerRoot, SUPERSEDED_REASON, type VatObservation } from "./transversal-events-adapter";
+import { citIncidenceBase, type CitIncidenceBase } from "./fiscal-incidence";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -129,6 +130,16 @@ export class FiscalRuntime {
         return { runId: r.id, rootId: r.rootId, version: r.version, revision: r.revision, state: r.state, stale: staleReasons.length > 0, staleReasons,
           href: "/fiscal?" + new URLSearchParams({ dossierId: scope.dossierId, periodId: scope.periodId, id: r.id, version: String(r.version) }), result: { period: result.period, frequency: result.frequency, entries: result.entries } };
       });
+    });
+  }
+  /**
+   * C05 / C10 : base de l'incidence fiscale d'un ajustement pour la Synthèse et l'export du même dossier et du même
+   * exercice. Lecture seule ; seule la feuille IS verrouillée, à jour et reproductible sert de base.
+   */
+  async citIncidenceBase(request: Request, dossierId: string, pid: string): Promise<CitIncidenceBase> {
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
+      await this.bounded(tx, scope);
+      return citIncidenceBase(scope, await tx.allVersions(scope), FiscalImports.from(await tx.imports(scope)).batches, await tx.heads(scope));
     });
   }
   async mission(request: Request, dossierId: string, pid: string, selection: FiscalMissionSelection = {}) {

@@ -124,6 +124,37 @@ Item facultatif du lot, livré ensuite dans la même branche (16/10/2026).
 
 Contrôles de cette suite : `tsc` sans erreur ; ESLint propre sur `lib/synthesis`, `lib/tax` et `lib/visualization` ; vitest complet (pool `forks`) : 196 fichiers, **1 954 réussis**, 62 ignorés (recettes PostgreSQL sans base), **0 échec**.
 
+## Branchement dans l'application — Synthèse et export
+
+La Synthèse d'un dossier **persistant** prend désormais sa base d'IS sur la feuille IS de l'exercice, retrouvée par le même `dossierId` et le même `periodId`. Ce `periodId` ne dépend que des dates d'exercice et de la devise.
+
+- **Entrée du moteur.** `citComputationInput`, extrait de `evaluateCit` sans changer son résultat, reconstruit l'entrée du moteur depuis les sources figées de la feuille. C'est exactement le calcul que la feuille exécute.
+- **Choix de la base.** `citIncidenceBase` (`lib/workpapers/fiscal-incidence.ts`) ne retient comme base que la dernière révision de la feuille IS, à cinq conditions :
+  - elle est verrouillée (approuvée en revue) ;
+  - elle relève de la règle 1.1.0 ;
+  - ses sources sont à jour ;
+  - son résultat est au contrat v2, avec un moteur non bloqué ;
+  - son calcul se reproduit à l'identique : l'empreinte du snapshot recalculé égale celle approuvée.
+
+  Sinon, elle rend un motif : aucune feuille, feuille non verrouillée, règle antérieure, source remplacée, calcul non reproductible.
+- **Accès serveur.** `FiscalRuntime.citIncidenceBase` lit en transaction, avec contrôle des droits, comme `vatObservations` (C11). La route `GET /api/workpapers/fiscal?operation=incidence` expose cette lecture.
+- **Écran `/dashboard/synthese`.**
+  - `useTaxIncidence` lit la base pour un dossier persistant daté. Le navigateur exécute ensuite le moteur IS sur cette entrée, comme le fait déjà le cockpit fiscal : aucun calcul dans un composant, aucun taux.
+  - Le bandeau « Incidence fiscale des ajustements » dit la source (feuille IS verrouillée, version, moteur) ou le motif, avec un lien vers la feuille.
+  - Pour un dossier de démonstration ou de session, ou si les feuilles fiscales sont désactivées, illisibles ou hors droits : pas de fournisseur et un motif affiché.
+  - Une erreur du moteur rend le scénario indisponible ; elle ne fait jamais tomber la Synthèse.
+- **Export `/api/export`.** Il prend la même base côté serveur (`citIncidenceBaseFor`). Si les feuilles fiscales sont absentes ou non autorisées, l'export n'échoue pas et l'incidence reste inconnue.
+
+**Cas contrôlés.**
+- `lib/workpapers/__tests__/fiscal-incidence.test.ts` (route réelle, magasin de test), 7 tests : aucune feuille ; feuille non verrouillée ; feuille verrouillée → +1 000 € déductible donne +250 € et un net de +750 € (71 800 → 72 800 × 25 % = 18 200 €, calcul à la main) ; liasse remplacée ; règle 1.0.0 ; empreinte non reproductible ; autre organisation refusée.
+- `e2e/c10-incidence-synthese.spec.ts` (serveur de production), 4 tests :
+  - à 390, 1024 et 1440 : bandeau « scénario d'IS » ; waterfall « − Effet d'impôt — résultat (connu) 250,00 € » puis « Effet net 750,00 € » ; aucun débordement ; axe sans violation critique ou sérieuse ;
+  - à 1024 : feuille non verrouillée, avec bandeau « inconnue », motif, lien, et effet d'impôt « inconnu ».
+
+  Les captures sont dans `docs/probant-lots/c10-captures/c10-synthese-incidence-*.jpg`.
+
+Contrôles de ce branchement : `tsc` sans erreur ; ESLint 0 erreur (7 avertissements préexistants hors lot) ; `next build` réussi ; vitest complet (pool `forks`) : 197 fichiers, **1 961 réussis**, 62 ignorés (PostgreSQL absent), **0 échec** ; e2e `c10-incidence-synthese` : 4 réussis.
+
 ## Matrice C15
 
 Le fichier `lib/recette/__tests__/c15-matrice.test.ts` est sur la branche C15 `claude/recette-finale-controle-c85076`, qui n'est pas encore sur `main`. La vérification a été faite sur une intégration locale C15 + C10 :
@@ -164,6 +195,6 @@ Non vérifié dans ce passage : le parcours e2e sur un profil personnel local Po
   - la correspondance entre exercice et millésime n'est pas établie, puisque le registre marque lui-même le millésime 2026 « période d'application exacte review_required ».
 
   Ouvrir ces exercices sera un ajout de données (barème, millésimes), sans modification du moteur.
-- **Incidence fiscale par scénario : pas encore branchée dans l'application.** Le fournisseur existe et la Synthèse l'accepte (voir « Suite C05 » ci-dessous). Mais l'écran `/dashboard/synthese` et l'export `/api/export` construisent la Synthèse depuis le dossier d'analyse, qui ne porte aucun calcul d'IS de base. Sans fournisseur, le comportement 2.1.0 est conservé. Il reste à alimenter le fournisseur depuis la feuille IS verrouillée du même dossier, par une route serveur qui vérifie les droits.
+- **Incidence fiscale par scénario.** Elle est branchée dans l'application pour les dossiers persistants (voir « Branchement dans l'application »). Pour un dossier de démonstration ou de session, l'incidence reste inconnue hors taux qualifié, avec le motif affiché. Le parcours n'a pas été rejoué sur un profil local PostgreSQL réel : l'e2e passe par le runtime fiscal en mémoire.
 - **Cockpit `/dashboard/fiscalite` et paquet TAX.** Ils affichent encore l'« impôt brut », désormais avant arrondi de liquidation, sans l'impôt liquidé.
 - **Dette 444.** Elle reste comparée à l'impôt liquidé, alors qu'elle est nette des acomptes : la note de normalisation le signale, comme avant.

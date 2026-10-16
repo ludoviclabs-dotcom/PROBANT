@@ -4,7 +4,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { taxKnowledgeRegistry } from "@/lib/knowledge/tax-registry";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { createTaxPeriod, createTaxProfile } from "@/lib/tax/canonical";
-import { computeCorporateTax } from "@/lib/tax/corporate-tax/engine";
+import { computeCorporateTax, type CorporateTaxComputationInput } from "@/lib/tax/corporate-tax/engine";
 import { amountFor, CORPORATE_TAX_FORM_MAPPINGS, DECLARATION_BOXES, DECLARATION_FORM, DEFICIT_BOXES, DEFICIT_FOLLOW_UP_FORM, readDeclarationBoxes } from "@/lib/tax/corporate-tax/liasse";
 import { eurosToCents, fecDateToIso } from "@/lib/tax/vat/ledger";
 import { CIT_LIMITATIONS, CIT_METHOD_TEXT, CIT_RESULT_SCHEMA_VERSION, citDraftSchema, citResultSchema, citWorkSchema, type CitDraft, type CitResult, type CitWork } from "./fiscal-cit-contract";
@@ -78,7 +78,8 @@ const signed = (profit: { amountCents: number } | undefined, loss: { amountCents
   profit && profit.amountCents !== 0 ? profit.amountCents : loss && loss.amountCents !== 0 ? -loss.amountCents : profit || loss ? 0 : null;
 
 /** Deterministic evaluation from frozen inputs: canonical profile and period, one engine call, server-side framing and presentation. */
-export function evaluateCit(scope: WorkpaperScope, accountingPeriod: AccountingPeriod, imports: ImportBatch[], runId: string, work: CitWork): CitResult {
+/** Frame of an IS execution: canonical profile and period, FEC framing in cents, active returns and the engine input. */
+function citFrame(scope: WorkpaperScope, accountingPeriod: AccountingPeriod, imports: ImportBatch[], runId: string, work: CitWork) {
   const w = citWorkSchema.parse(work), owned = { organizationId: scope.organizationId, dossierId: scope.dossierId, entityId: scope.dossierId };
   const p = w.profile, fiscalYear = Number(w.period.endDate.slice(0, 4));
   const profile = createTaxProfile({ ...owned, id: `fxprofile:${runId}`, version: stableSha256(p).slice(0, 16), jurisdiction: "FR", status: p.status, corporateIncomeTaxRegime: p.regime, vatRegime: "unknown",
@@ -101,11 +102,23 @@ export function evaluateCit(scope: WorkpaperScope, accountingPeriod: AccountingP
   const declaredResult = declared ? signed(amountFor(declared, mapping!.accountingProfit), amountFor(declared, mapping!.accountingLoss)) : null;
   const declaredBeforeDeficits = declared ? signed(amountFor(declared, mapping!.resultBeforeDeficitsProfit), amountFor(declared, mapping!.resultBeforeDeficitsDeficit)) : null;
   const corrections = w.adjustments.filter(a => a.treatment === "proposed_correction");
-  const { snapshot, reconciliationLines } = computeCorporateTax({ ...owned, executionId: runId, snapshotId: `fxcit:${runId}`, profile, period, documentSnapshots: active,
+  const input: CorporateTaxComputationInput = { ...owned, executionId: runId, snapshotId: `fxcit:${runId}`, profile, period, documentSnapshots: active,
     confirmedAdjustments: corrections.map(a => ({ id: a.id, category: a.category, direction: a.direction, label: a.label, amountCents: Number(a.amountCents), snapshotId: a.citation.documentVersionId, contentHash: stableSha256(a.citation),
       sourceRefs: [a.legalSource!], evidenceRefs: [a.citation.documentVersionId + (a.citation.rowId ? "#" + a.citation.rowId : "")], reviewEventId: `${a.authorId}@${a.at}` })),
     accountedPositions: taxCharge !== null || liability !== null ? { chargeCents: taxCharge, liabilityCents: liability, snapshotId: fec.document.id, contentHash: fec.document.byteHash } : undefined,
-    createdAt: w.configuredAt, createdBy: w.configuredBy });
+    createdAt: w.configuredAt, createdBy: w.configuredBy };
+  return { w, p, fiscalYear, profile, all, lines, resultAfterTax, taxCharge, liability, returns, mapping, declaredResult, declaredBeforeDeficits, corrections, input };
+}
+/**
+ * Engine input of an IS execution, rebuilt from its frozen sources and stamped work: exactly the computation the sheet runs,
+ * and the base scenario of the tax incidence of an adjustment (C05 / C10).
+ */
+export function citComputationInput(scope: WorkpaperScope, accountingPeriod: AccountingPeriod, imports: ImportBatch[], runId: string, work: CitWork): CorporateTaxComputationInput {
+  return citFrame(scope, accountingPeriod, imports, runId, work).input;
+}
+export function evaluateCit(scope: WorkpaperScope, accountingPeriod: AccountingPeriod, imports: ImportBatch[], runId: string, work: CitWork): CitResult {
+  const { w, p, fiscalYear, profile, all, lines, resultAfterTax, taxCharge, liability, returns, mapping, declaredResult, declaredBeforeDeficits, corrections, input } = citFrame(scope, accountingPeriod, imports, runId, work);
+  const { snapshot, reconciliationLines } = computeCorporateTax(input);
   const computed = snapshot.status === "computed";
   const comparable = declaredResult !== null && resultAfterTax !== null;
   const framing: CitResult["framing"] = { status: !comparable ? "unknown" : resultAfterTax === declaredResult ? "framed" : "difference",

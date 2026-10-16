@@ -53,6 +53,16 @@ export interface CorporateTaxScenarioComparison {
   readonly comparisonHash: string;
 }
 
+/** Calcul d'un scenario : une erreur du moteur (entree incoherente) rend le scenario indisponible, jamais la Synthese. */
+function run(input: CorporateTaxComputationInput): CorporateTaxSnapshot | { readonly error: string } {
+  try {
+    return computeCorporateTax(input).snapshot;
+  } catch (error) {
+    return { error: error instanceof Error ? error.message.split(":")[0] : "TAX_ENGINE_ERROR" };
+  }
+}
+const failed = (outcome: CorporateTaxSnapshot | { readonly error: string }): outcome is { readonly error: string } => "error" in outcome;
+
 /** Motif d'indisponibilite d'un scenario, ou null s'il est exploitable. */
 function unusable(snapshot: CorporateTaxSnapshot): string | null {
   if (snapshot.status !== "computed" || snapshot.liquidatedTaxCents === null) {
@@ -89,29 +99,32 @@ export function compareCorporateTaxScenarios(
   requests: readonly TaxIncidenceRequest[],
 ): CorporateTaxScenarioComparison {
   const ordered = [...requests].sort((left, right) => left.findingId.localeCompare(right.findingId));
-  const baseSnapshot = computeCorporateTax(base).snapshot;
-  const baseReason = unusable(baseSnapshot);
+  const baseOutcome = run(base);
+  const baseSnapshot = failed(baseOutcome) ? null : baseOutcome;
+  const baseReason = baseSnapshot ? unusable(baseSnapshot) : `moteur IS en erreur sur le scénario de base (${(baseOutcome as { error: string }).error}) : incidence fiscale inconnue`;
+  const baseHash = baseSnapshot?.snapshotHash ?? "none";
   const steps: CorporateTaxScenarioStep[] = [];
-  let previous = baseReason === null ? baseSnapshot.liquidatedTaxCents : null;
+  let previous = baseReason === null && baseSnapshot ? baseSnapshot.liquidatedTaxCents : null;
   let blockedReason = baseReason;
   const added: CorporateTaxConfirmedAdjustment[] = [];
   for (const request of ordered) {
     if (!Number.isSafeInteger(request.signedCents) || request.signedCents === 0) {
-      steps.push({ findingId: request.findingId, signedCents: request.signedCents, liquidatedTaxCents: null, snapshotHash: baseSnapshot.snapshotHash,
+      steps.push({ findingId: request.findingId, signedCents: request.signedCents, liquidatedTaxCents: null, snapshotHash: baseHash,
         answer: { status: "unavailable", reason: "ajustement nul ou non exprimé en centimes entiers : aucun scénario" } });
       continue;
     }
     added.push(scenarioAdjustment(base, request));
-    const snapshot = computeCorporateTax({
+    const outcome = run({
       ...base,
       executionId: `${base.executionId}:scenario:${added.length}`,
       snapshotId: `${base.snapshotId}:scenario:${added.length}`,
       confirmedAdjustments: [...(base.confirmedAdjustments ?? []), ...added],
-    }).snapshot;
-    const reason = blockedReason ?? unusable(snapshot);
-    if (reason !== null || previous === null) {
+    });
+    const snapshot = failed(outcome) ? null : outcome;
+    const reason = blockedReason ?? (snapshot ? unusable(snapshot) : `moteur IS en erreur sur le scénario (${(outcome as { error: string }).error}) : incidence fiscale inconnue`);
+    if (reason !== null || previous === null || !snapshot) {
       blockedReason = reason ?? "scénario précédent non calculé : incidence fiscale inconnue";
-      steps.push({ findingId: request.findingId, signedCents: request.signedCents, liquidatedTaxCents: null, snapshotHash: snapshot.snapshotHash,
+      steps.push({ findingId: request.findingId, signedCents: request.signedCents, liquidatedTaxCents: null, snapshotHash: snapshot?.snapshotHash ?? "none",
         answer: { status: "unavailable", reason: blockedReason } });
       continue;
     }
@@ -124,7 +137,7 @@ export function compareCorporateTaxScenarios(
   const body = {
     version: CORPORATE_TAX_SCENARIO_VERSION,
     engineVersion: CORPORATE_TAX_ENGINE_VERSION,
-    base: { liquidatedTaxCents: baseSnapshot.liquidatedTaxCents, snapshotHash: baseSnapshot.snapshotHash, status: baseSnapshot.status },
+    base: { liquidatedTaxCents: baseSnapshot?.liquidatedTaxCents ?? null, snapshotHash: baseHash, status: baseSnapshot?.status ?? "blocked" },
     steps,
     totalIncidenceCents: computed.length > 0 ? computed.reduce((total, value) => total + value, 0) : null,
   };

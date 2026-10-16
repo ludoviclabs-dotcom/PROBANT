@@ -5,7 +5,9 @@ import { useMemo, useState, useCallback } from "react";
 import type { MouseEvent as ReactMouseEvent } from "react";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { LEGACY_EXPOSURE_WEIGHTS } from "@/lib/dossier";
-import { useActiveDossierSnapshot } from "@/lib/dossier/client";
+import { useActiveDossier } from "@/lib/dossier/client";
+import { useTaxIncidence } from "@/lib/dossier/tax-incidence-client";
+import { TaxIncidenceNotice } from "@/components/synthesis/TaxIncidenceNotice";
 import { buildSynthesisSnapshot, generateSynthesisNote } from "@/lib/synthesis";
 import { buildSynthesisDatasets } from "@/lib/visualization/build-datasets";
 import { CLOISONS } from "@/lib/canonical-model/taxonomy";
@@ -378,14 +380,17 @@ function Flow({ axes, matrix, t, hLink, setHLink, tip, fClo, fSev, setBoth, togg
  * compteur ne démarre artificiellement à zéro ; aucune animation infinie.
  */
 export default function SynthesePage() {
-  const snapshot = useActiveDossierSnapshot();
+  const { snapshot, context } = useActiveDossier();
+  // C05 / C10 : base IS lue sur la feuille IS verrouillée du dossier ; sans elle, l'incidence reste inconnue hors taux qualifié.
+  const incidence = useTaxIncidence(snapshot, context);
+  const taxIncidence = incidence.status === "available" ? incidence.provider : undefined;
   const d = snapshot.dossier;
   const findings = snapshot.findings;
 
   // ── Moteur de Synthèse — tout le calcul métier vit dans lib/synthesis ──
   const synthesis = useMemo(
-    () => buildSynthesisSnapshot(snapshot, { clock: () => new Date().toISOString() }),
-    [snapshot],
+    () => buildSynthesisSnapshot(snapshot, { clock: () => new Date().toISOString(), taxIncidence }),
+    [snapshot, taxIncidence],
   );
   const datasets = useMemo(
     () =>
@@ -549,6 +554,8 @@ export default function SynthesePage() {
           ))}
         </ul>
       </section>
+
+      <TaxIncidenceNotice state={incidence} incidence={synthesis.exposure.taxIncidence} />
 
       {/* ══ NIVEAU 2 — ANALYSE (quatre visualisations principales) ════ */}
       <h2 style={{ fontSize: 15, fontWeight: 700, color: TEXT, margin: "0 0 12px" }}>Analyse</h2>
