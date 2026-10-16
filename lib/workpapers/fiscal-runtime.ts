@@ -151,7 +151,7 @@ export class FiscalRuntime {
       if (data.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
       return data;
     });
-    const pack = await buildFiscalMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!);
+    const pack = await buildFiscalMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!, executionProfile(process.env));
     if (Buffer.byteLength(pack.canonicalJson) > LIMITS.export || pack.pdf.byteLength > LIMITS.export || Buffer.byteLength(pack.html) > LIMITS.export) throw new ApiError("FX_EXPORT_LIMIT", "Export trop volumineux pour cette recette.", 413);
     // Session, permission and state are checked again after rendering, before any byte is returned.
     await this.transaction(request, dossierId, pid, "download", async (tx, scope) => { if ((await this.missionData(tx, scope, selection)).mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT"); });

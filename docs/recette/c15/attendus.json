@@ -1,0 +1,155 @@
+{
+  "M1_clients_residus": {
+    "gl": "80.00",
+    "auxiliaire_total": "80.00",
+    "agee_total": "80.00",
+    "ecart_gl_auxiliaire": "0.00",
+    "ecart_auxiliaire_agee_global": "0.00",
+    "residus_par_cle": {
+      "C1": "10.00",
+      "C2": "-10.00"
+    },
+    "residus_bruts_valeur_absolue": "20.00",
+    "accord_global_suffisant": false
+  },
+  "M2_population": {
+    "absente": {
+      "ratio": null,
+      "etat": "source manquante / non calculable",
+      "jamais": [
+        "0 %",
+        "100 %"
+      ]
+    },
+    "vide_connue": {
+      "ratio": null,
+      "etat": "population vide déclarée",
+      "assurance": null
+    },
+    "controles_24_sur_24_ecritures_0": {
+      "ratio_ecritures": null,
+      "ratio_programme": "1.0000",
+      "niveau_ecritures_affiche": "aucun niveau d'étendue"
+    }
+  },
+  "M3_qualitatif": {
+    "assertion": "existence",
+    "montant": null,
+    "present_matrice_constats": true,
+    "cellule_compte": 1
+  },
+  "M4_signal_eur": {
+    "constate": "100000.00",
+    "seuil": "50000.00",
+    "incidence_inferee": null,
+    "jamais": "50000.00"
+  },
+  "M5_effets": {
+    "meme_identite_100_120": {
+      "statut": "conflit",
+      "membres": 2,
+      "montant_retenu": null,
+      "jamais": [
+        "100.00",
+        "120.00"
+      ]
+    },
+    "repetition_meme_contenu": {
+      "compte": 1,
+      "montant": "100.00"
+    },
+    "chevauchement_L1L2_L2L3": {
+      "statut": "indéterminé",
+      "borne_basse": "120.00",
+      "borne_haute": "220.00"
+    }
+  },
+  "M6_net_fiscal": {
+    "brut": "1000.00",
+    "impot": null,
+    "net": null,
+    "jamais": {
+      "impot": "0.00",
+      "net": "1000.00"
+    }
+  },
+  "M7_fin_de_plan": {
+    "dotation_annuelle_plan": "2400.00",
+    "cumul_ouverture_12000": {
+      "dotation": "0.00",
+      "cumul_cloture": "12000.00"
+    },
+    "cumul_ouverture_10800": {
+      "dotation": "1200.00",
+      "cumul_cloture": "12000.00"
+    },
+    "cumul_ouverture_4800": {
+      "dotation": "2400.00",
+      "cumul_cloture": "7200.00",
+      "vnc": "4800.00"
+    }
+  },
+  "M8_stock": {
+    "valeur_actuelle_unitaire": "-3.00",
+    "ecart_economique_brut": "130.00",
+    "valeur_comptable": "100.00",
+    "perte_actif_bornee": "100.00",
+    "complement_a_qualifier": "30.00",
+    "provision_automatique": null
+  },
+  "M9_is": {
+    "pme_50000": "8250.00",
+    "non_eligible_50000": "12500.00",
+    "base_50000_49": {
+      "base_arrondie": "50000",
+      "impot": "8250.00"
+    },
+    "base_50000_50": {
+      "base_arrondie": "50001",
+      "impot_avant_arrondi_liquidation": "8250.25"
+    },
+    "exercice_18_mois": {
+      "statut": "refus ciblé ou plafond proratisé tracé",
+      "jamais": "plafond 42 500 appliqué sans prorata"
+    }
+  },
+  "M10_millesime": {
+    "exercice": 2024,
+    "impot": null,
+    "statut": "source/version requise",
+    "jamais": "repli sur le barème 2026"
+  },
+  "M11_populations": {
+    "sans_rattachement": {
+      "statut": "feuille à rattacher",
+      "feuilles_verrouillees": "0 / 1"
+    },
+    "B1_rattachee": {
+      "feuilles_verrouillees": "1 / 1",
+      "B2": "non rattachée"
+    }
+  },
+  "M12_invalidation": {
+    "ancienne_version": "consultable avec ses sources",
+    "travail_courant": "périmé",
+    "export": "identifie la version (id, numéro, empreintes des sources)"
+  },
+  "M12_bis_balance_agee_remplacee": {
+    "residus_par_cle_nouvelle_source": {
+      "C1": "15.00",
+      "C2": "-10.00"
+    },
+    "residus_bruts_nouvelle_source": "25.00",
+    "ecart_auxiliaire_agee_global_nouvelle_source": "5.00",
+    "version_verrouillee": "inchangée, lisible et exportable avec l'ancienne balance (résidus +10,00 / −10,00)",
+    "travail_courant": "périmé : révision requise ; le dossier de clôture signale la source remplacée"
+  },
+  "P_parcours_reel": {
+    "donnees": "M1",
+    "apres_arret_reprise": {
+      "version_feuille": "identique",
+      "empreintes_sources": "identiques",
+      "export": "octets identiques ou différence limitée à l'horodatage d'édition, nommée"
+    }
+  }
+}

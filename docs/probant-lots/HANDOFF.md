@@ -1,3 +1,18 @@
+# Handoff — C15 : recette finale et contrôle de la finition (16 octobre 2026)
+
+**Base.** Worktree `cranky-merkle-522ab2`, branche `claude/recette-finale-controle-c85076`, SHA de départ `e25a4ad` (`main` après la PR #97), checkout propre. Écart avec `ab8f991` : C00 à C09 et C11 à C14 fusionnés ; **C10 absente** (branche sans commit, chantier non commité disparu). Profil de recette `%LOCALAPPDATA%\PROBANT\recette-c15` (ports 54379 / 3250) ; profil neuf `recette-c15-c07` pour la recette C07 rejouée. Rien poussé, fusionné ni déployé.
+
+## Cause, changements, preuves
+
+Rapport unique : `docs/recette/c15/RAPPORT.md` (cadre, capacités livrées, avant / après D1–D10, matrice M1–M12, parcours réel, recette visuelle, contrôles, sources, non vérifiés, limites). Attendus manuels commités avant exécution (`docs/recette/c15/attendus.py`, `6535ad1`). PR prête : `docs/probant-lots/C15_PR.md`.
+
+## Limites restantes
+
+- C10 à relivrer : IS sans arrondi de base, exercice de 18 mois calculé sans prorata ni avertissement, scénario fiscal absent.
+- Dates de l'exercice à saisir sur chaque feuille depuis `/local` ; finitions de la Synthèse Clients (format des montants, conventions du moteur, colonne de clé à 390 px).
+
+---
+
 # Handoff — C14 : synthèse des travaux et clôture locale unifiées (15 octobre 2026)
 
 **Base.** Worktree `cockpit-fiscalite-dashboard-1c1ba9`, branche `claude/synthese-unifie-cloture-465ac8`, SHA de départ `bb919bf` (`main` après la PR #94, C12), checkout propre. Écart avec la base du diagnostic `ab8f991` : C00 à C12 fusionnés depuis ; le dossier de clôture (PR #72) n'avait pas bougé hors C01 (registre) et C07 (relecture personnelle des feuilles). C13 (Emprunts, PR #95) a été fusionné dans `main` pendant la revue, puis intégré à la branche avant la PR. Rien de commité, poussé, fusionné ni déployé.

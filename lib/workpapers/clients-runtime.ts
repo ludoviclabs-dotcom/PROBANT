@@ -161,7 +161,7 @@ export class ClientsRuntime {
             if (data.mission.hash !== expectedSnapshotHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
             return data;
         });
-        const pack = await buildClientMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!);
+        const pack = await buildClientMissionPackage(data.mission, data.run, data.imports, kind, data.mission.stateAsOf!, executionProfile(process.env));
         if (Buffer.byteLength(pack.canonicalJson) > 16 * 1024 * 1024 || pack.pdf.byteLength > 16 * 1024 * 1024 || Buffer.byteLength(pack.html) > 16 * 1024 * 1024) throw new ApiError("CLIENT_EXPORT_LIMIT", "Export trop volumineux pour cette recette.", 413);
         // Recheck session, permissions and version after rendering, before returning any bytes.
         await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {

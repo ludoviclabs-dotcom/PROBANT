@@ -85,8 +85,13 @@ export function generateSynthesisNote(
   /* 3. Couverture */
   push(`## 3. Couverture`);
   push();
+  // Une population sans dénominateur qualifié n'a pas de ratio : ni « 0/0 » ni « ratio 0 » (C15, rapport § 6.1).
   push(
-    `Écritures analysées : ${s.coverage.entriesAnalysed}/${s.coverage.entriesTotal} (ratio ${s.coverage.entriesRatio}). Contrôles conclus : ${s.coverage.controlsConcluded}/${s.coverage.controlsEligible} (ratio ${s.coverage.controlsRatio}).`,
+    s.coverage.populations
+      .map((p) => p.ratio !== null
+        ? `${p.label} : ${p.numerator}/${p.denominator} (ratio ${p.ratio})`
+        : `${p.label} : aucun ratio — ${p.basis}`)
+      .join(". ") + ".",
   );
   push(
     s.coverage.status === "unqualified"

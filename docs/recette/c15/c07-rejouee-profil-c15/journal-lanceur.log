@@ -1,0 +1,31 @@
+2026-10-16T07:30:04.241Z start [probant-local] Next tourne déjà (PID 17916) sur http://127.0.0.1:3250.
+2026-10-16T07:30:04.241Z start [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:04.559Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:08.610Z stop [probant-local] Next arrêté (PID 17916).
+2026-10-16T07:30:08.610Z stop [probant-local] PostgreSQL arrêté proprement.
+2026-10-16T07:30:12.047Z start [probant-local] PostgreSQL démarré (port 54379).
+2026-10-16T07:30:12.047Z start [probant-local] Build : build à jour (35e96aa).
+2026-10-16T07:30:12.047Z start [probant-local] Next démarré (PID 22548, journal C:\Users\Ludo\AppData\Local\PROBANT\recette-c15\logs\next.log) ; attente de http://127.0.0.1:3250…
+2026-10-16T07:30:12.047Z start [probant-local] Prêt. Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:12.047Z start [probant-local] Arrêt : npm run local:stop · nouveau lien : npm run local:login · sauvegarde : npm run local:backup
+2026-10-16T07:30:12.457Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:16.051Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:18.554Z backup [probant-local] Sauvegarde cohérente : C:\Users\Ludo\AppData\Local\PROBANT\recette-c15\sauvegardes\20261016-093017-recette-c07 (76 tables, 2 pièce(s) sur disque, dump 1232938 octets).
+2026-10-16T07:30:34.111Z restore [probant-local] Restauration de C:\Users\Ludo\AppData\Local\PROBANT\recette-c15\sauvegardes\20261016-093017-recette-c07 vers C:\Users\Ludo\AppData\Local\PROBANT\recette-c15-restauration (nouveau profil 8497330f-606c-4ea3-a99a-b5094ef49aa6, PostgreSQL 54389, Next 3260).
+2026-10-16T07:30:34.111Z restore [probant-local] PostgreSQL démarré (port 54389).
+2026-10-16T07:30:34.111Z restore [probant-local] PostgreSQL arrêté proprement.
+2026-10-16T07:30:34.111Z restore [probant-local] Restauration vérifiée : 76 tables et 2 pièce(s) identiques à la sauvegarde.
+2026-10-16T07:30:34.111Z restore [probant-local] Démarrer le profil restauré : npm run local:start -- --home "C:\Users\Ludo\AppData\Local\PROBANT\recette-c15-restauration"
+2026-10-16T07:30:34.400Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:33:06.227Z start [probant-local] PostgreSQL démarré (port 54389).
+2026-10-16T07:33:06.239Z start [probant-local] Profil restauré depuis 7ea2b41c-623c-4bb7-92f3-fe16d0b72248 @ C:\Users\Ludo\AppData\Local\PROBANT\recette-c15\sauvegardes\20261016-093017-recette-c07.
+2026-10-16T07:33:06.239Z start [probant-local] Build : code modifié depuis le dernier build.
+2026-10-16T07:33:06.239Z start [probant-local] Compilation de production (next build) : quelques minutes au premier lancement…
+2026-10-16T07:33:06.239Z start [probant-local] Next démarré (PID 20512, journal C:\Users\Ludo\AppData\Local\PROBANT\recette-c15-restauration\logs\next.log) ; attente de http://127.0.0.1:3260…
+2026-10-16T07:33:06.239Z start [probant-local] Prêt. Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3260/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:33:06.239Z start [probant-local] Arrêt : npm run local:stop · nouveau lien : npm run local:login · sauvegarde : npm run local:backup
+2026-10-16T07:33:09.039Z login [probant-local] Lien de connexion (usage unique, 10 min) : http://127.0.0.1:3260/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:33:12.132Z stop [probant-local] Next arrêté (PID 20512).
+2026-10-16T07:33:12.132Z stop [probant-local] PostgreSQL arrêté proprement.
+2026-10-16T07:33:13.104Z stop [probant-local] Next arrêté (PID 22548).
+2026-10-16T07:33:13.104Z stop [probant-local] PostgreSQL arrêté proprement.

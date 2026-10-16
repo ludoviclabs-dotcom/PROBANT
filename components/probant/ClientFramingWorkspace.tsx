@@ -12,6 +12,7 @@ import { ClientsSalesImportForm } from "./ClientsSalesImportForm";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 import { sameDraft, saveStateLabel, type SaveStatus } from "@/lib/workpapers/draft-state";
 import { approvalLabel, mayReviewOwnWork, type ReviewKind } from "@/lib/auth/review-kind";
+import { executionProfileLabel, type ExecutionProfile } from "@/lib/runtime/profile";
 import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
 type SaveState = SaveStatus;
 /** Valeurs initiales du formulaire d'import : la base de comparaison du brouillon (C02, M20-UI-03). */
@@ -21,6 +22,7 @@ type View = {
     actorId: string;
     permissions: string[];
     reviewKind?: ReviewKind;
+    executionProfile?: ExecutionProfile;
     runs: WorkpaperRun[];
     imports: (ImportBatch & { rowCount?: number })[];
     sourceHeads: {
@@ -90,6 +92,8 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     const [conclusion, setConclusion] = useState(""), [comment, setComment] = useState(""), [review, setReview] = useState("");
     const [status, setStatus] = useState<SaveState>("idle"), [error, setError] = useState(""), [loading, setLoading] = useState(false);
     const [loadedPeriod, setLoadedPeriod] = useState(initialPeriodValue), [, touch] = useState(0);
+    // Ouvert depuis /local (dossier sans exercice dans l'adresse) : les dates à saisir sont visibles d'emblée.
+    const [datesOpen] = useState(() => !requested?.periodId);
     const [conflict, setConflict] = useState<{
         current: WorkpaperRun;
         expectedVersion: number;
@@ -246,15 +250,15 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
     function dirty() { setStatus("idle"); setConflict(null); pending.current = null; touch(t => t + 1); }
     const controlClass = "rounded border border-[var(--pb-border)] bg-transparent p-2";
     return <main className="mx-auto min-w-0 max-w-6xl space-y-5 p-6 [overflow-wrap:anywhere]">
-    <header><p className="text-sm">Recette jetable · identité serveur</p><h1 className="text-2xl font-semibold">{isSales ? "Clients et ventes" : "Cadrage Clients"}</h1>
+    <header><p className="text-sm">Mission · {executionProfileLabel(view?.executionProfile)} · identité serveur</p><h1 className="text-2xl font-semibold">{isSales ? "Clients et ventes" : "Cadrage Clients"}</h1>
       <p>{isSales ? "Encaissements, avoirs et jugement documenté ; cadrage lié à sa version verrouillée." : "Grand livre, auxiliaire et balance âgée à la clôture. Revue du cadrage et de ses résidus."}</p><DossierContextAnchor className="underline" href={"/clients-framing/synthesis?" + new URLSearchParams({ dossierId, periodId: requested?.periodId || periodId(period), ...(run ? { rootId: run.rootId, id:run.id, version:String(run.version) } : {}) })}>Ouvrir la Revue et Synthèse de mission</DossierContextAnchor></header>
     <style>{`@keyframes pb-exception-resolved{from{background:#293d54}to{background:transparent}}.pb-exception-resolved{animation:pb-exception-resolved 180ms ease-out}@media(prefers-reduced-motion:reduce){.pb-exception-resolved{animation:none}}`}</style>
-    <details><summary>Détails du dossier et dates de revue</summary><form onSubmit={e => { e.preventDefault(); void load(); }} className="flex flex-wrap gap-3 rounded-xl border border-[var(--pb-border)] p-4">
+    <details open={datesOpen}><summary>Détails du dossier et dates de revue</summary><form onSubmit={e => { e.preventDefault(); void load(); }} className="flex flex-wrap gap-3 rounded-xl border border-[var(--pb-border)] p-4">
       <label>Dossier<DossierScopedInput aria-label="Dossier" className={controlClass} value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); dirty(); }}/></label>
       {(["startDate", "closingDate", "asOfDate"] as const).map((key, i) => <label key={key}>{["Début", "Clôture", "Date de revue"][i]}<input type="date" className={controlClass} value={period[key]} required disabled={saving || loading} onChange={e => { setPeriod(p => ({ ...p, [key]: e.target.value })); setView(null); dirty(); }}/></label>)}
       <button className={controlClass} disabled={saving || loading}>{loading ? "Chargement…" : "Charger le cadrage"}</button>
     </form></details>
-    <p role="status" aria-live="polite">{!view ? "Aucune feuille chargée" : saveStateLabel({ status, dirty: isDirty, readOnly })}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
+    <p role="status" aria-live="polite">{!view ? (period.startDate && period.closingDate && period.asOfDate ? "Aucune feuille chargée" : "Aucune feuille chargée : saisissez le début, la clôture et la date de revue de l’exercice, puis chargez le cadrage.") : saveStateLabel({ status, dirty: isDirty, readOnly })}{run ? " · Révision " + run.revision + (exactVersion ? " · Version affichée " : " · Version courante ") + run.version : ""}</p>
     {error && <p role="alert">{error}</p>}
     {status === "failed" && pending.current && <button className={controlClass} onClick={() => { const p = pending.current!; void mutate(p.body, p.imports, p.key); }}>Réessayer la même commande</button>}
     {conflict && <section role="alert" className="space-y-3 rounded-xl border border-amber-600 p-4">
@@ -298,7 +302,7 @@ export function ClientFramingWorkspace({ initialDossierId = "", initialPeriodVal
         {canPrepare && isSales && <ClientsSalesImportForm period={period} busy={saving} onPreview={data => void mutate(data,true)}/>}
         {view.imports.filter(batch => isSales ? batch.document.documentType in salesLabels : batch.document.documentType in sourceLabels).map(batch => <article key={batch.id} className="space-y-2 border-t pt-2">
           <h3>{({...sourceLabels,...salesLabels} as Record<string,string>)[batch.document.documentType]} · {batch.document.fileName}</h3>
-          <p>{batch.rowCount ?? batch.rows.length} lignes · Total normalisé {batch.report.normalizedTotal.amount} EUR · {batch.approval ? "Approuvé par " + batch.approval.actorId : "Mapping à approuver"}
+          <p>{batch.rowCount ?? batch.rows.length} ligne{(batch.rowCount ?? batch.rows.length) > 1 ? "s" : ""} · Total normalisé {batch.report.normalizedTotal.amount} EUR · {batch.approval ? "Approuvé par " + batch.approval.actorId : "Mapping à approuver"}
             {view.sourceHeads.some(h => h.import_id === batch.id) ? " · Source courante" : batch.approval ? " · Ancienne source conservée" : ""}</p>
           <details><summary>Comparer les cinq premières lignes aux sources</summary><p>{batch.report.warnings.join(" · ")} {batch.report.blocking.join(" · ")}</p>
             <pre tabIndex={0} className="overflow-auto text-xs">{JSON.stringify(batch.rows.slice(0, 5).map(r => ({ source: r.original, normalise: r.normalized, localisateur: r.locator })), null, 2)}</pre></details>
