@@ -134,6 +134,16 @@
     "travail_courant": "périmé",
     "export": "identifie la version (id, numéro, empreintes des sources)"
   },
+  "M12_bis_balance_agee_remplacee": {
+    "residus_par_cle_nouvelle_source": {
+      "C1": "15.00",
+      "C2": "-10.00"
+    },
+    "residus_bruts_nouvelle_source": "25.00",
+    "ecart_auxiliaire_agee_global_nouvelle_source": "5.00",
+    "version_verrouillee": "inchangée, lisible et exportable avec l'ancienne balance (résidus +10,00 / −10,00)",
+    "travail_courant": "périmé : révision requise ; le dossier de clôture signale la source remplacée"
+  },
   "P_parcours_reel": {
     "donnees": "M1",
     "apres_arret_reprise": {

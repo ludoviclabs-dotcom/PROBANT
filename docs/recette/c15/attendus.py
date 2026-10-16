@@ -2,13 +2,13 @@
 
 Aucune importation du code PROBANT : chaque valeur vient des données synthétiques
 ci-dessous, de l'arithmétique décimale exacte et des règles citées (rapport du
-12/10/2026 § 6 et § 11, CGI art. 219 I, PCG art. 214-13 et 214-15 pour la logique
-de base amortissable et de valeur actuelle). Les montants sont en euros, en Decimal.
+12/10/2026 § 6 et § 11, CGI art. 219 I cité par ce rapport). Les montants sont en euros, en Decimal.
 
 Exécution : python -I docs/recette/c15/attendus.py  → écrit attendus.json à côté.
 """
 from decimal import Decimal as D, ROUND_HALF_UP
 import json
+import sys
 import pathlib
 
 OUT = pathlib.Path(__file__).with_name("attendus.json")
@@ -117,6 +117,17 @@ cases["M11_populations"] = {
 # M12 — Source remplacée après verrouillage.
 cases["M12_invalidation"] = {"ancienne_version": "consultable avec ses sources", "travail_courant": "périmé", "export": "identifie la version (id, numéro, empreintes des sources)"}
 
+# M12 bis — parcours réel : balance âgée remplacée après verrouillage (C1 90,00 → 85,00).
+aged_v2 = {"C1": D("85.00"), "C2": D("-10.00")}
+res_v2 = {k: aux[k] - aged_v2[k] for k in aux}
+cases["M12_bis_balance_agee_remplacee"] = {
+    "residus_par_cle_nouvelle_source": {k: eur(v) for k, v in res_v2.items()},
+    "residus_bruts_nouvelle_source": eur(sum(abs(v) for v in res_v2.values())),
+    "ecart_auxiliaire_agee_global_nouvelle_source": eur(sum(aux.values()) - sum(aged_v2.values())),
+    "version_verrouillee": "inchangée, lisible et exportable avec l'ancienne balance (résidus +10,00 / −10,00)",
+    "travail_courant": "périmé : révision requise ; le dossier de clôture signale la source remplacée",
+}
+
 # Parcours réel (Clients, profil personnel) : mêmes données que M1, mêmes attendus, plus la reprise.
 cases["P_parcours_reel"] = {
     "donnees": "M1",
@@ -124,5 +135,6 @@ cases["P_parcours_reel"] = {
 }
 
 OUT.write_text(json.dumps(cases, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+sys.stdout.reconfigure(encoding="utf-8")
 for name, value in cases.items():
     print(name, json.dumps(value, ensure_ascii=False))
