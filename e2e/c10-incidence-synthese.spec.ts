@@ -47,6 +47,8 @@ async function lockedSheet(h: FiscalHarness) {
   return h.ok({ command: "lock", id: run.id, expectedVersion: run.version }, "reviewer");
 }
 async function check(page: Page, width: number, info: TestInfo, name: string) {
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   const state = await page.evaluate(() => ({ viewport: innerWidth, scrollWidth: document.documentElement.scrollWidth }));
   expect(state.scrollWidth, name).toBeLessThanOrEqual(width);
   await page.addScriptTag({ path: path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js") });

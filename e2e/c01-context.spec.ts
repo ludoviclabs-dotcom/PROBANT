@@ -21,6 +21,8 @@ async function record(page: Page, info: TestInfo, name: string) {
   const timer = setTimeout(() => { void writeFile(`${output}/${name}-pending.json`, JSON.stringify({ observedAt: new Date().toISOString(), url: page.url(), pending: [...(pendingRequests.get(page)?.values() ?? [])] }, null, 2)); }, 5000);
   try { await page.waitForLoadState("networkidle"); } finally { clearTimeout(timer); }
   await page.evaluate(() => document.fonts.ready);
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   await page.addScriptTag({ path: path.join(process.cwd(), "node_modules/axe-core/axe.min.js") });
   const state = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run(c: unknown, o: unknown): Promise<{ violations: { id: string; impact: string; nodes: { target: string[]; failureSummary?: string }[] }[] }> } }).axe;

@@ -28,6 +28,8 @@ async function shot(page: Page, name: string) {
 }
 /** Zéro violation « serious » ou « critical » sur le contenu de la vue : plus strict que la baseline historique d'accessibility.spec. */
 async function strictAxe(page: Page) {
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   await page.addScriptTag({ path: AXE_PATH });
   const violations = await page.evaluate(async () => {
     const axe = (window as unknown as { axe: { run: (c: unknown, o: unknown) => Promise<{ violations: { id: string; impact: string | null; help: string; nodes: { target: string[] }[] }[] }> } }).axe;

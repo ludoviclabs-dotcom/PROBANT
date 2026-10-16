@@ -28,6 +28,8 @@ async function shotOf(page: Page, locator: ReturnType<Page["locator"]>, name: st
   await page.setViewportSize(viewport);
 }
 async function strictAxe(page: Page) {
+  // Les entrées de la Synthèse sont des fondus finis : axe doit mesurer l'état final, pas un fondu en cours.
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations !== Infinity).map((a) => a.finished.catch(() => null))));
   // axe ne juge le contraste que des nœuds visibles : la zone principale défilant dans son conteneur, on déplie tout le contenu.
   const viewport = page.viewportSize()!;
   await page.setViewportSize({ width: viewport.width, height: 8000 });
