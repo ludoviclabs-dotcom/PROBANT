@@ -63,12 +63,22 @@ async function localFixture(page: Page) {
   });
   return { f, a: navigationContext(a, contexts[0]), b: navigationContext(b, contexts[1]) };
 }
+
+/** Les lignes du registre se déplient à la demande : on ouvre d'abord tout le registre si besoin, puis la ligne du cycle. */
+async function openCycle(page: Page, label: string) {
+  // Le registre compte toujours plus de cinq cycles : le bouton attend son rendu (aucune lecture instantanée du DOM).
+  await page.getByRole("button", { name: /^Afficher les \d+ cycles$/ }).click();
+  const row = page.getByRole("button", { name: label, exact: true });
+  await row.click();
+  await expect(row).toHaveAttribute("aria-expanded", "true");
+}
 for (const width of [390, 1024, 1440]) {
   test(`C01 Synthèse → Clients → preuve → retour, sans ressaisie, ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 900 }); const f = await localFixture(page);
     await page.goto("/dashboard/synthese?" + contextParams(f.a));
-    await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible();
-    await page.getByRole("link", { name: "Ouvrir Clients et ventes", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeVisible();
+    await openCycle(page, "Clients et ventes");
+    await page.getByRole("link", { name: "Synthèse des procédures — cadrage Clients", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Revue et Synthèse Clients" })).toBeVisible();
     const url = new URL(page.url()); expect(url.searchParams.get("dossierId")).toBe(f.a.dossierId); expect(url.searchParams.get("periodId")).toBe(f.a.procedurePeriod!.id);
     await page.getByRole("button", { name: /Examiner les preuves de/ }).first().click();
@@ -78,7 +88,7 @@ for (const width of [390, 1024, 1440]) {
     await expect(page.getByText(/Examen de la version 12/)).toBeVisible();
     expect(new URL(page.url()).searchParams.get("version")).toBe("12");
     await page.getByRole("link", { name: "Retour à la Synthèse", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible(); expect(new URL(page.url()).searchParams.get("exercise")).toBe("2024");
+    await expect(page.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeVisible(); expect(new URL(page.url()).searchParams.get("exercise")).toBe("2024");
     await record(page, info, `returned-synthesis-${width}`);
   });
   test(`C01 changement d’exercice et feuille absente, ${width}px`, async ({ page }, info) => {
@@ -104,7 +114,8 @@ for (const width of [390, 1024, 1440]) {
   });
   test(`C01 Stocks et atelier historiques qualifiés, ${width}px`, async ({ page }, info) => {
     await page.setViewportSize({ width, height: 900 }); await page.goto("/dashboard/synthese");
-    await page.getByRole("link", { name: "Ouvrir Stocks", exact: true }).click();
+    await openCycle(page, "Stocks");
+    await page.getByRole("link", { name: "Feuille Stocks", exact: true }).click();
     await expect(page.getByRole("heading", { name: "Stocks", exact: true })).toBeVisible();
     await expect(page.getByText(/Aucune feuille persistante n’est rattachée/)).toBeVisible();
     // Registry 1.1.0 (C08): counted sheets are transcribed, costs declared, no depreciation nor provision is automatic.
@@ -113,7 +124,8 @@ for (const width of [390, 1024, 1440]) {
     await expect(page.getByText(/Aucune dépréciation ni provision automatique/)).toBeVisible();
     await record(page, info, `historical-stocks-${width}`);
     await page.getByRole("link", { name: "Retour à la Synthèse", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeVisible();
+    await page.locator("details#methode > summary").click();
     await page.getByText("Disponibilité et limites de l’atelier par module", { exact: true }).click();
     await expect(page.getByRole("row").filter({ hasText: "Stocks · atelier" })).toContainText("Absent de cet atelier");
     await record(page, info, `workshop-scope-${width}`);
@@ -135,12 +147,12 @@ test("C01 dossier absent ou exercice incompatible : aucun repli sur DEMO SA", as
 test("C01 recette indépendante identifiée et retour au dossier sélectionné", async ({ page }, info) => {
   await page.setViewportSize({ width: 1440, height: 900 }); const f = await localFixture(page);
   await page.goto("/dashboard/synthese?" + contextParams(f.a));
-  await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeVisible();
   await page.goto("/equity?demo=1");
   await expect(page.getByText(/Exemple synthétique, séparé des constats historiques/)).toBeVisible();
   await expect(page.getByRole("region", { name: "Contexte du dossier" })).toHaveCount(0);
   await page.getByRole("link", { name: "Synthèse du dossier", exact: true }).click();
-  await expect(page.getByRole("heading", { name: "Travaux par cycle" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Registre des cycles du dossier" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "ENTITÉ LOCALE · fixture de recette", exact: true })).toBeVisible();
   expect(f.a.dossierId).not.toBe(nextDossier);
   await record(page, info, "independent-recipe-return");

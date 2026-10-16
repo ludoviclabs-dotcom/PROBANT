@@ -44,18 +44,16 @@ test.describe("parcours dossier partiel", () => {
   test("les limitations sont visibles et chiffrées", async ({ page }) => {
     await page.goto("/dashboard/synthese");
 
-    const limitations = page.getByRole("region", { name: "Limites de l'analyse" });
+    const limitations = page.getByRole("region", { name: /Limites de l.analyse/ });
     await limitations.scrollIntoViewIfNeeded();
     await expect(limitations).toBeVisible();
 
-    // Le libellé porte le nombre de limitations : une section vide serait un
-    // faux signal de complétude. `text-transform: uppercase` fait partie du
-    // rendu lu par `innerText`, d'où la comparaison insensible à la casse.
-    await expect(limitations.getByText(/Limites de l'analyse · \d+/iu)).toBeVisible();
-    const count = Number(
-      (await limitations.innerText()).match(/Limites de l'analyse · (\d+)/iu)?.[1] ?? "0",
-    );
+    // Le sous-titre porte le nombre de limites : une section vide serait un faux signal de complétude.
+    await expect(limitations.getByText(/\d+ limites? · toujours affichées?/iu)).toBeVisible();
+    const count = Number((await limitations.innerText()).match(/(\d+) limites? · toujours affichées?/iu)?.[1] ?? "0");
     expect(count, "un dossier partiel doit déclarer au moins une limitation").toBeGreaterThan(0);
+    // Chaque limite est numérotée et listée : le compte annoncé est le compte affiché.
+    expect(await limitations.getByRole("listitem").count()).toBe(count);
   });
 
   test("la couverture partielle est affichée telle quelle", async ({ page }) => {
@@ -81,10 +79,15 @@ test.describe("parcours dossier partiel", () => {
 
   test("la note de synthèse n'affirme rien au-delà de la couverture", async ({ page }) => {
     await page.goto("/dashboard/synthese");
-    await page.getByRole("button", { name: /Générer la note de synthèse/iu }).click();
-    const body = await page.locator("body").innerText();
+    // La note est un fichier Markdown téléchargé : on lit son contenu, pas la page.
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: /Télécharger la note de synthèse/iu }).click();
+    const download = await downloadPromise;
+    const { readFile } = await import("node:fs/promises");
+    const note = await readFile((await download.path())!, "utf8");
+    expect(note.length, "la note ne doit pas être vide").toBeGreaterThan(200);
     for (const pattern of CONCLUSIONS_EXCESSIVES) {
-      expect(body, `la note formule une conclusion excessive : ${pattern}`).not.toMatch(pattern);
+      expect(note, `la note formule une conclusion excessive : ${pattern}`).not.toMatch(pattern);
     }
   });
 });

@@ -40,10 +40,10 @@ import type {
   Verdict,
 } from "./types";
 
-/** 2.0.0 (C05, second passage) : `exposure.byCloison` retiré ; `EffectStage` (pont), membres (poste, cloison) et groupes (étape de revue) enrichis. */
-export const SYNTHESIS_SCHEMA_VERSION = "2.0.0";
-export const SYNTHESIS_ENGINE_VERSION = "1.2.0";
-export const SYNTHESIS_POLICY_VERSION = "2.1.0";
+import { SYNTHESIS_ENGINE_VERSION, SYNTHESIS_POLICY_VERSION, SYNTHESIS_SCHEMA_VERSION } from "./versions";
+
+/** Les versions sont définies dans `versions.ts` (affichables sans embarquer le moteur) ; ré-exportées ici, inchangées. */
+export { SYNTHESIS_ENGINE_VERSION, SYNTHESIS_POLICY_VERSION, SYNTHESIS_SCHEMA_VERSION };
 
 /**
  * Seuils de la politique de couverture. Bornes exactes documentées :

@@ -58,10 +58,16 @@ export function ActiveDossierProvider({
   children,
   storage,
   routeContext,
+  loading,
+  failure,
 }: {
   children: ReactNode;
   storage?: SessionStoragePort;
   routeContext?: DossierContext | null;
+  /** Rendu pendant la résolution du dossier ; par défaut, le texte brut d'origine. */
+  loading?: ReactNode;
+  /** Rendu quand le dossier ne se résout pas (lien incompatible, stockage indisponible) ; reçoit le message d'erreur. */
+  failure?: (message: string) => ReactNode;
 }) {
   const searchParams = useSearchParams();
   const routeKey = dossierResolutionKey(new URLSearchParams(searchParams?.toString() ?? ""));
@@ -168,7 +174,8 @@ export function ActiveDossierProvider({
     publish({ context: before.context, snapshot: next });
   }), [service, publish]);
 
-  if (resolvedRoute !== routeKey) return <p role="status" className="p-6">Lecture du dossier sélectionné…</p>;
+  if (resolvedRoute !== routeKey) return loading ?? <p role="status" className="p-6">Lecture du dossier sélectionné…</p>;
+  if (resolutionError && failure) return failure(resolutionError);
   if (resolutionError) return <main className="p-6"><h1>Dossier indisponible</h1><p role="alert">{resolutionError}</p><a className="underline" href="/dashboard/dossier">Choisir un dossier disponible</a></main>;
 
   return (

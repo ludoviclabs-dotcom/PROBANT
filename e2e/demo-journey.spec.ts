@@ -55,8 +55,10 @@ test.describe("parcours DEMO", () => {
 
     // — décision ————————————————————————————————————————————
     await page.goto("/dashboard/synthese");
-    // Le panneau de revue est replié par défaut : il faut l'ouvrir, comme un
-    // utilisateur le ferait.
+    await expect(page.getByRole("heading", { name: "Synthèse", level: 1 })).toBeVisible();
+    // Le journal de revue vit dans « Méthode », repliée par défaut : il faut l'ouvrir, comme un utilisateur le ferait.
+    const methode = page.locator("details#methode");
+    await methode.locator("summary").first().click();
     const reviewPanel = page.getByText(/Revue append-only · \d+ événement/u);
     await reviewPanel.scrollIntoViewIfNeeded();
     await reviewPanel.click();
@@ -64,7 +66,7 @@ test.describe("parcours DEMO", () => {
     const decisionButton = page.getByRole("button", { name: "Enregistrer la décision" });
     await expect(decisionButton).toBeVisible();
 
-    const findingSelect = page.locator("select").first();
+    const findingSelect = reviewPanel.locator("xpath=ancestor::details[1]").locator("select").first();
     await expect(findingSelect).toBeEnabled();
     expect(await findingSelect.locator("option").count()).toBeGreaterThan(0);
 
@@ -74,12 +76,17 @@ test.describe("parcours DEMO", () => {
     await expect(page.getByText(/demo|démonstration|persist|non enregistr/iu).first()).toBeVisible();
 
     // — note ——————————————————————————————————————————————
-    const noteButton = page.getByRole("button", { name: /Générer la note de synthèse/iu });
+    // La note est un fichier Markdown téléchargé : elle ne s'affiche pas dans la page.
+    const noteButton = page.getByRole("button", { name: /Télécharger la note de synthèse/iu });
     await noteButton.scrollIntoViewIfNeeded();
+    const notePromise = page.waitForEvent("download");
     await noteButton.click();
-    await expect(page.getByText(/constat|dossier|couverture/iu).first()).toBeVisible();
+    const note = await notePromise;
+    expect(note.suggestedFilename()).toMatch(/^note-synthese-.*\.md$/u);
 
     // — export ————————————————————————————————————————————
+    // Les exports s'ouvrent depuis « Exporter le dossier de preuve ».
+    await page.getByRole("button", { name: "Exporter le dossier de preuve" }).click();
     const exportToolbar = page.getByRole("region", { name: "Exports du dossier de preuve" });
     await exportToolbar.scrollIntoViewIfNeeded();
     const downloadPromise = page.waitForEvent("download");
@@ -88,18 +95,24 @@ test.describe("parcours DEMO", () => {
     expect(download.suggestedFilename()).toMatch(/\.json$/u);
   });
 
-  test("le garde-fou d'admissibilité masque l'analyse au lieu de conclure", async ({ page }) => {
+  test("le garde-fou d'admissibilité est énoncé en tête et dans les limites, sans conclure", async ({ page }) => {
     await page.goto("/dashboard/synthese");
-    // Le dossier de démonstration porte une alerte bloquante : la page doit
-    // le dire explicitement et ne présenter aucun journal d'analyse.
-    await expect(page.getByText(/Dossier non admissible/iu).first()).toBeVisible();
-    await expect(page.getByRole("region", { name: "Journal des constats" })).toHaveCount(0);
+    // Le dossier de démonstration porte une alerte bloquante : la page le dit avant tout chiffre, et la liste des
+    // limites rappelle que l'exploitation chronologique du fichier est suspendue.
+    const decision = page.getByRole("region", { name: "Décision" });
+    await expect(decision.getByText(/dossier non admissible/iu).first()).toBeVisible();
+    await expect(decision).toContainText(/aucune analyse financière ne peut être présentée comme fiable/iu);
+    const limits = page.getByRole("region", { name: /Limites de l.analyse/ });
+    await expect(limits).toContainText(/Admissibilité rejetée/);
+    await expect(limits).toContainText(/exploitation chronologique du fichier est suspendue/);
+    // Le journal détaillé reste un accordéon replié : rien n'est ouvert d'office.
+    await expect(page.getByRole("button", { name: /Journal des constats/ })).toHaveAttribute("aria-expanded", "false");
   });
 
   test("aucun bouton factice : chaque bouton visible porte un nom accessible", async ({ page }) => {
     await page.goto("/dashboard/synthese");
-    // La Synthèse sert un squelette avant l’hydratation : on compte une fois la vue rendue.
-    await expect(page.getByRole("button", { name: "Générer la note de synthèse" })).toBeVisible();
+    // La Synthèse sert un écran de lecture avant l’hydratation : on compte une fois la vue rendue.
+    await expect(page.getByRole("button", { name: /Télécharger la note de synthèse/ })).toBeVisible();
     const buttons = page.getByRole("button");
     const count = await buttons.count();
     expect(count).toBeGreaterThan(0);

@@ -224,9 +224,8 @@ function simulateSankeyHover(): (() => void) | void {
     ),
   );
   if (paths.length === 0) return;
-  const widest = paths.reduce((a, b) =>
-    Number(a.getAttribute("stroke-width") ?? 0) >= Number(b.getAttribute("stroke-width") ?? 0) ? a : b,
-  );
+  // Les flux sont des bandes remplies : l'épaisseur est la hauteur rendue de la bande.
+  const widest = paths.reduce((a, b) => (a.getBoundingClientRect().height >= b.getBoundingClientRect().height ? a : b));
   const r = widest.getBoundingClientRect();
   const at = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 };
   widest.dispatchEvent(new MouseEvent("mouseover", at));
@@ -371,7 +370,7 @@ export const TOUR_STEPS: TourStep[] = [
     callout: {
       title: "Constats du dossier",
       value: COUNTS_LINE,
-      note: "cliquer un flux filtre le journal",
+      note: "cliquer un flux filtre toute l'analyse",
       countUp: true,
     },
   },

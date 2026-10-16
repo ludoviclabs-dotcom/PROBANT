@@ -1,0 +1,9 @@
+/**
+ * Versions du moteur de Synthèse, isolées pour que le châssis du tableau de bord et la landing les affichent
+ * sans embarquer tout le moteur. `engine.ts` les ré-exporte : une seule définition, aucun changement de valeur.
+ */
+
+/** 2.0.0 (C05, second passage) : `exposure.byCloison` retiré ; `EffectStage` (pont), membres (poste, cloison) et groupes (étape de revue) enrichis. */
+export const SYNTHESIS_SCHEMA_VERSION = "2.0.0";
+export const SYNTHESIS_ENGINE_VERSION = "1.2.0";
+export const SYNTHESIS_POLICY_VERSION = "2.1.0";

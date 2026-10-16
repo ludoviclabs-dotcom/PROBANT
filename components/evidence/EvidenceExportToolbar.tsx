@@ -8,6 +8,7 @@ import {
 } from "@/lib/evidence/package";
 import type { EvidenceExportPackage } from "@/lib/evidence/types";
 import type { SynthesisSnapshot } from "@/lib/synthesis";
+import s from "./evidence.module.css";
 
 const APPLICATION_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
 
@@ -23,17 +24,11 @@ function download(content: string | Uint8Array, mediaType: string, fileName: str
   URL.revokeObjectURL(url);
 }
 
-const buttonStyle = {
-  border: "1px solid #324563",
-  borderRadius: 9,
-  background: "#0f1419",
-  color: "#e6edf6",
-  padding: "9px 12px",
-  fontSize: 12,
-  fontWeight: 600,
-  cursor: "pointer",
-} as const;
-
+/**
+ * Exports du dossier de preuve : JSON canonique, CSV, HTML accessible, PDF, manifeste, vérification des empreintes.
+ * Le paquet est construit une fois par snapshot et réutilisé. Ouvert depuis « Exporter le dossier de preuve »
+ * (Synthèse) ; le rendu suit la charte (boutons à bord fin, aucune carte).
+ */
 export function EvidenceExportToolbar({ synthesis }: { synthesis: SynthesisSnapshot }) {
   const { context, snapshot, resetToDemo } = useActiveDossier();
   const [busy, setBusy] = useState(false);
@@ -76,30 +71,27 @@ export function EvidenceExportToolbar({ synthesis }: { synthesis: SynthesisSnaps
   );
 
   return (
-    <section
-      aria-label="Exports du dossier de preuve"
-      style={{ border: "1px solid #1c2430", borderRadius: 12, padding: 12, background: "#0b0e13", marginBottom: 16 }}
-    >
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => download(pack.canonicalJson, "application/json;charset=utf-8", artifactName(pack, "canonical_json")))}>Exporter JSON</button>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => {
+    <section id="exports-preuve" aria-label="Exports du dossier de preuve" className={s.exports}>
+      <div className={s.exportRow}>
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => download(pack.canonicalJson, "application/json;charset=utf-8", artifactName(pack, "canonical_json")))}>Exporter JSON</button>
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => {
           download(pack.csv.findings, "text/csv;charset=utf-8", artifactName(pack, "findings_csv"));
           download(pack.csv.reviewEvents, "text/csv;charset=utf-8", artifactName(pack, "review_events_csv"));
           download(pack.csv.controls, "text/csv;charset=utf-8", artifactName(pack, "controls_csv"));
           download(pack.csv.sources, "text/csv;charset=utf-8", artifactName(pack, "sources_csv"));
         })}>Exporter CSV</button>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => download(pack.html, "text/html;charset=utf-8", artifactName(pack, "accessible_html")))}>Exporter HTML</button>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => download(pack.pdf, "application/pdf", artifactName(pack, "pdf")))}>Exporter PDF</button>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => download(pack.manifestJson, "application/json;charset=utf-8", `manifest-${synthesis.snapshotHash.slice(0, 12)}.json`))}>Télécharger manifeste</button>
-        <button type="button" disabled={busy} style={buttonStyle} onClick={() => void run((pack) => {
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => download(pack.html, "text/html;charset=utf-8", artifactName(pack, "accessible_html")))}>Exporter HTML</button>
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => download(pack.pdf, "application/pdf", artifactName(pack, "pdf")))}>Exporter PDF</button>
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => download(pack.manifestJson, "application/json;charset=utf-8", `manifest-${synthesis.snapshotHash.slice(0, 12)}.json`))}>Télécharger manifeste</button>
+        <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void run((pack) => {
           const errors = verifyEvidenceExportPackage(pack);
           setMessage(errors.length === 0 ? `Hashes vérifiés · ${pack.manifest.artifacts.length} artefacts` : `Échec : ${errors.join(", ")}`);
         })}>Vérifier hash</button>
         {snapshot.sourceKind === "demo" && (
-          <button type="button" disabled={busy} style={buttonStyle} onClick={() => void resetToDemo().then(() => setMessage("Démonstration réinitialisée."))}>Réinitialiser DEMO</button>
+          <button type="button" disabled={busy} className={s.exportBtn} onClick={() => void resetToDemo().then(() => setMessage("Démonstration réinitialisée."))}>Réinitialiser DEMO</button>
         )}
       </div>
-      <p role="status" aria-live="polite" style={{ minHeight: 18, margin: "8px 0 0", color: message.startsWith("Échec") ? "#f87171" : "#8a99af", fontSize: 11.5 }}>
+      <p role="status" aria-live="polite" className={s.exportStatus} data-error={message.startsWith("Échec") ? "" : undefined}>
         {busy ? "Génération du paquet de preuve…" : message || "PDF standard dérivé du HTML accessible; statut d'archivage non validé."}
       </p>
     </section>

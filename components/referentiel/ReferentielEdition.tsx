@@ -13,10 +13,13 @@ import { cn } from "@/lib/utils";
 export function ReferentielEdition({
   identifiant,
   align = "left",
+  placement = "below",
   className,
 }: {
   identifiant: string;
   align?: "left" | "right";
+  /** `above` ouvre le panneau vers le haut (pied du rail du tableau de bord). */
+  placement?: "below" | "above";
   className?: string;
 }) {
   const d = decrireReferentiel(identifiant);
@@ -63,7 +66,8 @@ export function ReferentielEdition({
       <div
         ref={panel}
         className={cn(
-          "absolute top-full z-50 mt-1.5 w-[min(20rem,calc(100vw-2rem))] whitespace-normal rounded-md border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] p-3 text-left text-[11px] font-normal normal-case leading-relaxed tracking-normal text-[var(--pb-text-muted)] shadow-lg",
+          "absolute z-50 w-[min(20rem,calc(100vw-2rem))] whitespace-normal rounded-md border border-[var(--pb-border-strong)] bg-[var(--pb-surface)] p-3 text-left text-[11px] font-normal normal-case leading-relaxed tracking-normal text-[var(--pb-text-muted)] shadow-lg",
+          placement === "above" ? "bottom-full mb-1.5" : "top-full mt-1.5",
           align === "right" ? "right-0" : "left-0",
         )}
       >

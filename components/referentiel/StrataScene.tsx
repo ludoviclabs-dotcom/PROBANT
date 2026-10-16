@@ -63,7 +63,9 @@ export function StrataScene({
         animation: "rfRise .45s ease-out .28s both",
       }}
     >
-      <div style={{ flex: "2 1 380px", minWidth: 0 }}>
+      {/* Base 540 px = colonne des millésimes (136) + dalle (380) + marge : en dessous, la scène passe sous le volet
+          au lieu de se faire recouvrir par la dalle (relevé à 1024 px avec le rail de 184 px). */}
+      <div style={{ flex: "2 1 540px", minWidth: 0 }}>
         <div style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "4px 10px" }}>
           <h3
             style={{
