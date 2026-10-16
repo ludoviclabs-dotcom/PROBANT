@@ -1,0 +1,265 @@
+{
+  "executedAt": "2026-10-16T07:33:13.105Z",
+  "profile": "C:\\Users\\Ludo\\AppData\\Local\\PROBANT\\recette-c15",
+  "restoredTo": "C:\\Users\\Ludo\\AppData\\Local\\PROBANT\\recette-c15-restauration",
+  "backup": "C:\\Users\\Ludo\\AppData\\Local\\PROBANT\\recette-c15\\sauvegardes\\20261016-093017-recette-c07",
+  "node": "v24.14.0",
+  "checks": [
+    {
+      "id": "C07-LOGIN",
+      "label": "connexion locale par code à usage unique ; le même lien rejoué est refusé",
+      "status": "PASS",
+      "detail": "{\"reviewKind\":\"personal\",\"displayName\":\"Camille Recette\",\"replay\":401}"
+    },
+    {
+      "id": "C07-PROFILE",
+      "label": "profil personnel : toutes les chaînes ouvertes, base personnelle, 24 migrations du dépôt",
+      "status": "PASS",
+      "detail": "{\"executionProfile\":\"personal_local\",\"profileId\":\"7ea2b41c-623c-4bb7-92f3-fe16d0b72248\",\"restoredFrom\":null,\"database\":{\"name\":\"probant_personnel\",\"serverVersion\":\"17.11\",\"migrationsApplied\":24,\"lastMigration\":\"0021_loans_review.up.sql\"},\"chains\":[{\"flag\":\"PROBANT_CLIENTS_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_PAYABLES_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_EQUITY_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_INVESTMENT_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_EXCEPTIONAL_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_CASH_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_FIXED_ASSETS_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_CAPITAUX_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_FISCAL_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_STOCKS_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_PROVISIONS_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_CLOSING_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_PAYROLL_DURABLE\",\"enabled\":true},{\"flag\":\"PROBANT_LOANS_DURABLE\",\"enabled\":true}],\"ingestion\":{\"recovery\":\"active\",\"pendingJobs\":0}}"
+    },
+    {
+      "id": "C07-DOSSIER-DOUBLE",
+      "label": "double envoi de création du dossier : un seul dossier",
+      "status": "PASS",
+      "detail": "{\"d1\":201,\"d2\":200}"
+    },
+    {
+      "id": "C07-IMPORT",
+      "label": "cinq pièces importées et approuvées ; empreinte serveur = empreinte du fichier",
+      "status": "PASS",
+      "detail": "{\"cash_ledger\":{\"documentId\":\"source-3407b55ae382ef2fbce82e1ada45ae856a0fb2e42b7c7cc13c5cba3df86637ad\",\"sha256\":\"a82e4b0cc7df40865c7ec8745766f2a2d9f9e61d0ce86bfd301375f32d3a92cd\"},\"cash_statement\":{\"documentId\":\"source-a164b4c988ab0e20b02f83a76d365638645a3046fdfa4f5ab1dcd2910eb080c0\",\"sha256\":\"9c993133fae5bf95006af752b795cd0b2a53c63b9f2f818e8ff8a607b9e331cb\"},\"cash_erb\":{\"documentId\":\"source-8aca37441f5bd4f3f3112a64245540b822edb1d3d675a8108a16147bf4b42e9f\",\"sha256\":\"62b0650333482343f7a1437d95a5df5a24edd59d7b5c8e0e84c6dd84cf2f5eae\"},\"cash_settlements\":{\"documentId\":\"source-52ebc49f175176f984d5642f5f976ada422773bf0a7396cc5c1e980a4bd2159a\",\"sha256\":\"a8ce7da8a81f9dc0ced363b142c9b22b53d7b40dad61da4eee5de3ff54d9063b\"},\"cash_support\":{\"documentId\":\"source-2816af2bbbd94993f79cdccd91de21d179aa98521de47ff8ad6539b4dabf94c0\",\"sha256\":\"93da5cd229a6874f682f19b61099c6dea14156a9521d0f8dadfb083da5e096cc\"}}"
+    },
+    {
+      "id": "C07-FREEZE",
+      "label": "population figée : 1 compte retenu, 3 exclus avec motif",
+      "status": "PASS",
+      "detail": "[\"503000 — VMP : procédure distincte (titres), non couverte par le pont bancaire.\",\"512200 — Devise du compte non gérée (USD) : aucune conversion implicite ; pont non calculé.\",\"530000 — Caisse : procédure distincte, non couverte par le pont bancaire.\"]"
+    },
+    {
+      "id": "C07-EXECUTE",
+      "label": "pont 90,00 + 15,00 − 5,00 = 100,00, écart 0,00 ; R1 apurée, P1 ouverte",
+      "status": "PASS",
+      "detail": "{\"bridge\":{\"ledger\":{\"amount\":{\"amount\":\"100.00\",\"currency\":\"EUR\"},\"proofId\":\"proof-955aa9f8973e099d618c99c338f3863f734fcd354a8bd50cac8f99c757cccb9a\"},\"status\":\"computed\",\"erbBank\":{\"amount\":{\"amount\":\"90.00\",\"currency\":\"EUR\"},\"proofId\":\"proof-9fb052f2f9778b72e6490c8b28ab40d64f484cfebedab380b512a7ad0fadffc7\"},\"erbBook\":{\"amount\":{\"amount\":\"100.00\",\"currency\":\"EUR\"},\"proofId\":\"proof-01d4228814c27af9d98c2c1ee2c992d86fc44d9487be99bc02f943cafea9318d\"},\"movement\":{\"amount\":\"10.00\",\"currency\":\"EUR\"},\"inputHash\":\"4021c00c42fd8d471b4db9b078a5b91930050d41477861dfaab562aa07afb0b7\",\"statement\":{\"amount\":{\"amount\":\"90.00\",\"currency\":\"EUR\"},\"proofId\":\"proof-aa9755f8cc85ebe3265d193e858e167eccf7f324338d8836250bf0346d1486c0\"},\"difference\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"otherItems\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"reconstructed\":{\"amount\":\"100.00\",\"currency\":\"EUR\"},\"grossUnexplained\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"unexplainedCount\":0,\"differenceMeaning\":\"Comptabilité de référence moins (relevé bancaire + éléments normalisés) ; positif = référence supérieure au pont.\",\"receiptsInTransit\":{\"amount\":\"15.00\",\"currency\":\"EUR\"},\"outstandingPayments\":{\"amount\":\"-5.00\",\"currency\":\"EUR\"},\"bankSourceDifference\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"bookSourceDifference\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"erbArithmeticDifference\":{\"amount\":\"0.00\",\"currency\":\"EUR\"}},\"items\":[{\"date\":\"2024-12-30\",\"kind\":\"receipt_in_transit\",\"amount\":{\"amount\":\"15.00\",\"currency\":\"EUR\"},\"itemId\":\"R1\",\"status\":\"cleared\",\"ageDays\":1,\"evidence\":[{\"id\":\"proof-3293f68114f7486e1b9b4bdb200fcfda45ba00addff65ca4899505e7c0dab815\",\"rowId\":\"row-bb0b8d1069fd6f6264a3af80a9b6abdb08a158a41210ac6d2899d91b1f581a1d\",\"scope\":{\"mode\":\"real\",\"periodId\":\"period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda\",\"dossierId\":\"472a8a90-8cb6-4c6b-8d7e-67ba73e9dbfa\",\"organizationId\":\"1e452f37-c6ed-43c8-98b4-6edb16231dc3\"},\"status\":\"verified\",\"locator\":{\"row\":4},\"purpose\":\"Suspens de l’ERB à la clôture\",\"precision\":\"row\",\"procedureId\":\"workpaper-de092b8292a2399456595663ba4745e31d6736c7a9aa7ba3936995e90c31533a\",\"documentVersionId\":\"source-8aca37441f5bd4f3f3112a64245540b822edb1d3d675a8108a16147bf4b42e9f\"}],\"pieceRef\":\"BRD-1230\",\"warnings\":[],\"explained\":true,\"correction\":null,\"allocations\":[{\"id\":\"A-R1-S1\",\"amount\":{\"amount\":\"15.00\",\"currency\":\"EUR\"},\"itemId\":\"R1\",\"authorId\":\"proprietaire-local\",\"evidence\":[{\"id\":\"proof-9812fde6dfc6d8e4baf24dde193758b9b76e487fb43193c68ce01d0c784ab35b\",\"rowId\":\"row-761b4147e303bf6b0325fd2838d71368bdbaa598c0fa189bbb718c1a1b23a267\",\"scope\":{\"mode\":\"real\",\"periodId\":\"period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda\",\"dossierId\":\"472a8a90-8cb6-4c6b-8d7e-67ba73e9dbfa\",\"organizationId\":\"1e452f37-c6ed-43c8-98b4-6edb16231dc3\"},\"status\":\"verified\",\"locator\":{\"row\":2},\"purpose\":\"Mouvement du relevé postérieur à la clôture\",\"precision\":\"row\",\"procedureId\":\"workpaper-de092b8292a2399456595663ba4745e31d6736c7a9aa7ba3936995e90c31533a\",\"documentVersionId\":\"source-52ebc49f175176f984d5642f5f976ada422773bf0a7396cc5c1e980a4bd2159a\"}],\"effective\":true,\"authoredAt\":\"2026-10-16T07:30:05.000Z\",\"settlementId\":\"S1\",\"settlementDate\":\"2025-01-03\"}],\"explanation\":\"Remise de chèques du 30/12 non créditée\",\"statusLabel\":\"Apuré\",\"settledAmount\":{\"amount\":\"15.00\",\"currency\":\"EUR\"},\"statusMeaning\":\"Montant intégralement retrouvé sur un relevé postérieur de la fenêtre documentée, par allocation validée. Le solde à la clôture reste inchangé.\",\"exclusionReason\":null,\"remainingAmount\":{\"amount\":\"0.00\",\"currency\":\"EUR\"}},{\"date\":\"2024-12-28\",\"kind\":\"outstanding_payment\",\"amount\":{\"amount\":\"-5.00\",\"currency\":\"EUR\"},\"itemId\":\"P1\",\"status\":\"open\",\"ageDays\":3,\"evidence\":[{\"id\":\"proof-e8d4ccd82e9ce5a83f97965686460653de34f7efe3d8ec03ed65a19de09b4658\",\"rowId\":\"row-5043f097f6eab6fc74bb32f7e37adfb68c5c5026a0600765e07d62d902a7b067\",\"scope\":{\"mode\":\"real\",\"periodId\":\"period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda\",\"dossierId\":\"472a8a90-8cb6-4c6b-8d7e-67ba73e9dbfa\",\"organizationId\":\"1e452f37-c6ed-43c8-98b4-6edb16231dc3\"},\"status\":\"verified\",\"locator\":{\"row\":5},\"purpose\":\"Suspens de l’ERB à la clôture\",\"precision\":\"row\",\"procedureId\":\"workpaper-de092b8292a2399456595663ba4745e31d6736c7a9aa7ba3936995e90c31533a\",\"documentVersionId\":\"source-8aca37441f5bd4f3f3112a64245540b822edb1d3d675a8108a16147bf4b42e9f\"}],\"pieceRef\":\"CHQ-1045\",\"warnings\":[],\"explained\":true,\"correction\":null,\"allocations\":[],\"explanation\":\"Chèque 1045 émis non débité\",\"statusLabel\":\"Ouvert\",\"settledAmount\":{\"amount\":\"0.00\",\"currency\":\"EUR\"},\"statusMeaning\":\"Suspens expliqué par l’ERB mais non retrouvé dans la fenêtre documentée ; ni erreur ni régularité démontrée.\",\"exclusionReason\":null,\"remainingAmount\":{\"amount\":\"5.00\",\"currency\":\"EUR\"}}]}"
+    },
+    {
+      "id": "C07-DOUBLE",
+      "label": "double commande (même clé d'idempotence, envois simultanés) : une seule version créée, réponse rejouée ou conflit explicite",
+      "status": "PASS",
+      "detail": "{\"statuses\":[200,200],\"versionAvant\":12,\"versionApres\":13,\"bodies\":[\"run\",\"run\"]}"
+    },
+    {
+      "id": "C07-REPLAY",
+      "label": "rejeu séquentiel de la même clé : même réponse, aucune version supplémentaire",
+      "status": "PASS",
+      "detail": "{\"status\":200,\"version\":13}"
+    },
+    {
+      "id": "C07-KEY-REUSE",
+      "label": "même clé pour un autre contenu : refus 409 IDEMPOTENCY_KEY_REUSED",
+      "status": "PASS",
+      "detail": "{\"error\":\"IDEMPOTENCY_KEY_REUSED\"}"
+    },
+    {
+      "id": "C07-TABS",
+      "label": "conflit entre onglets : 409 avec la version serveur, la saisie de B conservée, celle de A non écrite",
+      "status": "PASS",
+      "detail": "{\"status\":409,\"error\":\"STALE_WORKPAPER_VERSION\",\"expectedVersion\":13,\"current\":14}"
+    },
+    {
+      "id": "C07-REVIEW",
+      "label": "relecture personnelle nommée enregistrée comme telle",
+      "status": "PASS",
+      "detail": "{\"actorId\":\"proprietaire-local\",\"snapshotHash\":\"c874e11a56be1f5f16ecf4e6907dd03561183419186b04725c80b07e07fc53ef\",\"note\":\"Relecture personnelle du pont, des suspens et des pièces citées.\",\"at\":\"2026-10-16T07:30:05.000Z\",\"version\":18,\"kind\":\"personal\",\"reviewerName\":\"Camille Recette\"}"
+    },
+    {
+      "id": "C07-LOCK",
+      "label": "version verrouillée",
+      "status": "PASS",
+      "detail": "{\"version\":19,\"state\":\"locked\"}"
+    },
+    {
+      "id": "C07-EXPORT",
+      "label": "export approuvé de la version verrouillée (json, html, pdf, manifeste)",
+      "status": "PASS",
+      "detail": "{\"json\":{\"bytes\":159766,\"sha256\":\"130d8cba85264079ec6361a79a26cddaa20c842fa0020bef511fd3dd7ebc4327\"},\"html\":{\"bytes\":30963,\"sha256\":\"bc42983ac4f6fe75ef1d871ccab5f3ac9eb15407e8936ecabe9616e81151163f\"},\"pdf\":{\"bytes\":29983,\"sha256\":\"2247773eaacaeff67a41fc50b24502057c03fcb315be00d17ca430f9710c08b8\"},\"manifest\":{\"bytes\":7086,\"sha256\":\"2310e046260fa17d861bf92a79e14c0382a65d36fe54e7b512c6edcf3f53b95a\"}}"
+    },
+    {
+      "id": "C07-PIECE",
+      "label": "pièce téléchargée = octets originaux",
+      "status": "PASS",
+      "detail": "{\"status\":200,\"sha256\":\"a82e4b0cc7df40865c7ec8745766f2a2d9f9e61d0ce86bfd301375f32d3a92cd\"}"
+    },
+    {
+      "id": "C07-EXPORT-REVIEW",
+      "label": "l'export nomme la relecture personnelle",
+      "status": "PASS",
+      "detail": "Relecture personnelle nommée — Camille Recette (proprietaire-local)"
+    },
+    {
+      "id": "C07-FEC-DOUBLE",
+      "label": "double envoi de l'intention FEC (même clé) : un seul job",
+      "status": "PASS",
+      "detail": "{\"jobs\":[\"502d95ed-8735-4a2b-8d73-4a61ad401dcc\",\"502d95ed-8735-4a2b-8d73-4a61ad401dcc\"]}"
+    },
+    {
+      "id": "C07-FEC-LOCAL",
+      "label": "FEC déposé sans S3 ni SQS : pièce écrite une fois sur le PC, traitée localement, synthèse persistante",
+      "status": "PASS",
+      "detail": "{\"put\":200,\"job\":\"completed\",\"snapshot\":200,\"provider\":[\"local\"]}"
+    },
+    {
+      "id": "C07-FEC-WRITE-ONCE",
+      "label": "un second envoi vers la même autorisation ne remplace pas l'original",
+      "status": "PASS",
+      "detail": "{\"status\":422}"
+    },
+    {
+      "id": "C07-FEC-INTERRUPTED",
+      "label": "dépôt n° 2 reçu puis interrompu avant finalisation",
+      "status": "PASS",
+      "detail": "{\"put\":200,\"status\":\"uploading\"}"
+    },
+    {
+      "id": "C07-STOP",
+      "label": "arrêt : plus de Next, plus de PostgreSQL, port fermé, cluster fermé proprement",
+      "status": "PASS",
+      "detail": "{\"next\":false,\"postmaster\":false,\"port\":false,\"pgdataLock\":false}"
+    },
+    {
+      "id": "C07-RESTART",
+      "label": "relance : nouveaux processus",
+      "status": "PASS",
+      "detail": "{\"avant\":{\"nextPid\":17916,\"postmasterPid\":28312},\"apres\":{\"nextPid\":22548,\"postmasterPid\":15444}}"
+    },
+    {
+      "id": "C07-REPRISE-VERSION",
+      "label": "REPRISE : même feuille, même version verrouillée, même relecture",
+      "status": "PASS",
+      "detail": "{\"version\":19,\"state\":\"locked\",\"approval\":\"personal\"}"
+    },
+    {
+      "id": "C07-REPRISE-SOURCES",
+      "label": "REPRISE : mêmes sources courantes",
+      "status": "PASS",
+      "detail": "[[\"cash_erb\",\"import-1672f02c7cbc58920852275ff5fbd4963b394251399e6fa2fe1265a954fd9f22\"],[\"cash_ledger\",\"import-eba7917c051b8b5ef9dcb39d1c72507ea383034e77d5840d6aa3b72e9288d816\"],[\"cash_settlements\",\"import-14d64917eebbee3f28bd921ed557c184d2541022216900834b5469b6e8649545\"],[\"cash_statement\",\"import-23fecefd186731b2ef9ec62415e69634d5c2ee61353b4f1cbed76a5343811add\"],[\"cash_support\",\"import-57f3142c702b06db49c3f4d7b4a906f5fd19dca5e75fb6a3f4dc80ac26498ebd\"]]"
+    },
+    {
+      "id": "C07-REPRISE-PIECES",
+      "label": "REPRISE : les cinq pièces relues octet pour octet",
+      "status": "PASS",
+      "detail": "{\"cash_ledger\":true,\"cash_statement\":true,\"cash_erb\":true,\"cash_settlements\":true,\"cash_support\":true}"
+    },
+    {
+      "id": "C07-REPRISE-MISSION",
+      "label": "REPRISE : même empreinte de synthèse et de contenu",
+      "status": "PASS",
+      "detail": "{\"missionHash\":\"c4ccd19b6b1f83f4b88f3657ae6de5fbfaf4cdbb0a454d8c31ccb36fa6a3baa5\"}"
+    },
+    {
+      "id": "C07-REPRISE-EXPORT",
+      "label": "REPRISE : exports identiques octet pour octet",
+      "status": "PASS",
+      "detail": "{\"json\":true,\"html\":true,\"pdf\":true,\"manifest\":true}"
+    },
+    {
+      "id": "C07-REPRISE-FEC-SNAPSHOT",
+      "label": "REPRISE : même synthèse FEC persistante (empreinte et version)",
+      "status": "PASS",
+      "detail": "{\"hash\":\"3d80e622c948817c9de4fdd77c30a7fc8b5e01036634726fb18751a72890016f\"}"
+    },
+    {
+      "id": "C07-REPRISE-FEC-RESUME",
+      "label": "REPRISE : le dépôt interrompu reprend depuis l'état PostgreSQL (même job ; renvoi des mêmes octets idempotent) et produit une nouvelle synthèse",
+      "status": "PASS",
+      "detail": "{\"job\":\"completed\",\"sameJob\":true,\"rePut\":200,\"newSnapshot\":\"1.0.0+3a07303b-cf66-4ef4-bd25-6c7699f5e16d\"}"
+    },
+    {
+      "id": "C07-BACKUP",
+      "label": "sauvegarde : dump vérifié par pg_restore --list, manifeste de contenu par table",
+      "status": "FAIL",
+      "detail": "{\"tables\":76,\"cash_imports\":{\"rows\":25,\"digest\":\"1bb5f7b9343050ba80100b0740203e8d24fe8aee631bccf474769623b17e56d1\"},\"dump\":{\"file\":\"base.dump\",\"bytes\":1232938,\"sha256\":\"8cc4bfd13f89eb38e42c99e500d8ecb54d71e5c6533f80b02fb095ae019f16e3\"}}"
+    },
+    {
+      "id": "C07-RESTORE-GUARD",
+      "label": "restauration sur le profil courant refusée",
+      "status": "PASS",
+      "detail": "[probant-local] ERREUR : Restauration refusée : la cible est le profil courant ; la cible existe et n'est pas vide."
+    },
+    {
+      "id": "C07-RESTORE",
+      "label": "restauration dans un dossier distinct : toutes les tables identiques au manifeste",
+      "status": "PASS",
+      "detail": "{\"at\":\"2026-10-16T07:30:34.095Z\",\"source\":\"C:\\\\Users\\\\Ludo\\\\AppData\\\\Local\\\\PROBANT\\\\recette-c15\\\\sauvegardes\\\\20261016-093017-recette-c07\",\"sourceProfileId\":\"7ea2b41c-623c-4bb7-92f3-fe16d0b72248\",\"profileId\":\"8497330f-606c-4ea3-a99a-b5094ef49aa6\",\"tables\":76,\"pieces\":2,\"differences\":[]}"
+    },
+    {
+      "id": "C07-COURANT-APRES-RESTAURATION-VERSION",
+      "label": "COURANT-APRES-RESTAURATION : même feuille, même version verrouillée, même relecture",
+      "status": "PASS",
+      "detail": "{\"version\":19,\"state\":\"locked\",\"approval\":\"personal\"}"
+    },
+    {
+      "id": "C07-COURANT-APRES-RESTAURATION-SOURCES",
+      "label": "COURANT-APRES-RESTAURATION : mêmes sources courantes",
+      "status": "PASS",
+      "detail": "[[\"cash_erb\",\"import-1672f02c7cbc58920852275ff5fbd4963b394251399e6fa2fe1265a954fd9f22\"],[\"cash_ledger\",\"import-eba7917c051b8b5ef9dcb39d1c72507ea383034e77d5840d6aa3b72e9288d816\"],[\"cash_settlements\",\"import-14d64917eebbee3f28bd921ed557c184d2541022216900834b5469b6e8649545\"],[\"cash_statement\",\"import-23fecefd186731b2ef9ec62415e69634d5c2ee61353b4f1cbed76a5343811add\"],[\"cash_support\",\"import-57f3142c702b06db49c3f4d7b4a906f5fd19dca5e75fb6a3f4dc80ac26498ebd\"]]"
+    },
+    {
+      "id": "C07-COURANT-APRES-RESTAURATION-PIECES",
+      "label": "COURANT-APRES-RESTAURATION : les cinq pièces relues octet pour octet",
+      "status": "PASS",
+      "detail": "{\"cash_ledger\":true,\"cash_statement\":true,\"cash_erb\":true,\"cash_settlements\":true,\"cash_support\":true}"
+    },
+    {
+      "id": "C07-COURANT-APRES-RESTAURATION-MISSION",
+      "label": "COURANT-APRES-RESTAURATION : même empreinte de synthèse et de contenu",
+      "status": "PASS",
+      "detail": "{\"missionHash\":\"c4ccd19b6b1f83f4b88f3657ae6de5fbfaf4cdbb0a454d8c31ccb36fa6a3baa5\"}"
+    },
+    {
+      "id": "C07-COURANT-APRES-RESTAURATION-EXPORT",
+      "label": "COURANT-APRES-RESTAURATION : exports identiques octet pour octet",
+      "status": "PASS",
+      "detail": "{\"json\":true,\"html\":true,\"pdf\":true,\"manifest\":true}"
+    },
+    {
+      "id": "C07-RESTAURE-VERSION",
+      "label": "RESTAURE : même feuille, même version verrouillée, même relecture",
+      "status": "PASS",
+      "detail": "{\"version\":19,\"state\":\"locked\",\"approval\":\"personal\"}"
+    },
+    {
+      "id": "C07-RESTAURE-SOURCES",
+      "label": "RESTAURE : mêmes sources courantes",
+      "status": "PASS",
+      "detail": "[[\"cash_erb\",\"import-1672f02c7cbc58920852275ff5fbd4963b394251399e6fa2fe1265a954fd9f22\"],[\"cash_ledger\",\"import-eba7917c051b8b5ef9dcb39d1c72507ea383034e77d5840d6aa3b72e9288d816\"],[\"cash_settlements\",\"import-14d64917eebbee3f28bd921ed557c184d2541022216900834b5469b6e8649545\"],[\"cash_statement\",\"import-23fecefd186731b2ef9ec62415e69634d5c2ee61353b4f1cbed76a5343811add\"],[\"cash_support\",\"import-57f3142c702b06db49c3f4d7b4a906f5fd19dca5e75fb6a3f4dc80ac26498ebd\"]]"
+    },
+    {
+      "id": "C07-RESTAURE-PIECES",
+      "label": "RESTAURE : les cinq pièces relues octet pour octet",
+      "status": "PASS",
+      "detail": "{\"cash_ledger\":true,\"cash_statement\":true,\"cash_erb\":true,\"cash_settlements\":true,\"cash_support\":true}"
+    },
+    {
+      "id": "C07-RESTAURE-MISSION",
+      "label": "RESTAURE : même empreinte de synthèse et de contenu",
+      "status": "PASS",
+      "detail": "{\"missionHash\":\"c4ccd19b6b1f83f4b88f3657ae6de5fbfaf4cdbb0a454d8c31ccb36fa6a3baa5\"}"
+    },
+    {
+      "id": "C07-RESTAURE-EXPORT",
+      "label": "RESTAURE : exports identiques octet pour octet",
+      "status": "PASS",
+      "detail": "{\"json\":true,\"html\":true,\"pdf\":true,\"manifest\":true}"
+    },
+    {
+      "id": "C07-RESTORE-EXPORT",
+      "label": "le profil restauré exporte les mêmes octets que l'original",
+      "status": "PASS",
+      "detail": "{\"json\":{\"bytes\":159766,\"sha256\":\"130d8cba85264079ec6361a79a26cddaa20c842fa0020bef511fd3dd7ebc4327\"},\"html\":{\"bytes\":30963,\"sha256\":\"bc42983ac4f6fe75ef1d871ccab5f3ac9eb15407e8936ecabe9616e81151163f\"},\"pdf\":{\"bytes\":29983,\"sha256\":\"2247773eaacaeff67a41fc50b24502057c03fcb315be00d17ca430f9710c08b8\"},\"manifest\":{\"bytes\":7086,\"sha256\":\"2310e046260fa17d861bf92a79e14c0382a65d36fe54e7b512c6edcf3f53b95a\"}}"
+    }
+  ],
+  "summary": {
+    "pass": 41,
+    "fail": 1
+  }
+}

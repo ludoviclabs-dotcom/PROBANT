@@ -56,6 +56,13 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`mission-c14/RECETTE.md`](./mission-c14/RECETTE.md) | Dénominateurs calculés à la main, 8 cas demandés et cas complémentaires, corrections consignées |
 | [`mission-c14/EXCLUSIONS.md`](./mission-c14/EXCLUSIONS.md) | Bilan des exclusions caduques et encore pertinentes |
 
+## Recette finale du produit local — C15
+
+| Document | À quoi il sert |
+|---|---|
+| [`recette/c15/RAPPORT.md`](./recette/c15/RAPPORT.md) | **Rapport unique** : capacités livrées, défauts corrigés avant / après, matrice du rapport du 12/10/2026, parcours réel persistant avec arrêt et reprise, recette visuelle, contrôles, non vérifiés, limites (dont C10 absente) |
+| [`recette/c15/ATTENDUS.md`](./recette/c15/ATTENDUS.md) | Attendus posés à la main avant exécution (`attendus.py` → `attendus.json`) |
+
 ## Architecture — produit par PR-00
 
 Cartographie **vérifiée par exécution** au commit `e61ae74`, architecture cible et roadmap.

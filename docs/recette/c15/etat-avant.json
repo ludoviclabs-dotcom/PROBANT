@@ -1,0 +1,546 @@
+{
+  "capturedAt": "2026-10-16T07:17:18.552Z",
+  "dossierId": "bdddffd7-8411-4a82-aa84-d863244acc74",
+  "periodId": "period-2dddc57ab320620bd37cfead22c737a1ec442bd7696e7fae5454a9d7cc861dda",
+  "pids": {
+    "next": 10600,
+    "postgres": 19632
+  },
+  "closingManifestArtifacts": [
+    {
+      "byteLength": 11078,
+      "fileName": "probant-dossier-4a2161e81044.json",
+      "format": "canonical_json",
+      "id": "probant-dossier-4a2161e81044.json",
+      "mediaType": "application/json",
+      "sha256": "85959297153f7276ae4a8cff4adc42b156424e9fd3caf9e47c88d2113c859213"
+    },
+    {
+      "byteLength": 540,
+      "fileName": "probant-dossier-4a2161e81044-procedures.csv",
+      "format": "controls_csv",
+      "id": "probant-dossier-4a2161e81044-procedures.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "1988091959ec015728e69aff5d109df3a056bd0586617647fa6a6f0084445083"
+    },
+    {
+      "byteLength": 430,
+      "fileName": "probant-dossier-4a2161e81044-feuilles.csv",
+      "format": "sources_csv",
+      "id": "probant-dossier-4a2161e81044-feuilles.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "6fb45dbea465181989d0d3d798996d007c1c2fa883f1b712b614330e4665e974"
+    },
+    {
+      "byteLength": 79,
+      "fileName": "probant-dossier-4a2161e81044-constats.csv",
+      "format": "findings_csv",
+      "id": "probant-dossier-4a2161e81044-constats.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "41b4a1a5457524c74f0332b7cd776419b19b07d79b8b0373e80536ee7735c880"
+    },
+    {
+      "byteLength": 675,
+      "fileName": "probant-dossier-4a2161e81044-journal.csv",
+      "format": "review_events_csv",
+      "id": "probant-dossier-4a2161e81044-journal.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "7c9566e30d9d82f4565c542617654408c86870a8b79505fa6b3a53f6b1af5405"
+    },
+    {
+      "byteLength": 13821,
+      "fileName": "probant-dossier-4a2161e81044.html",
+      "format": "accessible_html",
+      "id": "probant-dossier-4a2161e81044.html",
+      "mediaType": "text/html;charset=utf-8",
+      "sha256": "0b226604ca35db2e1e6a6a4e76dde6d7ed6415dafa78a2cce350ba4e1cbe0486"
+    },
+    {
+      "byteLength": 13787,
+      "derivedFrom": "probant-dossier-4a2161e81044.html",
+      "fileName": "probant-dossier-4a2161e81044.pdf",
+      "format": "pdf",
+      "id": "probant-dossier-4a2161e81044.pdf",
+      "mediaType": "application/pdf",
+      "sha256": "cc0195eb4ab48f8921058d13a8ae130a7603815408e7a62fa64eb6dc0107c4f5",
+      "validation": {
+        "pdfA": {
+          "profile": null,
+          "status": "not_validated",
+          "validatedAt": null,
+          "validator": null
+        }
+      }
+    }
+  ],
+  "sheet": {
+    "id": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+    "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+    "version": 13,
+    "state": "locked",
+    "approval": {
+      "at": "2026-10-16T07:17:11.000Z",
+      "kind": "personal",
+      "note": "Relu : sources, résidus et traitement de l'écart.",
+      "actorId": "proprietaire-local",
+      "version": 12,
+      "reviewerName": "Camille Recette",
+      "snapshotHash": "93fbee73d868b1045d7c7c1b2753a7ed7dfd77f47d10b606ca5ffc1b9b56cb75"
+    },
+    "importIds": [
+      "import-42d830c8864c0f1bd540075aacc23edd90cf27383a0806641225ed438cc369c6",
+      "import-697415e514a27710c465d6d75e3d28cd797e75832c009b595195cec13ceeab60",
+      "import-76a48d3acef2d671dae54dd937220bb3d7ed390f4016470ddc4e5aa477a55de7"
+    ],
+    "inputHash": "2da9b3372875e5b9d9df054cb45a24414e8d7672bdfdc43a3efe786012954195",
+    "versionRead": 200
+  },
+  "sourceHeads": [
+    {
+      "document_type": "clients_aged",
+      "import_id": "import-76a48d3acef2d671dae54dd937220bb3d7ed390f4016470ddc4e5aa477a55de7"
+    },
+    {
+      "document_type": "clients_auxiliary",
+      "import_id": "import-697415e514a27710c465d6d75e3d28cd797e75832c009b595195cec13ceeab60"
+    },
+    {
+      "document_type": "clients_general",
+      "import_id": "import-42d830c8864c0f1bd540075aacc23edd90cf27383a0806641225ed438cc369c6"
+    }
+  ],
+  "sources": {
+    "clients_general": {
+      "importId": "import-42d830c8864c0f1bd540075aacc23edd90cf27383a0806641225ed438cc369c6",
+      "documentId": "source-f027c2cdc7b2ff54cd47ae5b03dad57edd84bbe0d9e5284a030bfd02d1634787",
+      "sha256": "281097566f60d8c2d4225f63a0dd8e4f675e9b8107bb1492833b9110b38cadef"
+    },
+    "clients_auxiliary": {
+      "importId": "import-697415e514a27710c465d6d75e3d28cd797e75832c009b595195cec13ceeab60",
+      "documentId": "source-d8f6711666ae26e967a10047bebc26ff855a49b42c65a47d1062452abe9c4f5f",
+      "sha256": "70d47cf592000f3a319021367e2d8c7ba7ae9d13bb62171e5c5dea299f1db6a1"
+    },
+    "clients_aged": {
+      "importId": "import-76a48d3acef2d671dae54dd937220bb3d7ed390f4016470ddc4e5aa477a55de7",
+      "documentId": "source-23d9cf4e945de04668a6e3ef43d8e3dc6a074c7800016cd1cc35e613987a89f4",
+      "sha256": "cfe29dc4a2ad94232169a5bafa8eb2f7838227c717713f23bbe34f1ee66c51cf"
+    }
+  },
+  "missionHash": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+  "clientExports": {
+    "json": {
+      "status": 200,
+      "sha256": "982611a9360933aec656a63377b19df85dd7422b0164cac23e9b3673ea408ef1",
+      "length": 90752,
+      "type": "application/json",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737.json\""
+    },
+    "html": {
+      "status": 200,
+      "sha256": "9e5d936b12001b71ca0d881ff1d1911e45ba36d83094ccefe5980fdc7095c42f",
+      "length": 26954,
+      "type": "text/html;charset=utf-8",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737.html\""
+    },
+    "pdf": {
+      "status": 200,
+      "sha256": "14dfa0ef7e0d12be67395559f9aa6033480f65c94ea04854b54234599d6a7e87",
+      "length": 25703,
+      "type": "application/pdf",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737.pdf\""
+    },
+    "manifest": {
+      "status": 200,
+      "sha256": "db9c543f74008ea4533b48280fc9d9cb462266c8d97776041ced87f2145ce67e",
+      "length": 5888,
+      "type": "application/json",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-manifest.json\""
+    },
+    "exceptions_csv": {
+      "status": 200,
+      "sha256": "b2ec957d333a9c1ddf4acb7efe9853e4e2aaac119876faab593fd4dc61fdf2bc",
+      "length": 1594,
+      "type": "text/csv;charset=utf-8",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737-exceptions.csv\""
+    },
+    "decisions_csv": {
+      "status": 200,
+      "sha256": "53f79ba98ca3ad69eae13f016f9111b99a6ea771ec2ac34053ae9ed210f605a6",
+      "length": 2310,
+      "type": "text/csv;charset=utf-8",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737-decisions.csv\""
+    },
+    "procedures_csv": {
+      "status": 200,
+      "sha256": "09644dbd6b7fed101cf257fea3ae1fa013d6e50d2cb7063fcf171a9c693294c0",
+      "length": 624,
+      "type": "text/csv;charset=utf-8",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737-procedures.csv\""
+    },
+    "sources_csv": {
+      "status": 200,
+      "sha256": "fb5510ceadccd4b6e915d746718016d0f172e5e536bdc85209c58bf172edb820",
+      "length": 1450,
+      "type": "text/csv;charset=utf-8",
+      "snapshot": "6e01e327c737b8d4be143f158b90ecbade627dde4b987a744c9e336aa731f602",
+      "disposition": "attachment; filename=\"probant-clients-approved-6e01e327c737-sources.csv\""
+    }
+  },
+  "clientHtmlProfile": "profil personnel local",
+  "manifestArtifacts": [
+    {
+      "byteLength": 90752,
+      "fileName": "probant-clients-approved-6e01e327c737.json",
+      "format": "canonical_json",
+      "id": "probant-clients-approved-6e01e327c737.json",
+      "mediaType": "application/json",
+      "sha256": "982611a9360933aec656a63377b19df85dd7422b0164cac23e9b3673ea408ef1"
+    },
+    {
+      "byteLength": 1594,
+      "fileName": "probant-clients-approved-6e01e327c737-exceptions.csv",
+      "format": "findings_csv",
+      "id": "probant-clients-approved-6e01e327c737-exceptions.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "b2ec957d333a9c1ddf4acb7efe9853e4e2aaac119876faab593fd4dc61fdf2bc"
+    },
+    {
+      "byteLength": 2310,
+      "fileName": "probant-clients-approved-6e01e327c737-decisions.csv",
+      "format": "review_events_csv",
+      "id": "probant-clients-approved-6e01e327c737-decisions.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "53f79ba98ca3ad69eae13f016f9111b99a6ea771ec2ac34053ae9ed210f605a6"
+    },
+    {
+      "byteLength": 624,
+      "fileName": "probant-clients-approved-6e01e327c737-procedures.csv",
+      "format": "controls_csv",
+      "id": "probant-clients-approved-6e01e327c737-procedures.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "09644dbd6b7fed101cf257fea3ae1fa013d6e50d2cb7063fcf171a9c693294c0"
+    },
+    {
+      "byteLength": 1450,
+      "fileName": "probant-clients-approved-6e01e327c737-sources.csv",
+      "format": "sources_csv",
+      "id": "probant-clients-approved-6e01e327c737-sources.csv",
+      "mediaType": "text/csv;charset=utf-8",
+      "sha256": "fb5510ceadccd4b6e915d746718016d0f172e5e536bdc85209c58bf172edb820"
+    },
+    {
+      "byteLength": 26954,
+      "fileName": "probant-clients-approved-6e01e327c737.html",
+      "format": "accessible_html",
+      "id": "probant-clients-approved-6e01e327c737.html",
+      "mediaType": "text/html;charset=utf-8",
+      "sha256": "9e5d936b12001b71ca0d881ff1d1911e45ba36d83094ccefe5980fdc7095c42f"
+    },
+    {
+      "byteLength": 25703,
+      "derivedFrom": "probant-clients-approved-6e01e327c737.html",
+      "fileName": "probant-clients-approved-6e01e327c737.pdf",
+      "format": "pdf",
+      "id": "probant-clients-approved-6e01e327c737.pdf",
+      "mediaType": "application/pdf",
+      "sha256": "14dfa0ef7e0d12be67395559f9aa6033480f65c94ea04854b54234599d6a7e87",
+      "validation": {
+        "pdfA": {
+          "profile": null,
+          "status": "not_validated",
+          "validatedAt": null,
+          "validator": null
+        }
+      }
+    }
+  ],
+  "closing": {
+    "seq": 4,
+    "headHash": "1de9dc5b117a3fdba22fb3e3c90ea2f1d189d92f8f386be6f77cd7ced4cebc13",
+    "projectionHash": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+    "denominators": {
+      "procedures": {
+        "declared": 1,
+        "applicable": 1,
+        "notApplicable": 0,
+        "done": 0,
+        "donePersonal": 1,
+        "concluded": 1
+      },
+      "pairs": {
+        "declared": 1,
+        "counted": 1,
+        "excludedNotApplicable": 0,
+        "reviewed": 0,
+        "reviewedPersonal": 1,
+        "inProgress": 0,
+        "uncovered": 0
+      },
+      "engines": {
+        "applicable": 1,
+        "locked": 1,
+        "lockedPersonal": 1,
+        "toBind": 0
+      },
+      "sheets": {
+        "lineages": 1,
+        "retained": 1,
+        "toAssign": 0,
+        "excluded": 0,
+        "outsideProgram": 0,
+        "previousRevisions": 0,
+        "inconclusiveRetained": 0,
+        "sourcesReplaced": 0
+      },
+      "events": {
+        "status": "aucune_feuille",
+        "mapHash": null,
+        "events": null,
+        "observations": null,
+        "candidateObservations": null,
+        "countedEffects": null,
+        "withoutEffect": null,
+        "divergentEvents": null,
+        "staleObservations": null,
+        "byStage": null,
+        "decided": null,
+        "toReexamine": null,
+        "orphanDecisions": 0,
+        "outsideProgramme": null,
+        "discordantSources": null
+      }
+    },
+    "procedure": {
+      "procedureId": "P-01",
+      "label": "Cadrage Clients",
+      "nature": "engine",
+      "natureLabel": "Feuille de cycle outillée",
+      "owner": "Camille Recette",
+      "riskIds": [
+        "R-01"
+      ],
+      "assertions": [
+        "solde_existence"
+      ],
+      "status": "cycle_verrouille",
+      "statusLabel": "Feuille verrouillée",
+      "applicable": true,
+      "concluded": true,
+      "done": false,
+      "donePersonal": true,
+      "reviewBasis": "personnelle",
+      "blocked": false,
+      "engine": {
+        "id": "clients.frame",
+        "label": "Cadrage Clients",
+        "route": "/clients-framing",
+        "retained": {
+          "family": "clients",
+          "procedure": "clients.frame",
+          "label": "Cadrage Clients",
+          "route": "/clients-framing",
+          "runId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+          "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+          "revision": 1,
+          "version": 13,
+          "state": "locked",
+          "execution": "completed",
+          "outcome": "exceptions_detected",
+          "objective": "Cadrage Clients — GL / auxiliaire / balance âgée",
+          "assertions": [],
+          "preparedBy": "proprietaire-local",
+          "approval": {
+            "actorId": "proprietaire-local",
+            "at": "2026-10-16T07:17:11.000Z",
+            "kind": "personal",
+            "reviewerName": "Camille Recette"
+          },
+          "contentHash": "93fbee73d868b1045d7c7c1b2753a7ed7dfd77f47d10b606ca5ffc1b9b56cb75",
+          "openBlockingNotes": 0,
+          "populationSize": 5,
+          "populationHash": "fe7b6e7b3f8f4310fe8e0173da6ff27b68b722a1d5d59e7e055a9877e1e8652d",
+          "sourceCount": 3,
+          "period": {
+            "startDate": "2024-01-01",
+            "closingDate": "2024-12-31",
+            "asOfDate": "2025-02-01"
+          },
+          "sourcesCurrent": true
+        },
+        "binding": {
+          "mode": "implicite",
+          "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+          "drift": null
+        },
+        "lineages": [
+          {
+            "procedure": "clients.frame",
+            "label": "Cadrage Clients",
+            "route": "/clients-framing",
+            "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+            "current": {
+              "family": "clients",
+              "procedure": "clients.frame",
+              "label": "Cadrage Clients",
+              "route": "/clients-framing",
+              "runId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+              "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+              "revision": 1,
+              "version": 13,
+              "state": "locked",
+              "execution": "completed",
+              "outcome": "exceptions_detected",
+              "objective": "Cadrage Clients — GL / auxiliaire / balance âgée",
+              "assertions": [],
+              "preparedBy": "proprietaire-local",
+              "approval": {
+                "actorId": "proprietaire-local",
+                "at": "2026-10-16T07:17:11.000Z",
+                "kind": "personal",
+                "reviewerName": "Camille Recette"
+              },
+              "contentHash": "93fbee73d868b1045d7c7c1b2753a7ed7dfd77f47d10b606ca5ffc1b9b56cb75",
+              "openBlockingNotes": 0,
+              "populationSize": 5,
+              "populationHash": "fe7b6e7b3f8f4310fe8e0173da6ff27b68b722a1d5d59e7e055a9877e1e8652d",
+              "sourceCount": 3,
+              "period": {
+                "startDate": "2024-01-01",
+                "closingDate": "2024-12-31",
+                "asOfDate": "2025-02-01"
+              },
+              "sourcesCurrent": true
+            },
+            "previous": [],
+            "assignment": "retenue",
+            "procedureId": "P-01",
+            "binding": "implicite"
+          }
+        ],
+        "resultLabel": "Exceptions relevées et conservées"
+      },
+      "steps": [],
+      "records": [],
+      "results": {
+        "sans_exception": 0,
+        "exceptions": 0,
+        "non_concluant": 0
+      },
+      "remaining": [],
+      "limits": [
+        "Rattachement implicite : une seule feuille « Cadrage Clients » observée ; une nouvelle population exigera un rattachement explicite."
+      ],
+      "evidence": {
+        "citations": 0,
+        "pieces": 0,
+        "representationOnly": false,
+        "superseded": 0
+      },
+      "openPoints": [],
+      "misstatements": [],
+      "contradictions": [],
+      "requests": [],
+      "updatedBy": "proprietaire-local",
+      "updatedAt": "2026-10-16T07:17:13.000Z"
+    },
+    "completion": {
+      "closable": false,
+      "blockers": [],
+      "professionalGaps": [
+        "P-01 · feuille approuvée sous relecture personnelle nommée : une revue par une autre personne reste requise pour une revue professionnelle"
+      ],
+      "professional": {
+        "status": "absente",
+        "changed": []
+      },
+      "personal": {
+        "status": "marque",
+        "by": "proprietaire-local",
+        "at": "2026-10-16T07:17:14.000Z",
+        "reviewerName": "Camille Recette",
+        "text": "Dossier personnel terminé : cadrage Clients relu ; limites listées ci-dessous.",
+        "limits": [
+          {
+            "code": "PERSONAL_REVIEW_ONLY",
+            "label": "P-01 · feuille approuvée sous relecture personnelle nommée : une revue par une autre personne reste requise pour une revue professionnelle"
+          }
+        ],
+        "changed": [],
+        "notice": "Dossier personnel marqué terminé sous relecture personnelle nommée, avec ses limites visibles. Ce marquage n’est ni une revue par une autre personne, ni une validation de clôture professionnelle, ni une opinion."
+      }
+    },
+    "exports": {
+      "json": {
+        "status": 200,
+        "sha256": "85959297153f7276ae4a8cff4adc42b156424e9fd3caf9e47c88d2113c859213",
+        "length": 11078,
+        "type": "application/json",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044.json\"; filename*=UTF-8''probant-dossier-4a2161e81044.json"
+      },
+      "html": {
+        "status": 200,
+        "sha256": "0b226604ca35db2e1e6a6a4e76dde6d7ed6415dafa78a2cce350ba4e1cbe0486",
+        "length": 13821,
+        "type": "text/html;charset=utf-8",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044.html\"; filename*=UTF-8''probant-dossier-4a2161e81044.html"
+      },
+      "pdf": {
+        "status": 200,
+        "sha256": "cc0195eb4ab48f8921058d13a8ae130a7603815408e7a62fa64eb6dc0107c4f5",
+        "length": 13787,
+        "type": "application/pdf",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044.pdf\"; filename*=UTF-8''probant-dossier-4a2161e81044.pdf"
+      },
+      "procedures_csv": {
+        "status": 200,
+        "sha256": "1988091959ec015728e69aff5d109df3a056bd0586617647fa6a6f0084445083",
+        "length": 540,
+        "type": "text/csv;charset=utf-8",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044-procedures.csv\"; filename*=UTF-8''probant-dossier-4a2161e81044-procedures.csv"
+      },
+      "sheets_csv": {
+        "status": 200,
+        "sha256": "6fb45dbea465181989d0d3d798996d007c1c2fa883f1b712b614330e4665e974",
+        "length": 430,
+        "type": "text/csv;charset=utf-8",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044-feuilles.csv\"; filename*=UTF-8''probant-dossier-4a2161e81044-feuilles.csv"
+      },
+      "findings_csv": {
+        "status": 200,
+        "sha256": "41b4a1a5457524c74f0332b7cd776419b19b07d79b8b0373e80536ee7735c880",
+        "length": 79,
+        "type": "text/csv;charset=utf-8",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044-constats.csv\"; filename*=UTF-8''probant-dossier-4a2161e81044-constats.csv"
+      },
+      "journal_csv": {
+        "status": 200,
+        "sha256": "7c9566e30d9d82f4565c542617654408c86870a8b79505fa6b3a53f6b1af5405",
+        "length": 675,
+        "type": "text/csv;charset=utf-8",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044-journal.csv\"; filename*=UTF-8''probant-dossier-4a2161e81044-journal.csv"
+      },
+      "manifest": {
+        "status": 200,
+        "sha256": "e51fceb045f2d77f99a6160d12bfbd5a9f18afd2e10c622e49bc96535620bd5d",
+        "length": 3864,
+        "type": "application/json",
+        "snapshot": "4a2161e810447e2d508e1998c2afc3ab29e65614a3f8967ed3d489aac5e0c044",
+        "disposition": "attachment; filename=\"probant-dossier-4a2161e81044-manifeste.json\"; filename*=UTF-8''probant-dossier-4a2161e81044-manifeste.json"
+      }
+    }
+  }
+}

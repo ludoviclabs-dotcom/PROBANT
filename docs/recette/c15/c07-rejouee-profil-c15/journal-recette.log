@@ -1,0 +1,45 @@
+2026-10-16T07:30:03.948Z Profil de recette : C:\Users\Ludo\AppData\Local\PROBANT\recette-c15
+2026-10-16T07:30:04.243Z Processus initiaux : Next 17916, postmaster 28312
+2026-10-16T07:30:04.713Z PASS C07-LOGIN — connexion locale par code à usage unique ; le même lien rejoué est refusé
+2026-10-16T07:30:04.729Z PASS C07-PROFILE — profil personnel : toutes les chaînes ouvertes, base personnelle, 24 migrations du dépôt
+2026-10-16T07:30:04.758Z PASS C07-DOSSIER-DOUBLE — double envoi de création du dossier : un seul dossier
+2026-10-16T07:30:04.984Z PASS C07-IMPORT — cinq pièces importées et approuvées ; empreinte serveur = empreinte du fichier
+2026-10-16T07:30:05.061Z PASS C07-FREEZE — population figée : 1 compte retenu, 3 exclus avec motif
+2026-10-16T07:30:05.146Z PASS C07-EXECUTE — pont 90,00 + 15,00 − 5,00 = 100,00, écart 0,00 ; R1 apurée, P1 ouverte
+2026-10-16T07:30:05.281Z PASS C07-DOUBLE — double commande (même clé d'idempotence, envois simultanés) : une seule version créée, réponse rejouée ou conflit explicite
+2026-10-16T07:30:05.297Z PASS C07-REPLAY — rejeu séquentiel de la même clé : même réponse, aucune version supplémentaire
+2026-10-16T07:30:05.312Z PASS C07-KEY-REUSE — même clé pour un autre contenu : refus 409 IDEMPOTENCY_KEY_REUSED
+2026-10-16T07:30:05.451Z PASS C07-TABS — conflit entre onglets : 409 avec la version serveur, la saisie de B conservée, celle de A non écrite
+2026-10-16T07:30:05.589Z PASS C07-REVIEW — relecture personnelle nommée enregistrée comme telle
+2026-10-16T07:30:05.635Z PASS C07-LOCK — version verrouillée
+2026-10-16T07:30:06.810Z PASS C07-EXPORT — export approuvé de la version verrouillée (json, html, pdf, manifeste)
+2026-10-16T07:30:06.810Z PASS C07-PIECE — pièce téléchargée = octets originaux
+2026-10-16T07:30:06.811Z PASS C07-EXPORT-REVIEW — l'export nomme la relecture personnelle
+2026-10-16T07:30:06.927Z PASS C07-FEC-DOUBLE — double envoi de l'intention FEC (même clé) : un seul job
+2026-10-16T07:30:07.525Z PASS C07-FEC-LOCAL — FEC déposé sans S3 ni SQS : pièce écrite une fois sur le PC, traitée localement, synthèse persistante
+2026-10-16T07:30:07.538Z PASS C07-FEC-WRITE-ONCE — un second envoi vers la même autorisation ne remplace pas l'original
+2026-10-16T07:30:07.571Z PASS C07-FEC-INTERRUPTED — dépôt n° 2 reçu puis interrompu avant finalisation
+2026-10-16T07:30:08.617Z PASS C07-STOP — arrêt : plus de Next, plus de PostgreSQL, port fermé, cluster fermé proprement
+2026-10-16T07:30:12.050Z PASS C07-RESTART — relance : nouveaux processus
+2026-10-16T07:30:14.580Z PASS C07-REPRISE-VERSION — REPRISE : même feuille, même version verrouillée, même relecture
+2026-10-16T07:30:14.580Z PASS C07-REPRISE-SOURCES — REPRISE : mêmes sources courantes
+2026-10-16T07:30:14.647Z PASS C07-REPRISE-PIECES — REPRISE : les cinq pièces relues octet pour octet
+2026-10-16T07:30:14.647Z PASS C07-REPRISE-MISSION — REPRISE : même empreinte de synthèse et de contenu
+2026-10-16T07:30:15.768Z PASS C07-REPRISE-EXPORT — REPRISE : exports identiques octet pour octet
+2026-10-16T07:30:16.108Z PASS C07-REPRISE-FEC-SNAPSHOT — REPRISE : même synthèse FEC persistante (empreinte et version)
+2026-10-16T07:30:16.828Z PASS C07-REPRISE-FEC-RESUME — REPRISE : le dépôt interrompu reprend depuis l'état PostgreSQL (même job ; renvoi des mêmes octets idempotent) et produit une nouvelle synthèse
+2026-10-16T07:30:18.556Z FAIL C07-BACKUP — sauvegarde : dump vérifié par pg_restore --list, manifeste de contenu par table
+2026-10-16T07:30:18.727Z PASS C07-RESTORE-GUARD — restauration sur le profil courant refusée
+2026-10-16T07:30:34.112Z PASS C07-RESTORE — restauration dans un dossier distinct : toutes les tables identiques au manifeste
+2026-10-16T07:30:34.403Z Rejeu réseau (ECONNRESET) : GET http://127.0.0.1:3250/api/auth/local?code=<masqué>&next=%2Flocal
+2026-10-16T07:30:34.599Z PASS C07-COURANT-APRES-RESTAURATION-VERSION — COURANT-APRES-RESTAURATION : même feuille, même version verrouillée, même relecture
+2026-10-16T07:30:34.599Z PASS C07-COURANT-APRES-RESTAURATION-SOURCES — COURANT-APRES-RESTAURATION : mêmes sources courantes
+2026-10-16T07:30:34.653Z PASS C07-COURANT-APRES-RESTAURATION-PIECES — COURANT-APRES-RESTAURATION : les cinq pièces relues octet pour octet
+2026-10-16T07:30:34.653Z PASS C07-COURANT-APRES-RESTAURATION-MISSION — COURANT-APRES-RESTAURATION : même empreinte de synthèse et de contenu
+2026-10-16T07:30:35.731Z PASS C07-COURANT-APRES-RESTAURATION-EXPORT — COURANT-APRES-RESTAURATION : exports identiques octet pour octet
+2026-10-16T07:33:09.944Z PASS C07-RESTAURE-VERSION — RESTAURE : même feuille, même version verrouillée, même relecture
+2026-10-16T07:33:09.944Z PASS C07-RESTAURE-SOURCES — RESTAURE : mêmes sources courantes
+2026-10-16T07:33:10.028Z PASS C07-RESTAURE-PIECES — RESTAURE : les cinq pièces relues octet pour octet
+2026-10-16T07:33:10.028Z PASS C07-RESTAURE-MISSION — RESTAURE : même empreinte de synthèse et de contenu
+2026-10-16T07:33:11.302Z PASS C07-RESTAURE-EXPORT — RESTAURE : exports identiques octet pour octet
+2026-10-16T07:33:11.302Z PASS C07-RESTORE-EXPORT — le profil restauré exporte les mêmes octets que l'original
