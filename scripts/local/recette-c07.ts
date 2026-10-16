@@ -21,6 +21,7 @@ import { periodId } from "@/lib/workpapers/model";
 import { cashMapping, cashPeriod } from "@/lib/workpapers/__tests__/cash-reconciliation-fixtures";
 import type { CashSourceType } from "@/lib/workpapers/cash-sources";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
+import { migrationFiles } from "../db/migration-utils.mjs";
 
 type Json = Record<string, unknown>;
 const ROOT = resolve(__dirname, "..", "..");
@@ -182,7 +183,9 @@ async function phaseAvant(home: string) {
   const login = await c.login(home);
   check("C07-LOGIN", "connexion locale par code à usage unique ; le même lien rejoué est refusé", login.session.authenticated === true && login.session.reviewKind === "personal" && login.replayStatus === 401, { reviewKind: login.session.reviewKind, displayName: login.session.displayName, replay: login.replayStatus });
   const status = await body(await c.get("/api/local/status"));
-  check("C07-PROFILE", "profil personnel : 12 chaînes ouvertes, base personnelle, 22 migrations", (status.json.chains as { enabled: boolean }[]).every(x => x.enabled) && (status.json.database as Json).name === "probant_personnel" && (status.json.database as Json).migrationsApplied === 22, status.json);
+  // C15 : le nombre de chaînes et de migrations suit le dépôt (14 chaînes et 24 migrations au 16/10/2026), plus une constante de C07.
+  const expectedMigrations = migrationFiles().length;
+  check("C07-PROFILE", "profil personnel : toutes les chaînes ouvertes, base personnelle, " + expectedMigrations + " migrations du dépôt", (status.json.chains as { enabled: boolean }[]).every(x => x.enabled) && (status.json.database as Json).name === "probant_personnel" && (status.json.database as Json).migrationsApplied === expectedMigrations, status.json);
   // Dossier : un double envoi retrouve le même dossier.
   // Un dossier par exécution : la recette est rejouable sur le même profil.
   const dossierInput = { legalName: "Recette C07 SAS · " + new Date().toISOString().slice(0, 19), siren: "552100554", financialYear: "2024" };

@@ -28,7 +28,7 @@ Relecture, sur la base `bb919bf` + C14, des exclusions déclarées par le regist
 | Résultat exceptionnel | Qualification humaine par événement | Inchangé |
 | Transversal et clôture | Aucune opinion générée ; cut-off : fait générateur documenté requis | Inchangé ; le marquage personnel n'est pas une validation |
 | Systèmes d'information | Pas de moteur ITGC ; travaux manuels dans le programme | Inchangé |
-| Dettes financières | Pas de feuille persistante dédiée ; le rapprochement ne qualifie pas les contrats | Toujours vrai sur `main` : la chaîne Emprunts (C13, PR #95) n'y est pas fusionnée. À revoir à sa fusion (`loans.review`, famille propre à ajouter aux adaptateurs) |
+| Dettes financières | ~~Pas de feuille persistante dédiée~~ — caduque depuis la fusion de C13 (PR #95) : feuille `loans.review` lue par le dossier ; exclusions du registre : emprunts simples en euros seulement | Mise à jour C15 (16/10/2026) : la ligne d'origine décrivait `main` avant la PR #95 |
 
 ## Exclusions motivées dans le dossier (journal)
 
