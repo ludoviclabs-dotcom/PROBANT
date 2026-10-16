@@ -198,7 +198,7 @@ test("TVA — déclaration remplacée : feuille périmée, versions conservées 
   expect(fxPeriod.closingDate).toBe("2026-12-31");
 });
 
-test("IS 2026 — résultat cadré, pont documenté, tranches du barème publié, retraitement sourcé ; double ajustement signalé ; captures 1440 / 390", async ({ page }, testInfo) => {
+test("IS 2026 — résultat cadré, pont documenté, tranches du barème publié, arrondis légaux, retraitement sourcé ; double ajustement signalé ; captures 1440 / 1024 / 390", async ({ page }, testInfo) => {
   const h = createFiscalHarness(); await h.citExecuted(); await serve(page, h);
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(sheet({ tax: "cit" }));
@@ -211,6 +211,12 @@ test("IS 2026 — résultat cadré, pont documenté, tranches du barème publié
   const brackets = page.getByRole("table", { name: "Tranches du barème publié de l’exercice" });
   await expect(brackets.getByRole("row", { name: /^Taux normal/ })).toContainText("17 950,00");
   await expect(brackets.getByRole("row", { name: /^Taux reduit PME/ })).toContainText("Non éligible");
+  // C10 : un arrondi légal sur la base (CGI 219, I) puis un sur l'impôt (CGI 1724), affichés avant / après.
+  const rounding = page.getByRole("table", { name: /^Arrondis légaux/ });
+  await expect(rounding.getByRole("row", { name: /^Bénéfice imposable/ })).toContainText("71 800,00");
+  await expect(rounding.getByRole("row", { name: /^Bénéfice imposable/ })).toContainText("CGI art. 219, I");
+  await expect(rounding.getByRole("row", { name: /^Impôt sur les sociétés/ })).toContainText("17 950,00");
+  await expect(rounding.getByRole("row", { name: /^Impôt sur les sociétés/ })).toContainText("CGI art. 1724");
   await page.getByRole("button", { name: "AMENDE — Pénalité de retard" }).click();
   await expect(panel(page).getByRole("heading", { name: "AMENDE — Pénalité de retard" })).toBeFocused();
   await expect(panel(page).getByRole("link", { name: "Code general des impots, article 39" })).toHaveAttribute("href", /legifrance/);
@@ -218,9 +224,15 @@ test("IS 2026 — résultat cadré, pont documenté, tranches du barème publié
   await expect(page.getByRole("button", { name: "AMENDE — Pénalité de retard" })).toBeFocused();
   await axe(page);
   await capture(page, testInfo, "fx-cit-2026-1440.png");
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await noGlobalOverflow(page, 1024);
+  await rounding.scrollIntoViewIfNeeded();
+  await capture(page, testInfo, "fx-cit-2026-1024.png", false);
   await page.setViewportSize({ width: 390, height: 844 });
   await noGlobalOverflow(page, 390);
   await capture(page, testInfo, "fx-cit-2026-390.png");
+  await rounding.scrollIntoViewIfNeeded();
+  await capture(page, testInfo, "fx-cit-2026-arrondis-390.png", false);
   await page.setViewportSize({ width: 1440, height: 900 });
   // Preparation: an IS adjustment on a before-tax basis is flagged before sending and refused by the server.
   await page.getByRole("tab", { name: /^Revue/ }).click();

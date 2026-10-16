@@ -231,14 +231,14 @@ describe("C15 · M9 / M10 — IS (moteur livré sur cette base)", () => {
     expect(tax(cents("50000.00"), false).grossTaxCents).toBe(cents(m9.non_eligible_50000));
   });
 
-  // CGI art. 219 I : le bénéfice est arrondi à l'euro. Le moteur IS de main (1.0.0) ne l'arrondit pas ; la mission C10
-  // (moteur 1.1.0) n'a pas été fusionnée et son chantier n'existe plus dans le dépôt. Échec déclaré, attendu inchangé.
-  it.fails("ÉCART — base 50 000,49 € arrondie à 50 000 € avant calcul (C10 absente de main)", () => {
+  // CGI art. 219 I : le bénéfice est arrondi à l'euro. Échec déclaré tant que le moteur 1.0.0 était seul ; la mission C10
+  // relivrée (moteur 1.1.0) le corrige. Attendus inchangés.
+  it("base 50 000,49 € arrondie à 50 000 € avant calcul (CGI art. 219, I — C10)", () => {
     const s = tax(cents("50000.49"), true);
     expect(s.taxableBaseCents).toBe(Number(m9.base_50000_49.base_arrondie) * 100);
     expect(s.grossTaxCents).toBe(cents(m9.base_50000_49.impot));
   });
-  it.fails("ÉCART — exercice de 18 mois : refus ciblé ou plafond proratisé, jamais 42 500 € sans prorata (C10 absente de main)", () => {
+  it("exercice de 18 mois : refus ciblé ou plafond proratisé, jamais 42 500 € sans prorata (C10)", () => {
     const p = { startDate: "2026-01-01", endDate: "2027-06-30" };
     const s = computeCorporateTax(computationInput({ profile: eligibleProfile({ accountingPeriod: p }), period: taxPeriod({ startDate: p.startDate, endDate: p.endDate }),
       documentSnapshots: [coherentLiasse({ accountingProfitCents: cents("50000.00") })] })).snapshot;

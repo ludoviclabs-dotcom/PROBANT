@@ -243,3 +243,14 @@ describe("limitations par périmètre", () => {
     }
   });
 });
+
+describe("C10 — impôt liquidé dans le cockpit", () => {
+  it("l'impôt affiché est l'impôt liquidé arrondi à l'euro, l'impôt avant arrondi en regard (126 412,50 → 126 413)", () => {
+    const snapshot = source.corporateTax!.snapshot;
+    expect(snapshot.grossTaxCents).toBe(12_641_250);
+    expect(snapshot.liquidatedTaxCents).toBe(12_641_300);
+    const text = JSON.stringify(datasets);
+    expect(text).toContain(`arrondi à l'euro (CGI art. 1724) : ${formatCents(12_641_300)}, soit ${formatCents(12_641_250)} avant arrondi`);
+    expect(text).toContain(`impôt ${formatCents(12_641_300)} arrondi à l'euro (${formatCents(12_641_250)} avant arrondi)`);
+  });
+});

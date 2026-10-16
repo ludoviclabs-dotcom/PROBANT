@@ -197,9 +197,11 @@ export const CorporateTaxSnapshotSchema = z.object({
   deductionsProposedCents: CentAmountSchema.nonnegative(),
   taxResultBeforeDeficitsCents: CentAmountSchema,
   deficits: CorporateTaxDeficitOutcomeSchema,
+  taxableProfitBeforeRoundingCents: CentAmountSchema.nonnegative().nullable(),
   taxableBaseCents: CentAmountSchema.nonnegative(),
   brackets: z.array(CorporateTaxBracketAllocationSchema),
   grossTaxCents: CentAmountSchema.nonnegative().nullable(),
+  liquidatedTaxCents: CentAmountSchema.nonnegative().nullable(),
   taxImpactStatus: z.enum(["not_computed", "estimated", "computed", "reviewed"]),
   reconciliationLineIds: z.array(z.string().min(1)),
   waterfall: CorporateTaxWaterfallSchema,
@@ -240,5 +242,22 @@ export const CorporateTaxSnapshotSchema = z.object({
   const allocated = snapshot.brackets.reduce((total, bracket) => total + bracket.allocatedBaseCents, 0);
   if (snapshot.status === "computed" && allocated !== snapshot.taxableBaseCents) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["brackets"], message: "la base imposable doit etre integralement ventilee" });
+  }
+  if (snapshot.status === "blocked" && (snapshot.liquidatedTaxCents !== null || snapshot.taxableProfitBeforeRoundingCents !== null)) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["liquidatedTaxCents"], message: "un calcul bloque ne produit ni base avant arrondi ni impot liquide" });
+  }
+  if (snapshot.status === "computed") {
+    // CGI art. 219, I : base arrondie a l'euro, a moins de 50 centimes du benefice en centimes.
+    const before = snapshot.taxableProfitBeforeRoundingCents;
+    if (before === null || snapshot.taxableBaseCents % 100 !== 0 || Math.abs(snapshot.taxableBaseCents - before) > 50) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["taxableBaseCents"], message: "la base imposable doit etre le benefice arrondi a l'euro" });
+    }
+    // CGI art. 1724 : impot liquide arrondi a l'euro sur la somme exacte des tranches ; chaque tranche
+    // affichee au centime peut s'ecarter d'un demi-centime de son produit exact.
+    const liquidated = snapshot.liquidatedTaxCents;
+    if (liquidated === null || liquidated % 100 !== 0 || snapshot.grossTaxCents === null ||
+        Math.abs(liquidated - snapshot.grossTaxCents) > 50 + snapshot.brackets.length) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["liquidatedTaxCents"], message: "l'impot liquide doit etre la somme des tranches arrondie a l'euro" });
+    }
   }
 });

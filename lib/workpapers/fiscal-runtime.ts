@@ -6,7 +6,7 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { neutralizeFileName } from "@/lib/security/filename";
 import { stableSha256 } from "@/lib/synthesis/canonical";
 import { buildFiscalMissionPackage, type FiscalExportKind } from "@/lib/evidence/fiscal-mission-package";
-import { CIT_TEMPLATE, FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
+import { CIT_RULE, CIT_TEMPLATE, FiscalRegistry, VAT_TEMPLATE } from "./fiscal-adapter";
 import { buildFiscalMission, type FiscalMissionSelection } from "./fiscal-mission";
 import type { FiscalCommand } from "./fiscal-commands";
 import { parseFiscalWork, type FiscalResult } from "./fiscal-review";
@@ -25,6 +25,7 @@ import { WorkpaperService } from "./service";
 import { executionProfile } from "@/lib/runtime/profile";
 import type { VatResult } from "./fiscal-vat-contract";
 import { latestExecutedPerRoot, SUPERSEDED_REASON, type VatObservation } from "./transversal-events-adapter";
+import { citIncidenceBase, type CitIncidenceBase } from "./fiscal-incidence";
 
 const permissions: Record<Permission, AuthPermission> = { read: "dossier:read", prepare: "dossier:upload", review: "dossier:review", download: "dossier:export" };
 const LIMITS = { versions: 500, bytes: 48 * 1024 * 1024, response: 10 * 1024 * 1024, file: 3 * 1024 * 1024, export: 16 * 1024 * 1024 };
@@ -131,6 +132,16 @@ export class FiscalRuntime {
       });
     });
   }
+  /**
+   * C05 / C10 : base de l'incidence fiscale d'un ajustement pour la Synthèse et l'export du même dossier et du même
+   * exercice. Lecture seule ; seule la feuille IS verrouillée, à jour et reproductible sert de base.
+   */
+  async citIncidenceBase(request: Request, dossierId: string, pid: string): Promise<CitIncidenceBase> {
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
+      await this.bounded(tx, scope);
+      return citIncidenceBase(scope, await tx.allVersions(scope), FiscalImports.from(await tx.imports(scope)).batches, await tx.heads(scope));
+    });
+  }
   async mission(request: Request, dossierId: string, pid: string, selection: FiscalMissionSelection = {}) {
     return this.transaction(request, dossierId, pid, "read", async (tx, scope, actor) => ({ actorId: actor.id, permissions: actor.grants[0].permissions, reviewKind: actor.review, executionProfile: executionProfile(process.env), mission: (await this.missionData(tx, scope, selection)).mission }));
   }
@@ -220,6 +231,9 @@ export class FiscalRuntime {
       if (!current.fiscalWork) throw new Error("FX_WORK_REQUIRED");
       parseFiscalWork(current.fiscalWork);
       const isCit = current.fiscalWork.tax === "cit", service = serviceFor(isCit ? "is.computation" : "tva.reconciliation");
+      // An IS sheet established under an earlier rule version stays readable; nothing may advance or finalize it
+      // (execution, notes, conclusion, submission, review, lock): only a revision, which adopts the current rule.
+      if (isCit && command.command !== "revise" && current.template.rule?.version !== CIT_RULE.version) throw new Error("FX_RULE_REPLACED_REVISION_REQUIRED");
       /** Draft of the run's own tax, stamped by the server against the given frozen sources. */
       const stamp = (batches: ImportBatch[], draft: unknown, previous: FiscalWork): FiscalWork => previous.tax === "cit"
         ? stampCitWork({ scope, runId: current.id, imports: batches, draft: citDraftSchema.parse(draft), actor, at, previous })
@@ -270,7 +284,7 @@ export class FiscalRuntime {
         case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
         case "review": run = await service.transition(scope, id, v, command.decision, command.text, command.submittedHash); break;
         case "lock": run = await service.lock(scope, id, v); break;
-        case "revise": run = await service.revise(scope, id, v); break;
+        case "revise": run = isCit ? await service.revise(scope, id, v, CIT_TEMPLATE) : await service.revise(scope, id, v); break;
       }
       return { run };
     }));

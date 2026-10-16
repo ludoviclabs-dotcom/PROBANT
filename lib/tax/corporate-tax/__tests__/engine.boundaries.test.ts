@@ -2,7 +2,7 @@
  * Tests de frontiere du moteur d'IS.
  *
  * Complementaires aux golden : ils visent les bords ou un moteur financier casse
- * silencieusement — seuil de tranche exact, seuil au centime pres, base nulle,
+ * silencieusement — seuil de tranche exact, seuil a l'euro pres (arrondi legal), base nulle,
  * deficit egal ou superieur a la base, tres grands montants, ordre d'entree,
  * et absence des documents de comparaison.
  */
@@ -71,30 +71,49 @@ describe("Seuils de tranche", () => {
     expect(snapshot.grossTaxCents).toBe(applyBasisPoints(REDUCED_CAP, reducedBracket.rateBasisPoints));
   });
 
-  it("plafond moins un centime : tout reste au taux reduit", () => {
-    const base = REDUCED_CAP - 1;
+  // CGI art. 219, I : la base est arrondie a l'euro avant ventilation. La frontiere
+  // du plafond se joue donc a l'euro, entre ,49 et ,50 (attendus calcules a la main).
+  it("plafond plus 0,49 EUR : la base arrondie reste au plafond, tout au taux reduit", () => {
     const snapshot = taxFor(computationInput({
       profile: eligibleProfile(),
-      documentSnapshots: [coherentLiasse({ accountingProfitCents: base })],
+      documentSnapshots: [coherentLiasse({ accountingProfitCents: REDUCED_CAP + 49 })],
     }));
 
-    expect(snapshot.brackets.find((bracket) => bracket.code === "reduced_sme")?.allocatedBaseCents).toBe(base);
+    expect(snapshot.taxableProfitBeforeRoundingCents).toBe(4_250_049);
+    expect(snapshot.taxableBaseCents).toBe(4_250_000);
+    expect(snapshot.brackets.find((bracket) => bracket.code === "reduced_sme")?.allocatedBaseCents).toBe(4_250_000);
     expect(snapshot.brackets.find((bracket) => bracket.code === "normal")?.allocatedBaseCents).toBe(0);
+    // 42 500 x 15 % = 6 375,00 EUR
+    expect(snapshot.grossTaxCents).toBe(637_500);
+    expect(snapshot.liquidatedTaxCents).toBe(637_500);
   });
 
-  it("plafond plus un centime : exactement un centime bascule au taux normal", () => {
+  it("plafond plus 0,50 EUR : un euro entier bascule au taux normal, la liquidation arrondit", () => {
     const snapshot = taxFor(computationInput({
       profile: eligibleProfile(),
-      documentSnapshots: [coherentLiasse({ accountingProfitCents: REDUCED_CAP + 1 })],
+      documentSnapshots: [coherentLiasse({ accountingProfitCents: REDUCED_CAP + 50 })],
     }));
 
     const reduced = snapshot.brackets.find((bracket) => bracket.code === "reduced_sme");
     const normal = snapshot.brackets.find((bracket) => bracket.code === "normal");
-    expect(reduced?.allocatedBaseCents).toBe(REDUCED_CAP);
-    expect(normal?.allocatedBaseCents).toBe(1);
-    // Un centime au taux normal arrondit a zero : l'impot n'augmente pas.
-    expect(normal?.taxCents).toBe(applyBasisPoints(1, normalBracket.rateBasisPoints));
-    expect(snapshot.grossTaxCents).toBe(applyBasisPoints(REDUCED_CAP, reducedBracket.rateBasisPoints));
+    expect(snapshot.taxableBaseCents).toBe(4_250_100);
+    expect(reduced?.allocatedBaseCents).toBe(4_250_000);
+    expect(normal?.allocatedBaseCents).toBe(100);
+    // 1 EUR x 25 % = 0,25 EUR ; 6 375,00 + 0,25 = 6 375,25 EUR, liquide a 6 375 EUR.
+    expect(normal?.taxCents).toBe(25);
+    expect(snapshot.grossTaxCents).toBe(637_525);
+    expect(snapshot.liquidatedTaxCents).toBe(637_500);
+  });
+
+  it("liquidation a 0,50 EUR exactement : la fraction est comptee pour un euro", () => {
+    const snapshot = taxFor(computationInput({
+      profile: eligibleProfile(),
+      documentSnapshots: [coherentLiasse({ accountingProfitCents: REDUCED_CAP + 200 })],
+    }));
+
+    // 42 502 EUR : 6 375,00 + 2 x 25 % = 6 375,50 EUR, liquide a 6 376 EUR.
+    expect(snapshot.grossTaxCents).toBe(637_550);
+    expect(snapshot.liquidatedTaxCents).toBe(637_600);
   });
 });
 

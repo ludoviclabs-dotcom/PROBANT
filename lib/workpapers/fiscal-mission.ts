@@ -13,19 +13,19 @@ export type { FiscalMissionFilter };
 
 /** Closed programme: one VAT procedure per declarative period and one IS procedure per exercise; denominators exist before any result. */
 export const FISCAL_MISSION_PROGRAM = {
-  id: "fiscal.program", version: "1.1.0", label: "Programme fiscal : TVA par période déclarative, puis IS de l’exercice",
+  id: "fiscal.program", version: "1.2.0", label: "Programme fiscal : TVA par période déclarative, puis IS de l’exercice",
   procedures: [
     { id: VAT_PROCEDURE, version: "1.0.0", tax: "vat" as const, label: "TVA — écritures, déclaration, pièces, paiements et crédit reporté d’une période déclarative", unit: "période déclarative",
       requiredSources: ["fx_fec"], conditionalSources: ["fx_vat_return", "fx_invoices", "fx_vat_payments", "fx_support"],
       tests: [{ id: "comparison", label: "Comptabilisé ↔ déclaré (collectée, déductible, nette, crédit)" }, { id: "bridge", label: "Pont explicatif : net comptabilisé → net déclaré" },
         { id: "pieces", label: "Écritures ↔ pièces de l’inventaire" }, { id: "payments", label: "Net déclaré ↔ paiements au Trésor" }, { id: "credit", label: "Continuité du crédit reporté" }, { id: "engine", label: "Contrôles du moteur TVA (TAX-06)" }] },
-    { id: CIT_PROCEDURE, version: "1.0.0", tax: "cit" as const, label: "IS — résultat comptable cadré, retraitements documentés et calcul du moteur pour l’exercice", unit: "exercice",
+    { id: CIT_PROCEDURE, version: "1.1.0", tax: "cit" as const, label: "IS — résultat comptable cadré, retraitements documentés et calcul du moteur pour l’exercice", unit: "exercice",
       requiredSources: ["fx_fec"], conditionalSources: ["fx_cit_return", "fx_support"],
       tests: [{ id: "framing", label: "Résultat comptable : FEC (classes 6 et 7) ↔ liasse" }, { id: "bridge", label: "Pont fiscal documenté : base avant ou après impôt → résultat fiscal déclaré" },
         { id: "adjustments", label: "Retraitements documentés par pièce et source" }, { id: "computation", label: "Calcul du moteur IS (TAX-05) : barème et millésime publiés" }, { id: "comparisons", label: "Calcul ↔ déclaré et comptabilisé (2065, 695, 444)" }] },
   ],
   outOfScope: ["Liquidation, dépôt, télétransmission, intérêts et pénalités", "TVA : prorata et coefficients de déduction, régimes sectoriels, groupes TVA, franchise ; qualification légale d’un taux (aucun barème publié)",
-    "IS : intégration fiscale, contributions additionnelles, crédits d’impôt, acomptes ; exercices et millésimes sans barème publié", "Autres impôts et taxes (CFE, CVAE, C3S, taxe sur les salaires…) : capacités séparées, non couvertes par ces feuilles"],
+    "IS : intégration fiscale, contributions additionnelles, crédits d’impôt, acomptes ; exercices et millésimes sans barème publié ; exercice d’une durée différente de douze mois", "Autres impôts et taxes (CFE, CVAE, C3S, taxe sur les salaires…) : capacités séparées, non couvertes par ces feuilles"],
 } as const;
 export type FiscalMissionSelection = { rootId?: string; id?: string; version?: number };
 const CONVENTIONS: Record<string, string> = {
@@ -37,7 +37,7 @@ const CONVENTIONS: Record<string, string> = {
   engine: "Seize contrôles du moteur TVA ; un contrôle dont la source n’est pas couverte est bloqué, sans version voisine substituée.",
   framing: "Écart = résultat des classes 6 et 7 du FEC de l’exercice (table interne documentée) − résultat comptable déclaré (WA / WS ou 312 / 314).",
   adjustments: "Chaque retraitement cite une pièce figée et, s’il est proposé en correction, une source du registre couvrant l’exercice ; un second ajustement d’IS, ou un ajustement d’IS sur une base avant impôt, est refusé.",
-  computation: "Moteur IS sur le barème publié de l’exercice et du millésime ; sans barème ou millésime publié, le calcul reste bloqué.",
+  computation: "Moteur IS sur le barème publié de l’exercice et du millésime ; bénéfice imposable arrondi à l’euro (CGI art. 219, I), impôt arrondi une fois à l’euro (CGI art. 1724) ; sans barème ou millésime publié, ou pour un exercice qui ne dure pas douze mois, le calcul reste bloqué.",
   comparisons: "Lignes de rapprochement du moteur : résultat fiscal déclaré, bases de la 2065, charge (695) et dette (444) d’IS comptabilisées.",
 };
 export function fiscalAmountLabel(amount: KnownAmount | Money | null | undefined) {
