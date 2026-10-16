@@ -1,0 +1,80 @@
+{
+  "fec": {
+    "snapshotHash": "3d80e622c948817c9de4fdd77c30a7fc8b5e01036634726fb18751a72890016f",
+    "snapshotVersion": "1.0.0+502d95ed-8735-4a2b-8d73-4a61ad401dcc",
+    "job1": "502d95ed-8735-4a2b-8d73-4a61ad401dcc",
+    "job2": "3a07303b-cf66-4ef4-bd25-6c7699f5e16d",
+    "key2": "recette-c07-fec2-ae5f8506",
+    "fec2Sha256": "479031a829bce306682adfd886950671e0cfc5654614021ede9b62a9c51fb7cc",
+    "fec1Sha256": "fa2262ed868f81fb40751b5ceebee671555e062e0abead70b14371cd87393718",
+    "localPiece1": "C:\\Users\\Ludo\\AppData\\Local\\PROBANT\\recette-c15\\pieces\\organizations\\1e452f37-c6ed-43c8-98b4-6edb16231dc3\\dossiers\\472a8a90-8cb6-4c6b-8d7e-67ba73e9dbfa\\documents\\5c8a3a0e-8a7a-418d-bfeb-1700a31872dd\\source"
+  },
+  "dossierId": "472a8a90-8cb6-4c6b-8d7e-67ba73e9dbfa",
+  "runId": "workpaper-de092b8292a2399456595663ba4745e31d6736c7a9aa7ba3936995e90c31533a",
+  "rootId": "workpaper-de092b8292a2399456595663ba4745e31d6736c7a9aa7ba3936995e90c31533a",
+  "version": 19,
+  "revision": 1,
+  "state": "locked",
+  "approval": {
+    "at": "2026-10-16T07:30:05.000Z",
+    "kind": "personal",
+    "note": "Relecture personnelle du pont, des suspens et des pièces citées.",
+    "actorId": "proprietaire-local",
+    "version": 18,
+    "reviewerName": "Camille Recette",
+    "snapshotHash": "c874e11a56be1f5f16ecf4e6907dd03561183419186b04725c80b07e07fc53ef"
+  },
+  "contentHash": "c874e11a56be1f5f16ecf4e6907dd03561183419186b04725c80b07e07fc53ef",
+  "missionHash": "c4ccd19b6b1f83f4b88f3657ae6de5fbfaf4cdbb0a454d8c31ccb36fa6a3baa5",
+  "importIds": {
+    "cash_ledger": "import-eba7917c051b8b5ef9dcb39d1c72507ea383034e77d5840d6aa3b72e9288d816",
+    "cash_statement": "import-23fecefd186731b2ef9ec62415e69634d5c2ee61353b4f1cbed76a5343811add",
+    "cash_erb": "import-1672f02c7cbc58920852275ff5fbd4963b394251399e6fa2fe1265a954fd9f22",
+    "cash_settlements": "import-14d64917eebbee3f28bd921ed557c184d2541022216900834b5469b6e8649545",
+    "cash_support": "import-57f3142c702b06db49c3f4d7b4a906f5fd19dca5e75fb6a3f4dc80ac26498ebd"
+  },
+  "documents": {
+    "cash_ledger": {
+      "documentId": "source-3407b55ae382ef2fbce82e1ada45ae856a0fb2e42b7c7cc13c5cba3df86637ad",
+      "sha256": "a82e4b0cc7df40865c7ec8745766f2a2d9f9e61d0ce86bfd301375f32d3a92cd"
+    },
+    "cash_statement": {
+      "documentId": "source-a164b4c988ab0e20b02f83a76d365638645a3046fdfa4f5ab1dcd2910eb080c0",
+      "sha256": "9c993133fae5bf95006af752b795cd0b2a53c63b9f2f818e8ff8a607b9e331cb"
+    },
+    "cash_erb": {
+      "documentId": "source-8aca37441f5bd4f3f3112a64245540b822edb1d3d675a8108a16147bf4b42e9f",
+      "sha256": "62b0650333482343f7a1437d95a5df5a24edd59d7b5c8e0e84c6dd84cf2f5eae"
+    },
+    "cash_settlements": {
+      "documentId": "source-52ebc49f175176f984d5642f5f976ada422773bf0a7396cc5c1e980a4bd2159a",
+      "sha256": "a8ce7da8a81f9dc0ced363b142c9b22b53d7b40dad61da4eee5de3ff54d9063b"
+    },
+    "cash_support": {
+      "documentId": "source-2816af2bbbd94993f79cdccd91de21d179aa98521de47ff8ad6539b4dabf94c0",
+      "sha256": "93da5cd229a6874f682f19b61099c6dea14156a9521d0f8dadfb083da5e096cc"
+    }
+  },
+  "exports": {
+    "json": {
+      "bytes": 159766,
+      "sha256": "130d8cba85264079ec6361a79a26cddaa20c842fa0020bef511fd3dd7ebc4327"
+    },
+    "html": {
+      "bytes": 30963,
+      "sha256": "bc42983ac4f6fe75ef1d871ccab5f3ac9eb15407e8936ecabe9616e81151163f"
+    },
+    "pdf": {
+      "bytes": 29983,
+      "sha256": "2247773eaacaeff67a41fc50b24502057c03fcb315be00d17ca430f9710c08b8"
+    },
+    "manifest": {
+      "bytes": 7086,
+      "sha256": "2310e046260fa17d861bf92a79e14c0382a65d36fe54e7b512c6edcf3f53b95a"
+    }
+  },
+  "processes": {
+    "nextPid": 17916,
+    "postmasterPid": 28312
+  }
+}

@@ -40,7 +40,7 @@ npm run local:init -- --nom "Prénom Nom"
 npm run local:start
 ```
 
-- `local:init` crée le profil dans `%LOCALAPPDATA%\PROBANT\personnel` (ou `--home <dossier>`, ou `PROBANT_LOCAL_HOME`) : cluster PostgreSQL dédié (port 54329, écoute 127.0.0.1 seulement, authentification SCRAM, sommes de contrôle de pages), base `probant_personnel`, rôle applicatif sans superutilisateur, marqueur `probant_local.profile`, les 22 migrations, l'organisation locale. Le nom sert à la **relecture personnelle nommée**.
+- `local:init` crée le profil dans `%LOCALAPPDATA%\PROBANT\personnel` (ou `--home <dossier>`, ou `PROBANT_LOCAL_HOME`) : cluster PostgreSQL dédié (port 54329, écoute 127.0.0.1 seulement, authentification SCRAM, sommes de contrôle de pages), base `probant_personnel`, rôle applicatif sans superutilisateur, marqueur `probant_local.profile`, toutes les migrations du dépôt (24 au 16/10/2026), l'organisation locale. Le nom sert à la **relecture personnelle nommée**.
 - `local:start` démarre PostgreSQL, vérifie que la base est bien celle du profil (nom, `data_directory`, marqueur), applique les migrations en attente (après une sauvegarde automatique), compile Next si le code a changé (`next build`, quelques minutes la première fois), démarre `next start` sur `http://127.0.0.1:3210`, puis ouvre un **lien de connexion à usage unique** (10 minutes).
 - La page d'accueil du profil est `/local` : identité, type de relecture, base, migrations, liste des dossiers, création d'un dossier et liens vers chaque feuille de cycle.
 
@@ -81,7 +81,7 @@ Les imports des feuilles de cycle (Clients, Trésorerie, Immobilisations, Capita
 - Rôles et type de relecture viennent de la configuration du serveur, jamais d'une étiquette envoyée par le navigateur.
 - **Relecture personnelle nommée** (par défaut) : vous pouvez approuver votre propre feuille ; l'approbation enregistre `kind: "personal"` et votre nom, les écrans et les exports affichent « Relecture personnelle nommée — Nom (identité) ». Ce n'est pas une revue par une autre personne. Hors profil local, la règle `SELF_APPROVAL_FORBIDDEN` est inchangée.
 - **Seconde identité de simulation** (`"simulation": true`) : identité `simulation-seconde-identite`, rôle relecteur seul ; chaque approbation qu'elle donne est enregistrée et affichée comme simulation.
-- Le dossier de clôture (`cl_*`) garde ses propres règles de relecture distincte (NEP 230 §08) : la relecture personnelle n'y est pas encore admise (lot C14). L'habilitation de clôture et l'accès confidentiel des provisions restent accordés à personne, comme auparavant.
+- Le dossier de clôture (`cl_*`) admet depuis C14 la relecture personnelle nommée, comptée à part et jamais comme revue par une autre personne, ainsi que le marquage « dossier personnel terminé » (limites listées, périmé par tout changement ultérieur). La validation de clôture reste refusée sur ce profil (`CL_CLOSING_AUTHORITY_FORBIDDEN`) : l'habilitation de clôture et l'accès confidentiel des provisions restent accordés à personne. Vérifié par la recette C15 (`e2e/c15-parcours-local.spec.ts`).
 
 ## Sauvegarde et restauration
 

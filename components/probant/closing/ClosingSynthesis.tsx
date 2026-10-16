@@ -54,7 +54,7 @@ export function ClosingSynthesis({ view, onOpen, canPrepare, send, busy, exportH
           <td><span className={cl.statusText}><span className={cl.station} data-tone={TONE[r.status as ProcedureStatus]} aria-hidden="true"/>{r.statusLabel}</span>{r.reviewBasis ? <><br/><span className={cl.small}>{r.reviewBasis}</span></> : null}</td>
           <td><Covered r={r}/></td><td><Result r={r}/></td>
           <td>{[...r.misstatements, ...r.contradictions, ...r.openPoints].join(", ") || <span className={cl.small}>—</span>}</td>
-          <td>{r.remaining.length ? <span>{r.remaining.length} élément(s)<br/><span className={cl.small}>{r.remaining[0]}</span></span> : <span className={cl.small}>{r.applicable ? "Rien de détecté — pas une attestation" : "Exclue"}</span>}{r.limits.length ? <><br/><span className={cl.small}>⚠ {r.limits.join(" ")}</span></> : null}</td>
+          <td>{r.remaining.length ? <span>{r.remaining.length} élément(s)<br/><span className={cl.small}>{r.remaining[0]}</span></span> : <span className={cl.small}>{r.applicable ? "Aucun travail restant détecté — pas une attestation" : "Exclue"}</span>}{r.limits.length ? <><br/><span className={cl.small}>⚠ {r.limits.join(" ")}</span></> : null}</td>
         </tr>)}</tbody></table></div> : <p className={cl.small}>Aucune procédure du programme sur ce cycle.</p>}
       {c.otherSheets.length ? <><h4 className={cl.subhead}>Autres feuilles listées</h4><ul className={cl.remaining}>{c.otherSheets.map(s => <li key={s.procedure + s.rootId}>
         {s.label} · racine {s.rootId} · {sheetLine(s)} — <span className={cl.pill} data-tone={s.assignment === "ecartee" ? "muted" : "danger"}>{s.assignmentLabel}</span>{s.exclusion ? <span className={cl.small}> · motif : {s.exclusion.reason}</span> : null}

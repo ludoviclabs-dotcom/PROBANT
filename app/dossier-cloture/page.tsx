@@ -4,7 +4,7 @@ import { ClosingWorkspace } from "@/components/probant/closing/ClosingWorkspace"
 import type { ClosingTab } from "@/components/probant/closing/format";
 
 export const metadata: Metadata = { title: "Dossier professionnel et clôture · PROBANT" };
-const TABS = ["programme", "pieces", "anomalies", "revue", "cloture", "journal"] as const;
+const TABS = ["synthese", "programme", "pieces", "anomalies", "revue", "cloture", "journal"] as const;
 export default async function DossierCloturePage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const p = await searchParams, value = (k: string) => typeof p[k] === "string" && (p[k] as string).length <= 300 ? p[k] as string : undefined;
   const tab = value("tab"), procedure = value("p");

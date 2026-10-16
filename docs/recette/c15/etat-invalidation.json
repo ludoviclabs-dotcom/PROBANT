@@ -1,0 +1,176 @@
+{
+  "capturedAt": "2026-10-16T07:17:31.917Z",
+  "lockedRun": {
+    "id": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+    "version": 13
+  },
+  "r2": {
+    "id": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649:r2",
+    "state": "executed",
+    "residues": {
+      "C1": "15.00",
+      "C2": "-10.00"
+    }
+  },
+  "closingProcedure": {
+    "procedureId": "P-01",
+    "label": "Cadrage Clients",
+    "nature": "engine",
+    "natureLabel": "Feuille de cycle outillée",
+    "owner": "Camille Recette",
+    "riskIds": [
+      "R-01"
+    ],
+    "assertions": [
+      "solde_existence"
+    ],
+    "status": "cycle_source_remplacee",
+    "statusLabel": "Source remplacée depuis le gel",
+    "applicable": true,
+    "concluded": true,
+    "done": false,
+    "donePersonal": false,
+    "reviewBasis": "personnelle",
+    "blocked": true,
+    "engine": {
+      "id": "clients.frame",
+      "label": "Cadrage Clients",
+      "route": "/clients-framing",
+      "retained": {
+        "family": "clients",
+        "procedure": "clients.frame",
+        "label": "Cadrage Clients",
+        "route": "/clients-framing",
+        "runId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+        "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+        "revision": 1,
+        "version": 13,
+        "state": "locked",
+        "execution": "completed",
+        "outcome": "exceptions_detected",
+        "objective": "Cadrage Clients — GL / auxiliaire / balance âgée",
+        "assertions": [],
+        "preparedBy": "proprietaire-local",
+        "approval": {
+          "actorId": "proprietaire-local",
+          "at": "2026-10-16T07:17:11.000Z",
+          "kind": "personal",
+          "reviewerName": "Camille Recette"
+        },
+        "contentHash": "93fbee73d868b1045d7c7c1b2753a7ed7dfd77f47d10b606ca5ffc1b9b56cb75",
+        "openBlockingNotes": 0,
+        "populationSize": 5,
+        "populationHash": "fe7b6e7b3f8f4310fe8e0173da6ff27b68b722a1d5d59e7e055a9877e1e8652d",
+        "sourceCount": 3,
+        "period": {
+          "startDate": "2024-01-01",
+          "closingDate": "2024-12-31",
+          "asOfDate": "2025-02-01"
+        },
+        "sourcesCurrent": false
+      },
+      "binding": {
+        "mode": "implicite",
+        "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+        "drift": null
+      },
+      "lineages": [
+        {
+          "procedure": "clients.frame",
+          "label": "Cadrage Clients",
+          "route": "/clients-framing",
+          "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+          "current": {
+            "family": "clients",
+            "procedure": "clients.frame",
+            "label": "Cadrage Clients",
+            "route": "/clients-framing",
+            "runId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+            "rootId": "workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649",
+            "revision": 1,
+            "version": 13,
+            "state": "locked",
+            "execution": "completed",
+            "outcome": "exceptions_detected",
+            "objective": "Cadrage Clients — GL / auxiliaire / balance âgée",
+            "assertions": [],
+            "preparedBy": "proprietaire-local",
+            "approval": {
+              "actorId": "proprietaire-local",
+              "at": "2026-10-16T07:17:11.000Z",
+              "kind": "personal",
+              "reviewerName": "Camille Recette"
+            },
+            "contentHash": "93fbee73d868b1045d7c7c1b2753a7ed7dfd77f47d10b606ca5ffc1b9b56cb75",
+            "openBlockingNotes": 0,
+            "populationSize": 5,
+            "populationHash": "fe7b6e7b3f8f4310fe8e0173da6ff27b68b722a1d5d59e7e055a9877e1e8652d",
+            "sourceCount": 3,
+            "period": {
+              "startDate": "2024-01-01",
+              "closingDate": "2024-12-31",
+              "asOfDate": "2025-02-01"
+            },
+            "sourcesCurrent": false
+          },
+          "previous": [],
+          "assignment": "retenue",
+          "procedureId": "P-01",
+          "binding": "implicite"
+        }
+      ],
+      "resultLabel": "Exceptions relevées et conservées"
+    },
+    "steps": [],
+    "records": [],
+    "results": {
+      "sans_exception": 0,
+      "exceptions": 0,
+      "non_concluant": 0
+    },
+    "remaining": [
+      {
+        "code": "CYCLE_SOURCE_REPLACED",
+        "label": "Source de la feuille « Cadrage Clients » remplacée ou ajoutée depuis le gel : révision requise dans le cycle",
+        "ref": {
+          "kind": "procedure",
+          "id": "P-01"
+        },
+        "procedureId": "P-01"
+      }
+    ],
+    "limits": [
+      "Rattachement implicite : une seule feuille « Cadrage Clients » observée ; une nouvelle population exigera un rattachement explicite."
+    ],
+    "evidence": {
+      "citations": 0,
+      "pieces": 0,
+      "representationOnly": false,
+      "superseded": 0
+    },
+    "openPoints": [],
+    "misstatements": [],
+    "contradictions": [],
+    "requests": [],
+    "updatedBy": "proprietaire-local",
+    "updatedAt": "2026-10-16T07:17:13.000Z"
+  },
+  "personalCompletion": {
+    "status": "perime",
+    "by": "proprietaire-local",
+    "at": "2026-10-16T07:17:14.000Z",
+    "reviewerName": "Camille Recette",
+    "text": "Dossier personnel terminé : cadrage Clients relu ; limites listées ci-dessous.",
+    "limits": [
+      {
+        "code": "PERSONAL_REVIEW_ONLY",
+        "label": "P-01 · feuille approuvée sous relecture personnelle nommée : une revue par une autre personne reste requise pour une revue professionnelle"
+      }
+    ],
+    "changed": [
+      "clients.frame (workpaper-4e13d970fef77e8f10993783cf9f1cdd3930657d74c758f6978a2767cbe25649, source remplacée)"
+    ],
+    "notice": "Dossier personnel marqué terminé sous relecture personnelle nommée, avec ses limites visibles. Ce marquage n’est ni une revue par une autre personne, ni une validation de clôture professionnelle, ni une opinion."
+  },
+  "diagnosticSha256": "9db4f7abdc1734fa6947f363093fec9f15fa4082125884055573919ca09e3e13"
+}
