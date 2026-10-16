@@ -2,6 +2,7 @@
 import { CL_CYCLE_LABELS, CL_CYCLES } from "@/lib/workpapers/closing-contract";
 import { CitationPicker, Cites, readCitations } from "./ProcedurePanel";
 import { citationText, euros, stampFr, type ClosingView } from "./format";
+import { EventEffectsSection } from "./ClosingEventEffects";
 import cl from "./closing.module.css";
 
 type Send = (body: Record<string, unknown>) => Promise<boolean>;
@@ -21,7 +22,7 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
         <li>Non corrigées : <strong>{euros(m.knownUncorrected.amount)}</strong> connus{m.unknownUncorrected ? <> + <strong>{m.unknownUncorrected}</strong> montant{m.unknownUncorrected > 1 ? "s" : ""} inconnu{m.unknownUncorrected > 1 ? "s" : ""} (jamais compté{m.unknownUncorrected > 1 ? "s" : ""} pour zéro)</> : null}</li>
         <li className={cl.small}>Aucune comparaison à un seuil de signification : le caractère significatif s’apprécie par le professionnel (NEP 450).</li>
       </ul>
-      <div className={cl.tableScroll}><table className={cl.grid}>
+      <div className={cl.tableScroll} role="region" tabIndex={0} aria-label="Anomalies relevées — montants, état et pièces"><table className={cl.grid}>
         <caption className="sr-only">Anomalies relevées : montant connu ou inconnu, état de correction et preuve.</caption>
         <thead><tr><th scope="col">Anomalie</th><th scope="col">Cycle · procédure</th><th scope="col" className={cl.num}>Montant</th><th scope="col">État</th><th scope="col">Pièces et appréciation</th></tr></thead>
         <tbody>{misstatements.map(x => <tr key={x.misstatementId}>
@@ -50,6 +51,8 @@ export function ClosingFindings({ view, canPrepare, canReview, send, busy, onOpe
         <div className={cl.row}><label>Montant<select name="known"><option value="known">Connu</option><option value="unknown">Inconnu</option></select></label><label>Montant en euros (ex. 1240.00)<input name="amount" pattern="-?\d+([.,]\d{2})" /></label><label>Motif si inconnu<input name="reason" maxLength={300}/></label></div>
         <CitationPicker pieces={view.pieces} name="ac" required/><button className={cl.submit} disabled={busy}>Relever</button></form></details> : null}
     </section>
+
+    <EventEffectsSection events={e.events} d={e.denominators.events} headingId="cl-events" actions={{ canPrepare, canReview, send, busy, pieces: view.pieces, download }}/>
 
     <section className={cl.section} aria-labelledby="cl-contradictions">
       <h2 id="cl-contradictions">Contradictions déclarées <span className={cl.small}>{contradictions.filter(c => !c.resolution || staleResolutions.includes(c.contradictionId)).length} non résolue(s) ou à réexaminer sur {contradictions.length}</span></h2>

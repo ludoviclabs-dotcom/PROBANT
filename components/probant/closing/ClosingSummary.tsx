@@ -1,6 +1,7 @@
 "use client";
 import type { Indicator } from "@/lib/workpapers/closing-evaluate";
 import type { ClosingView } from "./format";
+import { EventEffectsCount } from "./ClosingEventEffects";
 import cl from "./closing.module.css";
 
 const SEGMENT_LABELS = { done: "atteint", partial: "en cours", todo: "à faire", blocked: "bloqué ou manquant" } as const;
@@ -20,6 +21,7 @@ export function ClosingVerdict({ view }: { view: ClosingView }) {
         <li><strong>{d.engines.locked} / {d.engines.applicable}</strong> feuilles de cycle du programme verrouillées{d.engines.toBind ? " · " + d.engines.toBind + " à rattacher" : ""}</li>
         <li><strong>{e.blockers.length}</strong> {e.blockers.length > 1 ? "travaux restants ou contradictions" : "travail restant ou contradiction"}</li>
         <li><strong>{e.missing.length}</strong> {e.missing.length > 1 ? "pièces ou éléments manquants" : "pièce ou élément manquant"}</li>
+        <li><EventEffectsCount d={d.events} reason={e.events.reason} testId="cockpit-events"/></li>
         <li>{e.noOpinion}</li>
       </ul>
     </div>

@@ -5,6 +5,7 @@ import { useState } from "react";
 import { assertionLabel, CL_ASSERTION_GROUPS, CL_ASSERTION_LABELS, CL_ASSERTIONS, CL_CYCLE_LABELS, CL_CYCLES, CL_ENGINE_PROCEDURES, CL_NATURE_LABELS, CL_NATURES, CL_RISK_LEVEL_LABELS, CL_RISK_LEVELS, CL_STEP_LABELS, type ClosingAssertion } from "@/lib/workpapers/closing-contract";
 import { STATUS_LABELS, type Denominators, type PairView, type ProcedureStatus, type ProcedureView, type RiskView } from "@/lib/workpapers/closing-evaluate";
 import { STEP_STATE_LABELS, stampFr, TONE, type ClosingView } from "./format";
+import { EventEffectsCount } from "./ClosingEventEffects";
 import cl from "./closing.module.css";
 
 export interface ProgramFilters { nature: string; status: string; owner: string; q: string }
@@ -74,6 +75,7 @@ export function ClosingProgram({ view, filters, setFilters, selected, onOpen, ca
     <h2>Carte de couverture</h2>
     <p className={cl.small}>Une case par couple risque × assertion retenu au programme. Sélectionner une case met en évidence les procédures qui la couvrent ; une case ✕ est un trou du programme, pas un oubli silencieux.</p>
     <CoverageMap risks={e.risks} pair={pair} onPair={setPair} pairs={e.denominators.pairs}/>
+    <p className={cl.small}>Hors couples risque × assertion : <EventEffectsCount d={e.denominators.events} reason={e.events.reason} testId="matrix-events"/>.</p>
     {pair ? <p className={cl.small} role="status">Mise en évidence : {lit.size ? [...lit].join(", ") : "aucune procédure"} pour {pair.split(":")[0]} · {assertionLabel(pair.split(":")[1] as ClosingAssertion)}. <button type="button" className={cl.link} onClick={() => setPair(null)}>Effacer</button></p> : null}
     <h2>Programme de travail</h2>
     <div className={cl.toolbar} role="search">

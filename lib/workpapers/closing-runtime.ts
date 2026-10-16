@@ -12,6 +12,7 @@ import { observeRuns, type CycleObservation } from "./closing-cycles";
 import { sourcesCurrentAdapter } from "./closing-adapters";
 import { decide, decideUpload, type Decision } from "./closing-decide";
 import { evaluateClosing, journalView } from "./closing-evaluate";
+import { EVENT_MAP_FAILURES, EVENT_MAP_NOT_READ, type EventMapRead, type EventMapReader } from "./closing-events";
 import { projectDossier } from "./closing-projection";
 import { buildClosingDossierPackage, type ClosingExportFormat } from "@/lib/evidence/closing-dossier-package";
 import { eventHash, fold, type ClosingEvent } from "./closing-journal";
@@ -32,7 +33,7 @@ const PNG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a], JPEG = [0xff, 0xd8
 /** Durable server runtime of the professional file. Identity, permissions, dates, authors, identifiers and citations come from the server only. */
 export class ClosingRuntime {
   constructor(private readonly db: ClosingDatabase, private readonly authorizer: Pick<RequestAuthorizer, "authorize">, private readonly now: () => number = () => Math.floor(Date.now() / 1000),
-    private readonly closingAuthority: ClosingAuthority = () => false, private readonly newId: () => string = randomUUID) {}
+    private readonly closingAuthority: ClosingAuthority = () => false, private readonly newId: () => string = randomUUID, private readonly eventMap: EventMapReader = async () => EVENT_MAP_NOT_READ) {}
   async check(request: Request, dossierId: string, permission: ClosingPermission) { await this.identity(request, dossierId, permission); }
   private async identity(request: Request, dossierId: string, permission: ClosingPermission) {
     const identity = await this.authorizer.authorize(request, { dossierId, permission: permissions[permission] });
@@ -58,15 +59,29 @@ export class ClosingRuntime {
   }
   /** Current heads of every family with their sources checked by each family's own adapter (C14): a source replaced after a lock is seen, nothing is recalculated. */
   private async observe(tx: ClosingTx, scope: WorkpaperScope) { return observeRuns(await tx.cycleRuns(scope), sourcesCurrentAdapter(await tx.cycleSourceHeads(scope))); }
-  /** Evaluation and single projection of the file, from the same journal and observation. */
-  private async model(tx: ClosingTx, scope: WorkpaperScope, observed?: CycleObservation[]) {
+  /**
+   * The transversal events map (C11), read through its own runtime and authorization before the file transaction (never inside it: the dossier row stays locked by
+   * one connection only). A map of another dossier or period is not retained; an unreadable map is stated as such and its effects stay unknown, never zero.
+   */
+  private async events(request: Request, dossierId: string, pid: string): Promise<EventMapRead> {
+    try {
+      const read = await this.eventMap(request, dossierId, pid);
+      if (read.status === "lue" && (read.map.scope.dossierId !== dossierId || read.map.scope.periodId !== pid)) return { status: "non_lue", reason: "Carte d’un autre dossier ou d’une autre période, non retenue" };
+      return read;
+    } catch (error) {
+      const code = error instanceof ApiError ? error.code : error instanceof Error ? error.message.split(":")[0] : "ERREUR";
+      return { status: "non_lue", reason: EVENT_MAP_FAILURES[code] ?? "Carte des événements illisible (" + code + ")" };
+    }
+  }
+  /** Evaluation and single projection of the file, from the same journal, observation and events map. */
+  private async model(tx: ClosingTx, scope: WorkpaperScope, observed?: CycleObservation[], eventMap: EventMapRead = EVENT_MAP_NOT_READ) {
     const events = await tx.events(scope), state = fold(events), observations = observed ?? await this.observe(tx, scope);
-    const evaluation = evaluateClosing(state, observations), journal = journalView(events);
+    const evaluation = evaluateClosing(state, observations, eventMap), journal = journalView(events);
     return { state, evaluation, journal, projection: projectDossier({ dossierId: scope.dossierId, periodId: scope.periodId, seq: state.seq, headHash: state.headHash, evaluation, journal }) };
   }
   /** Read model: journal, folded state, evaluation, projection and observed cycle sheets, computed in the same transaction. */
-  private async view(tx: ClosingTx, scope: WorkpaperScope, identity: AuthenticatedPrincipal, observed?: CycleObservation[]) {
-    const { state, evaluation, journal, projection } = await this.model(tx, scope, observed);
+  private async view(tx: ClosingTx, scope: WorkpaperScope, identity: AuthenticatedPrincipal, eventMap: EventMapRead, observed?: CycleObservation[]) {
+    const { state, evaluation, journal, projection } = await this.model(tx, scope, observed, eventMap);
     const response = { actorId: identity.subject, permissions: this.granted(identity), executionProfile: executionProfile(process.env), closingAuthority: this.closingAuthority(identity, scope) === true,
       reviewKind: identity.reviewKind, reviewerName: identity.reviewKind === "personal" ? identity.displayName : undefined, dossierId: scope.dossierId, periodId: scope.periodId,
       seq: state.seq, headHash: state.headHash, hashNotice: CL_HASH_NOTICE, pieces: state.pieces, evaluation, projection, journal };
@@ -90,10 +105,11 @@ export class ClosingRuntime {
     return { seq: event.seq, type: event.type, eventId: event.id };
   }
   async read(request: Request, dossierId: string, pid: string) {
-    return this.transaction(request, dossierId, pid, "read", async (tx, scope, identity) => { await this.bounded(tx, scope); return this.view(tx, scope, identity); });
+    const eventMap = await this.events(request, dossierId, pid);
+    return this.transaction(request, dossierId, pid, "read", async (tx, scope, identity) => { await this.bounded(tx, scope); return this.view(tx, scope, identity, eventMap); });
   }
   async command(request: Request, dossierId: string, pid: string, command: ClosingCommand, key: string) {
-    const permission = CL_COMMAND_PERMISSION[command.command];
+    const permission = CL_COMMAND_PERMISSION[command.command], eventMap = await this.events(request, dossierId, pid);
     return this.transaction(request, dossierId, pid, permission, async (tx, scope, identity) => {
       await this.bounded(tx, scope);
       // The cycle sheets are observed once per transaction: the decision and the returned view rest on the same observation.
@@ -102,14 +118,15 @@ export class ClosingRuntime {
         const state = fold(await tx.events(scope)), at = new Date(this.now() * 1000).toISOString();
         if (command.command === "open" && periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
         if (command.expectedSeq !== state.seq) throw new ClosingConflict(state.seq, command.expectedSeq);
-        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations,
+        const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations, events: eventMap,
           ...(identity.reviewKind ? { reviewKind: identity.reviewKind } : {}), ...(identity.displayName ? { displayName: identity.displayName } : {}) });
         return this.append(tx, scope, identity.subject, at, decision, { seq: state.seq, hash: state.headHash });
       });
-      return { applied, view: await this.view(tx, scope, identity, observations) };
+      return { applied, view: await this.view(tx, scope, identity, eventMap, observations) };
     });
   }
   async upload(request: Request, dossierId: string, pid: string, file: File, meta: { expectedSeq: number; label: string; kind: PieceKind; pieceId?: string }, key: string) {
+    const eventMap = await this.events(request, dossierId, pid);
     return this.transaction(request, dossierId, pid, "prepare", async (tx, scope, identity) => {
       await this.bounded(tx, scope);
       if (!file.size || file.size > LIMITS.file) throw new ApiError("CL_FILE_LIMIT", "Pièce limitée à 3 Mio pour cette recette.", 413);
@@ -127,21 +144,23 @@ export class ClosingRuntime {
         await tx.insertPiece(scope, String(decision.payload.pieceVersionId), digest, bytes.toString("base64"));
         return this.append(tx, scope, identity.subject, at, decision, { seq: state.seq, hash: state.headHash });
       });
-      return { applied, view: await this.view(tx, scope, identity) };
+      return { applied, view: await this.view(tx, scope, identity, eventMap) };
     });
   }
   /**
    * Export of the single projection (C14): the same denominators as the matrix and the cockpit. The browser names the projection it has read;
    * a newer state is a conflict, and the session, permission and state are checked again after rendering, before any byte is returned.
+   * The events map is read again for the check: a map changed since (its hash is in the projection) is a conflict too.
    */
   async export(request: Request, dossierId: string, pid: string, format: ClosingExportFormat, expectedSnapshot: string) {
+    const eventMap = await this.events(request, dossierId, pid);
     const { projection, journal } = await this.transaction(request, dossierId, pid, "download", async (tx, scope) => {
-      const model = await this.model(tx, scope);
+      const model = await this.model(tx, scope, undefined, eventMap);
       if (model.projection.hash !== expectedSnapshot) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
       return { projection: model.projection, journal: model.journal };
     });
-    const pack = await buildClosingDossierPackage(projection, journal, format);
-    await this.transaction(request, dossierId, pid, "download", async (tx, scope) => { if ((await this.model(tx, scope)).projection.hash !== expectedSnapshot) throw new Error("EXPORT_SNAPSHOT_CONFLICT"); });
+    const pack = await buildClosingDossierPackage(projection, journal, format), again = await this.events(request, dossierId, pid);
+    await this.transaction(request, dossierId, pid, "download", async (tx, scope) => { if ((await this.model(tx, scope, undefined, again)).projection.hash !== expectedSnapshot) throw new Error("EXPORT_SNAPSHOT_CONFLICT"); });
     return pack;
   }
   async download(request: Request, dossierId: string, pid: string, pieceVersionId: string) {

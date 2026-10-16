@@ -4,13 +4,16 @@ import type { ReviewKind } from "@/lib/auth/review-kind";
 import { engineProcedure, isControl, stepsFor, type CitationInput, type ClosingCommand, type PieceKind, type ResolvedCitation } from "./closing-contract";
 import { fingerprint, sheetLineages, type CycleObservation } from "./closing-cycles";
 import { evaluateClosing } from "./closing-evaluate";
+import { contributionsDiscordance, currentEffect, EVENT_MAP_NOT_READ, type EventMapRead } from "./closing-events";
 import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type Attribution, type ClosingEventType, type ClosingState } from "./closing-journal";
 
 /**
  * Decision rules of the professional file: one command, checked against the folded journal, becomes one event.
  * Identifiers, authors, dates, citations (file name, hash, kind) and dependency hashes are set here by the server, never by the browser.
  */
-export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[]; reviewKind?: ReviewKind; displayName?: string }
+export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[]; reviewKind?: ReviewKind; displayName?: string;
+  /** The transversal events map read by the server for this command (C14 suite); without it, no event effect can be decided and its effects stay unknown. */
+  events?: EventMapRead }
 export interface Decision { type: ClosingEventType; payload: Record<string, unknown> }
 
 export function resolveCitation(s: ClosingState, c: CitationInput): ResolvedCitation {
@@ -210,6 +213,39 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const who = attribution(ctx, [m.by], "CL_SELF_REVIEW_FORBIDDEN");
       return { type: "assess_misstatement", payload: { misstatementId: m.misstatementId, text: command.text, ...who } };
     }
+    case "correct_event_effect":
+    case "assess_event_effect": {
+      // The effect is the map's, read by the server now: the browser names the effect it has read (basisHash); a changed effect is a conflict, never a silent re-target.
+      const read = ctx.events ?? EVENT_MAP_NOT_READ;
+      if (read.status !== "lue") throw new Error("CL_EVENT_MAP_UNREAD");
+      const now = currentEffect(read, command.eventId);
+      if (!now) throw new Error(read.map.events.some(e => e.eventId === command.eventId && e.effect) ? "CL_EVENT_EFFECT_UNDETERMINED" : "CL_EVENT_EFFECT_UNKNOWN");
+      if (now.basisHash !== command.basisHash) throw new Error("CL_EVENT_EFFECT_STALE");
+      // The map was read before this transaction: a sheet carrying the effect that has moved since (new version or revision, replaced source) makes the read discordant.
+      if (contributionsDiscordance(now.basis, ctx.observations)) throw new Error("CL_EVENT_EFFECT_STALE");
+      // A group the map already carries past « pending » is not decided twice.
+      if (now.cluster.reviewStage !== "pending") throw new Error("CL_EVENT_EFFECT_DECIDED_ELSEWHERE");
+      const t = s.eventTreatments[command.eventId], c = t?.correction;
+      const correctionHolds = !!c && c.basisHash === now.basisHash && !c.citations.some(x => isSuperseded(s, x));
+      if (correctionHolds) throw new Error("CL_EVENT_EFFECT_ALREADY_CORRECTED");
+      const base = { eventId: command.eventId, basis: now.basis, basisHash: now.basisHash, mapHash: now.mapHash, text: command.text };
+      if (command.command === "assess_event_effect") {
+        // Review by another person than the preparers of the sheets carrying the effect, or a named personal review (solo) recorded as such.
+        const authors = [...new Set(now.basis.contributions.flatMap(k => ctx.observations.filter(o => o.runId === k.runId).map(o => o.preparedBy)))];
+        return { type: "assess_event_effect", payload: { ...base, ...attribution(ctx, authors, "CL_SELF_REVIEW_FORBIDDEN") } };
+      }
+      // A correction rests on dossier pieces (never the sheet sources that revealed the candidate), current versions, not a representation alone.
+      const citations = resolveAll(s, command.citations);
+      if (!corroborated(citations)) throw new Error("CL_REPRESENTATION_ONLY");
+      // Partial correction: positive, strictly smaller than the effect counted once (the effect's sense is the map's); the remainder stays residual (C05).
+      let correctedCents: number | undefined;
+      if (command.correctedAmount) {
+        const part = cents(command.correctedAmount);
+        if (part <= 0n || part >= BigInt(now.basis.countedCents)) throw new Error("CL_CORRECTED_AMOUNT_INVALID");
+        correctedCents = Number(part);
+      }
+      return { type: "correct_event_effect", payload: { ...base, citations, ...(correctedCents !== undefined ? { correctedCents } : {}) } };
+    }
     case "record_limitation": {
       command.procedureIds.forEach(id => procedureOf(s, id));
       return { type: "record_limitation", payload: { limitationId: nextId.limitation(s), cycle: command.cycle, description: command.description, procedureIds: [...new Set(command.procedureIds)] } };
@@ -265,13 +301,13 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       // Solo mode only: the server identity carries a named personal review. The mark records the limits visible now; it is never a professional validation.
       if (ctx.reviewKind !== "personal") throw new Error("CL_PERSONAL_PROFILE_REQUIRED");
       if (!ctx.displayName?.trim()) throw new Error("CL_PERSONAL_REVIEWER_NAME_REQUIRED");
-      const evaluation = evaluateClosing(s, ctx.observations);
+      const evaluation = evaluateClosing(s, ctx.observations, ctx.events);
       return { type: "mark_personal_complete", payload: { text: command.text, reviewerName: ctx.displayName.trim(), headHash: s.headHash, headSeq: s.seq, cycles: ctx.observations.filter(o => engineProcedure(o.procedure)).map(fingerprint),
         limits: [...evaluation.blockers, ...evaluation.professionalGaps].map(b => ({ code: b.code, label: b.label })) } };
     }
     case "validate_closing": {
       if (!ctx.closingAuthority) throw new Error("CL_CLOSING_AUTHORITY_FORBIDDEN");
-      const evaluation = evaluateClosing(s, ctx.observations);
+      const evaluation = evaluateClosing(s, ctx.observations, ctx.events);
       if (!evaluation.closable) throw new Error("CL_CLOSING_BLOCKED");
       // The validation records what it rests on: the journal head and the observed cycle sheets. It is a human decision, not an audit opinion.
       return { type: "validate_closing", payload: { text: command.text, headHash: s.headHash, headSeq: s.seq, cycles: ctx.observations.filter(o => engineProcedure(o.procedure)).map(fingerprint) } };

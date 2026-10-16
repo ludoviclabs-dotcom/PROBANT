@@ -123,6 +123,25 @@
 .remaining{list-style:none;padding:0;margin:8px 0;display:grid;gap:4px}
 .remaining li{font-size:12.5px;padding-left:18px;position:relative}
 .remaining li::before{content:"○";position:absolute;left:0;color:var(--open)}
+/* Source sheets of an event effect (C14 suite): one line per sheet, its exact version and its dossier lineage. */
+.sources{list-style:none;margin:4px 0 0;padding:0;display:grid;gap:3px;font-size:11.5px;color:var(--muted)}
+.sources li{overflow-wrap:anywhere;padding-left:0;font-size:inherit}
+.sources li::before{content:none}
+/* Event effects table: the source sheets column never squeezes the event, the amount or the stage; below tablet width the table scrolls in its region. */
+.effects th:first-child,.effects td:first-child{min-width:160px}
+.effects td:nth-child(3){min-width:200px}
+.effects td:nth-child(4){min-width:140px}
+.effects td:last-child{min-width:220px}
+.effects td.num .small{white-space:normal;display:inline-block;max-width:16ch}
+@media (max-width:760px){.effects{min-width:1100px}}
+/* Stage of an event effect and the review decisions it rests on (C14 suite): text, not a pill, so long C05 labels wrap. */
+.stageText{display:block;font-size:12.5px;font-weight:600;margin-bottom:4px}
+.stageText[data-tone=ok]{color:var(--ok)}
+.stageText[data-tone=open]{color:var(--open)}
+.stageText[data-tone=danger]{color:var(--danger)}
+.decision{border-left:2px solid var(--pb-border-strong,#324563);padding:2px 0 2px 8px;margin:6px 0}
+.decision[data-state=a_reexaminer]{border-left-color:var(--danger)}
+.decision p{margin:2px 0}
 .limits{list-style:none;padding:0;margin:8px 0;display:grid;gap:4px}
 .limits li{font-size:12px;color:#c9d4e4;padding-left:18px;position:relative}
 .limits li::before{content:"⚠";position:absolute;left:0;color:var(--open);font-size:11px}

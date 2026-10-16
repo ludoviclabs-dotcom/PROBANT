@@ -2,7 +2,8 @@ import type { Money } from "@/lib/canonical-model/money";
 import type { CalculationRun } from "@/lib/canonical-model/calculation";
 import type { AuthenticatedPrincipal } from "@/lib/auth/principal";
 import { stableSha256 } from "@/lib/synthesis/canonical";
-import { contentHash, WORKPAPER_SCHEMA_VERSION, type WorkpaperRun, type WorkpaperState } from "../model";
+import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import { contentHash, periodId, WORKPAPER_SCHEMA_VERSION, type WorkpaperRun, type WorkpaperState } from "../model";
 import type { CycleFamily } from "../closing-contract";
 import { CL_DOSSIER, CL_ORG, CL_PERIOD, CL_PERIOD_ID, type ClosingHarness } from "./closing-harness";
 import type { CycleSource } from "./closing-memory-database";
@@ -27,16 +28,16 @@ export function addSolo(h: ClosingHarness) {
 }
 
 /* ── Synthetic cycle heads (test double of a family store, read-only like the PostgreSQL adapter) ─────────────────────────── */
-const scope = { organizationId: CL_ORG, dossierId: CL_DOSSIER, periodId: CL_PERIOD_ID, mode: "real" as const };
+const base = { organizationId: CL_ORG, dossierId: CL_DOSSIER, periodId: CL_PERIOD_ID, mode: "real" as const };
 export const euro = (amount: string): Money => ({ amount, currency: "EUR" });
 export function sheet(o: { id: string; rootId?: string; revision?: number; version?: number; state: WorkpaperState; template?: string; outcome?: CalculationRun["outcome"]; population?: string[]; importIds?: string[];
-  preparedBy?: string; approval?: { actorId: string; kind?: "personal"; reviewerName?: string } }): WorkpaperRun {
-  const importIds = o.importIds ?? [];
-  const run: WorkpaperRun = { id: o.id, rootId: o.rootId ?? o.id, revision: o.revision ?? 1, version: o.version ?? 4, schemaVersion: WORKPAPER_SCHEMA_VERSION, scope, period: CL_PERIOD,
+  preparedBy?: string; approval?: { actorId: string; kind?: "personal"; reviewerName?: string }; period?: AccountingPeriod }): WorkpaperRun {
+  const importIds = o.importIds ?? [], period = o.period ?? CL_PERIOD, scope = o.period ? { ...base, periodId: periodId(o.period) } : base;
+  const run: WorkpaperRun = { id: o.id, rootId: o.rootId ?? o.id, revision: o.revision ?? 1, version: o.version ?? 4, schemaVersion: WORKPAPER_SCHEMA_VERSION, scope, period,
     template: { id: o.template ?? "cash.reconciliation", version: "1.0.0", objective: "Feuille synthétique", kind: "calculated", assertions: [], requiredDocumentTypes: [] }, state: o.state, preparedBy: o.preparedBy ?? "preparer-cash", importIds,
     evidence: [], findings: [], notes: [], events: [],
     ...(o.population ? { population: { id: o.id + ":population", scope, importIds, unit: "account" as const, items: o.population.map(id => ({ id, rowIds: [id + ":row"], amount: euro("100.00") })), hash: stableSha256(o.population) } } : {}),
-    ...(o.outcome ? { result: { id: o.id + ":result", calculationKey: "synthetic", ruleVersion: "1.0.0", inputHash: stableSha256(o.id), scope: { organizationId: CL_ORG, dossierId: CL_DOSSIER, mode: "real" as const }, period: CL_PERIOD,
+    ...(o.outcome ? { result: { id: o.id + ":result", calculationKey: "synthetic", ruleVersion: "1.0.0", inputHash: stableSha256(o.id), scope: { organizationId: CL_ORG, dossierId: CL_DOSSIER, mode: "real" as const }, period,
       execution: "completed" as const, outcome: o.outcome, sourceRefs: [], input: null, result: null, findings: [], warnings: [], blockedControls: [] } } : {}) };
   if (["approved", "locked"].includes(o.state)) run.approval = { actorId: o.approval?.actorId ?? "reviewer-cash", note: "Revue synthétique de la feuille.", at: "2027-02-01T10:00:00.000Z", version: (o.version ?? 4) - 1, snapshotHash: contentHash(run),
     ...(o.approval?.kind ? { kind: o.approval.kind, reviewerName: o.approval.reviewerName } : {}) };

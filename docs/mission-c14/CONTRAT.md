@@ -64,6 +64,6 @@ La page H2A de la NEP 320 n'a pas été trouvée à l'adresse attendue (404) : l
 
 ## 6. Hors périmètre
 
-- Les constats C05 de la carte des événements transversaux (C11) ne sont pas versés dans le dossier : il faudrait lire une seconde projection d'effets ; le dossier garde ses anomalies journalisées.
+- ~~Les constats C05 de la carte des événements transversaux (C11) ne sont pas versés dans le dossier.~~ Levé par le lot « C14 suite » (`docs/mission-c14/EVENEMENTS.md`) : effets lus dans la carte, à leur étape C05, à côté des anomalies journalisées et sans total commun ; le journal du dossier porte la correction ou l'appréciation de chaque effet (`correct_event_effect`, `assess_event_effect`).
 - Pas d'export des pièces binaires dans le paquet du dossier (téléchargement séparé, même permission).
 - La synthèse principale `/dashboard/synthese` (instantané navigateur) n'est pas recalculée : elle continue de projeter le registre ; le dossier durable est lu sur `/dossier-cloture`.
