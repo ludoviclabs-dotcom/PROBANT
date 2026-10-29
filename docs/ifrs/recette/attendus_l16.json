@@ -1,0 +1,2605 @@
+{
+  "fixtures": [
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "980.33",
+          "accumulatedOpening": "0.00",
+          "additions": "2940.99",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "2940.99",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "980.33",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "1970.40",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "29.41",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "980.33",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "1000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "3950.73",
+          "closing": "2027-01-31",
+          "debtClosing": "1970.40",
+          "debtOpening": "0.00",
+          "depreciation": "980.33",
+          "interest": "29.41",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 1,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-9.74",
+          "principal": "970.59",
+          "rentNeutralized": "1000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-29.41",
+            "pcg_rent_neutralized": "1000.00",
+            "rou_depreciation_expense": "-980.33"
+          },
+          "rouGross": "2940.99",
+          "rouNetClosing": "1960.66",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "2940.99",
+          "accumulatedOpening": "0.00",
+          "additions": "2940.99",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "2940.99",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "2940.99",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "59.01",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "2940.99",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "3000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "5940.99",
+          "closing": "2027-03-31",
+          "debtClosing": "0.00",
+          "debtOpening": "0.00",
+          "depreciation": "2940.99",
+          "interest": "59.01",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 3,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "0.00",
+          "principal": "2940.99",
+          "rentNeutralized": "3000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-59.01",
+            "pcg_rent_neutralized": "3000.00",
+            "rou_depreciation_expense": "-2940.99"
+          },
+          "rouGross": "2940.99",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "2940.99",
+      "debtInitialExact": "2940.9852072355554347710038134486912077150270",
+      "depreciationMonths": 3,
+      "id": "L16-F01",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 3,
+        "payment": "1000.00",
+        "rate": "0.126825030131969720661201",
+        "usefulLifeMonths": 3
+      },
+      "label": "Référence du plan : trois loyers de 1 000,00 €, 1 % mensuel",
+      "maxAbsRoundingGap": "0.00",
+      "monthlyRateExact": "0.0100000000000000000000000000000000000000",
+      "mutationRateDividedBy12": {
+        "debtInitial": "2937.69",
+        "detected": true
+      },
+      "rouInitial": "2940.99",
+      "schedule": [
+        {
+          "closingDebt": "1970.40",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "29.41",
+          "interest": "29.41",
+          "openingDebt": "2940.99",
+          "payment": "1000.00",
+          "principal": "970.59",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "990.10",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "19.70",
+          "interest": "19.70",
+          "openingDebt": "1970.40",
+          "payment": "1000.00",
+          "principal": "980.30",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "9.90",
+          "interest": "9.90",
+          "openingDebt": "990.10",
+          "payment": "1000.00",
+          "principal": "990.10",
+          "roundingGap": "0.00",
+          "t": 3
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "59.01",
+      "totalPayments": "3000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "6000.00",
+          "accumulatedOpening": "0.00",
+          "additions": "6000.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "6000.00",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "6000.00",
+              "side": "credit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "6000.00",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "6000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "12000.00",
+          "closing": "2027-12-31",
+          "debtClosing": "0.00",
+          "debtOpening": "0.00",
+          "depreciation": "6000.00",
+          "interest": "0.00",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "0.00",
+          "principal": "6000.00",
+          "rentNeutralized": "6000.00",
+          "resultContributions": {
+            "lease_interest_expense": "0.00",
+            "pcg_rent_neutralized": "6000.00",
+            "rou_depreciation_expense": "-6000.00"
+          },
+          "rouGross": "6000.00",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "6000.00",
+      "debtInitialExact": "6000.0000000000000000000000000000000000000000",
+      "depreciationMonths": 12,
+      "id": "L16-F02",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 12,
+        "payment": "500.00",
+        "rate": "0",
+        "usefulLifeMonths": 12
+      },
+      "label": "Taux zéro documenté, 12 loyers de 500,00 €",
+      "maxAbsRoundingGap": "0.00",
+      "monthlyRateExact": "0E-40",
+      "mutationRateDividedBy12": {
+        "debtInitial": "6000.00",
+        "detected": false
+      },
+      "rouInitial": "6000.00",
+      "schedule": [
+        {
+          "closingDebt": "5500.00",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "6000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "5000.00",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "5500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "4500.00",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "5000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "4000.00",
+          "dueDate": "2027-04-30",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "4500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 4
+        },
+        {
+          "closingDebt": "3500.00",
+          "dueDate": "2027-05-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "4000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 5
+        },
+        {
+          "closingDebt": "3000.00",
+          "dueDate": "2027-06-30",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "3500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 6
+        },
+        {
+          "closingDebt": "2500.00",
+          "dueDate": "2027-07-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "3000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 7
+        },
+        {
+          "closingDebt": "2000.00",
+          "dueDate": "2027-08-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "2500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 8
+        },
+        {
+          "closingDebt": "1500.00",
+          "dueDate": "2027-09-30",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "2000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 9
+        },
+        {
+          "closingDebt": "1000.00",
+          "dueDate": "2027-10-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "1500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 10
+        },
+        {
+          "closingDebt": "500.00",
+          "dueDate": "2027-11-30",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "1000.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 11
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2027-12-31",
+          "economicInterestRounded": "0.00",
+          "interest": "0.00",
+          "openingDebt": "500.00",
+          "payment": "500.00",
+          "principal": "500.00",
+          "roundingGap": "0.00",
+          "t": 12
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "0.00",
+      "totalPayments": "6000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "11140.42",
+          "accumulatedOpening": "0.00",
+          "additions": "33421.27",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "11140.42",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "22819.76",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "1398.49",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "11140.42",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "45960.18",
+          "closing": "2027-12-31",
+          "debtClosing": "22819.76",
+          "debtOpening": "0.00",
+          "depreciation": "11140.42",
+          "interest": "1398.49",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-538.91",
+          "principal": "10601.51",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-1398.49",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "-11140.42"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "22280.85",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "22280.85",
+          "accumulatedOpening": "11140.42",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "22280.85",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "11688.17",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "868.41",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "11140.43",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "538.91",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "45969.02",
+          "closing": "2028-12-31",
+          "debtClosing": "11688.17",
+          "debtOpening": "22819.76",
+          "depreciation": "11140.43",
+          "interest": "868.41",
+          "openingEquityEffect": "-538.91",
+          "paymentsInPeriod": 12,
+          "periodStart": "2028-01-01",
+          "pnlEffectBeforeTax": "-8.84",
+          "principal": "11131.59",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-868.41",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "-11140.43"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "11140.42",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "33421.27",
+          "accumulatedOpening": "22280.85",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "33421.27",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "311.83",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "11140.42",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "547.75",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "45421.27",
+          "closing": "2029-12-31",
+          "debtClosing": "0.00",
+          "debtOpening": "11688.17",
+          "depreciation": "11140.42",
+          "interest": "311.83",
+          "openingEquityEffect": "-547.75",
+          "paymentsInPeriod": 12,
+          "periodStart": "2029-01-01",
+          "pnlEffectBeforeTax": "547.75",
+          "principal": "11688.17",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-311.83",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "-11140.42"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "33421.27",
+      "debtInitialExact": "33421.2725727722084872684838858236195251352391",
+      "depreciationMonths": 36,
+      "id": "L16-F03",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 36,
+        "payment": "1000.00",
+        "rate": "0.05",
+        "usefulLifeMonths": 36
+      },
+      "label": "Taux annuel effectif 5 %, 36 loyers de 1 000,00 €, trois clôtures annuelles",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0040741237836483016054196026721071635866",
+      "mutationRateDividedBy12": {
+        "debtInitial": "33365.70",
+        "detected": true
+      },
+      "rouInitial": "33421.27",
+      "schedule": [
+        {
+          "closingDebt": "32557.43",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "136.16",
+          "interest": "136.16",
+          "openingDebt": "33421.27",
+          "payment": "1000.00",
+          "principal": "863.84",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "31690.08",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "132.64",
+          "interest": "132.65",
+          "openingDebt": "32557.43",
+          "payment": "1000.00",
+          "principal": "867.35",
+          "roundingGap": "0.01",
+          "t": 2
+        },
+        {
+          "closingDebt": "30819.19",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "129.11",
+          "interest": "129.11",
+          "openingDebt": "31690.08",
+          "payment": "1000.00",
+          "principal": "870.89",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "29944.75",
+          "dueDate": "2027-04-30",
+          "economicInterestRounded": "125.56",
+          "interest": "125.56",
+          "openingDebt": "30819.19",
+          "payment": "1000.00",
+          "principal": "874.44",
+          "roundingGap": "0.00",
+          "t": 4
+        },
+        {
+          "closingDebt": "29066.75",
+          "dueDate": "2027-05-31",
+          "economicInterestRounded": "122.00",
+          "interest": "122.00",
+          "openingDebt": "29944.75",
+          "payment": "1000.00",
+          "principal": "878.00",
+          "roundingGap": "0.00",
+          "t": 5
+        },
+        {
+          "closingDebt": "28185.17",
+          "dueDate": "2027-06-30",
+          "economicInterestRounded": "118.42",
+          "interest": "118.42",
+          "openingDebt": "29066.75",
+          "payment": "1000.00",
+          "principal": "881.58",
+          "roundingGap": "0.00",
+          "t": 6
+        },
+        {
+          "closingDebt": "27300.00",
+          "dueDate": "2027-07-31",
+          "economicInterestRounded": "114.83",
+          "interest": "114.83",
+          "openingDebt": "28185.17",
+          "payment": "1000.00",
+          "principal": "885.17",
+          "roundingGap": "0.00",
+          "t": 7
+        },
+        {
+          "closingDebt": "26411.22",
+          "dueDate": "2027-08-31",
+          "economicInterestRounded": "111.22",
+          "interest": "111.22",
+          "openingDebt": "27300.00",
+          "payment": "1000.00",
+          "principal": "888.78",
+          "roundingGap": "0.00",
+          "t": 8
+        },
+        {
+          "closingDebt": "25518.82",
+          "dueDate": "2027-09-30",
+          "economicInterestRounded": "107.60",
+          "interest": "107.60",
+          "openingDebt": "26411.22",
+          "payment": "1000.00",
+          "principal": "892.40",
+          "roundingGap": "0.00",
+          "t": 9
+        },
+        {
+          "closingDebt": "24622.79",
+          "dueDate": "2027-10-31",
+          "economicInterestRounded": "103.97",
+          "interest": "103.97",
+          "openingDebt": "25518.82",
+          "payment": "1000.00",
+          "principal": "896.03",
+          "roundingGap": "0.00",
+          "t": 10
+        },
+        {
+          "closingDebt": "23723.11",
+          "dueDate": "2027-11-30",
+          "economicInterestRounded": "100.32",
+          "interest": "100.32",
+          "openingDebt": "24622.79",
+          "payment": "1000.00",
+          "principal": "899.68",
+          "roundingGap": "0.00",
+          "t": 11
+        },
+        {
+          "closingDebt": "22819.76",
+          "dueDate": "2027-12-31",
+          "economicInterestRounded": "96.65",
+          "interest": "96.65",
+          "openingDebt": "23723.11",
+          "payment": "1000.00",
+          "principal": "903.35",
+          "roundingGap": "0.00",
+          "t": 12
+        },
+        {
+          "closingDebt": "21912.73",
+          "dueDate": "2028-01-31",
+          "economicInterestRounded": "92.97",
+          "interest": "92.97",
+          "openingDebt": "22819.76",
+          "payment": "1000.00",
+          "principal": "907.03",
+          "roundingGap": "0.00",
+          "t": 13
+        },
+        {
+          "closingDebt": "21002.00",
+          "dueDate": "2028-02-29",
+          "economicInterestRounded": "89.28",
+          "interest": "89.27",
+          "openingDebt": "21912.73",
+          "payment": "1000.00",
+          "principal": "910.73",
+          "roundingGap": "-0.01",
+          "t": 14
+        },
+        {
+          "closingDebt": "20087.57",
+          "dueDate": "2028-03-31",
+          "economicInterestRounded": "85.56",
+          "interest": "85.57",
+          "openingDebt": "21002.00",
+          "payment": "1000.00",
+          "principal": "914.43",
+          "roundingGap": "0.01",
+          "t": 15
+        },
+        {
+          "closingDebt": "19169.41",
+          "dueDate": "2028-04-30",
+          "economicInterestRounded": "81.84",
+          "interest": "81.84",
+          "openingDebt": "20087.57",
+          "payment": "1000.00",
+          "principal": "918.16",
+          "roundingGap": "0.00",
+          "t": 16
+        },
+        {
+          "closingDebt": "18247.51",
+          "dueDate": "2028-05-31",
+          "economicInterestRounded": "78.10",
+          "interest": "78.10",
+          "openingDebt": "19169.41",
+          "payment": "1000.00",
+          "principal": "921.90",
+          "roundingGap": "0.00",
+          "t": 17
+        },
+        {
+          "closingDebt": "17321.85",
+          "dueDate": "2028-06-30",
+          "economicInterestRounded": "74.34",
+          "interest": "74.34",
+          "openingDebt": "18247.51",
+          "payment": "1000.00",
+          "principal": "925.66",
+          "roundingGap": "0.00",
+          "t": 18
+        },
+        {
+          "closingDebt": "16392.42",
+          "dueDate": "2028-07-31",
+          "economicInterestRounded": "70.57",
+          "interest": "70.57",
+          "openingDebt": "17321.85",
+          "payment": "1000.00",
+          "principal": "929.43",
+          "roundingGap": "0.00",
+          "t": 19
+        },
+        {
+          "closingDebt": "15459.21",
+          "dueDate": "2028-08-31",
+          "economicInterestRounded": "66.78",
+          "interest": "66.79",
+          "openingDebt": "16392.42",
+          "payment": "1000.00",
+          "principal": "933.21",
+          "roundingGap": "0.01",
+          "t": 20
+        },
+        {
+          "closingDebt": "14522.19",
+          "dueDate": "2028-09-30",
+          "economicInterestRounded": "62.98",
+          "interest": "62.98",
+          "openingDebt": "15459.21",
+          "payment": "1000.00",
+          "principal": "937.02",
+          "roundingGap": "0.00",
+          "t": 21
+        },
+        {
+          "closingDebt": "13581.35",
+          "dueDate": "2028-10-31",
+          "economicInterestRounded": "59.17",
+          "interest": "59.16",
+          "openingDebt": "14522.19",
+          "payment": "1000.00",
+          "principal": "940.84",
+          "roundingGap": "-0.01",
+          "t": 22
+        },
+        {
+          "closingDebt": "12636.69",
+          "dueDate": "2028-11-30",
+          "economicInterestRounded": "55.33",
+          "interest": "55.34",
+          "openingDebt": "13581.35",
+          "payment": "1000.00",
+          "principal": "944.66",
+          "roundingGap": "0.01",
+          "t": 23
+        },
+        {
+          "closingDebt": "11688.17",
+          "dueDate": "2028-12-31",
+          "economicInterestRounded": "51.48",
+          "interest": "51.48",
+          "openingDebt": "12636.69",
+          "payment": "1000.00",
+          "principal": "948.52",
+          "roundingGap": "0.00",
+          "t": 24
+        },
+        {
+          "closingDebt": "10735.79",
+          "dueDate": "2029-01-31",
+          "economicInterestRounded": "47.62",
+          "interest": "47.62",
+          "openingDebt": "11688.17",
+          "payment": "1000.00",
+          "principal": "952.38",
+          "roundingGap": "0.00",
+          "t": 25
+        },
+        {
+          "closingDebt": "9779.53",
+          "dueDate": "2029-02-28",
+          "economicInterestRounded": "43.74",
+          "interest": "43.74",
+          "openingDebt": "10735.79",
+          "payment": "1000.00",
+          "principal": "956.26",
+          "roundingGap": "0.00",
+          "t": 26
+        },
+        {
+          "closingDebt": "8819.37",
+          "dueDate": "2029-03-31",
+          "economicInterestRounded": "39.84",
+          "interest": "39.84",
+          "openingDebt": "9779.53",
+          "payment": "1000.00",
+          "principal": "960.16",
+          "roundingGap": "0.00",
+          "t": 27
+        },
+        {
+          "closingDebt": "7855.30",
+          "dueDate": "2029-04-30",
+          "economicInterestRounded": "35.93",
+          "interest": "35.93",
+          "openingDebt": "8819.37",
+          "payment": "1000.00",
+          "principal": "964.07",
+          "roundingGap": "0.00",
+          "t": 28
+        },
+        {
+          "closingDebt": "6887.30",
+          "dueDate": "2029-05-31",
+          "economicInterestRounded": "32.00",
+          "interest": "32.00",
+          "openingDebt": "7855.30",
+          "payment": "1000.00",
+          "principal": "968.00",
+          "roundingGap": "0.00",
+          "t": 29
+        },
+        {
+          "closingDebt": "5915.36",
+          "dueDate": "2029-06-30",
+          "economicInterestRounded": "28.06",
+          "interest": "28.06",
+          "openingDebt": "6887.30",
+          "payment": "1000.00",
+          "principal": "971.94",
+          "roundingGap": "0.00",
+          "t": 30
+        },
+        {
+          "closingDebt": "4939.46",
+          "dueDate": "2029-07-31",
+          "economicInterestRounded": "24.10",
+          "interest": "24.10",
+          "openingDebt": "5915.36",
+          "payment": "1000.00",
+          "principal": "975.90",
+          "roundingGap": "0.00",
+          "t": 31
+        },
+        {
+          "closingDebt": "3959.59",
+          "dueDate": "2029-08-31",
+          "economicInterestRounded": "20.12",
+          "interest": "20.13",
+          "openingDebt": "4939.46",
+          "payment": "1000.00",
+          "principal": "979.87",
+          "roundingGap": "0.01",
+          "t": 32
+        },
+        {
+          "closingDebt": "2975.72",
+          "dueDate": "2029-09-30",
+          "economicInterestRounded": "16.13",
+          "interest": "16.13",
+          "openingDebt": "3959.59",
+          "payment": "1000.00",
+          "principal": "983.87",
+          "roundingGap": "0.00",
+          "t": 33
+        },
+        {
+          "closingDebt": "1987.84",
+          "dueDate": "2029-10-31",
+          "economicInterestRounded": "12.12",
+          "interest": "12.12",
+          "openingDebt": "2975.72",
+          "payment": "1000.00",
+          "principal": "987.88",
+          "roundingGap": "0.00",
+          "t": 34
+        },
+        {
+          "closingDebt": "995.94",
+          "dueDate": "2029-11-30",
+          "economicInterestRounded": "8.10",
+          "interest": "8.10",
+          "openingDebt": "1987.84",
+          "payment": "1000.00",
+          "principal": "991.90",
+          "roundingGap": "0.00",
+          "t": 35
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2029-12-31",
+          "economicInterestRounded": "4.06",
+          "interest": "4.06",
+          "openingDebt": "995.94",
+          "payment": "1000.00",
+          "principal": "995.94",
+          "roundingGap": "0.00",
+          "t": 36
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "2578.73",
+      "totalPayments": "36000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "980.33",
+          "accumulatedOpening": "0.00",
+          "additions": "2940.99",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "2940.99",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "980.33",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "1970.40",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "29.41",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "980.33",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "1000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "3950.73",
+          "closing": "2028-02-29",
+          "debtClosing": "1970.40",
+          "debtOpening": "0.00",
+          "depreciation": "980.33",
+          "interest": "29.41",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 1,
+          "periodStart": "2028-02-01",
+          "pnlEffectBeforeTax": "-9.74",
+          "principal": "970.59",
+          "rentNeutralized": "1000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-29.41",
+            "pcg_rent_neutralized": "1000.00",
+            "rou_depreciation_expense": "-980.33"
+          },
+          "rouGross": "2940.99",
+          "rouNetClosing": "1960.66",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "2940.99",
+      "debtInitialExact": "2940.9852072355554347710038134486912077150270",
+      "depreciationMonths": 3,
+      "id": "L16-F04",
+      "inputs": {
+        "commencement": "2028-02-01",
+        "months": 3,
+        "payment": "1000.00",
+        "rate": "0.126825030131969720661201",
+        "usefulLifeMonths": 3
+      },
+      "label": "Année bissextile : commencement 01/02/2028, première échéance 29/02/2028",
+      "maxAbsRoundingGap": "0.00",
+      "monthlyRateExact": "0.0100000000000000000000000000000000000000",
+      "mutationRateDividedBy12": {
+        "debtInitial": "2937.69",
+        "detected": true
+      },
+      "rouInitial": "2940.99",
+      "schedule": [
+        {
+          "closingDebt": "1970.40",
+          "dueDate": "2028-02-29",
+          "economicInterestRounded": "29.41",
+          "interest": "29.41",
+          "openingDebt": "2940.99",
+          "payment": "1000.00",
+          "principal": "970.59",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "990.10",
+          "dueDate": "2028-03-31",
+          "economicInterestRounded": "19.70",
+          "interest": "19.70",
+          "openingDebt": "1970.40",
+          "payment": "1000.00",
+          "principal": "980.30",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2028-04-30",
+          "economicInterestRounded": "9.90",
+          "interest": "9.90",
+          "openingDebt": "990.10",
+          "payment": "1000.00",
+          "principal": "990.10",
+          "roundingGap": "0.00",
+          "t": 3
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "59.01",
+      "totalPayments": "3000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "24775.63",
+          "accumulatedOpening": "0.00",
+          "additions": "247756.28",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "247756.28",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "24775.63",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "227120.42",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "9364.14",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "24775.63",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "30000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "281896.05",
+          "closing": "2027-12-31",
+          "debtClosing": "227120.42",
+          "debtOpening": "0.00",
+          "depreciation": "24775.63",
+          "interest": "9364.14",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-4139.77",
+          "principal": "20635.86",
+          "rentNeutralized": "30000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-9364.14",
+            "pcg_rent_neutralized": "30000.00",
+            "rou_depreciation_expense": "-24775.63"
+          },
+          "rouGross": "247756.28",
+          "rouNetClosing": "222980.65",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "247756.28",
+          "accumulatedOpening": "222980.65",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "247756.28",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "247756.28",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "628.74",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "24775.63",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "30000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "4595.63",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "277756.28",
+          "closing": "2036-12-31",
+          "debtClosing": "0.00",
+          "debtOpening": "29371.26",
+          "depreciation": "24775.63",
+          "interest": "628.74",
+          "openingEquityEffect": "-4595.63",
+          "paymentsInPeriod": 12,
+          "periodStart": "2036-01-01",
+          "pnlEffectBeforeTax": "4595.63",
+          "principal": "29371.26",
+          "rentNeutralized": "30000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-628.74",
+            "pcg_rent_neutralized": "30000.00",
+            "rou_depreciation_expense": "-24775.63"
+          },
+          "rouGross": "247756.28",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "247756.28",
+      "debtInitialExact": "247756.2762763998722226020017571101083983551846",
+      "depreciationMonths": 120,
+      "id": "L16-F05",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 120,
+        "payment": "2500.00",
+        "rate": "0.04",
+        "usefulLifeMonths": 120
+      },
+      "label": "Durée maximale technique : 120 loyers de 2 500,00 €, 4 %",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0032737397821988638592943204158789680534",
+      "mutationRateDividedBy12": {
+        "debtInitial": "246925.44",
+        "detected": true
+      },
+      "rouInitial": "247756.28",
+      "schedule": [
+        {
+          "closingDebt": "246067.37",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "811.09",
+          "interest": "811.09",
+          "openingDebt": "247756.28",
+          "payment": "2500.00",
+          "principal": "1688.91",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "244372.93",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "805.56",
+          "interest": "805.56",
+          "openingDebt": "246067.37",
+          "payment": "2500.00",
+          "principal": "1694.44",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "242672.94",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "800.01",
+          "interest": "800.01",
+          "openingDebt": "244372.93",
+          "payment": "2500.00",
+          "principal": "1699.99",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "4975.55",
+          "dueDate": "2036-10-31",
+          "economicInterestRounded": "24.39",
+          "interest": "24.39",
+          "openingDebt": "7451.16",
+          "payment": "2500.00",
+          "principal": "2475.61",
+          "roundingGap": "0.00",
+          "t": 118
+        },
+        {
+          "closingDebt": "2491.84",
+          "dueDate": "2036-11-30",
+          "economicInterestRounded": "16.29",
+          "interest": "16.29",
+          "openingDebt": "4975.55",
+          "payment": "2500.00",
+          "principal": "2483.71",
+          "roundingGap": "0.00",
+          "t": 119
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2036-12-31",
+          "economicInterestRounded": "8.16",
+          "interest": "8.16",
+          "openingDebt": "2491.84",
+          "payment": "2500.00",
+          "principal": "2491.84",
+          "roundingGap": "0.00",
+          "t": 120
+        }
+      ],
+      "scheduleTruncated": true,
+      "totalInterest": "52243.72",
+      "totalPayments": "300000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "9951.56",
+          "accumulatedOpening": "0.00",
+          "additions": "9951.56",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "9951.56",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "9951.56",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "48.44",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "9951.56",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "10000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "19951.56",
+          "closing": "2027-12-31",
+          "debtClosing": "0.00",
+          "debtOpening": "0.00",
+          "depreciation": "9951.56",
+          "interest": "48.44",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 1,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "0.00",
+          "principal": "9951.56",
+          "rentNeutralized": "10000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-48.44",
+            "pcg_rent_neutralized": "10000.00",
+            "rou_depreciation_expense": "-9951.56"
+          },
+          "rouGross": "9951.56",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "9951.56",
+      "debtInitialExact": "9951.5602771469281545049593978519204568288549",
+      "depreciationMonths": 1,
+      "id": "L16-F06",
+      "inputs": {
+        "commencement": "2027-12-01",
+        "months": 1,
+        "payment": "10000.00",
+        "rate": "0.06",
+        "usefulLifeMonths": 1
+      },
+      "label": "Terme final : un seul loyer de 10 000,00 €, 6 %",
+      "maxAbsRoundingGap": "0.00",
+      "monthlyRateExact": "0.0048675505653430375411989455875059950574",
+      "mutationRateDividedBy12": {
+        "debtInitial": "9950.25",
+        "detected": true
+      },
+      "rouInitial": "9951.56",
+      "schedule": [
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2027-12-31",
+          "economicInterestRounded": "48.44",
+          "interest": "48.44",
+          "openingDebt": "9951.56",
+          "payment": "10000.00",
+          "principal": "9951.56",
+          "roundingGap": "0.00",
+          "t": 1
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "48.44",
+      "totalPayments": "10000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "135912042.33",
+          "accumulatedOpening": "0.00",
+          "additions": "679560211.64",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "679560211.64",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "135912042.33",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "552834890.23",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "21422825.51",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "135912042.33",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "148148146.92",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "836895079.48",
+          "closing": "2027-12-31",
+          "debtClosing": "552834890.23",
+          "debtOpening": "0.00",
+          "depreciation": "135912042.33",
+          "interest": "21422825.51",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-9186720.92",
+          "principal": "126725321.41",
+          "rentNeutralized": "148148146.92",
+          "resultContributions": {
+            "lease_interest_expense": "-21422825.51",
+            "pcg_rent_neutralized": "148148146.92",
+            "rou_depreciation_expense": "-135912042.33"
+          },
+          "rouGross": "679560211.64",
+          "rouNetClosing": "543648169.31",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "679560211.64",
+      "debtInitialExact": "679560211.6386393158532350054284937014060016394512",
+      "depreciationMonths": 60,
+      "id": "L16-F07",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 60,
+        "payment": "12345678.91",
+        "rate": "0.035",
+        "usefulLifeMonths": 60
+      },
+      "label": "Gros montant : 60 loyers de 12 345 678,91 €, 3,5 %",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0028708987190766276170092557721199138834",
+      "mutationRateDividedBy12": {
+        "debtInitial": "678641819.69",
+        "detected": true
+      },
+      "rouInitial": "679560211.64",
+      "schedule": [
+        {
+          "closingDebt": "669165481.27",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "1950948.54",
+          "interest": "1950948.54",
+          "openingDebt": "679560211.64",
+          "payment": "12345678.91",
+          "principal": "10394730.37",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "658740908.68",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "1921106.32",
+          "interest": "1921106.32",
+          "openingDebt": "669165481.27",
+          "payment": "12345678.91",
+          "principal": "10424572.59",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "648286408.20",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "1891178.43",
+          "interest": "1891178.43",
+          "openingDebt": "658740908.68",
+          "payment": "12345678.91",
+          "principal": "10454500.48",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "24585433.80",
+          "dueDate": "2031-10-31",
+          "economicInterestRounded": "105721.97",
+          "interest": "105721.97",
+          "openingDebt": "36825390.74",
+          "payment": "12345678.91",
+          "principal": "12239956.94",
+          "roundingGap": "0.00",
+          "t": 58
+        },
+        {
+          "closingDebt": "12310337.18",
+          "dueDate": "2031-11-30",
+          "economicInterestRounded": "70582.29",
+          "interest": "70582.29",
+          "openingDebt": "24585433.80",
+          "payment": "12345678.91",
+          "principal": "12275096.62",
+          "roundingGap": "0.00",
+          "t": 59
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2031-12-31",
+          "economicInterestRounded": "35341.73",
+          "interest": "35341.73",
+          "openingDebt": "12310337.18",
+          "payment": "12345678.91",
+          "principal": "12310337.18",
+          "roundingGap": "0.00",
+          "t": 60
+        }
+      ],
+      "scheduleTruncated": true,
+      "totalInterest": "61180522.96",
+      "totalPayments": "740740734.60"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "21503.04",
+          "accumulatedOpening": "0.00",
+          "additions": "107515.21",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "107515.21",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "21503.04",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "87862.33",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "4347.12",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "21503.04",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "24000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "133365.37",
+          "closing": "2025-12-31",
+          "debtClosing": "87862.33",
+          "debtOpening": "0.00",
+          "depreciation": "21503.04",
+          "interest": "4347.12",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2025-01-01",
+          "pnlEffectBeforeTax": "-1850.16",
+          "principal": "19652.88",
+          "rentNeutralized": "24000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-4347.12",
+            "pcg_rent_neutralized": "24000.00",
+            "rou_depreciation_expense": "-21503.04"
+          },
+          "rouGross": "107515.21",
+          "rouNetClosing": "86012.17",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "43006.08",
+          "accumulatedOpening": "21503.04",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "107515.21",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "43006.08",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "67325.07",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "3462.74",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "21503.04",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "24000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "1850.16",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "134331.15",
+          "closing": "2026-12-31",
+          "debtClosing": "67325.07",
+          "debtOpening": "87862.33",
+          "depreciation": "21503.04",
+          "interest": "3462.74",
+          "openingEquityEffect": "-1850.16",
+          "paymentsInPeriod": 12,
+          "periodStart": "2026-01-01",
+          "pnlEffectBeforeTax": "-965.78",
+          "principal": "20537.26",
+          "rentNeutralized": "24000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-3462.74",
+            "pcg_rent_neutralized": "24000.00",
+            "rou_depreciation_expense": "-21503.04"
+          },
+          "rouGross": "107515.21",
+          "rouNetClosing": "64509.13",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "64509.13",
+          "accumulatedOpening": "43006.08",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "107515.21",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "64509.13",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "45863.63",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "2538.56",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "21503.05",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "24000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "2815.94",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "134372.76",
+          "closing": "2027-12-31",
+          "debtClosing": "45863.63",
+          "debtOpening": "67325.07",
+          "depreciation": "21503.05",
+          "interest": "2538.56",
+          "openingEquityEffect": "-2815.94",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-41.61",
+          "principal": "21461.44",
+          "rentNeutralized": "24000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-2538.56",
+            "pcg_rent_neutralized": "24000.00",
+            "rou_depreciation_expense": "-21503.05"
+          },
+          "rouGross": "107515.21",
+          "rouNetClosing": "43006.08",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "107515.21",
+      "debtInitialExact": "107515.2107077100156921075528253271162253715335",
+      "depreciationMonths": 60,
+      "id": "L16-F08",
+      "inputs": {
+        "commencement": "2025-01-01",
+        "months": 60,
+        "payment": "2000.00",
+        "rate": "0.045",
+        "usefulLifeMonths": 60
+      },
+      "label": "Contrat historique commencé le 01/01/2025, repris en 2027 avec ouverture cadrée",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0036748094004367666762746267917360651205",
+      "mutationRateDividedBy12": {
+        "debtInitial": "107278.76",
+        "detected": true
+      },
+      "rouInitial": "107515.21",
+      "schedule": [
+        {
+          "closingDebt": "105910.31",
+          "dueDate": "2025-01-31",
+          "economicInterestRounded": "395.10",
+          "interest": "395.10",
+          "openingDebt": "107515.21",
+          "payment": "2000.00",
+          "principal": "1604.90",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "104299.51",
+          "dueDate": "2025-02-28",
+          "economicInterestRounded": "389.20",
+          "interest": "389.20",
+          "openingDebt": "105910.31",
+          "payment": "2000.00",
+          "principal": "1610.80",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "102682.79",
+          "dueDate": "2025-03-31",
+          "economicInterestRounded": "383.28",
+          "interest": "383.28",
+          "openingDebt": "104299.51",
+          "payment": "2000.00",
+          "principal": "1616.72",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "3978.06",
+          "dueDate": "2029-10-31",
+          "economicInterestRounded": "21.89",
+          "interest": "21.89",
+          "openingDebt": "5956.17",
+          "payment": "2000.00",
+          "principal": "1978.11",
+          "roundingGap": "0.00",
+          "t": 58
+        },
+        {
+          "closingDebt": "1992.68",
+          "dueDate": "2029-11-30",
+          "economicInterestRounded": "14.62",
+          "interest": "14.62",
+          "openingDebt": "3978.06",
+          "payment": "2000.00",
+          "principal": "1985.38",
+          "roundingGap": "0.00",
+          "t": 59
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2029-12-31",
+          "economicInterestRounded": "7.32",
+          "interest": "7.32",
+          "openingDebt": "1992.68",
+          "payment": "2000.00",
+          "principal": "1992.68",
+          "roundingGap": "0.00",
+          "t": 60
+        }
+      ],
+      "scheduleTruncated": true,
+      "totalInterest": "12484.79",
+      "totalPayments": "120000.00"
+    },
+    {
+      "closings": [
+        {
+          "accumulatedClosing": "16710.64",
+          "accumulatedOpening": "0.00",
+          "additions": "33421.27",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "16710.64",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "22819.76",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "1398.49",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "16710.64",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            }
+          ],
+          "bundleTotal": "51530.40",
+          "closing": "2027-12-31",
+          "debtClosing": "22819.76",
+          "debtOpening": "0.00",
+          "depreciation": "16710.64",
+          "interest": "1398.49",
+          "openingEquityEffect": "0.00",
+          "paymentsInPeriod": 12,
+          "periodStart": "2027-01-01",
+          "pnlEffectBeforeTax": "-6109.13",
+          "principal": "10601.51",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-1398.49",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "-16710.64"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "16710.63",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "33421.27",
+          "accumulatedOpening": "16710.64",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "33421.27",
+              "side": "credit"
+            },
+            {
+              "account": "lease_liability",
+              "amount": "11688.17",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "868.41",
+              "side": "debit"
+            },
+            {
+              "account": "rou_depreciation_expense",
+              "amount": "16710.63",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "6109.13",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "57109.44",
+          "closing": "2028-12-31",
+          "debtClosing": "11688.17",
+          "debtOpening": "22819.76",
+          "depreciation": "16710.63",
+          "interest": "868.41",
+          "openingEquityEffect": "-6109.13",
+          "paymentsInPeriod": 12,
+          "periodStart": "2028-01-01",
+          "pnlEffectBeforeTax": "-5579.04",
+          "principal": "11131.59",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-868.41",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "-16710.63"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        },
+        {
+          "accumulatedClosing": "33421.27",
+          "accumulatedOpening": "33421.27",
+          "additions": "0.00",
+          "bundle": [
+            {
+              "account": "rou_gross",
+              "amount": "33421.27",
+              "side": "debit"
+            },
+            {
+              "account": "rou_accumulated_depreciation",
+              "amount": "33421.27",
+              "side": "credit"
+            },
+            {
+              "account": "lease_interest_expense",
+              "amount": "311.83",
+              "side": "debit"
+            },
+            {
+              "account": "pcg_rent_neutralized",
+              "amount": "12000.00",
+              "side": "credit"
+            },
+            {
+              "account": "opening_equity_effect",
+              "amount": "11688.17",
+              "side": "debit"
+            }
+          ],
+          "bundleTotal": "45421.27",
+          "closing": "2029-12-31",
+          "debtClosing": "0.00",
+          "debtOpening": "11688.17",
+          "depreciation": "0.00",
+          "interest": "311.83",
+          "openingEquityEffect": "-11688.17",
+          "paymentsInPeriod": 12,
+          "periodStart": "2029-01-01",
+          "pnlEffectBeforeTax": "11688.17",
+          "principal": "11688.17",
+          "rentNeutralized": "12000.00",
+          "resultContributions": {
+            "lease_interest_expense": "-311.83",
+            "pcg_rent_neutralized": "12000.00",
+            "rou_depreciation_expense": "0.00"
+          },
+          "rouGross": "33421.27",
+          "rouNetClosing": "0.00",
+          "status": "computed",
+          "taxStatus": "not_computed"
+        }
+      ],
+      "debtInitial": "33421.27",
+      "debtInitialExact": "33421.2725727722084872684838858236195251352391",
+      "depreciationMonths": 24,
+      "id": "L16-F09",
+      "inputs": {
+        "commencement": "2027-01-01",
+        "months": 36,
+        "payment": "1000.00",
+        "rate": "0.05",
+        "usefulLifeMonths": 24
+      },
+      "label": "Durée d'utilité retenue (24 mois) plus courte que le contrat (36 mois)",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0040741237836483016054196026721071635866",
+      "mutationRateDividedBy12": {
+        "debtInitial": "33365.70",
+        "detected": true
+      },
+      "rouInitial": "33421.27",
+      "schedule": [
+        {
+          "closingDebt": "32557.43",
+          "dueDate": "2027-01-31",
+          "economicInterestRounded": "136.16",
+          "interest": "136.16",
+          "openingDebt": "33421.27",
+          "payment": "1000.00",
+          "principal": "863.84",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "31690.08",
+          "dueDate": "2027-02-28",
+          "economicInterestRounded": "132.64",
+          "interest": "132.65",
+          "openingDebt": "32557.43",
+          "payment": "1000.00",
+          "principal": "867.35",
+          "roundingGap": "0.01",
+          "t": 2
+        },
+        {
+          "closingDebt": "30819.19",
+          "dueDate": "2027-03-31",
+          "economicInterestRounded": "129.11",
+          "interest": "129.11",
+          "openingDebt": "31690.08",
+          "payment": "1000.00",
+          "principal": "870.89",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "29944.75",
+          "dueDate": "2027-04-30",
+          "economicInterestRounded": "125.56",
+          "interest": "125.56",
+          "openingDebt": "30819.19",
+          "payment": "1000.00",
+          "principal": "874.44",
+          "roundingGap": "0.00",
+          "t": 4
+        },
+        {
+          "closingDebt": "29066.75",
+          "dueDate": "2027-05-31",
+          "economicInterestRounded": "122.00",
+          "interest": "122.00",
+          "openingDebt": "29944.75",
+          "payment": "1000.00",
+          "principal": "878.00",
+          "roundingGap": "0.00",
+          "t": 5
+        },
+        {
+          "closingDebt": "28185.17",
+          "dueDate": "2027-06-30",
+          "economicInterestRounded": "118.42",
+          "interest": "118.42",
+          "openingDebt": "29066.75",
+          "payment": "1000.00",
+          "principal": "881.58",
+          "roundingGap": "0.00",
+          "t": 6
+        },
+        {
+          "closingDebt": "27300.00",
+          "dueDate": "2027-07-31",
+          "economicInterestRounded": "114.83",
+          "interest": "114.83",
+          "openingDebt": "28185.17",
+          "payment": "1000.00",
+          "principal": "885.17",
+          "roundingGap": "0.00",
+          "t": 7
+        },
+        {
+          "closingDebt": "26411.22",
+          "dueDate": "2027-08-31",
+          "economicInterestRounded": "111.22",
+          "interest": "111.22",
+          "openingDebt": "27300.00",
+          "payment": "1000.00",
+          "principal": "888.78",
+          "roundingGap": "0.00",
+          "t": 8
+        },
+        {
+          "closingDebt": "25518.82",
+          "dueDate": "2027-09-30",
+          "economicInterestRounded": "107.60",
+          "interest": "107.60",
+          "openingDebt": "26411.22",
+          "payment": "1000.00",
+          "principal": "892.40",
+          "roundingGap": "0.00",
+          "t": 9
+        },
+        {
+          "closingDebt": "24622.79",
+          "dueDate": "2027-10-31",
+          "economicInterestRounded": "103.97",
+          "interest": "103.97",
+          "openingDebt": "25518.82",
+          "payment": "1000.00",
+          "principal": "896.03",
+          "roundingGap": "0.00",
+          "t": 10
+        },
+        {
+          "closingDebt": "23723.11",
+          "dueDate": "2027-11-30",
+          "economicInterestRounded": "100.32",
+          "interest": "100.32",
+          "openingDebt": "24622.79",
+          "payment": "1000.00",
+          "principal": "899.68",
+          "roundingGap": "0.00",
+          "t": 11
+        },
+        {
+          "closingDebt": "22819.76",
+          "dueDate": "2027-12-31",
+          "economicInterestRounded": "96.65",
+          "interest": "96.65",
+          "openingDebt": "23723.11",
+          "payment": "1000.00",
+          "principal": "903.35",
+          "roundingGap": "0.00",
+          "t": 12
+        },
+        {
+          "closingDebt": "21912.73",
+          "dueDate": "2028-01-31",
+          "economicInterestRounded": "92.97",
+          "interest": "92.97",
+          "openingDebt": "22819.76",
+          "payment": "1000.00",
+          "principal": "907.03",
+          "roundingGap": "0.00",
+          "t": 13
+        },
+        {
+          "closingDebt": "21002.00",
+          "dueDate": "2028-02-29",
+          "economicInterestRounded": "89.28",
+          "interest": "89.27",
+          "openingDebt": "21912.73",
+          "payment": "1000.00",
+          "principal": "910.73",
+          "roundingGap": "-0.01",
+          "t": 14
+        },
+        {
+          "closingDebt": "20087.57",
+          "dueDate": "2028-03-31",
+          "economicInterestRounded": "85.56",
+          "interest": "85.57",
+          "openingDebt": "21002.00",
+          "payment": "1000.00",
+          "principal": "914.43",
+          "roundingGap": "0.01",
+          "t": 15
+        },
+        {
+          "closingDebt": "19169.41",
+          "dueDate": "2028-04-30",
+          "economicInterestRounded": "81.84",
+          "interest": "81.84",
+          "openingDebt": "20087.57",
+          "payment": "1000.00",
+          "principal": "918.16",
+          "roundingGap": "0.00",
+          "t": 16
+        },
+        {
+          "closingDebt": "18247.51",
+          "dueDate": "2028-05-31",
+          "economicInterestRounded": "78.10",
+          "interest": "78.10",
+          "openingDebt": "19169.41",
+          "payment": "1000.00",
+          "principal": "921.90",
+          "roundingGap": "0.00",
+          "t": 17
+        },
+        {
+          "closingDebt": "17321.85",
+          "dueDate": "2028-06-30",
+          "economicInterestRounded": "74.34",
+          "interest": "74.34",
+          "openingDebt": "18247.51",
+          "payment": "1000.00",
+          "principal": "925.66",
+          "roundingGap": "0.00",
+          "t": 18
+        },
+        {
+          "closingDebt": "16392.42",
+          "dueDate": "2028-07-31",
+          "economicInterestRounded": "70.57",
+          "interest": "70.57",
+          "openingDebt": "17321.85",
+          "payment": "1000.00",
+          "principal": "929.43",
+          "roundingGap": "0.00",
+          "t": 19
+        },
+        {
+          "closingDebt": "15459.21",
+          "dueDate": "2028-08-31",
+          "economicInterestRounded": "66.78",
+          "interest": "66.79",
+          "openingDebt": "16392.42",
+          "payment": "1000.00",
+          "principal": "933.21",
+          "roundingGap": "0.01",
+          "t": 20
+        },
+        {
+          "closingDebt": "14522.19",
+          "dueDate": "2028-09-30",
+          "economicInterestRounded": "62.98",
+          "interest": "62.98",
+          "openingDebt": "15459.21",
+          "payment": "1000.00",
+          "principal": "937.02",
+          "roundingGap": "0.00",
+          "t": 21
+        },
+        {
+          "closingDebt": "13581.35",
+          "dueDate": "2028-10-31",
+          "economicInterestRounded": "59.17",
+          "interest": "59.16",
+          "openingDebt": "14522.19",
+          "payment": "1000.00",
+          "principal": "940.84",
+          "roundingGap": "-0.01",
+          "t": 22
+        },
+        {
+          "closingDebt": "12636.69",
+          "dueDate": "2028-11-30",
+          "economicInterestRounded": "55.33",
+          "interest": "55.34",
+          "openingDebt": "13581.35",
+          "payment": "1000.00",
+          "principal": "944.66",
+          "roundingGap": "0.01",
+          "t": 23
+        },
+        {
+          "closingDebt": "11688.17",
+          "dueDate": "2028-12-31",
+          "economicInterestRounded": "51.48",
+          "interest": "51.48",
+          "openingDebt": "12636.69",
+          "payment": "1000.00",
+          "principal": "948.52",
+          "roundingGap": "0.00",
+          "t": 24
+        },
+        {
+          "closingDebt": "10735.79",
+          "dueDate": "2029-01-31",
+          "economicInterestRounded": "47.62",
+          "interest": "47.62",
+          "openingDebt": "11688.17",
+          "payment": "1000.00",
+          "principal": "952.38",
+          "roundingGap": "0.00",
+          "t": 25
+        },
+        {
+          "closingDebt": "9779.53",
+          "dueDate": "2029-02-28",
+          "economicInterestRounded": "43.74",
+          "interest": "43.74",
+          "openingDebt": "10735.79",
+          "payment": "1000.00",
+          "principal": "956.26",
+          "roundingGap": "0.00",
+          "t": 26
+        },
+        {
+          "closingDebt": "8819.37",
+          "dueDate": "2029-03-31",
+          "economicInterestRounded": "39.84",
+          "interest": "39.84",
+          "openingDebt": "9779.53",
+          "payment": "1000.00",
+          "principal": "960.16",
+          "roundingGap": "0.00",
+          "t": 27
+        },
+        {
+          "closingDebt": "7855.30",
+          "dueDate": "2029-04-30",
+          "economicInterestRounded": "35.93",
+          "interest": "35.93",
+          "openingDebt": "8819.37",
+          "payment": "1000.00",
+          "principal": "964.07",
+          "roundingGap": "0.00",
+          "t": 28
+        },
+        {
+          "closingDebt": "6887.30",
+          "dueDate": "2029-05-31",
+          "economicInterestRounded": "32.00",
+          "interest": "32.00",
+          "openingDebt": "7855.30",
+          "payment": "1000.00",
+          "principal": "968.00",
+          "roundingGap": "0.00",
+          "t": 29
+        },
+        {
+          "closingDebt": "5915.36",
+          "dueDate": "2029-06-30",
+          "economicInterestRounded": "28.06",
+          "interest": "28.06",
+          "openingDebt": "6887.30",
+          "payment": "1000.00",
+          "principal": "971.94",
+          "roundingGap": "0.00",
+          "t": 30
+        },
+        {
+          "closingDebt": "4939.46",
+          "dueDate": "2029-07-31",
+          "economicInterestRounded": "24.10",
+          "interest": "24.10",
+          "openingDebt": "5915.36",
+          "payment": "1000.00",
+          "principal": "975.90",
+          "roundingGap": "0.00",
+          "t": 31
+        },
+        {
+          "closingDebt": "3959.59",
+          "dueDate": "2029-08-31",
+          "economicInterestRounded": "20.12",
+          "interest": "20.13",
+          "openingDebt": "4939.46",
+          "payment": "1000.00",
+          "principal": "979.87",
+          "roundingGap": "0.01",
+          "t": 32
+        },
+        {
+          "closingDebt": "2975.72",
+          "dueDate": "2029-09-30",
+          "economicInterestRounded": "16.13",
+          "interest": "16.13",
+          "openingDebt": "3959.59",
+          "payment": "1000.00",
+          "principal": "983.87",
+          "roundingGap": "0.00",
+          "t": 33
+        },
+        {
+          "closingDebt": "1987.84",
+          "dueDate": "2029-10-31",
+          "economicInterestRounded": "12.12",
+          "interest": "12.12",
+          "openingDebt": "2975.72",
+          "payment": "1000.00",
+          "principal": "987.88",
+          "roundingGap": "0.00",
+          "t": 34
+        },
+        {
+          "closingDebt": "995.94",
+          "dueDate": "2029-11-30",
+          "economicInterestRounded": "8.10",
+          "interest": "8.10",
+          "openingDebt": "1987.84",
+          "payment": "1000.00",
+          "principal": "991.90",
+          "roundingGap": "0.00",
+          "t": 35
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2029-12-31",
+          "economicInterestRounded": "4.06",
+          "interest": "4.06",
+          "openingDebt": "995.94",
+          "payment": "1000.00",
+          "principal": "995.94",
+          "roundingGap": "0.00",
+          "t": 36
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "2578.73",
+      "totalPayments": "36000.00"
+    },
+    {
+      "closings": [
+        {
+          "closing": "2027-12-31",
+          "periodStart": "2027-01-01",
+          "reason": "Prise d'effet postérieure à la clôture : contrat à suivre, aucun montant reconnu à cette date",
+          "status": "not_commenced"
+        }
+      ],
+      "debtInitial": "11688.17",
+      "debtInitialExact": "11688.1690758069341339297394081270548854755277",
+      "depreciationMonths": 12,
+      "id": "L16-F10",
+      "inputs": {
+        "commencement": "2028-01-01",
+        "months": 12,
+        "payment": "1000.00",
+        "rate": "0.05",
+        "usefulLifeMonths": 12
+      },
+      "label": "Prise d'effet postérieure à la clôture : contrat à suivre, rien de reconnu",
+      "maxAbsRoundingGap": "0.01",
+      "monthlyRateExact": "0.0040741237836483016054196026721071635866",
+      "mutationRateDividedBy12": {
+        "debtInitial": "11681.22",
+        "detected": true
+      },
+      "rouInitial": "11688.17",
+      "schedule": [
+        {
+          "closingDebt": "10735.79",
+          "dueDate": "2028-01-31",
+          "economicInterestRounded": "47.62",
+          "interest": "47.62",
+          "openingDebt": "11688.17",
+          "payment": "1000.00",
+          "principal": "952.38",
+          "roundingGap": "0.00",
+          "t": 1
+        },
+        {
+          "closingDebt": "9779.53",
+          "dueDate": "2028-02-29",
+          "economicInterestRounded": "43.74",
+          "interest": "43.74",
+          "openingDebt": "10735.79",
+          "payment": "1000.00",
+          "principal": "956.26",
+          "roundingGap": "0.00",
+          "t": 2
+        },
+        {
+          "closingDebt": "8819.37",
+          "dueDate": "2028-03-31",
+          "economicInterestRounded": "39.84",
+          "interest": "39.84",
+          "openingDebt": "9779.53",
+          "payment": "1000.00",
+          "principal": "960.16",
+          "roundingGap": "0.00",
+          "t": 3
+        },
+        {
+          "closingDebt": "7855.30",
+          "dueDate": "2028-04-30",
+          "economicInterestRounded": "35.93",
+          "interest": "35.93",
+          "openingDebt": "8819.37",
+          "payment": "1000.00",
+          "principal": "964.07",
+          "roundingGap": "0.00",
+          "t": 4
+        },
+        {
+          "closingDebt": "6887.30",
+          "dueDate": "2028-05-31",
+          "economicInterestRounded": "32.00",
+          "interest": "32.00",
+          "openingDebt": "7855.30",
+          "payment": "1000.00",
+          "principal": "968.00",
+          "roundingGap": "0.00",
+          "t": 5
+        },
+        {
+          "closingDebt": "5915.36",
+          "dueDate": "2028-06-30",
+          "economicInterestRounded": "28.06",
+          "interest": "28.06",
+          "openingDebt": "6887.30",
+          "payment": "1000.00",
+          "principal": "971.94",
+          "roundingGap": "0.00",
+          "t": 6
+        },
+        {
+          "closingDebt": "4939.46",
+          "dueDate": "2028-07-31",
+          "economicInterestRounded": "24.10",
+          "interest": "24.10",
+          "openingDebt": "5915.36",
+          "payment": "1000.00",
+          "principal": "975.90",
+          "roundingGap": "0.00",
+          "t": 7
+        },
+        {
+          "closingDebt": "3959.59",
+          "dueDate": "2028-08-31",
+          "economicInterestRounded": "20.12",
+          "interest": "20.13",
+          "openingDebt": "4939.46",
+          "payment": "1000.00",
+          "principal": "979.87",
+          "roundingGap": "0.01",
+          "t": 8
+        },
+        {
+          "closingDebt": "2975.72",
+          "dueDate": "2028-09-30",
+          "economicInterestRounded": "16.13",
+          "interest": "16.13",
+          "openingDebt": "3959.59",
+          "payment": "1000.00",
+          "principal": "983.87",
+          "roundingGap": "0.00",
+          "t": 9
+        },
+        {
+          "closingDebt": "1987.84",
+          "dueDate": "2028-10-31",
+          "economicInterestRounded": "12.12",
+          "interest": "12.12",
+          "openingDebt": "2975.72",
+          "payment": "1000.00",
+          "principal": "987.88",
+          "roundingGap": "0.00",
+          "t": 10
+        },
+        {
+          "closingDebt": "995.94",
+          "dueDate": "2028-11-30",
+          "economicInterestRounded": "8.10",
+          "interest": "8.10",
+          "openingDebt": "1987.84",
+          "payment": "1000.00",
+          "principal": "991.90",
+          "roundingGap": "0.00",
+          "t": 11
+        },
+        {
+          "closingDebt": "0.00",
+          "dueDate": "2028-12-31",
+          "economicInterestRounded": "4.06",
+          "interest": "4.06",
+          "openingDebt": "995.94",
+          "payment": "1000.00",
+          "principal": "995.94",
+          "roundingGap": "0.00",
+          "t": 12
+        }
+      ],
+      "scheduleTruncated": false,
+      "totalInterest": "311.83",
+      "totalPayments": "12000.00"
+    }
+  ],
+  "oracle": "docs/ifrs/recette/attendus_l16.py",
+  "precision": "Decimal, 60 chiffres significatifs",
+  "rounding": "ROUND_HALF_UP (moitié à l'opposé de zéro) au centime"
+}

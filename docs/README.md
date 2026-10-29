@@ -63,13 +63,16 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`recette/c15/RAPPORT.md`](./recette/c15/RAPPORT.md) | **Rapport unique** : capacités livrées, défauts corrigés avant / après, matrice du rapport du 12/10/2026, parcours réel persistant avec arrêt et reprise, recette visuelle, contrôles, non vérifiés, limites (dont C10 absente) |
 | [`recette/c15/ATTENDUS.md`](./recette/c15/ATTENDUS.md) | Attendus posés à la main avant exécution (`attendus.py` → `attendus.json`) |
 
-## IFRS 16 / IFRS 18 — plan versionné, non exécuté
+## IFRS 16 / IFRS 18 — plan versionné, lot C00 réalisé
 
-Aucun lot n'est exécuté : ni code, ni route, ni capacité IFRS dans le dépôt.
+C00 est réalisé, restreint à IFRS 16 et purement documentaire. Il n'y a encore ni code, ni route, ni capacité IFRS dans le dépôt.
 
 | Document | À quoi il sert |
 |---|---|
 | [`ifrs/README.md`](./ifrs/README.md) | **Point d'entrée** : état, provenance et intégrité du plan, règles d'usage |
+| [`ifrs/handoffs/C00.md`](./ifrs/handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
+| [`ifrs/CONTRAT_COMMUN.md`](./ifrs/CONTRAT_COMMUN.md) · [`ifrs/SCOPE_V1.md`](./ifrs/SCOPE_V1.md) | Contrats et noms stables ; périmètre V1 avec matrices exigences → tests et cas exclus → blocages |
+| [`ifrs/SOURCES.md`](./ifrs/SOURCES.md) · [`ifrs/RECETTE_REFERENCE.md`](./ifrs/RECETTE_REFERENCE.md) | Sources lues ; attendus de l'oracle indépendant (`recette/attendus_l16.py`) |
 | [`ifrs/plan/`](./ifrs/plan/) | Le plan du 16/10/2026, copié à l'identique : architecture, charte, sources, prompts C00 → C03, L16-01 → L16-06, P18-01 → P18-06 |
 | [`ifrs/ECARTS_e25a4ad_97bed70.md`](./ifrs/ECARTS_e25a4ad_97bed70.md) | Écarts entre la base du plan et `main` au 29/10/2026, points que C00 doit trancher, séquence proposée |
 

@@ -1,11 +1,16 @@
-# IFRS 16 / IFRS 18 — plan versionné, non exécuté
+# IFRS 16 / IFRS 18 — plan versionné, lot C00 réalisé
 
-État au 29/10/2026 : **aucun lot exécuté.** Le dépôt ne contient ni code, ni route, ni migration, ni capacité, ni règle IFRS 16 ou IFRS 18. `lib/ifrs/`, les routes `/ifrs/*`, `docs/ifrs/handoffs/` et les livrables de C00 (`CONTRAT_COMMUN.md`, `SCOPE_V1.md`, `SOURCES.md`, `RECETTE_REFERENCE.md`) restent à produire. Un fichier de ce répertoire est une spécification ou un relevé, jamais la preuve d'une fonctionnalité.
+État au 29/10/2026 : **C00 réalisé, restreint à IFRS 16** (documentaire : contrats, périmètre, sources, attendus). Aucun autre lot n'est exécuté. Le dépôt ne contient ni code, ni route, ni migration, ni capacité, ni règle IFRS 16 ou IFRS 18 : `lib/ifrs/` et les routes `/ifrs/*` restent à produire, à partir de C01. Un fichier de ce répertoire est une spécification ou un relevé, jamais la preuve d'une fonctionnalité.
 
 ## Contenu
 
 | Élément | Rôle |
 |---|---|
+| [`handoffs/C00.md`](./handoffs/C00.md) | **Où en est le chantier** : décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
+| [`SCOPE_V1.md`](./SCOPE_V1.md) | Périmètre fermé de l'atelier Locations IFRS 16 et ses deux matrices (exigences, cas exclus) |
+| [`CONTRAT_COMMUN.md`](./CONTRAT_COMMUN.md) | Noms stables, contrats de données, conventions de calcul, commandes et erreurs, rattachement au registre et à la clôture |
+| [`SOURCES.md`](./SOURCES.md) | Sources IFRS 16, IFRIC et PCG effectivement lues, et état de la règle |
+| [`RECETTE_REFERENCE.md`](./RECETTE_REFERENCE.md) | Fixtures et attendus établis avant le moteur, par l'oracle [`recette/attendus_l16.py`](./recette/attendus_l16.py) |
 | [`plan/00_LIRE_D_ABORD.md`](./plan/00_LIRE_D_ABORD.md) | Point d'entrée du plan : résultat visé, ordre d'exécution obligatoire, convention de handoff |
 | [`plan/`](./plan/) | Copie à l'identique des 20 documents : 4 documents racine, 4 prompts communs (C00 → C03), 6 prompts IFRS 16 (L16-01 → L16-06), 6 prompts IFRS 18 (P18-01 → P18-06) |
 | [`ECARTS_e25a4ad_97bed70.md`](./ECARTS_e25a4ad_97bed70.md) | Écarts entre la base du plan et `main` au 29/10/2026, points que C00 doit trancher, séquence proposée |
