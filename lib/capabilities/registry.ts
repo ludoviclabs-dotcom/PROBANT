@@ -1,7 +1,7 @@
 import { durableChainEnabled } from "@/lib/runtime/profile";
 import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliation-definitions";
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
-import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, type CapabilityCycleId } from "./procedures";
+import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, FRAMEWORK_PROCEDURES, type CapabilityCycleId } from "./procedures";
 export * from "./procedures";
 /**
  * 1.1.0 (C08): Stocks capacity stated precisely — declared costs, bounded value review, no certified physical inventory.
@@ -10,8 +10,9 @@ export * from "./procedures";
  * 1.2.1: Capitaux propres sheet rule 1.1.1 (SCA through the renvoi of C. com. L226-1); a 1.1.0 sheet stays current unless declared SCA.
  * 1.4.0 (C13): Dettes financières — journal cycle and versioned loans sheet /emprunts (loans.review) over the historical reconciliation.
  * 1.4.1 (C14): Provisions mission restitution and export at exact version; the closing file binds one sheet lineage per programme procedure and reads sources through family adapters.
+ * 1.5.0 (IFRS C01): framework axis outside the journal cycles — ifrs16.leases (Clients store) stated as a storage and review base without engine nor screen.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.4.1";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.0";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -71,6 +72,21 @@ const journalCycles = CAPABILITY_CYCLE_IDS.map(id => {
 });
 /** One entry per journal cycle (C13: Dettes financières has its sheet /emprunts and keeps its historical reconciliation). */
 export const CAPABILITY_REGISTRY = journalCycles;
+/**
+ * Framework axis (IFRS C01, C00 D04), kept apart from the journal cycles: no cycle row counts an IFRS restatement, and no IFRS sheet enters a cycle section.
+ * The route is announced only once its page exists (C02); until then nothing is presented as executed.
+ */
+export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
+  requiredSources: ["Contrats et versions transcrits (lease_contracts)", "Hypothèses de taux, durée, exemptions et réponses de périmètre citées (lease_assumptions)", "Échéances et règlements (lease_schedule)",
+    "Grand livre 612 / 613 / 614 et pièces pour un retraitement déterminé (lease_ledger)", "Ouverture historique validée pour une reprise (lease_opening)"],
+  exclusions: ["Preneur seulement, euros, loyers fixes mensuels à terme échu, 1 à 120 mois (docs/ifrs/SCOPE_V1.md)", "Ni IFRS complet, ni annexe exhaustive, ni effet fiscal ; aucune méthode de transition choisie par l'outil",
+    "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
+  modes: {
+    historical: { implemented: false, scope: "Absent des constats historiques" },
+    scenario: { implemented: false, scope: "Scénario synthétique prévu avec le moteur (L16-02)" },
+    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Socle C01 seulement : stockage, sources, versions et revue ; aucun moteur ni écran, l'exécution renvoie une incapacité explicite." },
+  },
+  pageAvailable: false }));
 export function reconciliationCycles() {
   return CAPABILITY_REGISTRY.flatMap(c => c.reconciliation ? [c.reconciliation] : []).sort((a, b) => RECONCILIATION_DEFINITIONS.indexOf(a) - RECONCILIATION_DEFINITIONS.indexOf(b));
 }
@@ -83,10 +99,11 @@ export const PROCEDURE_ACTIVATION: Record<string, string> = {
   "cash.reconciliation": "PROBANT_CASH_DURABLE", "fixed_assets.review": "PROBANT_FIXED_ASSETS_DURABLE", "stocks.count": "PROBANT_STOCKS_DURABLE",
   "provisions.register": "PROBANT_PROVISIONS_DURABLE", "capitaux_propres.review": "PROBANT_CAPITAUX_DURABLE", "equity.review": "PROBANT_EQUITY_DURABLE",
   "investments.review": "PROBANT_INVESTMENT_DURABLE", "loans.review": "PROBANT_LOANS_DURABLE", "tva.reconciliation": "PROBANT_FISCAL_DURABLE", "is.computation": "PROBANT_FISCAL_DURABLE", "exceptional.review": "PROBANT_EXCEPTIONAL_DURABLE",
+  "ifrs16.leases": "PROBANT_IFRS16_DURABLE",
 };
 /** Configuration is never evidence of execution, authorization or successful connectivity. */
 export function configuredProcedures(env: Record<string, string | undefined>) {
-  return Object.fromEntries(ENGINE_PROCEDURES.map(p => [p.id, { activated: durableChainEnabled(env, PROCEDURE_ACTIVATION[p.id]), databaseConfigured: !!env.DATABASE_URL?.trim() }]));
+  return Object.fromEntries([...ENGINE_PROCEDURES, ...FRAMEWORK_PROCEDURES].map(p => [p.id, { activated: durableChainEnabled(env, PROCEDURE_ACTIVATION[p.id]), databaseConfigured: !!env.DATABASE_URL?.trim() }]));
 }
 /** Workflow navigation is separate from cycle capability; these routes consume the same dossier context. */
 export const WORKFLOW_ROUTES = [

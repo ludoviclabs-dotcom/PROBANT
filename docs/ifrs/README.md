@@ -1,12 +1,22 @@
-# IFRS 16 / IFRS 18 — plan versionné, lot C00 réalisé
+# IFRS 16 / IFRS 18 — plan versionné, lots C00 et C01 réalisés
 
-État au 29/10/2026 : **C00 réalisé, restreint à IFRS 16** (documentaire : contrats, périmètre, sources, attendus). Aucun autre lot n'est exécuté. Le dépôt ne contient ni code, ni route, ni migration, ni capacité, ni règle IFRS 16 ou IFRS 18 : `lib/ifrs/` et les routes `/ifrs/*` restent à produire, à partir de C01. Un fichier de ce répertoire est une spécification ou un relevé, jamais la preuve d'une fonctionnalité.
+État au 29/10/2026 :
+- **C00 réalisé, restreint à IFRS 16** (documentaire : contrats, périmètre, sources, attendus).
+- **C01 réalisé** : socle local sans moteur. Il comprend :
+  - la virgule fixe et les contrats communs (`lib/ifrs/shared`) ;
+  - la feuille `ifrs16.leases` sur le store « Clients » et l'API `/api/workpapers/locations-ifrs16` ;
+  - l'axe « référentiel » du registre (1.5.0) et la migration `0022`.
+
+  L'exécution renvoie une incapacité explicite (`L16_ENGINE_NOT_AVAILABLE`). Il n'y a encore ni page `/ifrs/locations`, ni moteur, ni calcul, ni règle validée.
+
+Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
 ## Contenu
 
 | Élément | Rôle |
 |---|---|
-| [`handoffs/C00.md`](./handoffs/C00.md) | **Où en est le chantier** : décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
+| [`handoffs/C01.md`](./handoffs/C01.md) | **Où en est le chantier** : livré, contrat des nouvelles données, décisions C01-D01 → D09, table d'erreurs, bilan des migrations, recette, contrat transmis à C02 et L16-01 |
+| [`handoffs/C00.md`](./handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
 | [`SCOPE_V1.md`](./SCOPE_V1.md) | Périmètre fermé de l'atelier Locations IFRS 16 et ses deux matrices (exigences, cas exclus) |
 | [`CONTRAT_COMMUN.md`](./CONTRAT_COMMUN.md) | Noms stables, contrats de données, conventions de calcul, commandes et erreurs, rattachement au registre et à la clôture |
 | [`SOURCES.md`](./SOURCES.md) | Sources IFRS 16, IFRIC et PCG effectivement lues, et état de la règle |

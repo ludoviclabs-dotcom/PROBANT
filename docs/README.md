@@ -63,13 +63,14 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`recette/c15/RAPPORT.md`](./recette/c15/RAPPORT.md) | **Rapport unique** : capacités livrées, défauts corrigés avant / après, matrice du rapport du 12/10/2026, parcours réel persistant avec arrêt et reprise, recette visuelle, contrôles, non vérifiés, limites (dont C10 absente) |
 | [`recette/c15/ATTENDUS.md`](./recette/c15/ATTENDUS.md) | Attendus posés à la main avant exécution (`attendus.py` → `attendus.json`) |
 
-## IFRS 16 / IFRS 18 — plan versionné, lot C00 réalisé
+## IFRS 16 / IFRS 18 — plan versionné, lots C00 et C01 réalisés
 
-C00 est réalisé, restreint à IFRS 16 et purement documentaire. Il n'y a encore ni code, ni route, ni capacité IFRS dans le dépôt.
+C00 (documentaire) et C01 (socle local) sont réalisés, restreints à IFRS 16. C01 livre la virgule fixe, les contrats communs, la feuille `ifrs16.leases` et son API, l'axe « référentiel » du registre et la migration `0022`. Il n'y a ni moteur, ni page, ni calcul IFRS 16 : l'exécution renvoie une incapacité explicite.
 
 | Document | À quoi il sert |
 |---|---|
 | [`ifrs/README.md`](./ifrs/README.md) | **Point d'entrée** : état, provenance et intégrité du plan, règles d'usage |
+| [`ifrs/handoffs/C01.md`](./ifrs/handoffs/C01.md) | Socle C01 : contrat des nouvelles données, décisions, table d'erreurs, bilan des migrations, recette |
 | [`ifrs/handoffs/C00.md`](./ifrs/handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
 | [`ifrs/CONTRAT_COMMUN.md`](./ifrs/CONTRAT_COMMUN.md) · [`ifrs/SCOPE_V1.md`](./ifrs/SCOPE_V1.md) | Contrats et noms stables ; périmètre V1 avec matrices exigences → tests et cas exclus → blocages |
 | [`ifrs/SOURCES.md`](./ifrs/SOURCES.md) · [`ifrs/RECETTE_REFERENCE.md`](./ifrs/RECETTE_REFERENCE.md) | Sources lues ; attendus de l'oracle indépendant (`recette/attendus_l16.py`) |

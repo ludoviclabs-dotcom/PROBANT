@@ -1,4 +1,5 @@
 import { readSourceHeads, readStoreHeads } from "@/lib/capabilities/store-readers";
+import { frameworkProcedure } from "@/lib/capabilities/procedures";
 import { sql, type SQL } from "drizzle-orm";
 import type { WorkpaperRun, WorkpaperScope } from "./model";
 import { type CycleFamily } from "./closing-contract";
@@ -68,7 +69,8 @@ class PostgresClosingTx implements ClosingTx {
     await this.tx.execute(sql`INSERT INTO cl_command_receipts (organization_id,dossier_id,period_id,actor_id,idempotency_key,request_hash,response)
       VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${actorId},${key},${requestHash},${JSON.stringify(response)}::jsonb)`);
   }
-  async cycleRuns(scope: WorkpaperScope) { return readStoreHeads(this.tx, scope); }
+  /** Cycle sheets only: a framework sheet (IFRS, C01) shares a family table but is no cycle observation; its own section comes with L16-05. */
+  async cycleRuns(scope: WorkpaperScope) { return (await readStoreHeads(this.tx, scope)).filter(r => !frameworkProcedure(r.run.template.id)); }
   async cycleSourceHeads(scope: WorkpaperScope) { return readSourceHeads(this.tx, scope); }
 }
 export class PostgresClosingDatabase implements ClosingDatabase {

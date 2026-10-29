@@ -4,6 +4,7 @@ import { equitySourcesCurrent } from "./capitaux-sources";
 import { fiscalRelevance, fiscalSourcesCurrent } from "./fiscal-sources";
 import { fixedAssetSourcesCurrent } from "./fixed-asset-sources";
 import { LOAN_TYPES } from "./loan-review";
+import { LEASE_TYPES } from "./lease-sources";
 import { provisionSourcesCurrent } from "./provision-sources";
 import { stockSourcesCurrent } from "./stock-sources";
 
@@ -23,10 +24,13 @@ const RULES: Record<CycleFamily, Rule> = {
   st: (run, heads) => stockSourcesCurrent(run.importIds, heads),
   pv: (run, heads) => provisionSourcesCurrent(run.importIds, heads),
 };
-/** Procedures sharing a family table but carrying their own rule: Emprunts (C13) also flags a loan source added after the freeze, on its own document types. */
+/** Frozen sources are still the heads of their own types, and no source of these types was added after the freeze. */
+const ownTypesCurrent = (types: readonly string[]): Rule => (run, heads) => { const own = heads.filter(h => types.includes(h.document_type));
+  return run.importIds.every(i => own.some(h => h.import_id === i)) && (!run.population || own.every(h => run.importIds.includes(h.import_id))); };
+/** Procedures sharing a family table but carrying their own rule: Emprunts (C13) and Locations IFRS 16 (IFRS C01) also flag a source of their types added after the freeze. */
 const PROCEDURE_RULES: Record<string, Rule> = {
-  "loans.review": (run, heads) => { const own = heads.filter(h => (LOAN_TYPES as readonly string[]).includes(h.document_type));
-    return run.importIds.every(i => own.some(h => h.import_id === i)) && (!run.population || own.every(h => run.importIds.includes(h.import_id))); },
+  "loans.review": ownTypesCurrent(LOAN_TYPES),
+  "ifrs16.leases": ownTypesCurrent(LEASE_TYPES),
 };
 /** Adapter passed to observeRuns: null when the heads of the family were not read (the file then states it does not know). */
 export function sourcesCurrentAdapter(headsByFamily: Partial<Record<CycleFamily, SourceHead[]>>) {

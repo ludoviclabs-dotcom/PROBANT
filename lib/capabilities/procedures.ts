@@ -33,3 +33,15 @@ export type CapabilityProcedureId = typeof ENGINE_PROCEDURES[number]["id"];
 export const CAPABILITY_PROCEDURE_IDS = ENGINE_PROCEDURES.map(p => p.id) as unknown as readonly [CapabilityProcedureId, ...CapabilityProcedureId[]];
 export const engineProcedure = (id: string) => ENGINE_PROCEDURES.find(p => p.id === id) ?? null;
 
+/**
+ * IFRS C01 (C00, D04) : axe « référentiel », distinct des cycles du journal. Une feuille de référentiel vit dans un store de famille
+ * mais n'appartient à aucun cycle : le dossier de clôture ne la range dans aucune section de cycle et ne l'ajoute à aucune anomalie.
+ */
+export const FRAMEWORK_PROCEDURES = [
+  { id: "ifrs16.leases", framework: "IFRS", family: "clients", label: "Locations IFRS 16 — preneur, périmètre V1", route: "/ifrs/locations" },
+] as const satisfies readonly { id: string; framework: "IFRS"; family: StoreFamily; label: string; route: string }[];
+export type FrameworkProcedureId = typeof FRAMEWORK_PROCEDURES[number]["id"];
+export const frameworkProcedure = (id: string) => FRAMEWORK_PROCEDURES.find(p => p.id === id) ?? null;
+/** Procédure enregistrée dans un store de famille, cycle du journal ou référentiel : seule base de la vérification de famille. */
+export const storedProcedure = (id: string): { id: string; family: StoreFamily } | null => engineProcedure(id) ?? frameworkProcedure(id);
+

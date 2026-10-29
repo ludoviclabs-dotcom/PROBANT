@@ -59,7 +59,9 @@ describe("C07 — profils d'exécution distincts", () => {
     for (const flag of Object.values(PROCEDURE_ACTIVATION)) expect(DURABLE_CHAIN_FLAGS).toContain(flag);
   });
 
-  it("le lanceur ouvre exactement les mêmes quatorze chaînes que le serveur", () => {
+  it("le lanceur ouvre exactement les mêmes quinze chaînes que le serveur", () => {
     expect([...LAUNCHER_FLAGS]).toEqual([...DURABLE_CHAIN_FLAGS]);
+    expect(DURABLE_CHAIN_FLAGS).toHaveLength(15);
+    expect(DURABLE_CHAIN_FLAGS.at(-1)).toBe("PROBANT_IFRS16_DURABLE");
   });
 });

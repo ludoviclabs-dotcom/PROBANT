@@ -236,7 +236,7 @@
       },
       "label": "Taux zéro documenté, 12 loyers de 500,00 €",
       "maxAbsRoundingGap": "0.00",
-      "monthlyRateExact": "0E-40",
+      "monthlyRateExact": "0.0000000000000000000000000000000000000000",
       "mutationRateDividedBy12": {
         "debtInitial": "6000.00",
         "detected": false

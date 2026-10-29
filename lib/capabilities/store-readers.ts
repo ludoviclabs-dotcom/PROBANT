@@ -1,5 +1,5 @@
 import { sql, type SQL } from "drizzle-orm";
-import { STORE_FAMILIES, ENGINE_PROCEDURES, type StoreFamily } from "./registry";
+import { STORE_FAMILIES, storedProcedure, type StoreFamily } from "./registry";
 import { assertScope, validateRun, type WorkpaperRun, type WorkpaperScope } from "@/lib/workpapers/model";
 
 export interface CycleSqlReader { execute(query: SQL): PromiseLike<unknown> }
@@ -9,7 +9,8 @@ export const STORE_READ_ADAPTERS = STORE_FAMILIES.map(family => ({ family,
 export function scopedFamilyRuns(scope: WorkpaperScope, rows: { family: StoreFamily; run: WorkpaperRun }[]) {
   return rows.map(row => {
     assertScope(scope, row.run.scope); validateRun(row.run);
-    const procedure = ENGINE_PROCEDURES.find(p => p.id === row.run.template.id);
+    // A framework sheet (IFRS, C01) shares a family table: it is accepted here, then kept out of every cycle section by its readers.
+    const procedure = storedProcedure(row.run.template.id);
     if (!procedure || procedure.family !== row.family) throw new Error("CAPABILITY_STORE_PROCEDURE_MISMATCH");
     return row;
   });

@@ -164,7 +164,7 @@ def evaluate(fx: dict) -> dict:
     mutated = eur(sum(payment / (1 + rate / 12) ** t for t in range(1, n + 1)))
     return {
         "id": fx["id"], "label": fx["label"], "inputs": {k: fx[k] for k in ("commencement", "months", "payment", "rate")} | {"usefulLifeMonths": fx.get("usefulLifeMonths", n)},
-        "monthlyRateExact": str(monthly.quantize(EXACT)), "debtInitialExact": str(exact[0].quantize(EXACT)),
+        "monthlyRateExact": format(monthly.quantize(EXACT), "f"), "debtInitialExact": format(exact[0].quantize(EXACT), "f"),
         "debtInitial": money(published[0]), "rouInitial": money(rou), "depreciationMonths": dep_months,
         "totalPayments": money(payment * n), "totalInterest": money(total_interest),
         "mutationRateDividedBy12": {"debtInitial": money(mutated), "detected": mutated != published[0]},
