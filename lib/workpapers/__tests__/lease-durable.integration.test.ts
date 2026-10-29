@@ -75,7 +75,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
   const work = (batches: ImportBatch[], term = "3") => {
     const contracts = batches.find(b => b.document.documentType === "lease_contracts")!;
     return { framework, firstApplication: { kind: "not_applicable" as const, reason: "Entité déjà sous IFRS 16 ; aucune méthode de transition choisie" },
-      policies: [{ kind: "short_term_exemption" as const, assetCategory: "Matériel de bureau", answer: { kind: "value" as const, value: "non retenue" } }],
+      policies: [{ kind: "short_term_exemption" as const, assetCategory: "Matériel de bureau", answer: { kind: "value" as const, value: "not_elected" } }],
       confirmations: [{ contractId: "F01", field: "termMonths", answer: { kind: "value" as const, value: term }, citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[0].id } },
         { contractId: "F01", field: "residualValueGuarantee", answer: { kind: "not_applicable" as const, reason: "Aucune garantie de valeur résiduelle dans le contrat" }, citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[0].id } }] };
   };
@@ -132,7 +132,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
 
   it("imports approuvés → travail cité → gel → exécution : incapacité explicite, sans montant ni succès", async () => {
     sheet = await ok({ command: "create_leases", period: LEASE_PERIOD, instanceKey: "c01-leases" });
-    expect(sheet).toMatchObject({ state: "draft", template: { id: "ifrs16.leases", version: "0.1.0", rule: { authority: "internal", validation: "provisional" } } });
+    expect(sheet).toMatchObject({ state: "draft", template: { id: "ifrs16.leases", version: "1.0.0", rule: { authority: "internal", validation: "provisional" } } });
     batches = await importPack();
     expect(batches.map(b => b.document.documentType)).toEqual(["lease_contracts", "lease_assumptions", "lease_schedule", "lease_ledger"]);
     expect(await failure(await command({ command: "freeze_leases", ...target(sheet), criteria: "Tous les contrats", importIds: batches.map(b => b.id) }))).toEqual({ status: 422, error: "L16_WORK_REQUIRED", missing: ["configure_leases"] });
@@ -145,12 +145,15 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect(sheet.importIds).toEqual(batches.map(b => b.id).sort());
     expect(sheet.population!.items.map(i => i.id)).toEqual(["F01", "F03"]);
     sheet = await ok({ command: "execute", ...target(sheet) });
-    expect(sheet).toMatchObject({ state: "blocked", result: { execution: "blocked", outcome: "inconclusive", result: { code: "L16_ENGINE_NOT_AVAILABLE" } }, findings: [], notes: [] });
-    expect(sheet.result!.blockedControls).toContain("L16_ENGINE_NOT_AVAILABLE");
+    // No named review of the rule yet: the calculation registry refuses any real execution, with no result and no amount.
+    expect(sheet).toMatchObject({ state: "blocked", result: { execution: "blocked", outcome: "inconclusive", result: null }, findings: [], notes: [] });
+    expect(sheet.result!.blockedControls).toContain("rule_not_applicable");
     expect(JSON.stringify(sheet.result!.result)).not.toMatch(/"amount"/);
     const read = await view();
-    expect(read).toMatchObject({ capability: { engine: "not_available", code: "L16_ENGINE_NOT_AVAILABLE", rule: { version: "0.1.0", basisStatus: "review_required" } }, sourcesCurrent: { [sheet.id]: true }, ruleCurrent: { [sheet.id]: true } });
+    expect(read).toMatchObject({ capability: { engine: "1.0.0", realExecution: "blocked_rule_review_required", rule: { version: "1.0.0", basisStatus: "review_required" } }, sourcesCurrent: { [sheet.id]: true }, ruleCurrent: { [sheet.id]: true } });
     expect(read.imports.every((b: ImportBatch) => b.document.documentType.startsWith("lease_"))).toBe(true);
+    // The qualification of the frozen sources is read by the screen: both contracts are eligible; F01 carries a not-applicable answer the field does not admit.
+    expect(read.qualification[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "a_qualifier"], ["F03", "eligible_v1"]]);
     // A blocked sheet cannot be submitted, reviewed or locked: its state forbids it, with a business code.
     expect(await failure(await command({ command: "submit", ...target(sheet) }))).toEqual({ status: 403, error: "WORKPAPER_TRANSITION_FORBIDDEN" });
   }, 60000);
@@ -245,7 +248,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect(await failure(await command({ command: "configure_leases", ...target(draft), work: work(batches) }))).toEqual({ status: 409, error: "L16_RULE_REPLACED_REVISION_REQUIRED" });
     expect((await view()).ruleCurrent[draft.id]).toBe(false);
     const revised = await ok({ command: "revise", ...target(draft) });
-    expect(revised.template).toMatchObject({ version: "0.1.0", rule: { version: "0.1.0" } });
+    expect(revised.template).toMatchObject({ version: "1.0.0", rule: { version: "1.0.0" } });
   }, 60000);
 
   it("profil personnel local : la feuille se prépare sous l'identité du propriétaire, sans seconde identité fictive", async () => {

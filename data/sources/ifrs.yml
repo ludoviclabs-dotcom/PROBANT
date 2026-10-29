@@ -159,3 +159,17 @@ sources:
     url: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-16-leases.html
     status: OBLIGATOIRE
     summary: Droit d'utilisation et dette de location au bilan du preneur.
+
+  - id: ifric-ad-2019-09-ibr
+    label: IFRIC — Décision d'agenda, taux d'emprunt marginal du preneur (septembre 2019)
+    type: IFRS
+    url: https://www.ifrs.org/content/dam/ifrs/supporting-implementation/agenda-decisions/2019/ifrs-16-lessees-incremental-borrowing-rate-september-2019.pdf
+    status: RECOMMANDE
+    summary: Matériel explicatif, non normatif - taux propre au contrat (durée, sûreté, montant, environnement économique) ; profil de paiement non exigé explicitement. Lu intégralement le 29/10/2026.
+
+  - id: ifric-ad-2019-11-lease-term
+    label: IFRIC — Décision d'agenda, durée du contrat et durée d'utilité des agencements (novembre 2019)
+    type: IFRS
+    url: https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-november-2019/
+    status: RECOMMANDE
+    summary: Matériel explicatif, non normatif - période exécutoire et pénalité appréciées sur l'économie d'ensemble du contrat. Lu par extraction le 29/10/2026.

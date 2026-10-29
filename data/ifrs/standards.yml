@@ -517,11 +517,19 @@ entries:
     pcgDifferences: []
     dataRequirements: []
     disclosureRequirements: []
+    # 29/10/2026 (IFRS L16-01, L16-02) : § 5-38, annexe A, B3-B42 et C1 lus par extraction outillée et paraphrase ; texte UE non lu.
+    # Reste review_required jusqu'à la relecture personnelle nommée de la fiche de règle (docs/ifrs/REVUE_REGLE_IFRS16.md).
     status: review_required
     sources:
       - sourceId: ifrs-standards-master
         kind: primary
         url: https://www.ifrs.org/issued-standards/list-of-standards/
+      - sourceId: ifric-ad-2019-09-ibr
+        kind: secondary
+        url: https://www.ifrs.org/content/dam/ifrs/supporting-implementation/agenda-decisions/2019/ifrs-16-lessees-incremental-borrowing-rate-september-2019.pdf
+      - sourceId: ifric-ad-2019-11-lease-term
+        kind: secondary
+        url: https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-november-2019/
 
   - id: ifrs-17
     number: IFRS 17

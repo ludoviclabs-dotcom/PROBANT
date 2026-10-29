@@ -1,5 +1,6 @@
 import { loanWorkSchema, type LoanWork, type LoanResult } from "./loan-review";
 import { leaseWorkSchema, type LeaseWork } from "./lease-work";
+import type { LeaseResult } from "./lease-review";
 import type { payrollObservation } from "./payroll-observation";
 import type { PayrollState } from "./payroll-contract";
 import { exceptionalWorkSchema, type ExceptionalWork, type ExceptionalResult } from './exceptional-dossier';
@@ -261,8 +262,10 @@ export class WorkpaperService {
         const value = result.result as LoanResult; if (value.runId !== run.id) throw new Error("LOAN_RESULT_IDENTITY_MISMATCH");
         evidence = [...new Map([...evidence, ...value.evidence].map(link => [link.id, link])).values()];
       }
-      // IFRS C01: no lease engine yet; a completed lease result can only come from a future engine lot, never from this base.
-      if (this.realAdapter === "ifrs16.leases" && result.execution === "completed") throw new Error("L16_ENGINE_NOT_AVAILABLE");
+      if (this.realAdapter === "ifrs16.leases" && result.execution === "completed") {
+        const value = result.result as LeaseResult; assertScope(scope, value.scope); if (value.runId !== run.id) throw new Error("L16_RESULT_IDENTITY_MISMATCH");
+        evidence = [...new Map([...evidence, ...value.evidence].map(link => [link.id, link])).values()];
+      }
       if(this.realAdapter === 'exceptional.review' && result.execution === 'completed') { const value=result.result as ExceptionalResult; if(value.runId!==run.id)throw Error('EXCEPTIONAL_RESULT_IDENTITY_MISMATCH'); evidence=[...new Map([...evidence,...value.evidence].map(link=>[link.id,link])).values()]; }
       if(this.realAdapter === 'investments.review' && result.execution === 'completed') {
         const value=result.result as InvestmentResult;if(value.runId!==run.id)throw Error('INVESTMENT_RESULT_IDENTITY_MISMATCH');

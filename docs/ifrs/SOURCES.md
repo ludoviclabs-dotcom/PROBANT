@@ -1,6 +1,6 @@
 # Sources lues pour IFRS 16 — lot C00
 
-Consultation du 29/10/2026. Ce registre dit ce qui a été **effectivement lu**, comment, et ce qui reste à lire. Il ne constitue pas une attestation de conformité. Il complète [`plan/03_SOURCES_ET_MATRICE_NORMATIVE.md`](./plan/03_SOURCES_ET_MATRICE_NORMATIVE.md) sans le réécrire.
+Consultation du 29/10/2026 (C00), complétée le même jour pour L16-01 et L16-02 (§ 1 et § 4). Ce registre dit ce qui a été **effectivement lu**, comment, et ce qui reste à lire. Il ne constitue pas une attestation de conformité. Il complète [`plan/03_SOURCES_ET_MATRICE_NORMATIVE.md`](./plan/03_SOURCES_ET_MATRICE_NORMATIVE.md) sans le réécrire.
 
 **Licence.** Le texte des normes IFRS appartient à l'IFRS Foundation. Ce dépôt n'en garde que des références, des numéros de paragraphe et de courtes paraphrases, jamais une copie du corpus.
 
@@ -8,10 +8,10 @@ Consultation du 29/10/2026. Ce registre dit ce qui a été **effectivement lu**,
 
 | ID | Source | État au 29/10/2026 | Passages lus | Empreinte |
 |---|---|---|---|---|
-| S16 | [IFRS 16, texte IASB, édition 2026 « issued »](https://www.ifrs.org/content/dam/ifrs/publications/html-standards/english/2026/issued/ifrs16.html) | Texte complet accessible sans connexion. Lu **par extraction outillée et paraphrase**, pas mot à mot | § 5-8, 9-11, 12-15, 18-24, 26-27, 29-33, 36-38, 39-46 (structure et portée), 47-50, 53, 58 ; annexe A (définitions du commencement, de la durée, des paiements, des deux taux, du court terme, des paiements fixes, des coûts directs initiaux) ; B3-B8 ; B34-B41 ; annexe C, C1 à C1E | Page HTML, 238 287 caractères extraits |
+| S16 | [IFRS 16, texte IASB, édition 2026 « issued »](https://www.ifrs.org/content/dam/ifrs/publications/html-standards/english/2026/issued/ifrs16.html) | Texte complet accessible sans connexion. Lu **par extraction outillée et paraphrase**, pas mot à mot | § 5-8, 9-11, 12-15, 18-24, 26-27, 29-33, 36-38, 39-46 (structure et portée), 47-50, 53, 58 ; annexe A (définitions du commencement, de la date de conclusion, de la durée, des paiements, des deux taux, du court terme, des paiements fixes, des coûts directs initiaux, des avantages incitatifs, de la période d'utilisation, de la garantie de valeur résiduelle) ; B3-B8 ; **B9-B33 (L16-01)** ; B34-B42 ; annexe C, C1 à C1E. Le § 27 porte une note éditoriale sur la décision IFRIC de septembre 2021 (TVA non récupérable sur les loyers) : la TVA non récupérable reste hors V1 (X21) | Page HTML, 238 287 caractères extraits |
 | S16-R | [IFRIC, *Lessee's Incremental Borrowing Rate*, septembre 2019](https://www.ifrs.org/content/dam/ifrs/supporting-implementation/agenda-decisions/2019/ifrs-16-lessees-incremental-borrowing-rate-september-2019.pdf) | **Lue intégralement** (PDF d'une page, texte extrait localement) | Décision d'agenda complète | SHA-256 `f8b66fe2c3a4fe50c529450febc1c36355900be815383da5b0d473dafe5188c1` |
 | S16-D | [IFRIC Update, novembre 2019](https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-november-2019/) | Lue par extraction outillée | Décision d'agenda finalisée « *Lease Term and Useful Life of Leasehold Improvements* » (réunion du 26/11/2019) | — |
-| UE16 | [Règlement (UE) 2023/1803](https://eur-lex.europa.eu/eli/reg/2023/1803/oj) | **Non lu.** EUR-Lex renvoie une page vide, par l'ELI comme par l'URL CELEX (deux essais). Accès non contourné | — | — |
+| UE16 | [Règlement (UE) 2023/1803](https://eur-lex.europa.eu/eli/reg/2023/1803/oj) | **Non lu.** EUR-Lex renvoie une page vide : ELI et CELEX en C00, puis HTML et PDF CELEX le 29/10/2026 pour L16-02 (quatre essais). Accès non contourné | — | — |
 | FR26 | [ANC, Recueil des normes comptables françaises, version du 1er janvier 2026](https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/recueil/2026/Recueil-PCG-Janvier-2026.pdf) | Lu localement (`pypdf`), 662 pages | Art. 212-5, p. 40 du PDF ; liste des comptes 611 à 616, p. 519 | SHA-256 `ae21e019a6295beb7825f562643f67977cbcc0ec90ccab57f20cefcf0e105ec1` |
 | KB | Base de connaissance du dépôt : `data/sources/ifrs.yml` (`ifrs-16`), `data/ifrs/standards.yml` (`ifrs-16`) | Lue | IFRS 16 `status: review_required` ; adoption UE marquée `endorsed` sur la foi du rapport EFRAG du 17/07/2026 (absence de la liste des textes non adoptés) | — |
 | GUIDE | `Guide de formation Audit`, passage 2.2 | Non relu en C00 | Source pédagogique : ses exemples ne sont pas des paramètres | — |
@@ -42,14 +42,17 @@ Taux annuel effectif et conversion mensuelle ; borne de 120 mois ; calendrier au
 
 ## 4. État de la règle `ifrs16.leases` 1.0.0
 
-La règle reste **`review_required`** (`validation: "provisional"`) : exécution réelle impossible, scénarios synthétiques possibles. Quatre conditions sont à lever en L16-02 :
-1. relire mot à mot les paragraphes cités, la lecture par extraction ne suffisant pas pour valider ;
-2. lire B9-B33 pour l'identification et la séparation, en L16-01 ;
-3. lire le texte UE applicable pour la juridiction `EU_adopted`. Tant que l'accès est bloqué, seule la juridiction `IASB` peut être validée, avec cette qualification visible ;
-4. faire une relecture personnelle nommée de la fiche, distincte de toute relecture de dossier.
+La règle reste **`review_required`** (`validation: "provisional"`) : exécution réelle impossible, scénarios synthétiques possibles. État des quatre conditions au 29/10/2026, après L16-01 et L16-02 :
 
-## 5. À verser dans la base de connaissance (L16-02)
+| Condition | État |
+|---|---|
+| 1. Relire mot à mot les paragraphes cités | **À faire par la relecture nommée.** Les paragraphes du moteur et de la qualification (§ 5-8, 18-27, 29-33, 36-38, annexe A, B34-B42) ont été relus le 29/10/2026, toujours par extraction outillée : cela ne vaut pas lecture mot à mot |
+| 2. Lire B9-B33 | **Fait par extraction** le 29/10/2026 ; leurs critères sont repris par le dictionnaire (`identifiedAsset`, `controlOfUse`, `serviceComponents`). Lecture mot à mot comprise dans la condition 1 |
+| 3. Lire le texte UE | **Non levée** (EUR-Lex vide). Seule la juridiction IASB est validable ; `EU_adopted` reste bloquée en réel (X33) |
+| 4. Relecture personnelle nommée de la fiche | **À faire par l'utilisateur** : [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md), consignée dans `lib/ifrs/leases/rule-review.ts` |
+
+## 5. Versé dans la base de connaissance (L16-02, 29/10/2026)
 
 - Dans `data/sources/ifrs.yml` : `ifric-ad-2019-09-ibr` (S16-R) et `ifric-ad-2019-11-lease-term` (S16-D).
-- Dans `data/ifrs/standards.yml`, entrée `ifrs-16` : passages lus et date de consultation. Son statut ne passe à `verified` qu'après les conditions du § 4.
+- Dans `data/ifrs/standards.yml`, entrée `ifrs-16` : passages lus, date de consultation et les deux décisions comme sources secondaires. Son statut reste `review_required` ; il ne passe à `verified` qu'après les conditions du § 4.
 - `docs/knowledge/REVIEW_REQUIRED.md`, lu par les tests de la base de connaissance, est à tenir à jour en même temps.

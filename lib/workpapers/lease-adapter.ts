@@ -1,8 +1,10 @@
-import { frozen, type ProcedureTemplate } from "./model";
+import { z } from "zod";
+import { frozen, moneySchema, type ProcedureTemplate } from "./model";
 import { CalculationRegistry, type CalculationRequest } from "./calculations";
 import { frameworkBlockers } from "@/lib/ifrs/shared/context";
-import { IFRS16_RULE, LEASE_RULE_BASIS, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
-import { leaseWorkSchema } from "./lease-work";
+import { IFRS16_RULE, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
+import { evaluateLeases, isLeaseResult, type LeaseResult } from "./lease-review";
+import { leaseWorkSchema, type LeaseWork } from "./lease-work";
 import { LEASE_REQUIRED_TYPES } from "./lease-sources";
 
 export const LEASE_TEMPLATE: ProcedureTemplate = {
@@ -15,22 +17,23 @@ export const LEASE_TEMPLATE: ProcedureTemplate = {
   requiredDocumentTypes: [...LEASE_REQUIRED_TYPES],
   rule: IFRS16_RULE,
 };
-export const LEASE_ENGINE_NOT_AVAILABLE = "L16_ENGINE_NOT_AVAILABLE";
 
 /**
- * Adaptateur de calcul du socle C01 : aucune exécution, une incapacité explicite. Les contrôles communs (portée, période, sources
- * approuvées, population et sélection reproductibles) s'exécutent pour tracer l'entrée ; le résultat est toujours `blocked`,
- * `inconclusive`, sans montant, jamais un succès avec des zéros. Le moteur pur arrive en L16-02 et remplacera cette classe.
+ * Adaptateur de calcul de l'atelier : le moteur pur (L16-02) derrière le registre de calcul existant. Le registre bloque toute exécution
+ * réelle tant que la règle n'est pas validée par la relecture nommée (`rule_not_applicable`) ; la juridiction EU_adopted reste bloquée en réel (X33).
  */
 export class LeaseRegistry extends CalculationRegistry {
   override execute(request: CalculationRequest) {
     if (request.rule.id !== "ifrs16.leases" || request.population.unit !== "lease_contract") throw new Error("L16_ADAPTER_INVALID");
-    const traced = new CalculationRegistry().execute(request);
     const work = leaseWorkSchema.safeParse((request.parameters as { work?: unknown } | null)?.work);
-    const blockers = [LEASE_ENGINE_NOT_AVAILABLE, ...(work.success ? frameworkBlockers(work.data.framework, request.scope.mode) : ["L16_WORK_REQUIRED"])];
-    return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers],
-      warnings: [...traced.warnings, "Aucun moteur IFRS 16 dans ce socle : rien n'est calculé et aucun montant n'est publié."],
-      result: { status: "engine_not_available", code: LEASE_ENGINE_NOT_AVAILABLE, ruleVersion: LEASE_RULE_VERSION, ruleBasisStatus: LEASE_RULE_BASIS.status,
-        reason: "Le moteur de l'atelier Locations IFRS 16 n'est pas encore livré (lot L16-02). La feuille garde ses sources, sa population et son travail ; aucun montant n'est publié." } });
+    const blockers = work.success ? frameworkBlockers(work.data.framework, request.scope.mode) : [];
+    if (blockers.length) {
+      const traced = new CalculationRegistry().execute(request);
+      return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers], result: { status: "framework_not_activatable", reason: blockers.join(" ; ") } });
+    }
+    const registry = new CalculationRegistry();
+    registry.register(IFRS16_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), z.object({ runId: z.string().min(1), work: leaseWorkSchema }).strict(),
+      z.custom<LeaseResult>(isLeaseResult), (_input, p) => evaluateLeases(request.scope, request.period, request.imports, p.runId, request.population, request.selection, p.work as LeaseWork), r => r.outcome);
+    return registry.execute(request);
   }
 }

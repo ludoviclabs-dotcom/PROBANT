@@ -1,0 +1,2 @@
+Key;Amount;Date;Details
+"CTR-001";"0.00";"2025-12-31";"{""contractId"":""CTR-001"",""source"":{""title"":""Pièce (exemple)"",""pack"":""Pack"",""date"":""2026-01-02"",""page"":1,""clause"":""Article""},""fields"":{""openingDate"":""2025-12-31"",""debt"":""0.00"",""rouGross"":""0.00"",""rouAccumulated"":""0.00"",""rouNet"":""0.00"",""reportingRef"":""Reporting IFRS 2025 validé"",""reviewEvidence"":""Note de revue""}}"

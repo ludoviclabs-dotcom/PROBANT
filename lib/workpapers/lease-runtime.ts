@@ -2,12 +2,15 @@ import { sql } from "drizzle-orm";
 import { ApiError } from "@/lib/api/errors";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
+import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
+import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
 import { ClientsRuntime } from "./clients-runtime";
 import { ClientsImports, ClientsWorkpaperRepository, rows, type ClientsSql } from "./clients-persistence";
 import type { ImportBatch, ImportMapping } from "./imports";
-import { LEASE_ENGINE_NOT_AVAILABLE, LEASE_TEMPLATE, LeaseRegistry } from "./lease-adapter";
+import { LEASE_TEMPLATE, LeaseRegistry } from "./lease-adapter";
+import { leaseReviewPoints, type LeaseResult } from "./lease-review";
 import type { LeaseCommand } from "./lease-commands";
-import { assertLeaseBatch, isLeaseType, LEASE_REQUIRED_TYPES, LEASE_TYPES, resolveLeaseCitation, type LeaseType } from "./lease-sources";
+import { assertLeaseBatch, isLeaseType, leaseFacts, LEASE_REQUIRED_TYPES, LEASE_TYPES, resolveLeaseCitation, type LeaseType } from "./lease-sources";
 import { leaseDraftOf, stampLeaseWork } from "./lease-work";
 import { periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { Principal } from "./policy";
@@ -30,7 +33,7 @@ const citationText = (c: NoteCitation) => "\nPièce : " + c.fileName + " ; versi
 /**
  * Locations IFRS 16 (socle IFRS C01) sur le store partagé « Clients » : mêmes sessions, CSRF, autorisation du dossier, verrou transactionnel,
  * historique des versions et reçus d'idempotence qu'Emprunts. Sources, population, sélection, travail et règle sont hachés et versionnés ;
- * une source remplacée ou ajoutée, ou une règle remplacée, rend la feuille à réviser. Aucun moteur : l'exécution trace une incapacité explicite.
+ * une source remplacée ou ajoutée, ou une règle remplacée, rend la feuille à réviser. L'exécution réelle exige une règle validée par la relecture nommée.
  */
 export class LeaseRuntime extends ClientsRuntime {
   protected override readonly procedureIds = ["ifrs16.leases"];
@@ -54,15 +57,22 @@ export class LeaseRuntime extends ClientsRuntime {
     const [latest] = await rows<{ id: string }>(tx, sql`SELECT h.id FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId} AND v.run->>'rootId'=${rootId} ORDER BY (v.run->>'revision')::int DESC LIMIT 1`);
     return latest?.id ?? null;
   }
-  /** Lecture : feuilles, têtes courantes et, par feuille, fraîcheur des sources et de la règle. La capacité dit ce qui n'est pas exécuté. */
+  /** Lecture : feuilles, têtes courantes et, par feuille, fraîcheur des sources et de la règle, et qualification de ses sources figées (ou des têtes avant le gel). */
   async leaseRead(request: Request, dossierId: string, pid: string, id?: string, history = false, version?: number) {
     const view = await super.read(request, dossierId, pid, id, history, version);
     const extra = await this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
-      const heads = await this.leaseHeads(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
-      for (const run of view.runs) { sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run); }
-      return { sourcesCurrent, ruleCurrent };
+      const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
+      const qualification: Record<string, LeaseQualification | null> = {}, qualificationIssues: Record<string, string> = {};
+      for (const run of view.runs) {
+        sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run);
+        const ids = run.importIds.length ? run.importIds : heads.map(h => h.import_id);
+        try { qualification[run.id] = run.leaseWork ? qualifyLeases(leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval)), run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null; }
+        catch (error) { qualification[run.id] = null; qualificationIssues[run.id] = error instanceof Error ? error.message : "L16_SOURCES_INVALID"; }
+      }
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues };
     });
-    const response = { ...view, ...extra, capability: { engine: "not_available", code: LEASE_ENGINE_NOT_AVAILABLE, rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
+    const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
+      rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
     if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024) throw new ApiError("L16_LIMIT_EXCEEDED", "État trop volumineux.", 413);
     return response;
   }
@@ -108,6 +118,11 @@ export class LeaseRuntime extends ClientsRuntime {
         case "execute": {
           if (!current.leaseWork) throw new LeaseError("L16_WORK_REQUIRED", ["configure_leases"]);
           run = await service.execute(scope, id, v, { runId: id, work: current.leaseWork });
+          if (run.state === "executed") {
+            // One compare-and-swap for all generated points; each carries its own reason, never an attributed amount.
+            const points = leaseReviewPoints(run.result!.result as LeaseResult);
+            if (points.length) run = await service.addNotes(scope, id, run.version, points.map(p => ({ id: "lease:" + p.key, kind: "observation" as const, text: p.text, amount: p.amount, blocking: p.blocking })));
+          }
           break;
         }
         case "resolve": run = await service.resolveNote(scope, id, v, command.noteId, command.text, cite(command.citation)); break;

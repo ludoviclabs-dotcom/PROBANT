@@ -10,6 +10,7 @@ import { LEASE_TEMPLATE, LeaseRegistry } from "../lease-adapter";
 import { LEASE_ERROR_STATUS, leaseFailure, leaseHandlers, requireLeasesChain } from "../lease-http";
 import { LeaseError, LeaseImportError, type LeaseRuntime } from "../lease-runtime";
 import { assertLeaseBatch, LEASE_MAPPING, resolveLeaseCitation } from "../lease-sources";
+import type { LeaseResult } from "../lease-review";
 import { leaseDraftOf, leaseWorkDraftSchema, stampLeaseWork, type LeaseWorkDraft } from "../lease-work";
 import { contentHash, periodId, validateRun, type WorkpaperRun, type WorkpaperScope } from "../model";
 import type { Principal } from "../policy";
@@ -21,17 +22,22 @@ const scope: WorkpaperScope = { organizationId: "org-l16", dossierId: "dossier-l
 const actor: Principal = { id: "preparer-l16", grants: [{ scope, permissions: ["read", "prepare"] }] };
 const framework = { standard: "IFRS 16" as const, jurisdiction: "IASB" as const, edition: "IFRS 16, IASB 2026", editionFingerprint: null };
 const firstApplication = { kind: "not_applicable" as const, reason: "Aucune méthode de transition choisie par l'outil" };
-const draft = (confirmations: LeaseWorkDraft["confirmations"] = []): LeaseWorkDraft => ({ framework, firstApplication, policies: [{ kind: "short_term_exemption", assetCategory: "Matériel de bureau", answer: { kind: "value", value: "non retenue" } }], confirmations });
+const draft = (confirmations: LeaseWorkDraft["confirmations"] = []): LeaseWorkDraft => ({ framework, firstApplication, policies: [{ kind: "short_term_exemption", assetCategory: "Matériel de bureau", answer: { kind: "value", value: "not_elected" } }], confirmations });
 const leaseRun = (over: Partial<WorkpaperRun> = {}): WorkpaperRun => ({ id: "workpaper-l16", rootId: "workpaper-l16", revision: 1, version: 1, schemaVersion: "1.0.0", scope, period: LEASE_PERIOD, template: LEASE_TEMPLATE,
   state: "draft", preparedBy: actor.id, importIds: [], evidence: [], findings: [], notes: [], events: [], ...over });
 
 describe("IFRS C01 travail de la feuille : vide ≠ zéro ≠ non applicable", () => {
   const ref = { documentVersionId: "doc", rowId: "row" };
-  it("une valeur vide est refusée ; « 0 » reste une valeur ; inconnu et non applicable gardent leur motif", () => {
-    const answers = (answer: unknown) => leaseWorkDraftSchema.safeParse(draft([{ contractId: "F01", field: "residualValueGuarantee", answer, citation: ref } as never])).success;
+  it("une valeur vide est refusée ; « 0.00 » reste une valeur ; inconnu et non applicable gardent leur motif ; le champ et sa forme viennent du dictionnaire", () => {
+    const answers = (answer: unknown, field = "initialDirectCosts") => leaseWorkDraftSchema.safeParse(draft([{ contractId: "F01", field, answer, citation: ref } as never])).success;
     expect(answers({ kind: "value", value: "" })).toBe(false);
     expect(answers({ kind: "value", value: "   " })).toBe(false);
-    expect(answers({ kind: "value", value: "0" })).toBe(true);
+    expect(answers({ kind: "value", value: "0.00" })).toBe(true);
+    expect(answers({ kind: "value", value: "0" })).toBe(false);
+    expect(answers({ kind: "value", value: "inconnu" })).toBe(false);
+    expect(answers({ kind: "value", value: "none" }, "residualValueGuarantee")).toBe(true);
+    expect(answers({ kind: "value", value: "peut-être" }, "residualValueGuarantee")).toBe(false);
+    expect(answers({ kind: "value", value: "3" }, "champInconnu")).toBe(false);
     expect(answers({ kind: "unknown", reason: "Clause non transmise" })).toBe(true);
     expect(answers({ kind: "not_applicable", reason: "Aucune garantie dans le contrat" })).toBe(true);
     expect(answers({ kind: "unknown", reason: "" })).toBe(false);
@@ -45,6 +51,7 @@ describe("IFRS C01 travail de la feuille : vide ≠ zéro ≠ non applicable", (
     expect(leaseWorkDraftSchema.safeParse({ ...draft(), policies: [...draft().policies, ...draft().policies] }).success).toBe(false);
     expect(leaseWorkDraftSchema.safeParse({ ...draft(), authorId: "navigateur" }).success).toBe(false);
     expect(leaseWorkDraftSchema.safeParse({ ...draft(), role: "reviewer" }).success).toBe(false);
+    expect(leaseWorkDraftSchema.safeParse({ ...draft(), policies: [{ kind: "short_term_exemption", assetCategory: "Matériel de bureau", answer: { kind: "value", value: "non retenue" } }] }).success).toBe(false);
   });
   it("le serveur horodate, nomme l'auteur et résout chaque citation ; une citation non résolue refuse tout le travail", () => {
     const c = { contractId: "F01", field: "termMonths", answer: { kind: "value" as const, value: "3" }, citation: ref };
@@ -108,33 +115,42 @@ describe("IFRS C01 modèle de feuille", () => {
     expect(contentHash(leaseRun({ leaseWork: work }))).not.toBe(contentHash(leaseRun()));
     expect(contentHash(leaseRun({ leaseWork: work }))).not.toBe(contentHash(leaseRun({ leaseWork: { ...work, policies: [] } })));
   });
-  it("la règle du gabarit reste interne et à revoir : aucune exécution réelle n'est possible par le registre de calcul", () => {
-    expect(LEASE_TEMPLATE.rule).toMatchObject({ id: "ifrs16.leases", version: "0.1.0", authority: "internal", validation: "provisional", source: "docs/ifrs/CONTRAT_COMMUN.md" });
+  it("la règle du gabarit reste interne et à revoir tant que la relecture nommée n'est pas consignée : aucune exécution réelle", () => {
+    expect(LEASE_TEMPLATE.rule).toMatchObject({ id: "ifrs16.leases", version: "1.0.0", authority: "internal", validation: "provisional", source: "docs/ifrs/CONTRAT_COMMUN.md" });
     expect(LEASE_TEMPLATE.requiredDocumentTypes).toEqual(["lease_contracts", "lease_assumptions", "lease_schedule"]);
   });
 });
 
-describe("IFRS C01 adaptateur : incapacité explicite, jamais un succès avec des zéros", () => {
+describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée tant que la règle n'est pas validée", () => {
   const request = async (s: WorkpaperScope = scope, jurisdiction: "IASB" | "EU_adopted" = "IASB") => {
     const a: Principal = { id: actor.id, grants: [{ scope: s, permissions: ["read", "prepare"] }] };
     const batches = await approvedLeaseBatches(s, a), population = freezePopulation(s, batches, "lease_contract", a, LEASE_PERIOD);
     const selection = selectPopulation(population, { method: "targeted", criteria: "Tous les contrats", exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map(i => i.id) }, a);
     const work = stampLeaseWork({ ...draft(), framework: { ...framework, jurisdiction } }, () => { throw new Error("unused"); }, a.id, "2027-02-01T10:00:00.000Z");
-    return { scope: s, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "0.1.0" }, imports: batches, population, selection, parameters: { runId: "workpaper-l16", work } };
+    return { scope: s, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "1.0.0" }, imports: batches, population, selection, parameters: { runId: "workpaper-l16", work } };
   };
-  it("trace l'entrée puis bloque : exécution bloquée, résultat non concluant, aucun montant, motif nommé", async () => {
+  it("réel : la règle à revoir bloque l'exécution (rule_not_applicable), sans résultat ni montant", async () => {
     const r = new LeaseRegistry().execute(await request());
-    expect(r).toMatchObject({ execution: "blocked", outcome: "inconclusive", calculationKey: "ifrs16.leases", ruleVersion: "0.1.0", findings: [] });
-    expect(r.blockedControls).toContain("L16_ENGINE_NOT_AVAILABLE");
-    expect(r.result).toMatchObject({ status: "engine_not_available", code: "L16_ENGINE_NOT_AVAILABLE", ruleBasisStatus: "review_required" });
-    expect(JSON.stringify(r.result)).not.toMatch(/"amount"|\d+\.\d{2}"/);
+    expect(r).toMatchObject({ execution: "blocked", outcome: "inconclusive", calculationKey: "ifrs16.leases", ruleVersion: "1.0.0", result: null, findings: [] });
+    expect(r.blockedControls).toContain("rule_not_applicable");
     expect(r.sourceRefs).toHaveLength(4); expect(r.inputHash).toMatch(/^[a-f0-9]{64}$/);
-    expect(stableSha256(new LeaseRegistry().execute(await request()))).toBe(stableSha256(r));
+  });
+  it("scénario : le moteur calcule F01 et F03 aux montants de l'oracle, déterministe, résultat non concluant tant que le cadrage PCG manque", async () => {
+    const demo = { ...scope, mode: "demo" as const }, r = new LeaseRegistry().execute(await request(demo));
+    expect(r).toMatchObject({ execution: "completed", outcome: "inconclusive" });
+    const result = r.result as LeaseResult;
+    expect(result.contracts.map(c => [c.contractId, c.status, c.result])).toEqual([["F01", "eligible_v1", "computed"], ["F03", "eligible_v1", "computed"]]);
+    const f03 = result.contracts.find(c => c.contractId === "F03")!;
+    expect(f03.closing).toMatchObject({ debtClosing: { amount: "22819.76" }, interest: { amount: "1398.49" }, depreciation: { amount: "11140.42" }, rouNetClosing: { amount: "22280.85" } });
+    expect(result.portfolio.computedSubtotal).toMatchObject({ label: "contrats calculés", contracts: 2 });
+    expect(result.limitations[0]).toMatch(/L16-03/);
+    expect(result.evidence.every(e => e.procedureId === "workpaper-l16" && e.status === "verified")).toBe(true);
+    expect(stableSha256(new LeaseRegistry().execute(await request(demo)))).toBe(stableSha256(r));
   });
   it("X33 : EU_adopted ajoute son propre motif en réel, pas en scénario ; une autre procédure ou unité est refusée", async () => {
-    expect(new LeaseRegistry().execute(await request(scope, "EU_adopted")).blockedControls).toEqual(expect.arrayContaining(["L16_ENGINE_NOT_AVAILABLE", expect.stringContaining("X33")]));
+    expect(new LeaseRegistry().execute(await request(scope, "EU_adopted")).blockedControls).toEqual(expect.arrayContaining([expect.stringContaining("X33")]));
     const demo = { ...scope, mode: "demo" as const };
-    expect(new LeaseRegistry().execute(await request(demo, "EU_adopted")).blockedControls.some(c => c.includes("X33"))).toBe(false);
+    expect(new LeaseRegistry().execute(await request(demo, "EU_adopted"))).toMatchObject({ execution: "completed" });
     const base = await request();
     expect(() => new LeaseRegistry().execute({ ...base, rule: { id: "loans.review", version: "1.0.0" } })).toThrow("L16_ADAPTER_INVALID");
     expect(() => new LeaseRegistry().execute({ ...base, population: { ...base.population, unit: "row" } })).toThrow("L16_ADAPTER_INVALID");
@@ -166,6 +182,7 @@ describe("IFRS C01 table explicite des erreurs HTTP (D21)", () => {
   it("aucun code levé par la chaîne Locations ne retombe en 503 par défaut : il est dans la table ou classé technique", () => {
     // Invariants internes : leur échec signale un défaut du code, jamais une action de l'utilisateur.
     const TECHNICAL = ["L16_DIVISION_BY_ZERO", "L16_ROOT_INVALID", "L16_INTEGER_INVALID", "L16_FIXED_INVALID", "INVALID_EUR_MONEY", "L16_ADAPTER_INVALID",
+      "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID",
       "BLOCKED_RESULT_REQUIRED", "COMPLETED_RESULT_REQUIRED", "FAILED_RESULT_REQUIRED", "CLIENT_REAL_SCOPE_REQUIRED", "CLIENT_TEMPLATE_REQUIRED", "WORKPAPER_VERSION_INVALID", "REVISION_INVALID",
       "SOURCE_BYTES_CHANGED", "CLIENT_PROJECTION_OUT_OF_SCOPE"];
     const root = resolve(__dirname, "../../.."), files: string[] = [];

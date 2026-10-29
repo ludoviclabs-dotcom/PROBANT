@@ -8,7 +8,8 @@ import { assertAdjustmentBundle, assertBundleCore, bundleHashOf, materializeBund
 import { decideBundleSelection, selectionStanding, withdrawBundleSelection, type SheetStanding } from "../selection";
 import { compareFingerprints, dependencyFingerprint, type LeaseDependencies } from "../fingerprint";
 import { leaseRuleBasisSchema } from "../rule-basis";
-import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
+import { LEASE_RULE_BASIS, leaseRuleBasis } from "@/lib/ifrs/leases/rule";
+import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 
 /** C01 — contrats communs : contexte, manifeste de base, retraitement, sélection et empreintes de dépendances. */
 const period = { startDate: "2027-01-01", closingDate: "2027-12-31", asOfDate: "2028-02-15", currency: "EUR" as const, validation: "provisional" as const };
@@ -62,8 +63,12 @@ describe("C01 contexte IFRS", () => {
 });
 
 describe("C01 fiche de règle", () => {
-  it("la fiche du socle reste à revoir, sans relecteur, et une fiche validée exige un relecteur nommé et daté", () => {
-    expect(LEASE_RULE_BASIS).toMatchObject({ status: "review_required", ruleVersion: "0.1.0", engineVersion: "none" });
+  it("la fiche reste à revoir tant que la relecture nommée n'est pas consignée ; une fiche validée exige un relecteur nommé et daté", () => {
+    expect(LEASE_RULE_BASIS).toMatchObject({ status: "review_required", ruleVersion: "1.0.0", engineVersion: LEASE_ENGINE_VERSION, jurisdiction: "IASB" });
+    expect(LEASE_RULE_BASIS.paragraphs).toContain("B9-B33");
+    expect(LEASE_RULE_BASIS.referenceCases).toHaveLength(10); expect(LEASE_RULE_BASIS.exclusions).toHaveLength(34);
+    const review = { reviewedBy: "Personne de test", reviewedAt: "2026-11-02T10:00:00.000Z", jurisdiction: "IASB" as const, confirmations: { wordByWordParagraphs: true as const, b9ToB33: true as const, internalPoliciesAccepted: true as const, referenceCasesExamined: true as const } };
+    expect(leaseRuleBasis(review)).toMatchObject({ status: "validated", reviewedBy: "Personne de test" });
     expect(LEASE_RULE_BASIS.reviewedBy).toBeUndefined();
     expect(() => leaseRuleBasisSchema.parse({ ...LEASE_RULE_BASIS, status: "validated" })).toThrow(/L16_RULE_REVIEW_REQUIRED/);
     expect(() => leaseRuleBasisSchema.parse({ ...LEASE_RULE_BASIS, reviewedBy: "Camille Martin" })).toThrow(/L16_RULE_REVIEW_INCONSISTENT/);
