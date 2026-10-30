@@ -16,7 +16,9 @@ techniques internes, pas des prescriptions IFRS :
   cumul publié après j mois = arrondi(ROU × j / m), dotation = différence de cumuls ;
 - retraitement de clôture (bundle `closing_adjustment`) sur une base PCG qui a comptabilisé en
   charge les loyers échus de la période : aucun mouvement de trésorerie, effet d'ouverture
-  = ROU net d'ouverture - dette d'ouverture, impôt non calculé (taxStatus = not_computed).
+  = ROU net d'ouverture - dette d'ouverture, impôt non calculé (taxStatus = not_computed) ;
+- pont par poste (ajout L16-03, sans changer aucune valeur antérieure) : base PCG + ajustement = cible,
+  la base portant le loyer en charge et aucun droit d'utilisation, dette ni effet d'ouverture.
 
 Lancement : python -I docs/ifrs/recette/attendus_l16.py   (écrit attendus_l16.json à côté)
 """
@@ -143,6 +145,13 @@ def evaluate(fx: dict) -> dict:
         credit = sum(a for _, a, s in lines if s == "credit")
         assert debit == credit, (fx["id"], closing, debit, credit)
         assert opening_effect + pnl == rou_net_close - debt_close, (fx["id"], closing)
+        # L16-03 : aucun compte de trésorerie dans le retraitement (le décaissement est déjà dans la base PCG).
+        assert not {a for a, _, _ in lines} & {"cash", "bank", "lease_payment"}, (fx["id"], closing)
+        # Pont par poste (L16-03), jamais totalisé : base PCG + ajustements = cible, sur le seul contrat.
+        # La base PCG porte le loyer en charge ; droit d'utilisation, dette et ouverture n'y figurent pas (condition de la base).
+        bridge = {"rou": (Decimal(0), rou_net_close), "debt": (Decimal(0), debt_close),
+                  "pnlBeforeTax": (-rent, -(interest + depreciation)), "openingEquity": (Decimal(0), opening_effect)}
+        assert bridge["pnlBeforeTax"][0] + pnl == bridge["pnlBeforeTax"][1], (fx["id"], closing)
         closings.append({
             "periodStart": period_start, "closing": closing, "status": "computed",
             "paymentsInPeriod": k_close - k_open, "rentNeutralized": money(rent),
@@ -155,6 +164,7 @@ def evaluate(fx: dict) -> dict:
                                     "pcg_rent_neutralized": money(rent)},
             "bundle": [{"account": account, "side": side, "amount": money(amount)} for account, amount, side in lines],
             "bundleTotal": money(debit),
+            "bridge": {poste: {"base": money(base), "adjustment": money(target - base), "target": money(target)} for poste, (base, target) in bridge.items()},
         })
 
     total_interest = sum(Decimal(r["interest"]) for r in schedule)

@@ -14,7 +14,8 @@ import { LeaseRuntime } from "../lease-runtime";
 import { LEASE_MAPPING, type LeaseType } from "../lease-sources";
 import type { LeaseCommand } from "../lease-commands";
 import type { LeaseResult } from "../lease-review";
-import { periodId, type WorkpaperRun } from "../model";
+import { contentHash, periodId, type WorkpaperRun } from "../model";
+import { decideBundleSelection } from "@/lib/ifrs/shared/selection";
 import { assertDisposableDatabase } from "./disposable-database";
 import { leaseFiles, LEASE_PERIOD } from "./lease-fixture";
 
@@ -36,13 +37,13 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     method, headers: { cookie: SESSION_COOKIE + "=" + owner.secret, origin: config.appOrigin, [CSRF_HEADER]: owner.csrf, "Idempotency-Key": randomUUID(), ...(typeof body === "string" ? { "Content-Type": "application/json" } : {}) }, body });
   async function ok(body: LeaseCommand, d: string = dossier) { const r = await http.POST(request("POST", JSON.stringify(body), d)); expect(r.status, await r.clone().text()).toBe(200); return (await r.json()).run as WorkpaperRun; }
   const target = (r: WorkpaperRun) => ({ id: r.id, expectedVersion: r.version });
-  async function importAll(d: string, files: Partial<Record<LeaseType, File>>) {
+  async function importAll(d: string, files: Partial<Record<LeaseType, File>>, expectedSourceId: string | null = null) {
     const out: ImportBatch[] = [];
     for (const [type, file] of Object.entries(files)) {
       const form = new FormData(); form.set("file", file!); form.set("documentType", type); form.set("mapping", JSON.stringify(LEASE_MAPPING)); form.set("period", JSON.stringify(LEASE_PERIOD));
       const preview = await http.importsPOST(request("POST", form, d)); expect(preview.status, await preview.clone().text()).toBe(200);
       const { batch } = await preview.json();
-      const approved = await http.importsPOST(request("POST", JSON.stringify({ command: "approve_import", importId: batch.id, previewHash: batch.previewHash, expectedSourceId: null }), d));
+      const approved = await http.importsPOST(request("POST", JSON.stringify({ command: "approve_import", importId: batch.id, previewHash: batch.previewHash, expectedSourceId }), d));
       expect(approved.status, await approved.clone().text()).toBe(200);
       out.push((await approved.json()).batch);
     }
@@ -69,29 +70,59 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
   }, 30000);
   afterAll(async () => { if (client) await client.end(); });
 
-  it("exécution réelle : chiffres de l'oracle au centime, preuves fusionnées, aucun point pour un contrat calculé ; puis conclusion, relecture personnelle nommée et verrouillage", async () => {
+  const view = async (d: string = dossier) => { const r = await http.GET(request("GET", undefined, d)); expect(r.status).toBe(200); return r.json(); };
+  it("exécution réelle : chiffres de l'oracle au centime, cadrés sur la base PCG, retraitement proposé puis revu à version exacte ; conclusion, relecture personnelle nommée et verrouillage", async () => {
     let run = await ok({ command: "create_leases", period: LEASE_PERIOD, instanceKey: "l16-02-valide" });
     expect(run.template.rule).toMatchObject({ version: "1.0.0", validation: "validated" });
     const batches = await importAll(dossier, leaseFiles());
     run = await ok({ command: "configure_leases", ...target(run), work: work(batches) });
     run = await ok({ command: "freeze_leases", ...target(run), criteria: "Registre complet de l'exercice", importIds: batches.map(b => b.id) });
     run = await ok({ command: "execute", ...target(run) });
-    expect(run).toMatchObject({ state: "executed", result: { execution: "completed", outcome: "inconclusive" }, notes: [] });
+    expect(run).toMatchObject({ state: "executed", result: { execution: "completed", outcome: "no_exception_detected" }, notes: [] });
     const result = run.result!.result as LeaseResult;
     expect(result.contracts.map(c => [c.contractId, c.status, c.result])).toEqual([["F01", "eligible_v1", "computed"], ["F03", "eligible_v1", "computed"]]);
     // F01 over 2026 = oracle F01 at 2027-03-31; F03 over 2026 = oracle F03 at 2027-12-31 (same months, same amounts).
     expect(result.contracts[0].closing).toMatchObject({ additions: { amount: "2940.99" }, interest: { amount: "59.01" }, debtClosing: { amount: "0.00" }, depreciation: { amount: "2940.99" }, rouNetClosing: { amount: "0.00" } });
     expect(result.contracts[1].closing).toMatchObject({ additions: { amount: "33421.27" }, interest: { amount: "1398.49" }, debtClosing: { amount: "22819.76" }, depreciation: { amount: "11140.42" }, rouNetClosing: { amount: "22280.85" } });
     expect(result.portfolio.computedSubtotal).toMatchObject({ label: "contrats calculés", contracts: 2, debtClosing: { amount: "22819.76" }, interest: { amount: "1457.50" } });
-    expect(result.coverage.ledger).toMatchObject({ lines: 1, matched: 1, unmatched: 0 });
+    expect(result.coverage.ledger).toMatchObject({ lines: 4, matched: 4, unmatched: 0 });
     expect(run.evidence.length).toBe(result.evidence.length);
+    // L16-03: both contracts framed; the adjustment carries this sheet's lineage and revision and is materialized at the exact version read.
+    expect(result.contracts.map(c => [c.contractId, c.framing.status, c.adjustment.status])).toEqual([["F01", "framed", "included"], ["F03", "framed", "included"]]);
+    expect(result.bundle).toMatchObject({ logicalId: "ifrs16.leases:" + run.rootId, revision: 1, runId: run.id, identities: ["ifrs16:lease:F01", "ifrs16:lease:F03"], taxStatus: "not_computed" });
+    expect(result.bundleTotals).toEqual({ debit: { amount: "51901.17", currency: "EUR" }, credit: { amount: "51901.17", currency: "EUR" } });
+    const proposed = (await view()).adjustments[run.id];
+    expect(proposed).toMatchObject({ status: "proposed", runVersion: run.version, contentHash: contentHash(run) });
     const contracts = batches.find(b => b.document.documentType === "lease_contracts")!;
-    run = await ok({ command: "conclude", ...target(run), text: "Dette et droit d'utilisation recalculés sur paramètres sourcés ; cadrage PCG à réaliser (L16-03).", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } });
+    run = await ok({ command: "conclude", ...target(run), text: "Dette et droit d'utilisation recalculés sur paramètres sourcés ; loyers cadrés sur la base PCG ; retraitement proposé, impôt non calculé.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } });
     run = await ok({ command: "submit", ...target(run) });
     run = await ok({ command: "review", ...target(run), decision: "approved", text: "Relecture personnelle des paramètres, de l'échéancier et des preuves.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id }, submittedHash: run.submittedHash! });
     expect(run.approval).toMatchObject({ actorId: LOCAL_OWNER_SUBJECT, kind: "personal", reviewerName: "Camille Martin (exemple)" });
+    const reviewed = (await view()).adjustments[run.id];
+    expect(reviewed).toMatchObject({ status: "reviewed", bundleHash: proposed.bundleHash, runVersion: run.version });
     run = await ok({ command: "lock", ...target(run) });
     expect(run.state).toBe("locked");
+    const locked = (await view()).adjustments[run.id];
+    expect(locked).toMatchObject({ status: "reviewed", bundleHash: proposed.bundleHash });
+    // Selection for a base is decided by the closing journal (L16-05); the pure decision accepts this exact version and nothing older.
+    const ledger = batches.find(b => b.document.documentType === "lease_ledger")!;
+    const sheet = { runId: run.id, rootId: run.rootId, revision: run.revision, version: run.version, state: run.state, contentHash: contentHash(run), latestRevision: true, sourcesCurrent: true, ruleCurrent: true };
+    const manifest = { baseKind: "PCG", sourceRefs: [{ importId: ledger.id, documentVersionId: ledger.document.id, sha256: ledger.document.byteHash }], period: locked.period, includedAdjustments: { kind: "declared", identities: [] },
+      declaredBy: LOCAL_OWNER_SUBJECT, declaredAt: "2027-02-20T09:00:00.000Z", limits: "Grand livre PCG du dossier", citation: { documentVersionId: ledger.document.id, importId: ledger.id, fileName: ledger.document.fileName, sha256: ledger.document.byteHash, row: 2 } };
+    const decide = (over: Partial<typeof sheet> = {}, expectedVersion = run.version) => decideBundleSelection([], { scope: locked.scope, period: locked.period, bundle: locked, manifest, sheet: { ...sheet, ...over }, actorId: LOCAL_OWNER_SUBJECT, at: "2027-02-20T10:00:00.000Z",
+      expected: { runId: run.id, version: expectedVersion, contentHash: sheet.contentHash, bundleHash: locked.bundleHash } });
+    expect(decide().effect).toBe("selected");
+    expect(() => decide({}, proposed.runVersion)).toThrow("L16_BUNDLE_STALE");
+
+    // Ledger replaced after the review: the frozen version stays readable with its adjustment; every command asks for a revision.
+    const replaced = await importAll(dossier, { lease_ledger: leaseFiles(r => { r.lease_ledger[0].details = { ...r.lease_ledger[0].details, fields: { ...(r.lease_ledger[0].details.fields as object), piece: "FA-F01-2026-01-CORRIGEE" } }; }).lease_ledger! }, ledger.id);
+    expect(replaced).toHaveLength(1);
+    const after = await view();
+    expect(after.sourcesCurrent[run.id]).toBe(false);
+    expect(after.adjustments[run.id]).toMatchObject({ status: "reviewed", bundleHash: proposed.bundleHash });
+    expect(() => decide({ sourcesCurrent: false })).toThrow("L16_BUNDLE_STALE");
+    const refused = await http.POST(request("POST", JSON.stringify({ command: "conclude", ...target(run), text: "Reprise.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } })));
+    expect(refused.status).toBe(409); expect((await refused.json()).error).toBe("L16_SOURCE_REPLACED_REVISION_REQUIRED");
   }, 90000);
 
   it("contrat historique sans ouverture : diagnostic, point bloquant sans montant ; l'approbation est refusée tant qu'il n'est pas résolu", async () => {

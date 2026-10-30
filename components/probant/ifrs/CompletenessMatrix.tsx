@@ -1,13 +1,15 @@
 "use client";
 import { useMemo } from "react";
+import type { LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { LeaseQualification, QualifiedContract } from "@/lib/ifrs/leases/qualification";
-import { CELL_GLYPH, CELL_LABELS, cellState, MATRIX_COLUMNS, reasonColumn, STATUS_GLYPH, STATUS_LABELS, plural, type MatrixColumn } from "./format";
+import { CELL_GLYPH, CELL_LABELS, cellState, isUnframed, MATRIX_COLUMNS, moneyFr, reasonColumn, STATUS_GLYPH, STATUS_LABELS, plural, type MatrixColumn } from "./format";
 import { FILTERS, type LeaseFilter } from "./selection-url";
 import s from "./ifrs.module.css";
 export type { LeaseFilter };
 
-export function applyFilter(contracts: QualifiedContract[], filter: LeaseFilter) {
+export function applyFilter(contracts: QualifiedContract[], filter: LeaseFilter, framing: LeaseFraming | null = null) {
   if (filter === "all") return contracts;
+  if (filter === "unframed") return contracts.filter(c => isUnframed(framing?.contracts.find(f => f.contractId === c.contractId)));
   if (filter === "a_qualifier" || filter === "hors_scope_v1") return contracts.filter(c => c.status === filter);
   if (filter === "exemption") return contracts.filter(c => c.status === "exemption_documentee");
   if (filter === "rate") return contracts.filter(c => c.reasons.some(r => reasonColumn(r) === "rate" && r.effect === "a_qualifier"));
@@ -20,9 +22,10 @@ export function applyFilter(contracts: QualifiedContract[], filter: LeaseFilter)
  * « à compléter », « non applicable » et « confirmé » restent distincts, et le statut agrégé n'est pas une moyenne.
  * Cliquer une cellule ou un contrat ouvre l'inspecteur sur ce contrat ; le focus y revient à la fermeture.
  */
-export function CompletenessMatrix({ qualification, filter, selected, onFilter, onOpen }: { qualification: LeaseQualification; filter: LeaseFilter; selected: string | null;
+export function CompletenessMatrix({ qualification, framing, filter, selected, onFilter, onOpen }: { qualification: LeaseQualification; framing: LeaseFraming | null; filter: LeaseFilter; selected: string | null;
   onFilter(f: LeaseFilter): void; onOpen(contractId: string, column: MatrixColumn | null, trigger: HTMLElement): void }) {
-  const rows = useMemo(() => applyFilter(qualification.contracts, filter), [qualification, filter]);
+  const rows = useMemo(() => applyFilter(qualification.contracts, filter, framing), [qualification, filter, framing]);
+  const framingOf = (id: string) => framing?.contracts.find(f => f.contractId === id) ?? null;
   const codes = useMemo(() => {
     const counts = new Map<string, { count: number; message: string }>();
     for (const c of qualification.contracts) for (const r of c.reasons) if (r.effect !== "info" && r.effect !== "exemption" && r.effect !== "non_location") counts.set(r.code, { count: (counts.get(r.code)?.count ?? 0) + 1, message: counts.get(r.code)?.message ?? r.message });
@@ -40,13 +43,13 @@ export function CompletenessMatrix({ qualification, filter, selected, onFilter, 
     {rows.length === 0 ? <p className={s.muted}>Aucun contrat pour ce filtre.</p> :
       <div className={s.scroll} role="region" aria-label="Matrice de complétude — défilement horizontal au clavier" tabIndex={0}>
         <table className={s.table}>
-          <caption>Une ligne par contrat ; une cellule par famille de réponses. ✓ confirmé · △ à compléter · × hors V1 · — non applicable · ◇ documenté.</caption>
+          <caption>Une ligne par contrat ; une cellule par famille de réponses. ✓ confirmé · △ à compléter · × hors V1 · — non applicable · ◇ documenté · ≠ écart de cadrage.</caption>
           <thead><tr><th scope="col">Contrat</th><th scope="col">Statut</th>{MATRIX_COLUMNS.map(c => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
           <tbody>{rows.map(c => <tr key={c.contractId} aria-selected={selected === c.contractId}>
             <th scope="row" className={s.rowHead}><button type="button" onClick={e => onOpen(c.contractId, null, e.currentTarget)}>{c.contractId}</button>
               <div className={s.muted}>{c.assetCategory ?? "catégorie non renseignée"}</div></th>
             <td><span className={s.status} data-status={c.status}><span aria-hidden="true">{STATUS_GLYPH[c.status]}</span>{STATUS_LABELS[c.status]}</span></td>
-            {MATRIX_COLUMNS.map(col => { const state = cellState(c, col.id);
+            {MATRIX_COLUMNS.map(col => { const state = cellState(c, col.id, framingOf(c.contractId));
               return <td key={col.id}><button type="button" className={s.cell} data-cell={state} aria-label={c.contractId + " · " + col.label + " : " + CELL_LABELS[state]} onClick={e => onOpen(c.contractId, col.id, e.currentTarget)}>
                 <span aria-hidden="true">{CELL_GLYPH[state]}</span>{CELL_LABELS[state]}</button></td>; })}
           </tr>)}</tbody>
@@ -59,6 +62,7 @@ export function CompletenessMatrix({ qualification, filter, selected, onFilter, 
     <dl className={s.kv}>
       <dt>Registre fourni</dt><dd>{plural(registry.contracts, "contrat")} : {Object.entries(registry.byStatus).filter(([, n]) => n).map(([k, n]) => n + " · " + STATUS_LABELS[k as keyof typeof STATUS_LABELS]).join(" · ") || "aucun"}</dd>
       <dt>Population comptable fournie</dt><dd>{plural(ledger.lines, "ligne")} · {ledger.matched} rattachée(s) à un contrat · {ledger.unmatched} non rattachée(s){ledger.unknownContracts.length ? " (contrats inconnus : " + ledger.unknownContracts.join(", ") + ")" : ""}</dd>
+      {framing && <><dt>Cadrage PCG</dt><dd>{framing.byStatus.framed} contrat(s) cadré(s) · {framing.byStatus.difference} en écart · {framing.byStatus.not_framed} non rapproché(s) ; {plural(framing.lines.framed, "ligne cadrée", "lignes cadrées")} ({moneyFr(framing.lines.absFramed)}), {framing.lines.notFramed} autre(s), {framing.lines.unattached} sans contrat ({moneyFr(framing.lines.absUnattached)}, en valeur absolue)</dd></>}
       <dt>Lignes orphelines</dt><dd>{qualification.orphans.length ? plural(qualification.orphans.length, "ligne") + " sans contrat du registre, conservée(s), jamais appariée(s)" : "aucune"}</dd>
     </dl>
     <p className={s.muted}>Ces dénominateurs portent sur les sources fournies : ils ne prouvent pas l'exhaustivité des contrats de l'entité.</p>

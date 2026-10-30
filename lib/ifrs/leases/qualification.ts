@@ -22,7 +22,7 @@ type Answer = { kind: "value"; value: string } | { kind: "unknown"; reason: stri
 export interface QualificationWork { policies: readonly LeasePolicy[]; confirmations: readonly LeaseConfirmation[] }
 export type DueRole = "exigible" | "non_encore_exigible";
 export type Settlement = "regle" | "inconnu" | "insuffisant" | "excedentaire" | "non_applicable";
-export interface QualifiedDue { key: string; dueDate: string; amount: Money; role: DueRole; settlement: Settlement; paidAmount?: Money; paidVat?: Money; proof: SourceProof }
+export interface QualifiedDue { key: string; dueDate: string; amount: Money; role: DueRole; settlement: Settlement; paidAmount?: Money; paidVat?: Money; paidOn?: string; proof: SourceProof }
 /** Entrées du calcul, posées seulement pour un contrat `eligible_v1` : chaque valeur vient d'une source ou d'une confirmation citée. */
 export interface LeaseEngineInputs {
   contractId: string; version: string; commencement: string; months: number; payment: Money; annualRate: string; usefulLifeMonths: number;
@@ -192,7 +192,7 @@ function qualifyOne(contract: SourceFact, facts: LeaseFacts, period: { startDate
       }
     }
     return { key: d.key, dueDate: d.date, amount: d.amount, role, settlement, ...(paid && /^-?\d/.test(paid) ? { paidAmount: { amount: paid, currency: "EUR" as const } } : {}),
-      ...(vatPaid && /^-?\d/.test(vatPaid) ? { paidVat: { amount: vatPaid, currency: "EUR" as const } } : {}), proof: d.proof };
+      ...(vatPaid && /^-?\d/.test(vatPaid) ? { paidVat: { amount: vatPaid, currency: "EUR" as const } } : {}), ...(paidDate && /^\d{4}-\d{2}-\d{2}$/.test(paidDate) ? { paidOn: paidDate } : {}), proof: d.proof };
   });
   if (term !== null && term >= 1 && term <= 120 && commencement.endsWith("-01")) {
     const start = monthIndex(commencement), expected = Array.from({ length: term }, (_, t) => monthEnd(start + t));

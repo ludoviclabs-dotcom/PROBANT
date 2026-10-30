@@ -154,6 +154,9 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect(read.imports.every((b: ImportBatch) => b.document.documentType.startsWith("lease_"))).toBe(true);
     // The qualification of the frozen sources is read by the screen: both contracts are eligible; F01 carries a not-applicable answer the field does not admit.
     expect(read.qualification[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "a_qualifier"], ["F03", "eligible_v1"]]);
+    // L16-03: the framing is read before any calculation (the rule review still blocks the engine); no adjustment exists without a result.
+    expect(read.framing[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "not_applicable"], ["F03", "framed"]]);
+    expect(read.adjustments[sheet.id]).toBeNull();
     // A blocked sheet cannot be submitted, reviewed or locked: its state forbids it, with a business code.
     expect(await failure(await command({ command: "submit", ...target(sheet) }))).toEqual({ status: 403, error: "WORKPAPER_TRANSITION_FORBIDDEN" });
   }, 60000);

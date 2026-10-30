@@ -127,7 +127,7 @@ describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée t
     const batches = await approvedLeaseBatches(s, a), population = freezePopulation(s, batches, "lease_contract", a, LEASE_PERIOD);
     const selection = selectPopulation(population, { method: "targeted", criteria: "Tous les contrats", exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map(i => i.id) }, a);
     const work = stampLeaseWork({ ...draft(), framework: { ...framework, jurisdiction } }, () => { throw new Error("unused"); }, a.id, "2027-02-01T10:00:00.000Z");
-    return { scope: s, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "1.0.0" }, imports: batches, population, selection, parameters: { runId: "workpaper-l16", work } };
+    return { scope: s, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "1.0.0" }, imports: batches, population, selection, parameters: { runId: "workpaper-l16", rootId: "workpaper-l16", revision: 1, work } };
   };
   it("réel : la règle à revoir bloque l'exécution (rule_not_applicable), sans résultat ni montant", async () => {
     const r = new LeaseRegistry().execute(await request());
@@ -135,15 +135,17 @@ describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée t
     expect(r.blockedControls).toContain("rule_not_applicable");
     expect(r.sourceRefs).toHaveLength(4); expect(r.inputHash).toMatch(/^[a-f0-9]{64}$/);
   });
-  it("scénario : le moteur calcule F01 et F03 aux montants de l'oracle, déterministe, résultat non concluant tant que le cadrage PCG manque", async () => {
+  it("scénario : le moteur calcule F01 et F03 aux montants de l'oracle, déterministe ; cadrés sur la base PCG, sans exception (L16-03)", async () => {
     const demo = { ...scope, mode: "demo" as const }, r = new LeaseRegistry().execute(await request(demo));
-    expect(r).toMatchObject({ execution: "completed", outcome: "inconclusive" });
+    expect(r).toMatchObject({ execution: "completed", outcome: "no_exception_detected" });
     const result = r.result as LeaseResult;
     expect(result.contracts.map(c => [c.contractId, c.status, c.result])).toEqual([["F01", "eligible_v1", "computed"], ["F03", "eligible_v1", "computed"]]);
     const f03 = result.contracts.find(c => c.contractId === "F03")!;
     expect(f03.closing).toMatchObject({ debtClosing: { amount: "22819.76" }, interest: { amount: "1398.49" }, depreciation: { amount: "11140.42" }, rouNetClosing: { amount: "22280.85" } });
     expect(result.portfolio.computedSubtotal).toMatchObject({ label: "contrats calculés", contracts: 2 });
-    expect(result.limitations[0]).toMatch(/L16-03/);
+    expect(result.contracts.map(c => [c.contractId, c.framing.status, c.adjustment.status])).toEqual([["F01", "framed", "included"], ["F03", "framed", "included"]]);
+    expect(result.bundle).toMatchObject({ logicalId: "ifrs16.leases:workpaper-l16", revision: 1, identities: ["ifrs16:lease:F01", "ifrs16:lease:F03"], taxStatus: "not_computed" });
+    expect(result.limitations.some(l => /not_computed/.test(l))).toBe(true);
     expect(result.evidence.every(e => e.procedureId === "workpaper-l16" && e.status === "verified")).toBe(true);
     expect(stableSha256(new LeaseRegistry().execute(await request(demo)))).toBe(stableSha256(r));
   });
@@ -182,7 +184,7 @@ describe("IFRS C01 table explicite des erreurs HTTP (D21)", () => {
   it("aucun code levé par la chaîne Locations ne retombe en 503 par défaut : il est dans la table ou classé technique", () => {
     // Invariants internes : leur échec signale un défaut du code, jamais une action de l'utilisateur.
     const TECHNICAL = ["L16_DIVISION_BY_ZERO", "L16_ROOT_INVALID", "L16_INTEGER_INVALID", "L16_FIXED_INVALID", "INVALID_EUR_MONEY", "L16_ADAPTER_INVALID",
-      "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID",
+      "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID", "L16_BRIDGE_IDENTITY", "L16_MODEL_INVALID",
       "BLOCKED_RESULT_REQUIRED", "COMPLETED_RESULT_REQUIRED", "FAILED_RESULT_REQUIRED", "CLIENT_REAL_SCOPE_REQUIRED", "CLIENT_TEMPLATE_REQUIRED", "WORKPAPER_VERSION_INVALID", "REVISION_INVALID",
       "SOURCE_BYTES_CHANGED", "CLIENT_PROJECTION_OUT_OF_SCOPE"];
     const root = resolve(__dirname, "../../.."), files: string[] = [];

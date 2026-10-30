@@ -1,9 +1,9 @@
 import { MATRIX_COLUMNS, type MatrixColumn } from "./format";
 
 /** Filtres d'affichage : ils ne changent ni la population figée, ni la version revue, ni un export. */
-export type LeaseFilter = "all" | "a_qualifier" | "rate" | "hors_scope_v1" | "exemption" | `code:${string}`;
+export type LeaseFilter = "all" | "a_qualifier" | "rate" | "unframed" | "hors_scope_v1" | "exemption" | `code:${string}`;
 export const FILTERS: { id: LeaseFilter; label: string }[] = [
-  { id: "all", label: "Tous" }, { id: "a_qualifier", label: "À qualifier" }, { id: "rate", label: "Taux manquant ou non converti" }, { id: "hors_scope_v1", label: "Hors périmètre V1" }, { id: "exemption", label: "Exemptions" },
+  { id: "all", label: "Tous" }, { id: "a_qualifier", label: "À qualifier" }, { id: "rate", label: "Taux manquant ou non converti" }, { id: "unframed", label: "Non rapproché" }, { id: "hors_scope_v1", label: "Hors périmètre V1" }, { id: "exemption", label: "Exemptions" },
 ];
 /** Sélection commune du poste (C02), lue et écrite dans l'URL : `contrat`, `colonne`, `filtre`. Module pur, lu aussi par la page serveur. */
 export interface LeaseSelectionState { contractId: string | null; column: MatrixColumn | null; filter: LeaseFilter }

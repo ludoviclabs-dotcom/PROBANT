@@ -28,7 +28,7 @@ describe("C02 modèle de vue Locations", () => {
     const ready = leaseWorkspaceView(input({ run: run({ leaseWork: work }) }));
     expect(ready.actions.freeze.allowed).toBe(true);
     // Without a qualification read, the qualification step cannot claim to be done.
-    expect(ready.steps.map(s => [s.id, s.state])).toEqual([["sources", "done"], ["qualification", "current"], ["freeze", "current"], ["calculation", "todo"], ["review", "todo"]]);
+    expect(ready.steps.map(s => [s.id, s.state])).toEqual([["sources", "done"], ["qualification", "current"], ["freeze", "current"], ["calculation", "todo"], ["adjustment", "todo"], ["review", "todo"]]);
   });
   it("population figée, règle à revoir : le calcul est refusé avec le motif de la relecture nommée et l'étape est bloquée", () => {
     const v = leaseWorkspaceView(input({ run: run({ state: "ready", leaseWork: work, population: { id: "p" } as WorkpaperRun["population"] }) }));

@@ -32,8 +32,8 @@ export class LeaseRegistry extends CalculationRegistry {
       return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers], result: { status: "framework_not_activatable", reason: blockers.join(" ; ") } });
     }
     const registry = new CalculationRegistry();
-    registry.register(IFRS16_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), z.object({ runId: z.string().min(1), work: leaseWorkSchema }).strict(),
-      z.custom<LeaseResult>(isLeaseResult), (_input, p) => evaluateLeases(request.scope, request.period, request.imports, p.runId, request.population, request.selection, p.work as LeaseWork), r => r.outcome);
+    registry.register(IFRS16_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), z.object({ runId: z.string().min(1), rootId: z.string().min(1), revision: z.number().int().positive(), work: leaseWorkSchema }).strict(),
+      z.custom<LeaseResult>(isLeaseResult), (_input, p) => evaluateLeases(request.scope, request.period, request.imports, { runId: p.runId, rootId: p.rootId, revision: p.revision }, request.population, request.selection, p.work as LeaseWork), r => r.outcome);
     return registry.execute(request);
   }
 }

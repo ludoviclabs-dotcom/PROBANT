@@ -1,4 +1,6 @@
 import type { WorkpaperRun } from "@/lib/workpapers/model";
+import type { LeaseResult } from "@/lib/workpapers/lease-review";
+import type { LeaseFraming } from "./framing";
 import type { LeaseQualification } from "./qualification";
 
 /**
@@ -6,7 +8,7 @@ import type { LeaseQualification } from "./qualification";
  * L'interface n'en déduit rien d'autre : aucune action n'est inférée d'un libellé ou d'un zéro affiché.
  */
 export type StepState = "done" | "current" | "todo" | "blocked";
-export type StepId = "sources" | "qualification" | "freeze" | "calculation" | "review";
+export type StepId = "sources" | "qualification" | "freeze" | "calculation" | "adjustment" | "review";
 export interface WorkspaceStep { id: StepId; label: string; state: StepState; reason: string | null; exceptions: number | null }
 export type ActionId = "create" | "configure" | "freeze" | "execute" | "revise" | "submit" | "review" | "lock";
 export interface ActionState { allowed: boolean; reason: string | null }
@@ -20,6 +22,8 @@ export interface LeaseWorkspaceView {
 export interface ViewModelInput {
   mode: "real" | "demo"; run: WorkpaperRun | null; permissions: readonly string[]; actorId: string | null; selfReviewAllowed: boolean;
   sourceTypes: readonly string[]; requiredTypes: readonly string[]; sourcesCurrent: boolean; ruleCurrent: boolean; ruleValidated: boolean; qualification: LeaseQualification | null;
+  /** Cadrage des sources (avant ou sans calcul) ; après calcul, le résultat de la feuille fait foi. */
+  framing?: LeaseFraming | null;
 }
 const REVIEW_RULE = "Règle à revoir : la relecture personnelle nommée n'est pas consignée (docs/ifrs/REVUE_REGLE_IFRS16.md)";
 
@@ -51,7 +55,21 @@ export function leaseWorkspaceView(i: ViewModelInput): LeaseWorkspaceView {
     { id: "calculation", label: "Calculer dette et droit d'utilisation", state: engine === "computed" ? "done" : !run?.population ? "todo" : engine === "blocked_rule_review" || !i.ruleValidated ? "blocked" : actions.execute.allowed ? "current" : "blocked",
       reason: engine === "computed" ? null : !i.ruleValidated && i.mode === "real" ? REVIEW_RULE : engine === "blocked_other" ? "Calcul bloqué : voir les contrôles du résultat" : actions.execute.reason,
       exceptions: run?.result?.execution === "completed" ? run.notes.filter(n => n.blocking && !n.resolution).length : null },
+    adjustmentStep(engine, run, i.framing ?? null),
     { id: "review", label: "Conclure et relire", state: reviewed ? "done" : run?.state === "executed" || run?.state === "awaiting_review" ? "current" : "todo", reason: null, exceptions: null },
   ];
   return { mode: i.mode, freshness: !run ? "no_sheet" : !i.sourcesCurrent ? "source_replaced" : !i.ruleCurrent ? "rule_replaced" : "current", engine, steps, actions };
+}
+
+/** Cadrage et retraitement : fait seulement si chaque contrat calculé est cadré et retenu ; un contrat non rapproché reste compté et motivé. */
+function adjustmentStep(engine: LeaseWorkspaceView["engine"], run: WorkpaperRun | null, framing: LeaseFraming | null): WorkspaceStep {
+  const label = "Cadrer sur la base PCG et proposer le retraitement";
+  if (engine === "computed") {
+    const result = run!.result!.result as LeaseResult, excluded = result.contracts.filter(c => c.adjustment.status === "excluded").length;
+    return { id: "adjustment", label, state: result.bundle && !excluded ? "done" : "current", exceptions: excluded,
+      reason: !result.bundle ? "Aucun contrat calculé et cadré : aucun retraitement proposé" : excluded ? excluded + " contrat(s) calculé(s) sans retraitement : cadrage en écart ou non établi" : null };
+  }
+  const unframed = framing ? framing.byStatus.difference + framing.byStatus.not_framed : null;
+  return { id: "adjustment", label, state: "todo", exceptions: unframed,
+    reason: unframed ? "Cadrage préalable des sources : " + unframed + " contrat(s) non rapproché(s) ; retraitement après le calcul" : null };
 }

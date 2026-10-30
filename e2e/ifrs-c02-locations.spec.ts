@@ -5,7 +5,8 @@ import { expect, test, type Page } from "@playwright/test";
 /**
  * IFRS C02 — poste « Locations IFRS 16 » sur un build de production.
  * 1. Scénario synthétique en lecture seule (/ifrs/locations?demo=1), calculé par le moteur côté serveur, aux trois largeurs.
- * 2. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
+ * 2. L16-03 : cadrage PCG, écritures du retraitement proposé, pont par poste et écart de cadrage, aux trois largeurs.
+ * 3. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
  * Captures : docs/ifrs/captures/c02 (IFRS_C02_OUT pour les déplacer). Données exclusivement synthétiques.
  */
 const OUT = process.env.IFRS_C02_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "c02");
@@ -40,7 +41,7 @@ test.describe("IFRS C02 · scénario synthétique en lecture seule", () => {
       await expect(page.getByRole("heading", { name: "Matrice de complétude" })).toBeVisible();
       await expect(page.getByRole("note").filter({ hasText: "Simulation non revue" })).toBeVisible();
       await expect(page.getByLabel("Contexte de la feuille")).toContainText("ifrs16.leases 1.0.0 · à revoir");
-      await expect(matrix(page).getByRole("row")).toHaveCount(7);
+      await expect(matrix(page).getByRole("row")).toHaveCount(8);
       // The synthetic scenario is read-only: no action bar, no policy editor, no upload form.
       await expect(page.getByRole("group", { name: "Actions de la feuille" })).toHaveCount(0);
       await expect(page.getByRole("button", { name: "Lire et conserver l'aperçu" })).toHaveCount(0);
@@ -64,7 +65,7 @@ test.describe("IFRS C02 · scénario synthétique en lecture seule", () => {
       await page.getByRole("button", { name: "À qualifier", exact: true }).click();
       await expect(matrix(page).getByRole("row")).toHaveCount(2);
       await expect(page).toHaveURL(/filtre=a_qualifier/);
-      await expect(page.getByText(/Affichage filtré : 1 contrat sur 6 — la population figée et l'export ne changent pas/)).toBeVisible();
+      await expect(page.getByText(/Affichage filtré : 1 contrat sur 7 — la population figée et l'export ne changent pas/)).toBeVisible();
       await context.close();
     });
   }
@@ -81,6 +82,46 @@ test.describe("IFRS C02 · scénario synthétique en lecture seule", () => {
     await expect(matrix(page).getByRole("rowheader")).toContainText("D06");
     await context.close();
   });
+});
+
+const OUT_L3 = process.env.IFRS_L16_03_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "l16-03");
+test.describe("IFRS L16-03 · cadrage PCG et retraitement proposé (scénario synthétique)", () => {
+  for (const width of WIDTHS) {
+    test(`largeur ${width} : filtre « non rapproché », écritures, pont par poste, écart de cadrage dans l'inspecteur`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, locale: "fr-FR", reducedMotion: "reduce" }), page = await context.newPage();
+      await page.goto("/ifrs/locations?demo=1");
+      const panel = page.getByRole("region", { name: "Écritures du retraitement — défilement horizontal au clavier" });
+      await expect(page.getByRole("heading", { name: "Retraitement de clôture proposé" })).toBeVisible();
+      // F01 (5 lines) and F03 (6 lines) are framed; D08 (mixed charge) is not in the adjustment.
+      await expect(panel.getByRole("row")).toHaveCount(1 + 11 + 1);
+      await expect(panel.getByRole("row").last()).toContainText("51 901,17 €");
+      await expect(panel).not.toContainText("D08");
+      const bridge = page.getByRole("region", { name: "Pont par poste — défilement horizontal au clavier" });
+      await expect(bridge.getByRole("row", { name: /Résultat avant impôt/ })).toContainText("−15 538,91 €");
+      await expect(bridge.getByRole("row")).toHaveCount(5);
+      await expect(page.getByText(/Impôt.*Non calculé/).first()).toBeVisible();
+      await noOverflow(page); await axe(page);
+      mkdirSync(OUT_L3, { recursive: true });
+      await page.getByRole("heading", { name: "Retraitement de clôture proposé" }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(OUT_L3, "retraitement-" + width + ".jpg"), type: "jpeg", quality: 78, fullPage: true });
+
+      await page.getByRole("button", { name: "Non rapproché", exact: true }).click();
+      await expect(page).toHaveURL(/filtre=unframed/);
+      await expect(matrix(page).getByRole("row")).toHaveCount(2);
+      const cell = matrix(page).getByRole("button", { name: "D08 · Cadrage PCG : écart" });
+      await cell.click();
+      await expect(page).toHaveURL(/contrat=D08&colonne=ledger/);
+      const inspector = width >= 1400 ? page.getByRole("complementary", { name: "Inspecteur — Contrat D08" }) : page.getByRole("dialog", { name: "Inspecteur — Contrat D08" });
+      await expect(inspector.getByText("Écart connu de cadrage", { exact: true })).toBeVisible();
+      await expect(inspector.getByText(/charge mixte/).first()).toBeVisible();
+      await expect(inspector.getByRole("cell", { name: "supérieure au loyer" })).toBeVisible();
+      await noOverflow(page); await axe(page);
+      await page.screenshot({ path: path.join(OUT_L3, "cadrage-d08-" + width + ".jpg"), type: "jpeg", quality: 78 });
+      await page.keyboard.press("Escape");
+      await expect(cell).toBeFocused();
+      await context.close();
+    });
+  }
 });
 
 test.describe("IFRS C02 · dossier réel sans session", () => {

@@ -9,6 +9,7 @@ import type { LeaseResult } from "@/lib/workpapers/lease-review";
 import type { LeaseWorkDraft } from "@/lib/workpapers/lease-work";
 import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import { executionProfileLabel } from "@/lib/runtime/profile";
+import { AdjustmentPanel } from "./AdjustmentPanel";
 import { CompletenessMatrix } from "./CompletenessMatrix";
 import { ContractDetail } from "./ContractDetail";
 import { dateFr, leaseFailureMessage, SHEET_STATE_LABELS, type LeaseView } from "./format";
@@ -41,6 +42,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
   const run = useMemo(() => view ? [...view.runs].sort((a, b) => b.revision - a.revision)[0] ?? null : null, [view]);
   const workspace = run ? view?.workspace[run.id] ?? null : view?.emptyWorkspace ?? null;
   const qualification = run ? view?.qualification[run.id] ?? null : null;
+  const framing = run ? view?.framing?.[run.id] ?? null : null, bundle = run ? view?.adjustments?.[run.id] ?? null : null;
   const result = run?.result?.execution === "completed" ? run.result.result as LeaseResult : null;
   const canPrepare = !demo && !!view?.permissions.includes("prepare");
   const saving = status === "saving";
@@ -146,16 +148,17 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
           {!demo && <ActionBar actions={workspace.actions} labels={ACTION_LABELS} busy={saving} onAction={onAction}/>}
           {!demo && <p role="status" aria-live="polite" className={s.saveState} data-state={status}>{{ idle: "", saving: "Commande en cours…", saved: "Accusé serveur reçu", failed: "Échec de la commande", conflict: "Conflit de version" }[status]}</p>}
           {run && run.result && run.result.execution !== "completed" && <StateNotice title="Calcul bloqué">{run.result.blockedControls.join(" · ")}</StateNotice>}
-          {qualification ? <CompletenessMatrix qualification={qualification} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
+          {qualification ? <CompletenessMatrix qualification={qualification} framing={framing} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
             : run ? <StateNotice tone="info" title="Qualification non disponible">{view.qualificationIssues[run.id] ? "Sources illisibles : " + view.qualificationIssues[run.id] : "Enregistrez les politiques pour qualifier les contrats des sources courantes."}</StateNotice> : null}
           {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} work={run.leaseWork} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
             onSave={(draft: LeaseWorkDraft) => void command("configure_leases", { work: draft })}/>}
+          {run && <AdjustmentPanel result={result} bundle={bundle} framing={framing} onOpen={(id, el) => openContract(id, "ledger", el)}/>}
           <ChartFrame title="Dette et droit d'utilisation par période" scope="Même devise, même population : contrats calculés seulement."
             empty={result ? "Graphiques branchés au poste visuel (lot L16-04) : les chiffres de chaque contrat calculé sont dans l'inspecteur." : demo ? "Aucun résultat calculé." : "Moteur non disponible pour ce dossier tant que la règle n'est pas validée : aucun graphique, aucun total."}/>
           <SourcesPanel view={view} period={period} required={view.capability.requiredTypes} canPrepare={canPrepare && !run?.population} busy={saving} onPreview={d => void mutate(d, true)} onApprove={c => void mutate({ command: "approve_import", ...c }, true)}/>
         </div>
         {selected && <Inspector title={"Contrat " + selected.contractId} kicker="Inspecteur" docked={docked} onClose={close} returnTo={trigger.current}>
-          <ContractDetail contract={selected} result={result?.contracts.find(c => c.contractId === selected.contractId) ?? null} focusColumn={selection.column}/>
+          <ContractDetail contract={selected} result={result?.contracts.find(c => c.contractId === selected.contractId) ?? null} framing={framing?.contracts.find(f => f.contractId === selected.contractId) ?? null} bundle={bundle} focusColumn={selection.column}/>
         </Inspector>}
       </div>
     </div>}

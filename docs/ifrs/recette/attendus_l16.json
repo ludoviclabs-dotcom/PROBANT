@@ -6,6 +6,28 @@
           "accumulatedClosing": "980.33",
           "accumulatedOpening": "0.00",
           "additions": "2940.99",
+          "bridge": {
+            "debt": {
+              "adjustment": "1970.40",
+              "base": "0.00",
+              "target": "1970.40"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-9.74",
+              "base": "-1000.00",
+              "target": "-1009.74"
+            },
+            "rou": {
+              "adjustment": "1960.66",
+              "base": "0.00",
+              "target": "1960.66"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -64,6 +86,28 @@
           "accumulatedClosing": "2940.99",
           "accumulatedOpening": "0.00",
           "additions": "2940.99",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "0.00",
+              "base": "-3000.00",
+              "target": "-3000.00"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -178,6 +222,28 @@
           "accumulatedClosing": "6000.00",
           "accumulatedOpening": "0.00",
           "additions": "6000.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "0.00",
+              "base": "-6000.00",
+              "target": "-6000.00"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -386,6 +452,28 @@
           "accumulatedClosing": "11140.42",
           "accumulatedOpening": "0.00",
           "additions": "33421.27",
+          "bridge": {
+            "debt": {
+              "adjustment": "22819.76",
+              "base": "0.00",
+              "target": "22819.76"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-538.91",
+              "base": "-12000.00",
+              "target": "-12538.91"
+            },
+            "rou": {
+              "adjustment": "22280.85",
+              "base": "0.00",
+              "target": "22280.85"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -444,6 +532,28 @@
           "accumulatedClosing": "22280.85",
           "accumulatedOpening": "11140.42",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "11688.17",
+              "base": "0.00",
+              "target": "11688.17"
+            },
+            "openingEquity": {
+              "adjustment": "-538.91",
+              "base": "0.00",
+              "target": "-538.91"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-8.84",
+              "base": "-12000.00",
+              "target": "-12008.84"
+            },
+            "rou": {
+              "adjustment": "11140.42",
+              "base": "0.00",
+              "target": "11140.42"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -507,6 +617,28 @@
           "accumulatedClosing": "33421.27",
           "accumulatedOpening": "22280.85",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "-547.75",
+              "base": "0.00",
+              "target": "-547.75"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "547.75",
+              "base": "-12000.00",
+              "target": "-11452.25"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -989,6 +1121,28 @@
           "accumulatedClosing": "980.33",
           "accumulatedOpening": "0.00",
           "additions": "2940.99",
+          "bridge": {
+            "debt": {
+              "adjustment": "1970.40",
+              "base": "0.00",
+              "target": "1970.40"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-9.74",
+              "base": "-1000.00",
+              "target": "-1009.74"
+            },
+            "rou": {
+              "adjustment": "1960.66",
+              "base": "0.00",
+              "target": "1960.66"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1108,6 +1262,28 @@
           "accumulatedClosing": "24775.63",
           "accumulatedOpening": "0.00",
           "additions": "247756.28",
+          "bridge": {
+            "debt": {
+              "adjustment": "227120.42",
+              "base": "0.00",
+              "target": "227120.42"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-4139.77",
+              "base": "-30000.00",
+              "target": "-34139.77"
+            },
+            "rou": {
+              "adjustment": "222980.65",
+              "base": "0.00",
+              "target": "222980.65"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1166,6 +1342,28 @@
           "accumulatedClosing": "247756.28",
           "accumulatedOpening": "222980.65",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "-4595.63",
+              "base": "0.00",
+              "target": "-4595.63"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "4595.63",
+              "base": "-30000.00",
+              "target": "-25404.37"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1318,6 +1516,28 @@
           "accumulatedClosing": "9951.56",
           "accumulatedOpening": "0.00",
           "additions": "9951.56",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "0.00",
+              "base": "-10000.00",
+              "target": "-10000.00"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1410,6 +1630,28 @@
           "accumulatedClosing": "135912042.33",
           "accumulatedOpening": "0.00",
           "additions": "679560211.64",
+          "bridge": {
+            "debt": {
+              "adjustment": "552834890.23",
+              "base": "0.00",
+              "target": "552834890.23"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-9186720.92",
+              "base": "-148148146.92",
+              "target": "-157334867.84"
+            },
+            "rou": {
+              "adjustment": "543648169.31",
+              "base": "0.00",
+              "target": "543648169.31"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1562,6 +1804,28 @@
           "accumulatedClosing": "21503.04",
           "accumulatedOpening": "0.00",
           "additions": "107515.21",
+          "bridge": {
+            "debt": {
+              "adjustment": "87862.33",
+              "base": "0.00",
+              "target": "87862.33"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-1850.16",
+              "base": "-24000.00",
+              "target": "-25850.16"
+            },
+            "rou": {
+              "adjustment": "86012.17",
+              "base": "0.00",
+              "target": "86012.17"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1620,6 +1884,28 @@
           "accumulatedClosing": "43006.08",
           "accumulatedOpening": "21503.04",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "67325.07",
+              "base": "0.00",
+              "target": "67325.07"
+            },
+            "openingEquity": {
+              "adjustment": "-1850.16",
+              "base": "0.00",
+              "target": "-1850.16"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-965.78",
+              "base": "-24000.00",
+              "target": "-24965.78"
+            },
+            "rou": {
+              "adjustment": "64509.13",
+              "base": "0.00",
+              "target": "64509.13"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1683,6 +1969,28 @@
           "accumulatedClosing": "64509.13",
           "accumulatedOpening": "43006.08",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "45863.63",
+              "base": "0.00",
+              "target": "45863.63"
+            },
+            "openingEquity": {
+              "adjustment": "-2815.94",
+              "base": "0.00",
+              "target": "-2815.94"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-41.61",
+              "base": "-24000.00",
+              "target": "-24041.61"
+            },
+            "rou": {
+              "adjustment": "43006.08",
+              "base": "0.00",
+              "target": "43006.08"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1840,6 +2148,28 @@
           "accumulatedClosing": "16710.64",
           "accumulatedOpening": "0.00",
           "additions": "33421.27",
+          "bridge": {
+            "debt": {
+              "adjustment": "22819.76",
+              "base": "0.00",
+              "target": "22819.76"
+            },
+            "openingEquity": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-6109.13",
+              "base": "-12000.00",
+              "target": "-18109.13"
+            },
+            "rou": {
+              "adjustment": "16710.63",
+              "base": "0.00",
+              "target": "16710.63"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1898,6 +2228,28 @@
           "accumulatedClosing": "33421.27",
           "accumulatedOpening": "16710.64",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "11688.17",
+              "base": "0.00",
+              "target": "11688.17"
+            },
+            "openingEquity": {
+              "adjustment": "-6109.13",
+              "base": "0.00",
+              "target": "-6109.13"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "-5579.04",
+              "base": "-12000.00",
+              "target": "-17579.04"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",
@@ -1961,6 +2313,28 @@
           "accumulatedClosing": "33421.27",
           "accumulatedOpening": "33421.27",
           "additions": "0.00",
+          "bridge": {
+            "debt": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            },
+            "openingEquity": {
+              "adjustment": "-11688.17",
+              "base": "0.00",
+              "target": "-11688.17"
+            },
+            "pnlBeforeTax": {
+              "adjustment": "11688.17",
+              "base": "-12000.00",
+              "target": "-311.83"
+            },
+            "rou": {
+              "adjustment": "0.00",
+              "base": "0.00",
+              "target": "0.00"
+            }
+          },
           "bundle": [
             {
               "account": "rou_gross",

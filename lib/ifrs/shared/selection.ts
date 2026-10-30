@@ -1,4 +1,4 @@
-import { assertScope, type WorkpaperScope, type WorkpaperState } from "@/lib/workpapers/model";
+import { assertScope, type NoteCitation, type WorkpaperScope, type WorkpaperState } from "@/lib/workpapers/model";
 import { assertAdjustmentBundle, type AdjustmentBundle } from "./bundle";
 import { assertManifestFor, type PreparationManifest } from "./manifest";
 
@@ -69,8 +69,36 @@ export function decideBundleSelection(current: readonly BundleSelection[], reque
   return { selections: [...current.filter(s => s.logicalId !== bundle.logicalId), selection].sort((a, b) => (a.logicalId < b.logicalId ? -1 : 1)), effect: same ? "replaced" : "selected", replaced: same };
 }
 
-/** Retrait d'une sélection de la lignée ; les versions antérieures restent dans le journal pour preuve. */
-export function withdrawBundleSelection(current: readonly BundleSelection[], logicalId: string) {
-  if (!current.some(s => s.logicalId === logicalId)) throw new Error("L16_NOT_FOUND");
+/**
+ * Retrait d'une sélection de la lignée, par version attendue : la sélection retirée doit être celle que l'utilisateur a lue
+ * (`L16_BUNDLE_STALE` sinon, jamais le retrait silencieux d'une autre version). Les versions antérieures restent dans le journal pour preuve.
+ */
+export function withdrawBundleSelection(current: readonly BundleSelection[], logicalId: string, expected: { runId: string; bundleHash: string }) {
+  const same = current.find(s => s.logicalId === logicalId);
+  if (!same) throw new Error("L16_NOT_FOUND");
+  if (same.runId !== expected.runId || same.bundleHash !== expected.bundleHash) throw new Error("L16_BUNDLE_STALE");
   return current.filter(s => s.logicalId !== logicalId);
+}
+
+/**
+ * Comptabilisation documentée d'un retraitement sélectionné (L16-03) : une pièce citée la documente ; la sélection seule ne la prouve pas.
+ * Refus : `L16_NOT_FOUND` (aucune sélection de la lignée), `L16_BUNDLE_STALE` (autre version que celle sélectionnée), `L16_CITATION_INVALID` (pièce absente).
+ */
+export interface BundlePosting { logicalId: string; bundleHash: string; citation: NoteCitation; documentedBy: string; documentedAt: string }
+export function documentBundlePosting(current: readonly BundleSelection[], request: { logicalId: string; bundleHash: string; citation: NoteCitation | null; actorId: string; at: string }): BundlePosting {
+  const same = current.find(s => s.logicalId === request.logicalId);
+  if (!same) throw new Error("L16_NOT_FOUND");
+  if (same.bundleHash !== request.bundleHash) throw new Error("L16_BUNDLE_STALE");
+  if (!request.citation || !request.citation.documentVersionId || !request.citation.sha256) throw new Error("L16_CITATION_INVALID");
+  return { logicalId: request.logicalId, bundleHash: request.bundleHash, citation: request.citation, documentedBy: request.actorId, documentedAt: request.at };
+}
+
+/** Trois états séparés d'un retraitement : proposé ou revu (feuille), sélectionné ou non (journal), comptabilisation documentée ou non (pièce). */
+export function bundleLifecycle(bundle: AdjustmentBundle, selection: BundleSelection | null, standing: ReturnType<typeof selectionStanding> | null, posting: BundlePosting | null) {
+  const selected = !!selection && selection.logicalId === bundle.logicalId && selection.bundleHash === bundle.bundleHash;
+  return {
+    review: bundle.status,
+    selection: !selected ? "not_selected" as const : standing?.status === "to_reexamine" ? "to_reexamine" as const : "selected" as const,
+    posting: selected && posting && posting.bundleHash === bundle.bundleHash ? "documented" as const : "not_documented" as const,
+  };
 }

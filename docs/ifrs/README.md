@@ -1,13 +1,14 @@
-# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 et L16-02 réalisés
+# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01, L16-02 et L16-03 réalisés
 
-État au 29/10/2026 :
+État au 30/10/2026 :
 - **C00** : documentaire (contrats, périmètre, sources, attendus), restreint à IFRS 16.
 - **C01** : socle local (virgule fixe, contrats communs, feuille `ifrs16.leases`, API, registre, migration `0022`).
 - **L16-01**, partie serveur : dictionnaire fermé des sources, modèles CSV, qualification du portefeuille et couverture. L'interface attend C02.
 - **L16-02** : moteur pur, égal à l'oracle au centime, branché sur la feuille.
 - **C02** : page `/ifrs/locations` (bandeau de contexte, rail des étapes, matrice de complétude, inspecteur, scénario synthétique en lecture seule), entrée « Référentiels » du profil local.
+- **L16-03** : cadrage des loyers sur la base PCG, contrat par contrat et ligne à ligne ; retraitement de clôture proposé (écritures, pont par poste), égal à l'oracle ; sélection et retrait par version attendue (logique pure) ; modèle d'export du journal.
 
-**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a encore ni graphique métier (L16-04), ni cadrage PCG, ni retraitement (L16-03).
+**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a encore ni graphique métier (L16-04), ni sélection branchée sur le dossier de clôture, ni export de la feuille (L16-05).
 
 Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
@@ -15,11 +16,12 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 
 | Élément | Rôle |
 |---|---|
-| [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | **Où en est le chantier** : moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
+| [`handoffs/L16-03.md`](./handoffs/L16-03.md) | **Où en est le chantier** : cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
+| [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
 | [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |
 | [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : relecture nommée de la règle, texte UE |
 | [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | **À faire par l'utilisateur** : relecture nommée de la règle, qui ouvre l'exécution réelle |
-| [`DICTIONNAIRE_L16.md`](./DICTIONNAIRE_L16.md) · [`modeles/`](./modeles/) | Dictionnaire des sources et modèles CSV, produits depuis le code |
+| [`DICTIONNAIRE_L16.md`](./DICTIONNAIRE_L16.md) · [`modeles/`](./modeles/) | Dictionnaire des sources, modèles CSV et modèle d'export du journal de retraitement, produits depuis le code |
 | [`handoffs/C01.md`](./handoffs/C01.md) | Socle C01 : livré, contrat des nouvelles données, décisions C01-D01 → D09, table d'erreurs, bilan des migrations, recette, contrat transmis à C02 et L16-01 |
 | [`handoffs/C00.md`](./handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |
 | [`SCOPE_V1.md`](./SCOPE_V1.md) | Périmètre fermé de l'atelier Locations IFRS 16 et ses deux matrices (exigences, cas exclus) |

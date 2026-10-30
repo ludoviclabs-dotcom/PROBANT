@@ -1,6 +1,8 @@
 import type { Money } from "@/lib/canonical-model/money";
 import type { ReviewKind } from "@/lib/auth/review-kind";
+import type { ContractFraming, FramingLineStatus, FramingStatus, LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { ContractStatus, LeaseQualification, QualificationReason, QualifiedContract } from "@/lib/ifrs/leases/qualification";
+import type { AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import type { LeaseWorkspaceView, StepState } from "@/lib/ifrs/leases/view-model";
 import type { ImportBatch } from "@/lib/workpapers/imports";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
@@ -12,6 +14,8 @@ export interface LeaseView {
   runs: WorkpaperRun[]; imports: (ImportBatch & { rowCount?: number })[]; sourceHeads: { document_type: string; import_id: string }[];
   sourcesCurrent: Record<string, boolean>; ruleCurrent: Record<string, boolean>;
   qualification: Record<string, LeaseQualification | null>; qualificationIssues: Record<string, string>;
+  /** Cadrage des sources sur la base PCG (L16-03), lu avant ou sans calcul ; retraitement matérialisé à la version exacte de la feuille. */
+  framing: Record<string, LeaseFraming | null>; adjustments: Record<string, AdjustmentBundle | null>;
   workspace: Record<string, LeaseWorkspaceView>; emptyWorkspace: LeaseWorkspaceView;
   capability: { engine: string; realExecution: "allowed" | "blocked_rule_review_required"; rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; requiredTypes: readonly string[] };
 }
@@ -29,7 +33,7 @@ export const TYPE_LABELS: Record<string, string> = { lease_contracts: "Contrats"
 /** Colonnes de la matrice de complétude ; chaque motif de qualification se range dans une seule colonne. */
 export const MATRIX_COLUMNS = [
   { id: "identification", label: "Identification" }, { id: "components", label: "Composantes" }, { id: "term", label: "Durée" }, { id: "rate", label: "Taux" },
-  { id: "schedule", label: "Échéancier" }, { id: "exemption", label: "Exemption" }, { id: "scope", label: "Périmètre V1" },
+  { id: "schedule", label: "Échéancier" }, { id: "exemption", label: "Exemption" }, { id: "scope", label: "Périmètre V1" }, { id: "ledger", label: "Cadrage PCG" },
 ] as const;
 export type MatrixColumn = typeof MATRIX_COLUMNS[number]["id"];
 const FIELD_COLUMN: Record<string, MatrixColumn> = {
@@ -43,11 +47,16 @@ export function reasonColumn(r: QualificationReason): MatrixColumn | null {
   if (r.effect === "info") return null;
   return (r.field && FIELD_COLUMN[r.field]) || CODE_COLUMN[r.code] || "scope";
 }
-export type CellState = "confirmed" | "to_complete" | "out_of_scope" | "not_applicable" | "documented";
-export const CELL_LABELS: Record<CellState, string> = { confirmed: "confirmé", to_complete: "à compléter", out_of_scope: "hors V1", not_applicable: "non applicable", documented: "documenté" };
-export const CELL_GLYPH: Record<CellState, string> = { confirmed: "✓", to_complete: "△", out_of_scope: "×", not_applicable: "—", documented: "◇" };
-/** État d'une cellule : jamais une moyenne ; un seul motif bloquant suffit à la marquer. Un contrat arrêté avant une colonne la rend « non applicable ». */
-export function cellState(c: QualifiedContract, column: MatrixColumn): CellState {
+export type CellState = "confirmed" | "to_complete" | "out_of_scope" | "not_applicable" | "documented" | "difference";
+export const CELL_LABELS: Record<CellState, string> = { confirmed: "confirmé", to_complete: "à compléter", out_of_scope: "hors V1", not_applicable: "non applicable", documented: "documenté", difference: "écart" };
+export const CELL_GLYPH: Record<CellState, string> = { confirmed: "✓", to_complete: "△", out_of_scope: "×", not_applicable: "—", documented: "◇", difference: "≠" };
+const FRAMING_CELL: Record<FramingStatus, CellState> = { framed: "confirmed", difference: "difference", not_framed: "to_complete", not_applicable: "not_applicable" };
+/**
+ * État d'une cellule : jamais une moyenne ; un seul motif bloquant suffit à la marquer. Un contrat arrêté avant une colonne la rend « non applicable ».
+ * La colonne « Cadrage PCG » lit le cadrage serveur du contrat : cadré, écart connu, non rapproché (loyer inconnu) ou sans objet.
+ */
+export function cellState(c: QualifiedContract, column: MatrixColumn, framing?: ContractFraming | null): CellState {
+  if (column === "ledger") return framing ? FRAMING_CELL[framing.status] : "not_applicable";
   const reasons = c.reasons.filter(r => reasonColumn(r) === column);
   if (reasons.some(r => r.effect === "hors_scope_v1")) return "out_of_scope";
   if (reasons.some(r => r.effect === "a_qualifier")) return "to_complete";
@@ -90,3 +99,10 @@ export function leaseFailureMessage(code: string | undefined, status: number): s
   if (status === 404) return "Feuille ou version introuvable (" + (code ?? "404") + ").";
   return "Échec de la commande (" + (code ?? status) + ").";
 }
+
+export const FRAMING_LABELS: Record<FramingStatus, string> = { framed: "Cadré au centime", difference: "Écart connu de cadrage", not_framed: "Non rapproché : loyer de la base inconnu", not_applicable: "Cadrage sans objet" };
+export const LINE_STATUS_LABELS: Record<FramingLineStatus, string> = { matched: "cadrée", excess: "supérieure au loyer", shortfall: "inférieure au loyer", vat_included: "égale au TTC", no_due: "sans échéance",
+  duplicate: "doublon possible", straddles_period: "déborde de l'exercice", other_period: "autre exercice", unattachable: "non rattachable", not_applicable: "sans objet" };
+export const POSTE_LABELS = { rou: "Droit d'utilisation net", debt: "Dette locative", pnl_before_tax: "Résultat avant impôt", opening_equity: "Capitaux propres d'ouverture" } as const;
+/** Contrat « non rapproché » : calculable, mais sa charge PCG n'est pas cadrée au centime (écart connu ou loyer inconnu). */
+export const isUnframed = (f: ContractFraming | null | undefined) => !!f && (f.status === "difference" || f.status === "not_framed");

@@ -79,6 +79,13 @@
 .cell[data-cell="not_applicable"] { color: var(--pb-ink-3); }
 .cell[data-cell="confirmed"] { color: var(--l16-ok); }
 .cell[data-cell="documented"] { color: var(--pb-ink-2); }
+.cell[data-cell="difference"] { color: var(--pb-signal); }
+/* On the selected row the tinted background lowers contrast: the text goes to ink, the glyph and the label still carry the state. */
+.table tbody tr[aria-selected="true"] .cell { color: var(--pb-ink); }
+.status[data-framing="framed"] { color: var(--l16-ok); }
+.status[data-framing="difference"] { color: var(--pb-signal); }
+.status[data-framing="not_framed"] { color: var(--l16-warn); }
+.table tfoot th, .table tfoot td { font-weight: 600; border-top: var(--pb-rule-w) solid var(--pb-rule-strong, var(--pb-rule)); }
 .status { display: inline-flex; gap: 6px; align-items: center; min-width: 9.5em; }
 .status[data-status="a_qualifier"] { color: var(--l16-warn); }
 .status[data-status="hors_scope_v1"] { color: var(--pb-signal); }

@@ -169,8 +169,9 @@ describe("C01 sélection du retraitement", () => {
     expect(() => decideBundleSelection([], request(demo))).toThrow("WORKPAPER_SCOPE_MISMATCH");
     const b = reviewed(), first = decideBundleSelection([], request(b)).selections;
     expect(() => decideBundleSelection([{ ...first[0], bundleHash: "e".repeat(64) }], request(b))).toThrow("L16_BUNDLE_CONTENT_CONFLICT");
-    expect(withdrawBundleSelection(first, b.logicalId)).toEqual([]);
-    expect(() => withdrawBundleSelection([], b.logicalId)).toThrow("L16_NOT_FOUND");
+    expect(withdrawBundleSelection(first, b.logicalId, { runId: b.runId, bundleHash: b.bundleHash })).toEqual([]);
+    expect(() => withdrawBundleSelection(first, b.logicalId, { runId: b.runId, bundleHash: "f".repeat(64) })).toThrow("L16_BUNDLE_STALE");
+    expect(() => withdrawBundleSelection([], b.logicalId, { runId: b.runId, bundleHash: b.bundleHash })).toThrow("L16_NOT_FOUND");
   });
   it("source remplacée : seule la sélection de la lignée concernée est à réexaminer ; consulter ne périme rien", () => {
     const a = reviewed(), other = materializeBundle(coreFrom("Z", f03, "workpaper-z"), run({ id: "workpaper-z", rootId: "workpaper-z" }));

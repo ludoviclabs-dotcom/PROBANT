@@ -25,6 +25,9 @@ export const dueRows = (id: string, months: number, payment: string, asOf: strin
   const date = monthEnd(startIndex + t), payable = date <= asOf;
   return { key: id + "-" + date, amount: payment, date, details: { contractId: id, source: src("Échéancier " + id, 2), fields: { contractVersion: "v1", ...(payable ? { paidDate: date, paidAmount: payment } : { paidDate: "non_applicable", paidAmount: "non_applicable" }) } } };
 });
+/** Ligne de grand livre 612 / 613 / 614 : compte, période couverte et pièce ; `contractId` absent pour une ligne sans contrat du registre. */
+export const ledgerRow = (key: string, contractId: string | null, amount: string, account: string, periodStart: string, periodEnd: string, piece: string, date: string = periodEnd): LeaseRow =>
+  ({ key, amount, date, details: { ...(contractId ? { contractId } : {}), source: src("Grand livre " + account.slice(0, 3) + " (exemple synthétique)", null), fields: { account, periodStart, periodEnd, piece } } });
 export function leaseRows(): Record<LeaseType, LeaseRow[]> {
   return {
     lease_contracts: [
@@ -36,7 +39,9 @@ export function leaseRows(): Record<LeaseType, LeaseRow[]> {
       { key: "F03", amount: "0.00", date: "2026-01-01", details: { contractId: "F03", source: src("Note de taux F03"), fields: ASSUMPTION_FIELDS("0.05") } },
     ],
     lease_schedule: [...dueRows("F01", 3, "1000.00"), ...dueRows("F03", 36, "1000.00")],
-    lease_ledger: [{ key: "GL-613-2026", amount: "15000.00", date: "2026-12-31", details: { contractId: "F03", source: src("Grand livre 613 (exemple synthétique)", null), fields: { account: "613500", periodStart: "2026-01-01", periodEnd: "2026-12-31", piece: "OD-2026-12" } } }],
+    // Base PCG framed to the cent: F01 by monthly invoice, F03 by one annual line covering its twelve dues of 2026.
+    lease_ledger: [...[1, 2, 3].map(m => ledgerRow("GL-613-F01-2026-0" + m, "F01", "1000.00", "613200", "2026-0" + m + "-01", monthEnd(2026 * 12 + m - 1), "FA-F01-2026-0" + m)),
+      ledgerRow("GL-613-F03-2026", "F03", "12000.00", "613500", "2026-01-01", "2026-12-31", "OD-2026-12")],
     lease_opening: [],
   };
 }
@@ -57,8 +62,9 @@ export async function approvedLeaseBatches(scope: WorkpaperScope, actor: Princip
 }
 
 /**
- * Portefeuille du scénario de démonstration : F01 et F03 calculables, plus un contrat par autre statut (taux nominal à convertir,
- * faible valeur documentée, loyers indexés, non-location documentée). Tout est synthétique et étiqueté comme tel.
+ * Portefeuille du scénario de démonstration : F01 et F03 calculables et cadrés, plus un contrat par autre statut (taux nominal à convertir,
+ * faible valeur documentée, loyers indexés, non-location documentée), D08 calculable avec un écart de cadrage (charge mixte) et une ligne
+ * de grand livre sans contrat du registre. Tout est synthétique et étiqueté comme tel.
  */
 export function leaseDemoRows(): Record<LeaseType, LeaseRow[]> {
   const rows = leaseRows();
@@ -74,5 +80,9 @@ export function leaseDemoRows(): Record<LeaseType, LeaseRow[]> {
   add("D05", "Matériel informatique", (_c, a) => { Object.assign(a, { lowValueExemption: "elected", lowValueNewValue: "900.00", lowValueJudgement: "Ordinateur portable utilisable seul (B5), valeur à neuf de la facture" }); });
   add("D06", "Locaux", (_c, a) => { a.variablePayments = "index"; });
   add("D07", "Prestations", c => { Object.assign(c, { controlOfUse: "no", identificationEvidence: "Le prestataire choisit et remplace librement les véhicules (B14) : pas d'actif identifié" }); });
+  // D08 is computable, but its 2026 charge also carries 600.00 of service charges: a known framing difference, never neutralized.
+  add("D08", "Matériel de manutention", () => {});
+  rows.lease_ledger.push(ledgerRow("GL-613-D08-2026", "D08", "5400.00", "613500", "2026-01-01", "2026-12-31", "OD-2026-12-D08"),
+    ledgerRow("GL-614-2026-SC", null, "1800.00", "614000", "2026-01-01", "2026-12-31", "OD-2026-12-SC"));
   return rows;
 }

@@ -84,7 +84,7 @@ describe("L16-01 qualification — cas du prompt", () => {
   });
   it("contrat comptable non rapproché : ligne du grand livre sans contrat du registre, mesurée à part, sans compensation", async () => {
     const q = await qualify(r => { r.lease_ledger.push({ key: "GL-613-X", amount: "-500.00", date: "2026-12-31", details: { contractId: "INCONNU-9", source: { title: "GL", pack: "P", date: "2026-01-02", page: null, clause: "613" }, fields: { account: "613200", periodStart: "2026-01-01", periodEnd: "2026-12-31", piece: "OD-9" } } }); });
-    expect(q.coverage.ledger).toEqual({ lines: 2, matched: 1, unmatched: 1, absMatched: { amount: "15000.00", currency: "EUR" }, absUnmatched: { amount: "500.00", currency: "EUR" }, unknownContracts: ["INCONNU-9"] });
+    expect(q.coverage.ledger).toEqual({ lines: 5, matched: 4, unmatched: 1, absMatched: { amount: "15000.00", currency: "EUR" }, absUnmatched: { amount: "500.00", currency: "EUR" }, unknownContracts: ["INCONNU-9"] });
     expect(q.coverage.registry).toEqual({ contracts: 2, byStatus: { non_location: 0, exemption_documentee: 0, eligible_v1: 1, a_qualifier: 1, hors_scope_v1: 0 } });
   });
   it("échéances ou hypothèses sans contrat du registre : conservées comme orphelines, jamais appariées", async () => {

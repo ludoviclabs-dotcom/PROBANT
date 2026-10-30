@@ -4,6 +4,8 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
+import { frameLeases, type LeaseFraming } from "@/lib/ifrs/leases/framing";
+import { materializeBundle, type AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import { leaseWorkspaceView, type LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
 import { mayReviewOwnWork } from "@/lib/auth/review-kind";
 import { ClientsRuntime } from "./clients-runtime";
@@ -65,18 +67,26 @@ export class LeaseRuntime extends ClientsRuntime {
     const extra = await this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
       const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
       const qualification: Record<string, LeaseQualification | null> = {}, qualificationIssues: Record<string, string> = {};
+      const framing: Record<string, LeaseFraming | null> = {}, adjustments: Record<string, AdjustmentBundle | null> = {};
       for (const run of view.runs) {
         sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run);
         const ids = run.importIds.length ? run.importIds : heads.map(h => h.import_id);
-        try { qualification[run.id] = run.leaseWork ? qualifyLeases(leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval)), run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null; }
-        catch (error) { qualification[run.id] = null; qualificationIssues[run.id] = error instanceof Error ? error.message : "L16_SOURCES_INVALID"; }
+        try {
+          const facts = leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval));
+          qualification[run.id] = run.leaseWork ? qualifyLeases(facts, run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null;
+          // Framing is shown before any calculation: it compares the PCG lines with the qualified schedule, without the engine.
+          framing[run.id] = qualification[run.id] ? frameLeases(qualification[run.id]!, facts.lease_ledger, run.period) : null;
+        } catch (error) { qualification[run.id] = null; framing[run.id] = null; qualificationIssues[run.id] = error instanceof Error ? error.message : "L16_SOURCES_INVALID"; }
+        // The adjustment is materialized from this exact version: proposed, or reviewed once approved or locked.
+        const result = run.result?.execution === "completed" ? run.result.result as LeaseResult : null;
+        adjustments[run.id] = result?.bundle ? materializeBundle(result.bundle, run) : null;
       }
       // Server view-model (C02): steps, allowed actions and their reasons; the screen derives nothing else.
       const ruleValidated = LEASE_TEMPLATE.rule!.validation === "validated", base = { mode: "real" as const, permissions: view.permissions, actorId: view.actorId, selfReviewAllowed: mayReviewOwnWork(view.reviewKind),
         sourceTypes: heads.map(h => h.document_type), requiredTypes: LEASE_REQUIRED_TYPES, ruleValidated };
-      const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null })]));
+      const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null, framing: framing[run.id] ?? null })]));
       const emptyWorkspace = leaseWorkspaceView({ ...base, run: null, sourcesCurrent: true, ruleCurrent: true, qualification: null });
-      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, workspace, emptyWorkspace };
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, workspace, emptyWorkspace };
     });
     const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
       rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
@@ -124,7 +134,7 @@ export class LeaseRuntime extends ClientsRuntime {
         }
         case "execute": {
           if (!current.leaseWork) throw new LeaseError("L16_WORK_REQUIRED", ["configure_leases"]);
-          run = await service.execute(scope, id, v, { runId: id, work: current.leaseWork });
+          run = await service.execute(scope, id, v, { runId: id, rootId: current.rootId, revision: current.revision, work: current.leaseWork });
           if (run.state === "executed") {
             // One compare-and-swap for all generated points; each carries its own reason, never an attributed amount.
             const points = leaseReviewPoints(run.result!.result as LeaseResult);
