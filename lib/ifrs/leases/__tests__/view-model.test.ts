@@ -28,7 +28,11 @@ describe("C02 modèle de vue Locations", () => {
     const ready = leaseWorkspaceView(input({ run: run({ leaseWork: work }) }));
     expect(ready.actions.freeze.allowed).toBe(true);
     // Without a qualification read, the qualification step cannot claim to be done.
-    expect(ready.steps.map(s => [s.id, s.state])).toEqual([["sources", "done"], ["qualification", "current"], ["freeze", "current"], ["calculation", "todo"], ["adjustment", "todo"], ["review", "todo"]]);
+    // L16-04 rail: five steps; the freeze opens the calculation step and says so.
+    expect(ready.steps.map(s => [s.id, s.label, s.state])).toEqual([["sources", "Sources", "done"], ["qualification", "Qualification", "current"], ["calculation", "Calcul", "current"],
+      ["adjustment", "Retraitements", "todo"], ["review", "Revue", "todo"]]);
+    expect(ready.steps.find(s => s.id === "calculation")).toMatchObject({ task: expect.stringMatching(/^Figer la population, puis calculer/), reason: "Population à figer avant le calcul" });
+    expect(leaseWorkspaceView(input()).steps.find(s => s.id === "calculation")).toMatchObject({ state: "todo", reason: "Enregistrer d'abord les politiques et confirmations" });
   });
   it("population figée, règle à revoir : le calcul est refusé avec le motif de la relecture nommée et l'étape est bloquée", () => {
     const v = leaseWorkspaceView(input({ run: run({ state: "ready", leaseWork: work, population: { id: "p" } as WorkpaperRun["population"] }) }));

@@ -91,8 +91,15 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     expect(result.contracts.map(c => [c.contractId, c.framing.status, c.adjustment.status])).toEqual([["F01", "framed", "included"], ["F03", "framed", "included"]]);
     expect(result.bundle).toMatchObject({ logicalId: "ifrs16.leases:" + run.rootId, revision: 1, runId: run.id, identities: ["ifrs16:lease:F01", "ifrs16:lease:F03"], taxStatus: "not_computed" });
     expect(result.bundleTotals).toEqual({ debit: { amount: "51901.17", currency: "EUR" }, credit: { amount: "51901.17", currency: "EUR" } });
-    const proposed = (await view()).adjustments[run.id];
+    const read = await view(), proposed = read.adjustments[run.id];
     expect(proposed).toMatchObject({ status: "proposed", runVersion: run.version, contentHash: contentHash(run) });
+    // L16-04: the server portfolio view is read from this stored result; the year-end point and the debt bridge equal the canonical subtotal.
+    const portfolio = read.portfolio[run.id];
+    expect(portfolio.summary).toMatchObject({ registry: 2, results: { computed: 2 }, amounts: { contracts: 2, debtClosing: { amount: "22819.76" }, partial: false } });
+    expect(portfolio.charts.points).toHaveLength(12);
+    expect(portfolio.charts.points.at(-1)).toMatchObject({ date: "2026-12-31", debt: { amount: "22819.76" }, rouNet: result.portfolio.computedSubtotal!.rouNetClosing });
+    expect(portfolio.charts.debtBridge).toMatchObject({ interest: { amount: "1457.50" }, closing: { amount: "22819.76" } });
+    expect(portfolio.comparison).toBeNull();
     const contracts = batches.find(b => b.document.documentType === "lease_contracts")!;
     run = await ok({ command: "conclude", ...target(run), text: "Dette et droit d'utilisation recalculés sur paramètres sourcés ; loyers cadrés sur la base PCG ; retraitement proposé, impôt non calculé.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } });
     run = await ok({ command: "submit", ...target(run) });

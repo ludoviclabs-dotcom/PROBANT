@@ -2,6 +2,8 @@ import type { Money } from "@/lib/canonical-model/money";
 import type { ReviewKind } from "@/lib/auth/review-kind";
 import type { ContractFraming, FramingLineStatus, FramingStatus, LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { ContractStatus, LeaseQualification, QualificationReason, QualifiedContract } from "@/lib/ifrs/leases/qualification";
+import type { LeasePortfolioView, ReviewMark } from "@/lib/ifrs/leases/portfolio";
+import type { LeaseContractAdjustment, LeaseResultKind } from "@/lib/workpapers/lease-review";
 import type { AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import type { LeaseWorkspaceView, StepState } from "@/lib/ifrs/leases/view-model";
 import type { ImportBatch } from "@/lib/workpapers/imports";
@@ -16,6 +18,8 @@ export interface LeaseView {
   qualification: Record<string, LeaseQualification | null>; qualificationIssues: Record<string, string>;
   /** Cadrage des sources sur la base PCG (L16-03), lu avant ou sans calcul ; retraitement matérialisé à la version exacte de la feuille. */
   framing: Record<string, LeaseFraming | null>; adjustments: Record<string, AdjustmentBundle | null>;
+  /** Ligne de synthèse, table, séries et ponts du portefeuille (L16-04), établis par le serveur depuis le résultat de la version. */
+  portfolio?: Record<string, LeasePortfolioView | null>;
   workspace: Record<string, LeaseWorkspaceView>; emptyWorkspace: LeaseWorkspaceView;
   capability: { engine: string; realExecution: "allowed" | "blocked_rule_review_required"; rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; requiredTypes: readonly string[] };
 }
@@ -70,8 +74,22 @@ export function cellState(c: QualifiedContract, column: MatrixColumn, framing?: 
 export function moneyFr(m: Money | null | undefined): string {
   if (!m) return "—";
   const negative = m.amount.startsWith("-"), [whole, cents] = m.amount.replace("-", "").split(".");
-  return (negative ? "−" : "") + whole.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + "," + cents + " €";
+  return (negative ? "−" : "") + groupFr(whole) + "," + cents + " €";
 }
+/** Groupement des milliers par espace fine insécable, sur une chaîne de chiffres (jamais un flottant converti). */
+export const groupFr = (digits: string) => digits.replace(/\B(?=(\d{3})+(?!\d))/g, "\u202f");
+const MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin", "juil.", "août", "sept.", "oct.", "nov.", "déc."];
+export const monthShort = (iso: string) => MONTHS_FR[Number(iso.slice(5, 7)) - 1];
+export const monthFr = (iso: string) => monthShort(iso) + " " + iso.slice(0, 4);
+/** Taux décimal du serveur en pourcentage, par décalage de la virgule sur la chaîne ; au-delà de quatre décimales, tronqué et marqué « … » (valeur exacte dans l'inspecteur). */
+export function rateFr(rate: string | null): string {
+  if (!rate || !/^\d+(\.\d+)?$/.test(rate)) return rate ?? "—";
+  const [int, frac = ""] = rate.split("."), whole = String(BigInt((int + frac.padEnd(2, "0")).slice(0, int.length + 2))), rest = frac.slice(2).replace(/0+$/, "");
+  return whole + (rest ? "," + (rest.length > 4 ? rest.slice(0, 4) + "…" : rest) : "") + " %";
+}
+export const RESULT_LABELS: Record<LeaseResultKind, string> = { computed: "calculé", diagnostic: "diagnostic", not_commenced: "non commencé", not_applicable: "non calculé" };
+export const REVIEW_LABELS: Record<ReviewMark, string> = { open: "point ouvert", documented: "point documenté", none: "aucun point" };
+export const ADJUSTMENT_LABELS: Record<LeaseContractAdjustment["status"], string> = { included: "retenu", excluded: "exclu", not_applicable: "sans objet" };
 export const dateFr = (iso: string) => /^\d{4}-\d{2}-\d{2}/.test(iso) ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4) : iso;
 export const plural = (n: number, one: string, many = one + "s") => n + " " + (n > 1 ? many : one);
 

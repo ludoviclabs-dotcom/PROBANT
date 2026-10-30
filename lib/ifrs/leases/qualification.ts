@@ -42,7 +42,7 @@ export interface LeaseQualification {
   };
 }
 
-const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
+export const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date.slice(5, 7)) - 1;
 export function monthEnd(index: number) {
   const year = Math.floor(index / 12), month = index % 12, last = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
   return `${String(year).padStart(4, "0")}-${String(month + 1).padStart(2, "0")}-${String(last).padStart(2, "0")}`;

@@ -14,8 +14,10 @@ import { CompletenessMatrix } from "./CompletenessMatrix";
 import { ContractDetail } from "./ContractDetail";
 import { dateFr, leaseFailureMessage, SHEET_STATE_LABELS, type LeaseView } from "./format";
 import { Inspector, useDocked } from "./Inspector";
+import { LeaseChartsPanel } from "./LeaseCharts";
 import { PolicyEditor } from "./PolicyEditor";
-import { ActionBar, ChartFrame, ContextBand, StateNotice, StepRail } from "./Primitives";
+import { ComparisonPanel, PortfolioTable, SummaryLine } from "./Portfolio";
+import { ActionBar, ContextBand, StateNotice, StepRail } from "./Primitives";
 import { SourcesPanel } from "./SourcesPanel";
 import { useLeaseSelection, type LeaseSelectionState } from "./useLeaseSelection";
 import s from "./ifrs.module.css";
@@ -27,7 +29,8 @@ const CRITERIA = "Tous les contrats du registre approuvé de l'exercice ; éché
 const emptyPeriod: AccountingPeriod = { startDate: "", closingDate: "", asOfDate: "", currency: "EUR", validation: "provisional" };
 
 /**
- * Poste « Locations IFRS 16 » (C02) : bandeau de contexte, rail des étapes, matrice de complétude, inspecteur, barre d'action.
+ * Poste « Locations IFRS 16 » (C02, L16-04) : bandeau de contexte, rail des cinq étapes, ligne de synthèse, matrice de complétude, table du portefeuille,
+ * graphiques avec leurs tableaux, retraitement proposé, inspecteur, barre d'action.
  * Toute action et tout état viennent de la lecture serveur (`workspace`, `qualification`, `capability`) ; le navigateur ne calcule rien.
  * Le scénario synthétique (`demo`) est en lecture seule et reste étiqueté « simulation non revue ».
  */
@@ -42,7 +45,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
   const run = useMemo(() => view ? [...view.runs].sort((a, b) => b.revision - a.revision)[0] ?? null : null, [view]);
   const workspace = run ? view?.workspace[run.id] ?? null : view?.emptyWorkspace ?? null;
   const qualification = run ? view?.qualification[run.id] ?? null : null;
-  const framing = run ? view?.framing?.[run.id] ?? null : null, bundle = run ? view?.adjustments?.[run.id] ?? null : null;
+  const framing = run ? view?.framing?.[run.id] ?? null : null, bundle = run ? view?.adjustments?.[run.id] ?? null : null, portfolio = run ? view?.portfolio?.[run.id] ?? null : null;
   const result = run?.result?.execution === "completed" ? run.result.result as LeaseResult : null;
   const canPrepare = !demo && !!view?.permissions.includes("prepare");
   const saving = status === "saving";
@@ -139,7 +142,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
       <p>Aucune donnée n'a été écrasée et la commande n'est pas rejouée.</p><button type="button" onClick={() => { setConflict(null); setStatus("idle"); void refresh(); }}>Recharger la version serveur</button></StateNotice>}
     {!view && !loading && !error && !demo && <StateNotice tone="info" title="Ouvrir une feuille Locations IFRS 16">Choisissez le dossier et l'exercice, ou explorez le <DossierContextAnchor href="/ifrs/locations?demo=1">scénario synthétique</DossierContextAnchor>.</StateNotice>}
     {view && workspace && <div className={s.layout}>
-      <StepRail steps={workspace.steps}/>
+      <StepRail steps={workspace.steps} anchors={{ sources: "l16-sources-title", calculation: "l16-portfolio-title", ...(qualification ? { qualification: "l16-matrix-title" } : {}), ...(run ? { adjustment: "l16-adjustment-title" } : {}) }}/>
       <div className={s.work} data-inspector={selected && docked ? "open" : "closed"}>
         <div style={{ minWidth: 0 }}>
           {view.capability.realExecution !== "allowed" && !demo && <StateNotice title="Calcul réel bloqué : règle à revoir">La relecture personnelle nommée de la règle n'est pas consignée (docs/ifrs/REVUE_REGLE_IFRS16.md). Les sources, la qualification et le gel restent possibles ; aucun montant n'est publié pour ce dossier.</StateNotice>}
@@ -148,17 +151,26 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
           {!demo && <ActionBar actions={workspace.actions} labels={ACTION_LABELS} busy={saving} onAction={onAction}/>}
           {!demo && <p role="status" aria-live="polite" className={s.saveState} data-state={status}>{{ idle: "", saving: "Commande en cours…", saved: "Accusé serveur reçu", failed: "Échec de la commande", conflict: "Conflit de version" }[status]}</p>}
           {run && run.result && run.result.execution !== "completed" && <StateNotice title="Calcul bloqué">{run.result.blockedControls.join(" · ")}</StateNotice>}
+          {portfolio && <SummaryLine summary={portfolio.summary}/>}
           {qualification ? <CompletenessMatrix qualification={qualification} framing={framing} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
             : run ? <StateNotice tone="info" title="Qualification non disponible">{view.qualificationIssues[run.id] ? "Sources illisibles : " + view.qualificationIssues[run.id] : "Enregistrez les politiques pour qualifier les contrats des sources courantes."}</StateNotice> : null}
           {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} work={run.leaseWork} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
             onSave={(draft: LeaseWorkDraft) => void command("configure_leases", { work: draft })}/>}
+          <section className={s.section} aria-labelledby="l16-portfolio-title">
+            <div className={s.sectionHead}><h2 id="l16-portfolio-title">Portefeuille et calcul</h2><span className={s.muted}>Lecture du résultat de la version r{run?.revision ?? "—"} · v{run?.version ?? "—"} ; filtrer ou trier ne change ni la population figée ni l'export.</span></div>
+            {portfolio ? <PortfolioTable rows={portfolio.rows} selected={selection.contractId} onOpen={(id, el) => openContract(id, null, el)}/>
+              : <p className={s.muted}>Table disponible dès que les contrats sont qualifiés (politiques enregistrées).</p>}
+            <LeaseChartsPanel charts={portfolio?.charts ?? null}
+              empty={result ? "Aucun contrat calculé : aucune série, aucun total." : !demo && view.capability.realExecution !== "allowed" ? "Moteur non disponible pour ce dossier tant que la règle n'est pas validée : aucun graphique, aucun total." : "Calcul non enregistré : figer la population, puis calculer."}/>
+            <h3>Comparaison de versions</h3>
+            {portfolio?.comparison ? <ComparisonPanel comparison={portfolio.comparison}/>
+              : <p className={s.muted}>{result ? "Une seule version exécutée pour cette feuille : rien à comparer. Une révision exécutée sera comparée à celle-ci, sans attribution d'effet." : "Comparaison possible entre deux versions exécutées de la feuille."}</p>}
+          </section>
           {run && <AdjustmentPanel result={result} bundle={bundle} framing={framing} onOpen={(id, el) => openContract(id, "ledger", el)}/>}
-          <ChartFrame title="Dette et droit d'utilisation par période" scope="Même devise, même population : contrats calculés seulement."
-            empty={result ? "Graphiques branchés au poste visuel (lot L16-04) : les chiffres de chaque contrat calculé sont dans l'inspecteur." : demo ? "Aucun résultat calculé." : "Moteur non disponible pour ce dossier tant que la règle n'est pas validée : aucun graphique, aucun total."}/>
           <SourcesPanel view={view} period={period} required={view.capability.requiredTypes} canPrepare={canPrepare && !run?.population} busy={saving} onPreview={d => void mutate(d, true)} onApprove={c => void mutate({ command: "approve_import", ...c }, true)}/>
         </div>
         {selected && <Inspector title={"Contrat " + selected.contractId} kicker="Inspecteur" docked={docked} onClose={close} returnTo={trigger.current}>
-          <ContractDetail contract={selected} result={result?.contracts.find(c => c.contractId === selected.contractId) ?? null} framing={framing?.contracts.find(f => f.contractId === selected.contractId) ?? null} bundle={bundle} focusColumn={selection.column}/>
+          <ContractDetail contract={selected} result={result?.contracts.find(c => c.contractId === selected.contractId) ?? null} framing={framing?.contracts.find(f => f.contractId === selected.contractId) ?? null} bundle={bundle} focusColumn={selection.column} period={period}/>
         </Inspector>}
       </div>
     </div>}

@@ -31,6 +31,12 @@ const monthIndex = (date: string) => Number(date.slice(0, 4)) * 12 + Number(date
 const eur = (value: bigint) => money(value);
 const cent = (m: Money) => BigInt(m.amount.replace(".", ""));
 
+/** Amortissements cumulés publiés après `elapsed` mois sur `months` : arrondi(ROU × j / m) au centime, moitié à l'opposé de zéro (ROU jamais négatif). */
+export function accumulatedDepreciationCents(rou: bigint, months: number, elapsed: number): bigint {
+  const j = BigInt(Math.max(0, Math.min(months, elapsed))), M = BigInt(months);
+  return (2n * rou * j + M) / (2n * M);
+}
+
 /** Échéancier exact et publié d'un contrat (indépendant de la période). */
 export function leaseSchedule(inputs: Pick<LeaseEngineInputs, "commencement" | "months" | "payment" | "annualRate">) {
   const n = inputs.months;
@@ -66,8 +72,7 @@ export function computeLease(inputs: LeaseEngineInputs, period: { startDate: str
   if (start > monthIndex(period.closingDate)) return { result: "not_commenced", reasons: ["X34 : prise d'effet postérieure à la clôture, rien de reconnu à cette date"] };
   const s = leaseSchedule(inputs), n = inputs.months, L = cent(inputs.payment), rou = s.published[0], m = Math.min(inputs.usefulLifeMonths, n);
   const paymentsMade = (date: string) => Math.max(0, Math.min(n, monthIndex(date) - start + 1));
-  // Exact integer rounding of ROU x j / m in cents, half away from zero (ROU is never negative).
-  const accumulated = (date: string) => { const j = BigInt(Math.max(0, Math.min(m, monthIndex(date) - start + 1))), M = BigInt(m); return (2n * rou * j + M) / (2n * M); };
+  const accumulated = (date: string) => accumulatedDepreciationCents(rou, m, monthIndex(date) - start + 1);
   const openingDate = monthEnd(monthIndex(period.startDate) - 1), inPeriod = start >= monthIndex(period.startDate);
   const kOpen = paymentsMade(openingDate), kClose = paymentsMade(period.closingDate), rent = L * BigInt(kClose - kOpen);
   const debtOpen = inPeriod ? 0n : s.published[kOpen], debtBase = inPeriod ? rou : s.published[kOpen], debtClose = s.published[kClose];

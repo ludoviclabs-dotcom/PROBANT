@@ -157,6 +157,9 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     // L16-03: the framing is read before any calculation (the rule review still blocks the engine); no adjustment exists without a result.
     expect(read.framing[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "not_applicable"], ["F03", "framed"]]);
     expect(read.adjustments[sheet.id]).toBeNull();
+    // L16-04: before any result, the portfolio line and table read the qualification only; no amount, no chart (never a zero).
+    expect(read.portfolio[sheet.id]).toMatchObject({ summary: { registry: 2, calculable: 1, toQualify: 1, results: null, amounts: null }, charts: null, comparison: null });
+    expect(read.portfolio[sheet.id].rows.every((r: { debtClosing: unknown; review: unknown }) => r.debtClosing === null && r.review === null)).toBe(true);
     // A blocked sheet cannot be submitted, reviewed or locked: its state forbids it, with a business code.
     expect(await failure(await command({ command: "submit", ...target(sheet) }))).toEqual({ status: 403, error: "WORKPAPER_TRANSITION_FORBIDDEN" });
   }, 60000);

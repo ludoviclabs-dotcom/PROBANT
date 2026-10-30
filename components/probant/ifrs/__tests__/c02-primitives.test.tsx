@@ -59,10 +59,15 @@ describe("C02 primitives", () => {
     expect(screen.getByRole("button", { name: "Calculer" })).toHaveProperty("disabled", false);
   });
   it("rail : l'étape courante est annoncée, un blocage dit son motif, sans pourcentage", () => {
-    render(<StepRail steps={[{ id: "sources", label: "Déposer", state: "done", reason: null, exceptions: null }, { id: "calculation", label: "Calculer", state: "blocked", reason: "Règle à revoir", exceptions: null },
-      { id: "freeze", label: "Figer", state: "current", reason: null, exceptions: 2 }]}/>);
-    expect(screen.getByText("3. Figer").closest("li")!.getAttribute("aria-current")).toBe("step");
+    render(<StepRail anchors={{ adjustment: "l16-adjustment" }} steps={[{ id: "sources", label: "Sources", task: "Déposer", state: "done", reason: null, exceptions: null },
+      { id: "calculation", label: "Calcul", task: "Calculer", state: "blocked", reason: "Règle à revoir", exceptions: null },
+      { id: "adjustment", label: "Retraitements", task: "Cadrer", state: "current", reason: null, exceptions: 2 }]}/>);
+    const link = screen.getByRole("link", { name: "Retraitements" });
+    expect(link.getAttribute("href")).toBe("#l16-adjustment");
+    expect(link.closest("li")!.getAttribute("aria-current")).toBe("step");
+    expect(screen.queryByRole("link", { name: "Calcul" })).toBeNull();
     expect(screen.getByText("Règle à revoir")).toBeTruthy();
+    expect(screen.getByText("Cadrer")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/%/);
   });
   it("cadre de graphique : un état vide dit pourquoi ; avec graphique et tableau, l'alternative tabulaire est accessible", () => {

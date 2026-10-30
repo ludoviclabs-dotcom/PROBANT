@@ -6,7 +6,8 @@ import { expect, test, type Page } from "@playwright/test";
  * IFRS C02 — poste « Locations IFRS 16 » sur un build de production.
  * 1. Scénario synthétique en lecture seule (/ifrs/locations?demo=1), calculé par le moteur côté serveur, aux trois largeurs.
  * 2. L16-03 : cadrage PCG, écritures du retraitement proposé, pont par poste et écart de cadrage, aux trois largeurs.
- * 3. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
+ * 3. L16-04 : rail en cinq étapes, ligne de synthèse, table, graphiques et tableaux égaux au JSON, frise dans l'inspecteur.
+ * 4. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
  * Captures : docs/ifrs/captures/c02 (IFRS_C02_OUT pour les déplacer). Données exclusivement synthétiques.
  */
 const OUT = process.env.IFRS_C02_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "c02");
@@ -122,6 +123,85 @@ test.describe("IFRS L16-03 · cadrage PCG et retraitement proposé (scénario sy
       await context.close();
     });
   }
+});
+
+const OUT_L4 = process.env.IFRS_L16_04_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "l16-04");
+/** Formats of the screen, rebuilt here from the server strings: the test compares the JSON, the charts and the tables. */
+const eur = (m: { amount: string }) => { const neg = m.amount.startsWith("-"), [w, c] = m.amount.replace("-", "").split("."); return (neg ? "−" : "") + w.replace(/\B(?=(\d{3})+(?!\d))/g, " ") + "," + c + " €"; };
+const day = (iso: string) => iso.slice(8, 10) + "/" + iso.slice(5, 7) + "/" + iso.slice(0, 4);
+type Money = { amount: string };
+type DemoCharts = { opening: { date: string; debt: Money; rouNet: Money }; points: { date: string; debt: Money; rouNet: Money; payments: Money; principal: Money; interest: Money }[];
+  debtBridge: Record<"opening" | "additions" | "interest" | "payments" | "closing", Money>; rouBridge: Record<"opening" | "additions" | "depreciation" | "closing", Money> };
+test.describe("IFRS L16-04 · poste visuel (scénario synthétique)", () => {
+  for (const width of WIDTHS) {
+    test(`largeur ${width} : rail en cinq étapes, synthèse, table, graphiques égaux au JSON et aux tableaux, frise dans l'inspecteur`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, locale: "fr-FR", reducedMotion: "reduce" }), page = await context.newPage();
+      const json = await (await page.request.get("/api/workpapers/locations-ifrs16/demo")).json(), runId = json.runs[0].id as string;
+      const charts = json.portfolio[runId].charts as DemoCharts;
+      await page.goto("/ifrs/locations?demo=1");
+      await expect(page.getByRole("heading", { name: "Portefeuille et calcul" })).toBeVisible();
+      const rail = page.getByRole("navigation", { name: "Étapes du travail" });
+      await expect(rail.getByRole("listitem")).toHaveCount(5);
+      for (const [i, label] of ["Sources", "Qualification", "Calcul", "Retraitements", "Revue"].entries()) await expect(rail.getByRole("listitem").nth(i)).toContainText((i + 1) + ". " + label);
+      const summary = page.getByLabel("Synthèse du portefeuille");
+      await expect(summary).toContainText("7 contrats au registre fourni · 3 calculable(s) sur ce périmètre");
+      await expect(summary).toContainText("dette à la clôture " + eur(charts.debtBridge.closing));
+      await expect(summary).toContainText("montants partiels : 2 contrats bloqués exclus (D04, D06)");
+      await expect(page.getByRole("region", { name: "Table du portefeuille — défilement horizontal au clavier" }).getByRole("row")).toHaveCount(8);
+
+      // Keyboard: one tab stop per chart, arrows move the month; both charts read the same month.
+      await page.getByRole("button", { name: /^Fin janv\. 2026 :/ }).focus();
+      await page.keyboard.press("ArrowRight");
+      const feb = charts.points[1];
+      await expect(page.getByRole("button", { name: "Fin févr. 2026 : dette " + eur(feb.debt) + ", droit d'utilisation net " + eur(feb.rouNet) })).toBeFocused();
+      await expect(page.getByText("loyer " + eur(feb.payments) + " = principal " + eur(feb.principal) + " + intérêts " + eur(feb.interest))).toBeVisible();
+      await noOverflow(page); await axe(page);
+      mkdirSync(OUT_L4, { recursive: true });
+      await page.screenshot({ path: path.join(OUT_L4, "poste-" + width + ".jpg"), type: "jpeg", quality: 78, fullPage: true });
+      await page.getByRole("heading", { name: "Dette et droit d'utilisation net par fin de mois" }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(OUT_L4, "graphiques-" + width + ".jpg"), type: "jpeg", quality: 78 });
+
+      // Equivalent tables: every cell equals the canonical JSON.
+      await page.getByRole("button", { name: "Voir le tableau" }).first().click();
+      const balances = page.getByRole("region", { name: "Soldes de fin de mois — défilement horizontal au clavier" }).getByRole("row");
+      await expect(balances).toHaveCount(14);
+      await expect(balances.nth(1)).toContainText(eur(charts.opening.debt));
+      for (const [i, p] of charts.points.entries()) await expect(balances.nth(i + 2)).toHaveText(day(p.date) + eur(p.debt) + eur(p.rouNet));
+      await page.getByRole("button", { name: "Voir le tableau" }).first().click();
+      await page.getByRole("button", { name: "Voir le tableau" }).first().click();
+      const debt = page.getByRole("region", { name: "Pont de la dette — défilement horizontal au clavier" });
+      await expect(debt.getByRole("row", { name: /Dette de clôture/ })).toContainText(eur(charts.debtBridge.closing));
+      await expect(debt.getByRole("row", { name: /Loyers payés/ })).toContainText("− " + eur(charts.debtBridge.payments));
+      await expect(page.getByRole("region", { name: "Loyers par échéance — défilement horizontal au clavier" }).getByRole("row").last()).toContainText(eur(charts.debtBridge.payments));
+      await noOverflow(page); await axe(page);
+      await page.screenshot({ path: path.join(OUT_L4, "tableaux-" + width + ".jpg"), type: "jpeg", quality: 78 });
+
+      // From the portfolio table to the inspector: timeline, formula and exact values, proof level.
+      await page.getByRole("region", { name: "Table du portefeuille — défilement horizontal au clavier" }).getByRole("button", { name: "F03", exact: true }).click();
+      const inspector = width >= 1400 ? page.getByRole("complementary", { name: "Inspecteur — Contrat F03" }) : page.getByRole("dialog", { name: "Inspecteur — Contrat F03" });
+      await expect(inspector.getByRole("img", { name: /^Frise : prise d'effet le 01\/01\/2026, 36 échéances jusqu'au 31\/12\/2028/ })).toBeVisible();
+      await expect(inspector.getByText(/12 échéances dans l'exercice \(moteur\)/)).toBeVisible();
+      await expect(inspector.getByRole("heading", { name: "Formule et précision" })).toBeVisible();
+      await expect(inspector.getByText(/Niveau de preuve : ligne de source/)).toBeVisible();
+      await noOverflow(page); await axe(page);
+      await page.screenshot({ path: path.join(OUT_L4, "inspecteur-f03-" + width + ".jpg"), type: "jpeg", quality: 78 });
+      await page.keyboard.press("Escape");
+      await rail.getByRole("link", { name: "Calcul" }).click();
+      await expect(page).toHaveURL(/#l16-portfolio-title$/);
+      await context.close();
+    });
+  }
+
+  test("largeur 720 (zoom 200 % d'un écran de 1 440) : aucun débordement, graphiques contenus dans leur cadre", async ({ browser }) => {
+    const context = await browser.newContext({ viewport: { width: 720, height: 900 }, locale: "fr-FR", reducedMotion: "reduce" }), page = await context.newPage();
+    await page.goto("/ifrs/locations?demo=1");
+    await expect(page.getByRole("heading", { name: "Pont du droit d'utilisation net" })).toBeVisible();
+    await noOverflow(page);
+    const widths = await page.locator("figure svg").evaluateAll(els => els.map(e => [e.getBoundingClientRect().width, e.parentElement!.getBoundingClientRect().width]));
+    expect(widths.length).toBeGreaterThanOrEqual(4);
+    for (const [svg, box] of widths) expect(svg).toBeLessThanOrEqual(box + 1);
+    await context.close();
+  });
 });
 
 test.describe("IFRS C02 · dossier réel sans session", () => {

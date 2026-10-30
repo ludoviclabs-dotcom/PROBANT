@@ -5,6 +5,7 @@ import type { ContractFraming } from "@/lib/ifrs/leases/framing";
 import type { QualifiedContract } from "@/lib/ifrs/leases/qualification";
 import type { AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import type { LeaseContractResult } from "@/lib/workpapers/lease-review";
+import { ContractTimeline } from "./ContractTimeline";
 import { dateFr, FRAMING_LABELS, LINE_STATUS_LABELS, MATRIX_COLUMNS, moneyFr, plural, reasonColumn, STATUS_GLYPH, STATUS_LABELS, type MatrixColumn } from "./format";
 import s from "./ifrs.module.css";
 
@@ -14,7 +15,8 @@ const FIGURES: [keyof NonNullable<LeaseContractResult["closing"]>, string][] = [
 /** Contenu de l'inspecteur pour un contrat : termes, motifs, échéances, preuves ; chiffres du moteur seulement s'ils existent. */
 const known = (a: KnownAmount) => a.kind === "known" ? moneyFr(a.value) : a.kind === "unknown" ? "inconnu — " + a.reason : "sans objet";
 
-export function ContractDetail({ contract, result, framing, bundle, focusColumn }: { contract: QualifiedContract; result: LeaseContractResult | null; framing: ContractFraming | null; bundle: AdjustmentBundle | null; focusColumn: MatrixColumn | null }) {
+export function ContractDetail({ contract, result, framing, bundle, focusColumn, period }: { contract: QualifiedContract; result: LeaseContractResult | null; framing: ContractFraming | null; bundle: AdjustmentBundle | null;
+  focusColumn: MatrixColumn | null; period: { startDate: string; closingDate: string } }) {
   const reasons = focusColumn === "ledger" ? [] : contract.reasons.filter(r => !focusColumn || reasonColumn(r) === focusColumn || r.effect === "info");
   const lines = bundle?.lines.filter(l => l.contractId === contract.contractId) ?? [];
   // Opened from the framing column, the framing comes first; otherwise it follows the engine figures.
@@ -56,10 +58,18 @@ export function ContractDetail({ contract, result, framing, bundle, focusColumn 
       : <p className={s.muted}>{focusColumn ? "Aucun motif dans cette famille : réponses confirmées par les sources." : "Aucun motif : toutes les réponses requises sont présentes."}</p>}</>}
     <h3>Échéances</h3>
     <p>{contract.dues.length ? plural(payable.length, "échéance exigible", "échéances exigibles") + " à la date de revue, dont " + settled + " réglée(s) · " + plural(future, "échéance non encore exigible", "échéances non encore exigibles") : "Aucune échéance dans les sources."}</p>
+    <ContractTimeline contract={contract} period={period} paymentsInPeriod={result?.closing?.paymentsInPeriod ?? null}/>
     {result?.closing && <>
       <h3>Mouvements de l'exercice — moteur{result.result === "diagnostic" ? ", diagnostic" : ""}</h3>
       <table className={s.table} style={{ minWidth: 0 }}><caption>Détail économique au centime (exactitude interne à 40 décimales) ; il n'est jamais additionné au retraitement de clôture.</caption>
         <tbody>{FIGURES.map(([k, label]) => <tr key={k}><th scope="row">{label}</th><td className={s.money}>{moneyFr(result.closing![k] as never)}</td></tr>)}</tbody></table>
+      {result.exact && <><h3>Formule et précision</h3>
+        <dl className={s.kv}>
+          <dt>Taux mensuel</dt><dd><span className={s.mono}>i = (1 + r)^(1/12) − 1</span> = <span className={s.mono}>{result.exact.monthlyRate}</span></dd>
+          <dt>Dette initiale</dt><dd><span className={s.mono}>Σ L / (1 + i)^t</span>, t = 1…n : exacte <span className={s.mono}>{result.exact.debtInitial}</span>, publiée {moneyFr(result.debtInitial)}</dd>
+          <dt>Arrondi</dt><dd>soldes publiés au centime, moitié à l'opposé de zéro ; écart d'intérêt mensuel au plus {moneyFr(result.maxAbsRoundingGap)}, tracé</dd>
+          <dt>Amortissement</dt><dd>linéaire sur {result.depreciationMonths} mois (le plus court de la durée d'utilité et de la durée du contrat)</dd>
+        </dl></>}
     </>}
     {focusColumn !== "ledger" && framingBlock}
     {result && result.result !== "not_applicable" && result.result !== "not_commenced" && <>
@@ -73,5 +83,6 @@ export function ContractDetail({ contract, result, framing, bundle, focusColumn 
     {result && !result.closing && <p className={s.muted}>{result.resultReasons.join(" ; ")}</p>}
     <h3>Pièces citées</h3>
     <ul className={s.reasons}>{[...new Map([...contract.evidence, ...(framing?.lines.map(l => l.proof) ?? [])].map(p => [p.documentVersionId, p])).values()].map(p => <li key={p.documentVersionId}><span className={s.mono}>{p.sha256.slice(0, 8)}</span><span>{p.fileName}{p.row ? " · ligne " + p.row : ""}</span></li>)}</ul>
+    <p className={s.muted}>Niveau de preuve : ligne de source citée dans une version de fichier figée (empreinte) ; aucune cellule n'est pointée et le document entier n'est pas présenté comme une preuve de champ.</p>
   </div>;
 }

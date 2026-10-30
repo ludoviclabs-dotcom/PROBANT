@@ -1,6 +1,7 @@
 import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { qualifyLeases } from "@/lib/ifrs/leases/qualification";
 import { frameLeases } from "@/lib/ifrs/leases/framing";
+import { leasePortfolioView } from "@/lib/ifrs/leases/portfolio";
 import { materializeBundle } from "@/lib/ifrs/shared/bundle";
 import type { LeaseResult } from "./lease-review";
 import { leaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
@@ -36,6 +37,6 @@ export async function leaseDemoView() {
     sourcesCurrent: true, ruleCurrent: true, ruleValidated: LEASE_TEMPLATE.rule!.validation === "validated", qualification, framing });
   return { synthetic: true as const, label: "simulation non revue", actorId: null, permissions: [], executionProfile: null, runs: [run],
     imports: imports.map(b => ({ ...b, rows: b.rows.slice(0, 5), rowCount: b.rows.length })), sourceHeads: imports.map(b => ({ document_type: b.document.documentType, import_id: b.id })),
-    sourcesCurrent: { [runId]: true }, ruleCurrent: { [runId]: true }, qualification: { [runId]: qualification }, qualificationIssues: {}, framing: { [runId]: framing }, adjustments: { [runId]: core ? materializeBundle(core, run) : null }, workspace: { [runId]: workspace },
+    sourcesCurrent: { [runId]: true }, ruleCurrent: { [runId]: true }, qualification: { [runId]: qualification }, qualificationIssues: {}, framing: { [runId]: framing }, adjustments: { [runId]: core ? materializeBundle(core, run) : null }, portfolio: { [runId]: leasePortfolioView(run, [run], qualification) }, workspace: { [runId]: workspace },
     emptyWorkspace: workspace, capability: { engine: "1.0.0", realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required", rule: { id: "ifrs16.leases", version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
 }

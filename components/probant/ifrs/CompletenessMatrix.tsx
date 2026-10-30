@@ -1,12 +1,14 @@
 "use client";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { LeaseQualification, QualifiedContract } from "@/lib/ifrs/leases/qualification";
 import { CELL_GLYPH, CELL_LABELS, cellState, isUnframed, MATRIX_COLUMNS, moneyFr, reasonColumn, STATUS_GLYPH, STATUS_LABELS, plural, type MatrixColumn } from "./format";
+import { Pager } from "./Primitives";
 import { FILTERS, type LeaseFilter } from "./selection-url";
 import s from "./ifrs.module.css";
 export type { LeaseFilter };
 
+const MATRIX_PAGE = 25;
 export function applyFilter(contracts: QualifiedContract[], filter: LeaseFilter, framing: LeaseFraming | null = null) {
   if (filter === "all") return contracts;
   if (filter === "unframed") return contracts.filter(c => isUnframed(framing?.contracts.find(f => f.contractId === c.contractId)));
@@ -25,6 +27,9 @@ export function applyFilter(contracts: QualifiedContract[], filter: LeaseFilter,
 export function CompletenessMatrix({ qualification, framing, filter, selected, onFilter, onOpen }: { qualification: LeaseQualification; framing: LeaseFraming | null; filter: LeaseFilter; selected: string | null;
   onFilter(f: LeaseFilter): void; onOpen(contractId: string, column: MatrixColumn | null, trigger: HTMLElement): void }) {
   const rows = useMemo(() => applyFilter(qualification.contracts, filter, framing), [qualification, filter, framing]);
+  // One page mounted at a time (L16-04); a new filter starts again at its first page.
+  const [paging, setPaging] = useState({ filter, page: 0 }), pages = Math.max(1, Math.ceil(rows.length / MATRIX_PAGE));
+  const page = paging.filter === filter ? Math.min(paging.page, pages - 1) : 0, visible = rows.slice(page * MATRIX_PAGE, (page + 1) * MATRIX_PAGE);
   const framingOf = (id: string) => framing?.contracts.find(f => f.contractId === id) ?? null;
   const codes = useMemo(() => {
     const counts = new Map<string, { count: number; message: string }>();
@@ -45,7 +50,7 @@ export function CompletenessMatrix({ qualification, framing, filter, selected, o
         <table className={s.table}>
           <caption>Une ligne par contrat ; une cellule par famille de réponses. ✓ confirmé · △ à compléter · × hors V1 · — non applicable · ◇ documenté · ≠ écart de cadrage.</caption>
           <thead><tr><th scope="col">Contrat</th><th scope="col">Statut</th>{MATRIX_COLUMNS.map(c => <th key={c.id} scope="col">{c.label}</th>)}</tr></thead>
-          <tbody>{rows.map(c => <tr key={c.contractId} aria-selected={selected === c.contractId}>
+          <tbody>{visible.map(c => <tr key={c.contractId} aria-selected={selected === c.contractId}>
             <th scope="row" className={s.rowHead}><button type="button" onClick={e => onOpen(c.contractId, null, e.currentTarget)}>{c.contractId}</button>
               <div className={s.muted}>{c.assetCategory ?? "catégorie non renseignée"}</div></th>
             <td><span className={s.status} data-status={c.status}><span aria-hidden="true">{STATUS_GLYPH[c.status]}</span>{STATUS_LABELS[c.status]}</span></td>
@@ -55,6 +60,7 @@ export function CompletenessMatrix({ qualification, framing, filter, selected, o
           </tr>)}</tbody>
         </table>
       </div>}
+    <Pager page={page} pages={pages} total={rows.length} size={MATRIX_PAGE} label="Pages de la matrice" onPage={p => setPaging({ filter, page: p })}/>
     <h3>Motifs relevés</h3>
     {codes.length === 0 ? <p className={s.muted}>Aucun motif de qualification sur ce registre.</p> :
       <ul className={s.reasons}>{codes.map(([code, v]) => <li key={code}><button type="button" aria-pressed={filter === "code:" + code} onClick={() => onFilter(("code:" + code) as LeaseFilter)}>{code} · {v.count}</button><span>{v.message}</span></li>)}</ul>}

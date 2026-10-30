@@ -19,12 +19,16 @@ export function ContextBand({ items, simulation }: { items: BandItem[]; simulati
   </>;
 }
 
-/** Rail des étapes : le travail à faire, l'étape courante, les blocages et leur motif ; aucun pourcentage de conformité. */
-export function StepRail({ steps }: { steps: WorkspaceStep[] }) {
+/**
+ * Rail des étapes (L16-04 : Sources → Qualification → Calcul → Retraitements → Revue) : le travail à faire, l'étape courante, les blocages
+ * et leur motif ; aucun pourcentage de conformité. Une étape dont la section est à l'écran y mène par un lien d'ancre.
+ */
+export function StepRail({ steps, anchors = {} }: { steps: WorkspaceStep[]; anchors?: Partial<Record<WorkspaceStep["id"], string>> }) {
   return <nav className={s.rail} aria-label="Étapes du travail">
     <ol>{steps.map((step, i) => <li key={step.id} data-state={step.state} aria-current={step.state === "current" ? "step" : undefined}>
       <span className={s.railGlyph} aria-hidden="true">{STEP_GLYPH[step.state]}</span>
-      <span><strong>{i + 1}. {step.label}</strong>
+      <span><strong>{i + 1}. {anchors[step.id] ? <a href={"#" + anchors[step.id]}>{step.label}</a> : step.label}</strong>
+        <span className={s.railTask}>{step.task}</span>
         <span className={s.railState}>{STEP_LABELS[step.state]}{step.exceptions ? " · " + step.exceptions + " à traiter" : ""}</span>
         {step.reason && <span className={s.railReason}>{step.reason}</span>}</span>
     </li>)}</ol>
@@ -58,4 +62,14 @@ export type NoticeTone = "info" | "warn" | "danger";
 /** État de l'écran avec sa cause et, si possible, sa prochaine action (vide, chargement, bloqué, erreur, périmé, indisponible). */
 export function StateNotice({ tone = "warn", role = "status", title, children }: { tone?: NoticeTone; role?: "status" | "alert"; title: string; children?: ReactNode }) {
   return <div role={role} className={s.notice} data-tone={tone === "warn" ? undefined : tone}><strong>{title}</strong>{children && <div>{children}</div>}</div>;
+}
+
+/** Pagination d'une table : une page montée à la fois ; la page reste en place quand l'inspecteur s'ouvre puis se ferme. */
+export function Pager({ page, pages, total, size, label, onPage }: { page: number; pages: number; total: number; size: number; label: string; onPage(page: number): void }) {
+  if (pages <= 1) return null;
+  return <nav className={s.pager} aria-label={label}>
+    <button type="button" disabled={page === 0} onClick={() => onPage(page - 1)}>Page précédente</button>
+    <span>Lignes {page * size + 1}–{Math.min(total, (page + 1) * size)} sur {total} · page {page + 1} / {pages}</span>
+    <button type="button" disabled={page >= pages - 1} onClick={() => onPage(page + 1)}>Page suivante</button>
+  </nav>;
 }

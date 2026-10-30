@@ -8,8 +8,10 @@ import type { LeaseQualification } from "./qualification";
  * L'interface n'en déduit rien d'autre : aucune action n'est inférée d'un libellé ou d'un zéro affiché.
  */
 export type StepState = "done" | "current" | "todo" | "blocked";
-export type StepId = "sources" | "qualification" | "freeze" | "calculation" | "adjustment" | "review";
-export interface WorkspaceStep { id: StepId; label: string; state: StepState; reason: string | null; exceptions: number | null }
+/** Rail métier (L16-04) : Sources → Qualification → Calcul → Retraitements → Revue ; le gel de la population ouvre l'étape Calcul. */
+export type StepId = "sources" | "qualification" | "calculation" | "adjustment" | "review";
+/** `label` nomme l'étape, `task` dit le travail à faire ; `reason` explique un blocage ou ce qui reste. */
+export interface WorkspaceStep { id: StepId; label: string; task: string; state: StepState; reason: string | null; exceptions: number | null }
 export type ActionId = "create" | "configure" | "freeze" | "execute" | "revise" | "submit" | "review" | "lock";
 export interface ActionState { allowed: boolean; reason: string | null }
 export interface LeaseWorkspaceView {
@@ -48,28 +50,29 @@ export function leaseWorkspaceView(i: ViewModelInput): LeaseWorkspaceView {
   };
   const reviewed = !!run && ["approved", "locked"].includes(run.state);
   const steps: WorkspaceStep[] = [
-    { id: "sources", label: "Déposer et approuver les sources", state: sourcesReady ? "done" : "current", reason: sourcesReady ? null : "Sources requises absentes : " + missingTypes.join(", "), exceptions: null },
-    { id: "qualification", label: "Qualifier les contrats", state: !sourcesReady ? "todo" : run?.leaseWork && toQualify === 0 ? "done" : "current",
+    { id: "sources", label: "Sources", task: "Déposer et approuver les sources", state: sourcesReady ? "done" : "current", reason: sourcesReady ? null : "Sources requises absentes : " + missingTypes.join(", "), exceptions: null },
+    { id: "qualification", label: "Qualification", task: "Qualifier les contrats", state: !sourcesReady ? "todo" : run?.leaseWork && toQualify === 0 ? "done" : "current",
       reason: !sourcesReady ? null : !run?.leaseWork ? "Politiques et confirmations à enregistrer" : toQualify ? "Données à compléter" : null, exceptions: toQualify },
-    { id: "freeze", label: "Figer la population", state: run?.population ? "done" : actions.freeze.allowed ? "current" : "blocked", reason: run?.population ? null : actions.freeze.reason, exceptions: null },
-    { id: "calculation", label: "Calculer dette et droit d'utilisation", state: engine === "computed" ? "done" : !run?.population ? "todo" : engine === "blocked_rule_review" || !i.ruleValidated ? "blocked" : actions.execute.allowed ? "current" : "blocked",
-      reason: engine === "computed" ? null : !i.ruleValidated && i.mode === "real" ? REVIEW_RULE : engine === "blocked_other" ? "Calcul bloqué : voir les contrôles du résultat" : actions.execute.reason,
+    // Freezing the population opens the calculation step: before it, the step says what the freeze still needs.
+    { id: "calculation", label: "Calcul", task: "Figer la population, puis calculer dette et droit d'utilisation",
+      state: engine === "computed" ? "done" : !run?.population ? (actions.freeze.allowed ? "current" : "todo") : engine === "blocked_rule_review" || !i.ruleValidated ? "blocked" : actions.execute.allowed ? "current" : "blocked",
+      reason: engine === "computed" ? null : !run?.population ? (actions.freeze.allowed ? "Population à figer avant le calcul" : actions.freeze.reason) : !i.ruleValidated && i.mode === "real" ? REVIEW_RULE : engine === "blocked_other" ? "Calcul bloqué : voir les contrôles du résultat" : actions.execute.reason,
       exceptions: run?.result?.execution === "completed" ? run.notes.filter(n => n.blocking && !n.resolution).length : null },
     adjustmentStep(engine, run, i.framing ?? null),
-    { id: "review", label: "Conclure et relire", state: reviewed ? "done" : run?.state === "executed" || run?.state === "awaiting_review" ? "current" : "todo", reason: null, exceptions: null },
+    { id: "review", label: "Revue", task: "Conclure et relire", state: reviewed ? "done" : run?.state === "executed" || run?.state === "awaiting_review" ? "current" : "todo", reason: null, exceptions: null },
   ];
   return { mode: i.mode, freshness: !run ? "no_sheet" : !i.sourcesCurrent ? "source_replaced" : !i.ruleCurrent ? "rule_replaced" : "current", engine, steps, actions };
 }
 
 /** Cadrage et retraitement : fait seulement si chaque contrat calculé est cadré et retenu ; un contrat non rapproché reste compté et motivé. */
 function adjustmentStep(engine: LeaseWorkspaceView["engine"], run: WorkpaperRun | null, framing: LeaseFraming | null): WorkspaceStep {
-  const label = "Cadrer sur la base PCG et proposer le retraitement";
+  const label = "Retraitements", task = "Cadrer sur la base PCG et proposer le retraitement";
   if (engine === "computed") {
     const result = run!.result!.result as LeaseResult, excluded = result.contracts.filter(c => c.adjustment.status === "excluded").length;
-    return { id: "adjustment", label, state: result.bundle && !excluded ? "done" : "current", exceptions: excluded,
+    return { id: "adjustment", label, task, state: result.bundle && !excluded ? "done" : "current", exceptions: excluded,
       reason: !result.bundle ? "Aucun contrat calculé et cadré : aucun retraitement proposé" : excluded ? excluded + " contrat(s) calculé(s) sans retraitement : cadrage en écart ou non établi" : null };
   }
   const unframed = framing ? framing.byStatus.difference + framing.byStatus.not_framed : null;
-  return { id: "adjustment", label, state: "todo", exceptions: unframed,
+  return { id: "adjustment", label, task, state: "todo", exceptions: unframed,
     reason: unframed ? "Cadrage préalable des sources : " + unframed + " contrat(s) non rapproché(s) ; retraitement après le calcul" : null };
 }

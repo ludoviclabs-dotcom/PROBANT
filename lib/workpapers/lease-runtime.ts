@@ -5,6 +5,7 @@ import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
 import { frameLeases, type LeaseFraming } from "@/lib/ifrs/leases/framing";
+import { leasePortfolioView, type LeasePortfolioView } from "@/lib/ifrs/leases/portfolio";
 import { materializeBundle, type AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import { leaseWorkspaceView, type LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
 import { mayReviewOwnWork } from "@/lib/auth/review-kind";
@@ -67,7 +68,7 @@ export class LeaseRuntime extends ClientsRuntime {
     const extra = await this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
       const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
       const qualification: Record<string, LeaseQualification | null> = {}, qualificationIssues: Record<string, string> = {};
-      const framing: Record<string, LeaseFraming | null> = {}, adjustments: Record<string, AdjustmentBundle | null> = {};
+      const framing: Record<string, LeaseFraming | null> = {}, adjustments: Record<string, AdjustmentBundle | null> = {}, portfolio: Record<string, LeasePortfolioView | null> = {};
       for (const run of view.runs) {
         sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run);
         const ids = run.importIds.length ? run.importIds : heads.map(h => h.import_id);
@@ -80,13 +81,15 @@ export class LeaseRuntime extends ClientsRuntime {
         // The adjustment is materialized from this exact version: proposed, or reviewed once approved or locked.
         const result = run.result?.execution === "completed" ? run.result.result as LeaseResult : null;
         adjustments[run.id] = result?.bundle ? materializeBundle(result.bundle, run) : null;
+        // Portfolio line, table, series and bridges (L16-04) are read from the stored result, never recomputed by the screen.
+        portfolio[run.id] = leasePortfolioView(run, view.runs, qualification[run.id] ?? null);
       }
       // Server view-model (C02): steps, allowed actions and their reasons; the screen derives nothing else.
       const ruleValidated = LEASE_TEMPLATE.rule!.validation === "validated", base = { mode: "real" as const, permissions: view.permissions, actorId: view.actorId, selfReviewAllowed: mayReviewOwnWork(view.reviewKind),
         sourceTypes: heads.map(h => h.document_type), requiredTypes: LEASE_REQUIRED_TYPES, ruleValidated };
       const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null, framing: framing[run.id] ?? null })]));
       const emptyWorkspace = leaseWorkspaceView({ ...base, run: null, sourcesCurrent: true, ruleCurrent: true, qualification: null });
-      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, workspace, emptyWorkspace };
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, portfolio, workspace, emptyWorkspace };
     });
     const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
       rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };

@@ -184,7 +184,7 @@ describe("IFRS C01 table explicite des erreurs HTTP (D21)", () => {
   it("aucun code levé par la chaîne Locations ne retombe en 503 par défaut : il est dans la table ou classé technique", () => {
     // Invariants internes : leur échec signale un défaut du code, jamais une action de l'utilisateur.
     const TECHNICAL = ["L16_DIVISION_BY_ZERO", "L16_ROOT_INVALID", "L16_INTEGER_INVALID", "L16_FIXED_INVALID", "INVALID_EUR_MONEY", "L16_ADAPTER_INVALID",
-      "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID", "L16_BRIDGE_IDENTITY", "L16_MODEL_INVALID",
+      "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID", "L16_BRIDGE_IDENTITY", "L16_MODEL_INVALID", "L16_CHART_IDENTITY", "L16_COMPARISON_PERIOD_MISMATCH",
       "BLOCKED_RESULT_REQUIRED", "COMPLETED_RESULT_REQUIRED", "FAILED_RESULT_REQUIRED", "CLIENT_REAL_SCOPE_REQUIRED", "CLIENT_TEMPLATE_REQUIRED", "WORKPAPER_VERSION_INVALID", "REVISION_INVALID",
       "SOURCE_BYTES_CHANGED", "CLIENT_PROJECTION_OUT_OF_SCOPE"];
     const root = resolve(__dirname, "../../.."), files: string[] = [];
