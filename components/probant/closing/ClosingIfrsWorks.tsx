@@ -1,6 +1,7 @@
 "use client";
 import type { IfrsLineage } from "@/lib/workpapers/closing-ifrs";
 import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+import { SHEET_STATE_LABELS } from "@/components/probant/ifrs/format";
 import { CitationPicker, readCitations } from "./ProcedurePanel";
 import { euros, stampFr, type ClosingView } from "./format";
 import cl from "./closing.module.css";
@@ -32,7 +33,7 @@ function Lineage({ l, view, canPrepare, send, busy }: { l: IfrsLineage; view: Cl
   return <article className={cl.section} aria-label={"Lignée " + l.rootId}>
     <h3>{l.label} · <span className={cl.hash}>{l.rootId}</span></h3>
     <dl className={cl.small}>
-      <dt>Version de tête</dt><dd>r{l.revision} · v{l.version} · {l.state}{l.sourcesCurrent ? "" : " · source remplacée"}{l.ruleCurrent ? "" : " · règle remplacée"}{l.outcome ? " · résultat : " + l.outcome : ""} · <DossierContextAnchor href="/ifrs/locations">ouvrir la feuille</DossierContextAnchor></dd>
+      <dt>Version de tête</dt><dd>r{l.revision} · v{l.version} · {SHEET_STATE_LABELS[l.state] ?? l.state}{l.sourcesCurrent ? "" : " · source remplacée"}{l.ruleCurrent ? "" : " · règle remplacée"}{l.outcome ? " · résultat : " + l.outcome : ""} · <DossierContextAnchor href="/ifrs/locations">ouvrir la feuille</DossierContextAnchor></dd>
       <dt>Retraitement</dt><dd>{l.bundle ? (l.bundle.status === "reviewed" ? "revu" : "proposé") + " · " + l.bundle.contracts + " contrat(s), " + l.bundle.lines + " écriture(s) · débit " + euros(l.bundle.debit.amount) + " = crédit " + euros(l.bundle.credit.amount) + " · impôt non calculé" : "aucun retraitement"}</dd>
       <dt>Sélection</dt><dd><strong>{SELECTION[sel.status]}</strong>{sel.reasons.length ? " : " + sel.reasons.join(", ") : ""}{l.toDecide ? " — version revue, sélection à décider (sans bloquer la clôture des cycles)" : ""}
         {sel.by ? " · " + sel.by + " · " + stampFr(sel.at!) + " · r" + sel.revision + " v" + sel.runVersion : ""}{sel.base ? " · base " + sel.base.baseKind + " : " + sel.base.included + " ; pièce " + sel.base.citation : ""}</dd>

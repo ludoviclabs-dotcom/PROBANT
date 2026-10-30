@@ -15,7 +15,8 @@ export function PolicyEditor({ categories, work, editable, busy, saveState, onSa
   saveState: string; onSave(draft: LeaseWorkDraft): void }) {
   const saved = useMemo(() => draftOf(work), [work]);
   const [values, setValues] = useState<Record<string, Election>>(saved), [reason, setReason] = useState(work?.firstApplication.reason ?? "Entité déjà sous IFRS 16 ; aucune méthode de transition choisie par l'outil");
-  const dirty = JSON.stringify(values) !== JSON.stringify(saved) || reason !== (work?.firstApplication.reason ?? reason);
+  // No work saved yet: the first save records the framework and the first application, which the qualification (and so the categories) needs.
+  const dirty = !work || JSON.stringify(values) !== JSON.stringify(saved) || reason !== work.firstApplication.reason;
   const submit = () => onSave({
     framework: { standard: "IFRS 16", jurisdiction: "IASB", edition: "IFRS 16, IASB 2026", editionFingerprint: null }, firstApplication: { kind: "not_applicable", reason },
     policies: Object.entries(values).filter(([, v]) => v).map(([key, value]) => { const [kind, assetCategory] = key.split("|"); return { kind: kind as typeof KINDS[number]["kind"], assetCategory, answer: { kind: "value" as const, value } }; }),
@@ -25,7 +26,7 @@ export function PolicyEditor({ categories, work, editable, busy, saveState, onSa
   return <section className={s.section} aria-labelledby="l16-policies-title">
     <div className={s.sectionHead}><h2 id="l16-policies-title">Politiques par catégorie d'actif</h2>
       <span role="status" aria-live="polite" className={s.saveState} data-state={dirty && saveState !== "saving" ? "dirty" : saveState}>{dirty && saveState !== "saving" ? "Modifications non enregistrées" : saveState === "saved" ? "Enregistré — version serveur reçue" : saveState === "conflict" ? "Conflit de version" : saveState === "saving" ? "Enregistrement…" : work ? "Travail enregistré" : "Aucun travail enregistré"}</span></div>
-    {categories.length === 0 ? <p className={s.muted}>Aucune catégorie : approuvez d'abord le registre des contrats.</p> :
+    {categories.length === 0 ? <p className={s.muted}>{work ? "Aucune catégorie : approuvez d'abord le registre des contrats." : "Enregistrez d'abord le cadre de la feuille (première application) : les contrats sont alors qualifiés et leurs catégories apparaissent ici."}</p> :
       <div className={s.scroll} role="region" aria-label="Politiques par catégorie — défilement au clavier" tabIndex={0}><table className={s.table} style={{ minWidth: 520 }}>
         <caption>« Non déclarée » n'est pas un refus : un contrat de 12 mois au plus reste à qualifier tant que la politique de sa catégorie manque.</caption>
         <thead><tr><th scope="col">Catégorie</th>{KINDS.map(k => <th key={k.kind} scope="col">{k.label}</th>)}</tr></thead>

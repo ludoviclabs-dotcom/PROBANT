@@ -1,4 +1,4 @@
-# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-05 réalisés
+# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-06 réalisés
 
 État au 30/10/2026 :
 - **C00** : documentaire (contrats, périmètre, sources, attendus), restreint à IFRS 16.
@@ -9,8 +9,16 @@
 - **L16-03** : cadrage des loyers sur la base PCG, contrat par contrat et ligne à ligne ; retraitement de clôture proposé (écritures, pont par poste), égal à l'oracle ; sélection et retrait par version attendue (logique pure) ; modèle d'export du journal.
 - **L16-04** : poste visuel — rail en cinq étapes (Sources, Qualification, Calcul, Retraitements, Revue), ligne de synthèse du portefeuille, table paginée, graphiques dette / droit d'utilisation et principal / intérêts avec leurs tableaux, ponts dette et droit d'utilisation séparés, comparaison de deux versions exécutées, frise du contrat dans l'inspecteur.
 - **L16-05** : synthèse de revue, résolution citée des points, relecture personnelle nommée et verrouillage à l'écran ; exports JSON, CSV et HTML imprimable avec manifeste (diagnostic ou revu, même empreinte métier) ; section « Travaux IFRS » du dossier de clôture (sélection pour une base déclarée, retrait, comptabilisation documentée par une pièce), jamais additionnée aux anomalies ; exemple d'exports dans [`exemples/l16-05/`](./exemples/l16-05/).
+- **L16-06** : recette indépendante et charge. Le lot comprend :
+  - une matrice exigences → tests ;
+  - des propriétés contre l'oracle sur 200 contrats tirés par graine ;
+  - neuf mutations détectées ;
+  - la charge de 1 000 contrats × 120 mois et la capacité réelle mesurée ;
+  - le parcours réel sur un profil local jetable, avec redémarrage.
 
-**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a pas encore de recette de volume ni de recette finale (L16-06).
+  Il corrige la qualification quadratique et le premier enregistrement des politiques d'une feuille neuve. Verdict : **non opérationnel sur le périmètre V1 vérifié**, avec deux blocages précis (relecture de la règle, capacité du store) ; voir le handoff.
+
+**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)).
 
 Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
@@ -18,7 +26,9 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 
 | Élément | Rôle |
 |---|---|
-| [`handoffs/L16-05.md`](./handoffs/L16-05.md) | **Où en est le chantier** : revue, exports et manifeste, travaux IFRS du dossier de clôture, inventaire des contrôles pour L16-06, captures [`captures/l16-05/`](./captures/l16-05/) |
+| [`handoffs/L16-06.md`](./handoffs/L16-06.md) | **Où en est le chantier** : verdict, matrice exigences → tests → résultats, propriétés et mutations, charge et capacité, parcours réel, blocages avant C03, captures [`captures/l16-06/`](./captures/l16-06/) |
+| [`recette/`](./recette/) | Oracle C00 et attendus aléatoires ([`proprietes_l16.py`](./recette/proprietes_l16.py)), résultats des mutations, mesures de charge ([`charge/`](./recette/charge/)), état du parcours réel |
+| [`handoffs/L16-05.md`](./handoffs/L16-05.md) | Revue, exports et manifeste, travaux IFRS du dossier de clôture, inventaire des contrôles pour L16-06, captures [`captures/l16-05/`](./captures/l16-05/) |
 | [`handoffs/L16-04.md`](./handoffs/L16-04.md) | poste visuel, vue de portefeuille serveur, graphiques et tableaux, comparaison de versions, captures [`captures/l16-04/`](./captures/l16-04/) |
 | [`handoffs/L16-03.md`](./handoffs/L16-03.md) | cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |

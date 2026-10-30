@@ -21,6 +21,7 @@ techniques internes, pas des prescriptions IFRS :
   la base portant le loyer en charge et aucun droit d'utilisation, dette ni effet d'ouverture.
 
 Lancement : python -I docs/ifrs/recette/attendus_l16.py   (écrit attendus_l16.json à côté)
+La fonction `evaluate` est aussi chargée par proprietes_l16.py (L16-06), sans rien écrire.
 """
 import json
 import sys
@@ -184,15 +185,16 @@ def evaluate(fx: dict) -> dict:
     }
 
 
-results = [evaluate(fx) for fx in FIXTURES]
-output = Path(__file__).with_name("attendus_l16.json")
-output.write_text(json.dumps({"oracle": "docs/ifrs/recette/attendus_l16.py", "precision": "Decimal, 60 chiffres significatifs",
-                              "rounding": "ROUND_HALF_UP (moitié à l'opposé de zéro) au centime", "fixtures": results},
-                             ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
-for r in results:
-    first = next((c for c in r["closings"] if c["status"] == "computed"), None)
-    summary = f"dette initiale {r['debtInitial']}" if first else "non reconnu"
-    if first:
-        summary += f" ; {first['closing']} : dette {first['debtClosing']}, ROU net {first['rouNetClosing']}, résultat avant impôt {first['pnlEffectBeforeTax']}"
-    print(f"{r['id']} {summary} ; r/12 → {r['mutationRateDividedBy12']['debtInitial']}")
-print(f"{len(results)} fixtures, attendus écrits dans {output.name}")
+if __name__ == "__main__":
+    results = [evaluate(fx) for fx in FIXTURES]
+    output = Path(__file__).with_name("attendus_l16.json")
+    output.write_text(json.dumps({"oracle": "docs/ifrs/recette/attendus_l16.py", "precision": "Decimal, 60 chiffres significatifs",
+                                  "rounding": "ROUND_HALF_UP (moitié à l'opposé de zéro) au centime", "fixtures": results},
+                                 ensure_ascii=False, indent=2, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
+    for r in results:
+        first = next((c for c in r["closings"] if c["status"] == "computed"), None)
+        summary = f"dette initiale {r['debtInitial']}" if first else "non reconnu"
+        if first:
+            summary += f" ; {first['closing']} : dette {first['debtClosing']}, ROU net {first['rouNetClosing']}, résultat avant impôt {first['pnlEffectBeforeTax']}"
+        print(f"{r['id']} {summary} ; r/12 → {r['mutationRateDividedBy12']['debtInitial']}")
+    print(f"{len(results)} fixtures, attendus écrits dans {output.name}")

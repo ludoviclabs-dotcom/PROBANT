@@ -12,7 +12,7 @@ import { executionProfileLabel } from "@/lib/runtime/profile";
 import { AdjustmentPanel } from "./AdjustmentPanel";
 import { CompletenessMatrix } from "./CompletenessMatrix";
 import { ContractDetail } from "./ContractDetail";
-import { dateFr, leaseFailureMessage, SHEET_STATE_LABELS, type LeaseView } from "./format";
+import { blockedControlLabel, dateFr, leaseFailureMessage, SHEET_STATE_LABELS, type LeaseView } from "./format";
 import { Inspector, useDocked } from "./Inspector";
 import { LeaseChartsPanel } from "./LeaseCharts";
 import { PolicyEditor } from "./PolicyEditor";
@@ -64,6 +64,12 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
     setView(data);
     const latest = [...(data.runs as WorkpaperRun[])].sort((a, b) => b.revision - a.revision)[0];
     if (latest) setPeriod(latest.period);
+    // An existing sheet is written in the address (L16-06): a reload, a bookmark or a return after a restart reopens it, its dates read from the sheet.
+    if (latest && !demo) {
+      const q = new URLSearchParams(window.location.search);
+      q.set("dossierId", dossier); q.set("periodId", key);
+      window.history.replaceState(null, "", window.location.pathname + "?" + q.toString());
+    }
   }, [demo, dossierId, pid]);
   const loadedOnce = useRef(false), refreshRef = useRef(refresh);
   useEffect(() => { refreshRef.current = refresh; }, [refresh]);
@@ -176,7 +182,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
           {workspace.freshness === "rule_replaced" && <StateNotice tone="danger" role="alert" title="Règle remplacée — à réexaminer">La feuille a été créée sous une autre version de la règle : créez une révision sur le gabarit courant.</StateNotice>}
           {!demo && <ActionBar actions={workspace.actions} labels={ACTION_LABELS} busy={saving} onAction={onAction}/>}
           {!demo && <p role="status" aria-live="polite" className={s.saveState} data-state={status}>{{ idle: "", saving: "Commande en cours…", saved: "Accusé serveur reçu", failed: "Échec de la commande", conflict: "Conflit de version" }[status]}</p>}
-          {run && run.result && run.result.execution !== "completed" && <StateNotice title="Calcul bloqué">{run.result.blockedControls.join(" · ")}</StateNotice>}
+          {run && run.result && run.result.execution !== "completed" && <StateNotice title="Calcul bloqué">{run.result.blockedControls.map(blockedControlLabel).join(" · ")}</StateNotice>}
           {portfolio && <SummaryLine summary={portfolio.summary}/>}
           {qualification ? <CompletenessMatrix qualification={qualification} framing={framing} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
             : run ? <StateNotice tone="info" title="Qualification non disponible">{view.qualificationIssues[run.id] ? "Sources illisibles : " + view.qualificationIssues[run.id] : "Enregistrez les politiques pour qualifier les contrats des sources courantes."}</StateNotice> : null}

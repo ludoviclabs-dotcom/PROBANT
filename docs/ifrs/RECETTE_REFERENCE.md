@@ -88,8 +88,10 @@ Les échéanciers complets (36 mois au plus, sinon les trois premiers et les tro
 | Contrat compté deux fois | Sous-total des contrats calculés doublé ; identité économique en double rejetée | Population de deux contrats identiques |
 | Source remplacée ignorée | `L16_SOURCE_REPLACED_REVISION_REQUIRED` attendu | Remplacement de `lease_schedule` après le gel |
 | Coût direct initial absent pris pour zéro | Contrat attendu en `a_qualifier` (X25), pas en `eligible_v1` | Réponse vide |
-| Dernière échéance « ajustée » pour absorber l'arrondi | Écart tracé ≠ 0 au dernier mois de F03, ou dette finale non nulle | F03 |
+| Dernière échéance « ajustée » pour absorber l'arrondi | Soldes publiés différents de l'arrondi des soldes exacts (résidu reporté sur la dernière échéance), ou dette finale non nulle | F03, F05, contrats tirés par graine |
 | Amortissement sur la durée du contrat au lieu de la durée d'utilité plus courte | Dotation 2027 de 11 140,42 au lieu de 16 710,64 | F09 |
+
+Correction du 30/10/2026 (L16-06) : l'attendu initial « écart tracé ≠ 0 au dernier mois de F03 » était inexact. L'oracle trace des écarts aux mois 2, 14, 15, 20, 22, 23 et 32 de F03, et un écart nul au dernier mois. Cet écart est nul par construction : la dette finale publiée vaut 0,00 et le loyer est en centimes. Forcer cet écart à zéro est donc un mutant équivalent, qui ne change aucun chiffre. La mutation exécutée reporte les soldes arrondis de mois en mois et absorbe le résidu dans la dernière échéance. Les mutations exécutées et leurs résultats figurent dans [`recette/mutations-l16.json`](./recette/mutations-l16.json).
 
 ## 5. Cas de qualification sans chiffre (L16-01)
 

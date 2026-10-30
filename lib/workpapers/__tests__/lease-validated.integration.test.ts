@@ -57,16 +57,20 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     policies: [{ kind: "short_term_exemption" as const, assetCategory: "Matériel de bureau", answer: { kind: "value" as const, value: "not_elected" } }],
     confirmations: [{ contractId: "F01", field: "termMonths", answer: { kind: "value" as const, value: "3" }, citation: { documentVersionId: batches[0].document.id, rowId: batches[0].rows[0].id } }] });
 
-  beforeAll(async () => {
-    const u = new URL(databaseUrl!);
-    if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
+  /** New connection pool, session store, authorizer and runtimes: everything read afterwards comes from PostgreSQL (L16-06 restart). */
+  function connect() {
     client = postgres(databaseUrl!, { max: 5, prepare: false, connect_timeout: 3 });
     const db = drizzle(client, { schema });
-    await assertDisposableDatabase(client);
     sessions = new DrizzleSessionStore(db);
     const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db), localAuth });
     http = leaseHandlers(() => new LeaseRuntime(db, authorizer, () => now), () => {});
     closing = closingHandlers(() => new ClosingRuntime(new PostgresClosingDatabase(db), authorizer, () => now, () => false), () => {});
+  }
+  beforeAll(async () => {
+    const u = new URL(databaseUrl!);
+    if (!["localhost", "127.0.0.1", "[::1]"].includes(u.hostname) || !/(_ci|_test)$/.test(u.pathname)) throw new Error("Disposable local *_ci / *_test database required");
+    connect();
+    await assertDisposableDatabase(client);
     await client`INSERT INTO organizations (id,name) VALUES (${org},'Locations validées')`;
     for (const d of [dossier, historicalDossier]) await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${d},${org},${d})`;
     const secret = newSessionSecret(), record = await sessions.create({ tokenSha256: sessionTokenDigest(secret), issuer: localAuth.issuer, subject: LOCAL_OWNER_SUBJECT, organizationId: org, roles: [], acr: "mfa", amr: ["mfa"], mfaSatisfied: true, nowEpochSeconds: now, idleTtlSeconds: 3600, absoluteTtlSeconds: 7200 });
@@ -186,6 +190,20 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     expect(stale.selection).toMatchObject({ status: "a_reexaminer", reasons: ["source remplacée ou ajoutée"] });
     expect(await exportOf({ ...lockedRef, format: "json", kind: "reviewed" })).toMatchObject({ status: 409, text: expect.stringContaining("L16_SOURCE_REPLACED_REVISION_REQUIRED") });
     expect((await exportOf({ ...lockedRef, format: "html", kind: "diagnostic" })).text).toContain("sources remplacées");
+
+    // L16-06 restart: a new pool and new runtimes find the same decisions, proofs, adjustment, closing selection and export hash.
+    const beforeRestart = await view(), closingBefore = (await closingCall("GET")).body, exportBefore = await exportOf({ ...lockedRef, format: "json", kind: "diagnostic" });
+    await client.end();
+    connect();
+    const restarted = await view(), closingAfter = (await closingCall("GET")).body, exportAfter = await exportOf({ ...lockedRef, format: "json", kind: "diagnostic" });
+    const sheetOf = (v: { runs: WorkpaperRun[] }) => v.runs.find(r => r.id === run.id)!;
+    expect(sheetOf(restarted)).toEqual(sheetOf(beforeRestart));
+    expect(sheetOf(restarted)).toMatchObject({ state: "locked", approval: { kind: "personal", reviewerName: "Camille Martin (exemple)" }, conclusion: expect.stringContaining("Dette et droit d'utilisation recalculés") });
+    expect(sheetOf(restarted).evidence.length).toBe(result.evidence.length);
+    for (const key of ["adjustments", "review", "portfolio", "contentHashes", "sourcesCurrent", "workspace"] as const) expect(restarted[key][run.id], key).toEqual(beforeRestart[key][run.id]);
+    expect(closingAfter.projection.ifrsWorks).toEqual(closingBefore.projection.ifrsWorks);
+    expect(closingAfter.projection.ifrsWorks.lineages[0].selection.status).toBe("a_reexaminer");
+    expect([exportAfter.status, exportAfter.hash]).toEqual([200, exportBefore.hash]);
   }, 90000);
 
   it("contrat historique sans ouverture : diagnostic, point bloquant sans montant ; l'approbation est refusée tant qu'il n'est pas résolu", async () => {

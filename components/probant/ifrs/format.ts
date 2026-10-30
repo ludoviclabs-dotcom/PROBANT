@@ -33,7 +33,16 @@ export const STATUS_LABELS: Record<ContractStatus, string> = { non_location: "No
 export const STATUS_GLYPH: Record<ContractStatus, string> = { non_location: "○", exemption_documentee: "◇", eligible_v1: "●", a_qualifier: "△", hors_scope_v1: "×" };
 export const SHEET_STATE_LABELS: Record<string, string> = { draft: "brouillon", ready: "population figée", executed: "calculée", awaiting_review: "soumise à relecture", changes_requested: "reprise demandée",
   approved: "approuvée", locked: "verrouillée", superseded: "remplacée", blocked: "calcul bloqué", failed: "calcul en échec" };
-export const STEP_LABELS: Record<StepState, string> = { done: "fait", current: "à faire maintenant", todo: "à venir", blocked: "bloqué" };
+/** Contrôles bloquants du registre de calcul, en clair ; un code inconnu reste affiché tel quel, jamais masqué. */
+export const BLOCKED_CONTROL_LABELS: Record<string, string> = {
+  rule_not_applicable: "règle non applicable en réel : la relecture personnelle nommée de la règle n'est pas consignée",
+  rule_version_unavailable: "version de la règle indisponible", period: "exercice invalide ou différent de celui de la feuille",
+  unapproved_import: "source non approuvée", population_import_missing: "source figée absente", stale_selection: "sélection périmée",
+  invalid_selection: "sélection invalide", source_row_missing: "ligne source figée absente", population_or_selection_not_reproducible: "population ou sélection non reproductible",
+  CALCULATION_INPUT_INVALID: "entrées du calcul invalides",
+};
+export const blockedControlLabel = (code: string) => BLOCKED_CONTROL_LABELS[code] ?? code;
+export const STEP_LABELS: Record<StepState, string> ={ done: "fait", current: "à faire maintenant", todo: "à venir", blocked: "bloqué" };
 export const STEP_GLYPH: Record<StepState, string> = { done: "✓", current: "→", todo: "·", blocked: "!" };
 export const TYPE_LABELS: Record<string, string> = { lease_contracts: "Contrats", lease_assumptions: "Hypothèses", lease_schedule: "Échéances et règlements", lease_ledger: "Comptabilité (612 / 613 / 614)", lease_opening: "Ouverture historique" };
 

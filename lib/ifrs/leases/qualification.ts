@@ -50,13 +50,25 @@ export function monthEnd(index: number) {
 const spec = (type: LeaseDocumentType, key: string): FieldSpec => (LEASE_DICTIONARY[type] as readonly FieldSpec[]).find(s => s.key === key)!;
 type Read = { state: "empty" | "unknown" | "na" | "value"; value?: string };
 
+/** Rows of each source per contract, in source order: read once, instead of scanning every source for every contract (L16-06, volume). */
+type FactsByContract = Record<"lease_assumptions" | "lease_schedule" | "lease_opening", Map<string, SourceFact[]>>;
+function factsByContract(facts: LeaseFacts): FactsByContract {
+  const index = (rows: readonly SourceFact[]) => {
+    const out = new Map<string, SourceFact[]>();
+    for (const row of rows) if (row.contractId) { const list = out.get(row.contractId); if (list) list.push(row); else out.set(row.contractId, [row]); }
+    return out;
+  };
+  return { lease_assumptions: index(facts.lease_assumptions), lease_schedule: index(facts.lease_schedule), lease_opening: index(facts.lease_opening) };
+}
+
 export function qualifyLeases(facts: LeaseFacts, period: { startDate: string; closingDate: string; asOfDate: string }, work: QualificationWork, rule: { id: string; version: string; basisStatus: "review_required" | "validated" }): LeaseQualification {
-  const registry = new Set(facts.lease_contracts.map(c => c.key));
-  const contracts = facts.lease_contracts.map(contract => qualifyOne(contract, facts, period, work));
+  const registry = new Set(facts.lease_contracts.map(c => c.key)), own = factsByContract(facts), firstContract = new Map<string, SourceFact>();
+  for (const c of facts.lease_contracts) if (!firstContract.has(c.key)) firstContract.set(c.key, c);
+  const contracts = facts.lease_contracts.map(contract => qualifyOne(contract, own, period, work));
   const fingerprints = dependencyFingerprint({
     sources: Object.entries(facts).filter(([, rows]) => rows.length).map(([type, rows]) => ({ documentType: type, importId: rows[0].proof.importId, documentVersionId: rows[0].proof.documentVersionId, byteHash: rows[0].proof.sha256, mappingVersion: "ifrs16-leases-2" })),
     policy: work.policies, rule,
-    contracts: Object.fromEntries(contracts.map(c => [c.contractId, { contract: facts.lease_contracts.find(x => x.key === c.contractId)!.fields, ...ownFacts(facts, c.contractId), confirmations: work.confirmations.filter(x => x.contractId === c.contractId) }])),
+    contracts: Object.fromEntries(contracts.map(c => [c.contractId, { contract: firstContract.get(c.contractId)!.fields, ...ownFacts(own, c.contractId), confirmations: work.confirmations.filter(x => x.contractId === c.contractId) }])),
   });
   for (const c of contracts) c.fingerprint = fingerprints.contracts[c.contractId];
   const orphans: LeaseQualification["orphans"] = [];
@@ -69,15 +81,15 @@ export function qualifyLeases(facts: LeaseFacts, period: { startDate: string; cl
     ledger: { lines: ledger.length, matched: matched.length, unmatched: unmatched.length, absMatched: abs(matched), absUnmatched: abs(unmatched),
       unknownContracts: [...new Set(unmatched.flatMap(l => l.contractId ? [l.contractId] : []))].sort() } } };
 }
-const ownFacts = (facts: LeaseFacts, id: string) => ({
-  assumptions: facts.lease_assumptions.filter(x => x.contractId === id).map(x => x.fields),
-  schedule: facts.lease_schedule.filter(x => x.contractId === id).map(x => ({ date: x.date, amount: x.amount, fields: x.fields })),
-  opening: facts.lease_opening.filter(x => x.contractId === id).map(x => x.fields),
+const ownFacts = (own: FactsByContract, id: string) => ({
+  assumptions: (own.lease_assumptions.get(id) ?? []).map(x => x.fields),
+  schedule: (own.lease_schedule.get(id) ?? []).map(x => ({ date: x.date, amount: x.amount, fields: x.fields })),
+  opening: (own.lease_opening.get(id) ?? []).map(x => x.fields),
 });
 
-function qualifyOne(contract: SourceFact, facts: LeaseFacts, period: { startDate: string; closingDate: string; asOfDate: string }, work: QualificationWork): QualifiedContract {
+function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startDate: string; closingDate: string; asOfDate: string }, work: QualificationWork): QualifiedContract {
   const id = contract.key, reasons: QualificationReason[] = [], evidence: SourceProof[] = [contract.proof];
-  const assumptions = facts.lease_assumptions.find(a => a.contractId === id) ?? null;
+  const assumptions = own.lease_assumptions.get(id)?.[0] ?? null;
   if (assumptions) evidence.push(assumptions.proof);
   const confirmations = work.confirmations.filter(c => c.contractId === id);
   // A confirmation cited by the preparer completes or corrects the source; it never invents a value the field does not admit.
@@ -178,7 +190,7 @@ function qualifyOne(contract: SourceFact, facts: LeaseFacts, period: { startDate
   const life = v("lease_contracts", "usefulLifeMonths");
   if (life !== null && Number(life) < 1) qualify("Q04", "Durée d'utilité inférieure à un mois", "usefulLifeMonths");
   // 6. Dues and settlements: a due already payable at the review date needs a settlement proof; a future due is not missing.
-  const version = base.version, dues = facts.lease_schedule.filter(d => d.contractId === id).sort((a, b) => (a.date < b.date ? -1 : 1));
+  const version = base.version, dues = [...(own.lease_schedule.get(id) ?? [])].sort((a, b) => (a.date < b.date ? -1 : 1));
   base.dues = dues.map(d => {
     evidence.push(d.proof);
     const role: DueRole = d.date <= period.asOfDate ? "exigible" : "non_encore_exigible";
@@ -216,7 +228,7 @@ function qualifyOne(contract: SourceFact, facts: LeaseFacts, period: { startDate
   // 7. Historical takeover: recomputed from the origin; the external opening is compared, never used to balance (D14).
   let opening: LeaseEngineInputs["opening"] = null;
   if (base.historical) {
-    const row = facts.lease_opening.find(o => o.contractId === id);
+    const row = own.lease_opening.get(id)?.[0];
     if (!row) { opening = "absent"; add("X24", "info", "Contrat historique sans ouverture validée : calcul affiché en diagnostic, aucun retraitement déterminé"); }
     else {
       evidence.push(row.proof);

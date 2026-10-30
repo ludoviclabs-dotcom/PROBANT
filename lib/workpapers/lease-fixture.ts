@@ -61,6 +61,33 @@ export async function approvedLeaseBatches(scope: WorkpaperScope, actor: Princip
   return out;
 }
 
+/** mulberry32 : générateur déterministe ; même graine, même portefeuille. */
+export function seededRandom(seed: number) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const SEEDED_CATEGORIES = ["Locaux", "Véhicules utilitaires", "Matériel de manutention", "Matériel informatique", "Matériel industriel"];
+/**
+ * Portefeuille de charge synthétique (L16-06), généré par graine, sans donnée réelle : chaque contrat commence le 01/01/2026, loyer fixe
+ * mensuel à terme échu, taux annuel effectif, charge PCG de 2026 cadrée par une ligne annuelle ; un contrat sur cinq a une durée d'utilité
+ * plus courte que la durée du contrat.
+ */
+export function seededLeaseRows(contracts: number, months: number, seed: number): Record<LeaseType, LeaseRow[]> {
+  const rnd = seededRandom(seed), rows: Record<LeaseType, LeaseRow[]> = { lease_contracts: [], lease_assumptions: [], lease_schedule: [], lease_ledger: [], lease_opening: [] };
+  const source = (title: string) => ({ title, pack: "Pack synthétique de charge L16-06", date: "2026-01-02", page: 1, clause: "Article 3 — loyers" });
+  for (let i = 1; i <= contracts; i++) {
+    const id = "B" + String(i).padStart(5, "0"), cents = 15_000 + Math.floor(rnd() * 485_000), payment = (cents / 100).toFixed(2);
+    const rate = (0.005 + Math.floor(rnd() * 850) / 10_000).toFixed(4), category = SEEDED_CATEGORIES[Math.floor(rnd() * SEEDED_CATEGORIES.length)];
+    const contract = CONTRACT_FIELDS(months, payment, category) as Record<string, string>;
+    if (rnd() < 0.2 && months > 12) contract.usefulLifeMonths = String(months - 12);
+    rows.lease_contracts.push({ key: id, amount: ((cents * months) / 100).toFixed(2), date: "2026-01-01", details: { contractId: id, source: source("Contrat " + id), fields: contract } });
+    rows.lease_assumptions.push({ key: id, amount: "0.00", date: "2026-01-01", details: { contractId: id, source: source("Note de taux " + id), fields: ASSUMPTION_FIELDS(rate) } });
+    rows.lease_schedule.push(...dueRows(id, months, payment));
+    rows.lease_ledger.push(ledgerRow("GL-613-" + id + "-2026", id, ((cents * Math.min(12, months)) / 100).toFixed(2), "613500", "2026-01-01", "2026-12-31", "OD-2026-" + id));
+  }
+  return rows;
+}
+
 /**
  * Portefeuille du scénario de démonstration : F01 et F03 calculables et cadrés, plus un contrat par autre statut (taux nominal à convertir,
  * faible valeur documentée, loyers indexés, non-location documentée), D08 calculable avec un écart de cadrage (charge mixte) et une ligne

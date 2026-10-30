@@ -1,0 +1,351 @@
+{
+  "schema": "probant-l16-06-charge-1",
+  "generatedBy": "scripts/ifrs/bench-l16.ts",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i5-4670 CPU @ 3.40GHz",
+    "logicalCores": 4,
+    "ramGiB": 7.9,
+    "os": "Windows_NT 10.0.19045 (Windows 10 Pro)",
+    "arch": "x64",
+    "node": "v24.14.0",
+    "gcExposed": true,
+    "heapLimitMiB": 2240
+  },
+  "parameters": {
+    "contracts": 12,
+    "months": 120,
+    "schedules": 1440,
+    "seed": 16006,
+    "repeat": 5,
+    "reader": "real",
+    "registryMeasured": true,
+    "heavyMeasured": true,
+    "period": {
+      "startDate": "2026-01-01",
+      "closingDate": "2026-12-31",
+      "asOfDate": "2027-02-15",
+      "currency": "EUR",
+      "validation": "provisional"
+    },
+    "scope": "demo (même moteur, aucune écriture)"
+  },
+  "portfolio": {
+    "byResult": {
+      "computed": 12,
+      "diagnostic": 0,
+      "not_commenced": 0,
+      "not_applicable": 0
+    },
+    "adjustmentContracts": 12,
+    "debtClosing": {
+      "amount": "2491842.72",
+      "currency": "EUR"
+    },
+    "outcome": "no_exception_detected"
+  },
+  "timings": {
+    "generationMs": 2.5,
+    "sourcesReadMs": 285,
+    "l16": {
+      "evaluateColdMs": 80.5,
+      "evaluateWarm": {
+        "n": 5,
+        "minMs": 60.35,
+        "medianMs": 66.65,
+        "p95Ms": 82.44,
+        "maxMs": 82.44
+      },
+      "qualification": {
+        "n": 5,
+        "minMs": 18.82,
+        "medianMs": 21.41,
+        "p95Ms": 28.53,
+        "maxMs": 28.53
+      },
+      "oneContractEngine": {
+        "n": 100,
+        "minMs": 0.62,
+        "medianMs": 0.65,
+        "p95Ms": 1.31,
+        "maxMs": 1.62
+      },
+      "reevaluateAfterOneContractChanged": {
+        "n": 5,
+        "minMs": 56.67,
+        "medianMs": 63.45,
+        "p95Ms": 79.89,
+        "maxMs": 79.89
+      }
+    },
+    "sharedRegistry": {
+      "coldMs": 612.9,
+      "warm": {
+        "n": 5,
+        "minMs": 580.2,
+        "medianMs": 588.65,
+        "p95Ms": 598.51,
+        "maxMs": 598.51
+      }
+    },
+    "views": {
+      "portfolio": {
+        "n": 5,
+        "minMs": 0.58,
+        "medianMs": 0.61,
+        "p95Ms": 2.22,
+        "maxMs": 2.22
+      },
+      "charts": {
+        "n": 5,
+        "minMs": 0.33,
+        "medianMs": 0.44,
+        "p95Ms": 1.58,
+        "maxMs": 1.58
+      },
+      "reviewSummary": {
+        "n": 5,
+        "minMs": 0.13,
+        "medianMs": 0.18,
+        "p95Ms": 1.02,
+        "maxMs": 1.02
+      },
+      "readSerialized": {
+        "n": 5,
+        "minMs": 483.46,
+        "medianMs": 484.34,
+        "p95Ms": 495.51,
+        "maxMs": 495.51
+      },
+      "contentHash": {
+        "n": 5,
+        "minMs": 201.12,
+        "medianMs": 203.79,
+        "p95Ms": 236.36,
+        "maxMs": 236.36
+      },
+      "screenFilter": {
+        "n": 100,
+        "minMs": 0,
+        "medianMs": 0,
+        "p95Ms": 0.02,
+        "maxMs": 0.28
+      }
+    },
+    "exports": {
+      "json": {
+        "n": 5,
+        "minMs": 249.14,
+        "medianMs": 250.99,
+        "p95Ms": 261.95,
+        "maxMs": 261.95,
+        "bytes": 556676
+      },
+      "html": {
+        "n": 5,
+        "minMs": 247.16,
+        "medianMs": 250.77,
+        "p95Ms": 256.29,
+        "maxMs": 256.29,
+        "bytes": 331597
+      },
+      "contracts_csv": {
+        "n": 5,
+        "minMs": 233.52,
+        "medianMs": 236.25,
+        "p95Ms": 241.87,
+        "maxMs": 241.87,
+        "bytes": 2596
+      },
+      "schedules_csv": {
+        "n": 5,
+        "minMs": 240.93,
+        "medianMs": 244.08,
+        "p95Ms": 268.27,
+        "maxMs": 268.27,
+        "bytes": 220439
+      },
+      "bridges_csv": {
+        "n": 5,
+        "minMs": 238.72,
+        "medianMs": 240.08,
+        "p95Ms": 241.49,
+        "maxMs": 241.49,
+        "bytes": 1658
+      },
+      "journal_csv": {
+        "n": 5,
+        "minMs": 233.25,
+        "medianMs": 237.76,
+        "p95Ms": 242.48,
+        "maxMs": 242.48,
+        "bytes": 31284
+      }
+    },
+    "materializeBundleMs": 211.8
+  },
+  "sizes": {
+    "perSource": {
+      "lease_contracts": {
+        "rows": 12,
+        "fileBytes": 12437,
+        "previewJsonBytes": 20063,
+        "storedBytes": 37184,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_assumptions": {
+        "rows": 12,
+        "fileBytes": 13259,
+        "previewJsonBytes": 20822,
+        "storedBytes": 39039,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_schedule": {
+        "rows": 1440,
+        "fileBytes": 481748,
+        "previewJsonBytes": 1237753,
+        "storedBytes": 1933458,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_ledger": {
+        "rows": 12,
+        "fileBytes": 4568,
+        "previewJsonBytes": 12314,
+        "storedBytes": 18943,
+        "reader": "lecteur réel, fichier entier"
+      }
+    },
+    "draftRunBytes": 5806,
+    "executedRunBytes": 3880430,
+    "executedRunParts": {
+      "input": 1346298,
+      "contractsWithoutDuesAndSchedules": 60883,
+      "dues": 840201,
+      "schedules": 626334,
+      "evidence": 961152,
+      "bundle": 30956,
+      "notes": 2
+    },
+    "chainBytes": 23311610,
+    "readBytes": 5190319
+  },
+  "memory": {
+    "start": {
+      "rssMiB": 76.7,
+      "heapUsedMiB": 20.3
+    },
+    "afterSources": {
+      "rssMiB": 135.7,
+      "heapUsedMiB": 22.9
+    },
+    "afterEvaluateCold": {
+      "rssMiB": 136.5,
+      "heapUsedMiB": 25.9
+    },
+    "afterRegistry": {
+      "rssMiB": 277.6,
+      "heapUsedMiB": 31.8
+    },
+    "afterViews": {
+      "rssMiB": 288.2,
+      "heapUsedMiB": 41.9
+    },
+    "afterExports": {
+      "rssMiB": 288.2,
+      "heapUsedMiB": 42.1
+    },
+    "peakRssMiB": 515.1
+  },
+  "gates": [
+    {
+      "gate": "lease_contracts · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 12437,
+      "ok": true
+    },
+    {
+      "gate": "lease_contracts · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 12,
+      "ok": true
+    },
+    {
+      "gate": "lease_contracts · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 20063,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 13259,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 12,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 20822,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 481748,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 1440,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 1237753,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 4568,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 12,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 12314,
+      "ok": true
+    },
+    {
+      "gate": "sources du dossier-exercice ≤ 24 Mio (aperçus + originaux, store partagé)",
+      "limit": 25165824,
+      "value": 2028624,
+      "ok": true
+    },
+    {
+      "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
+      "limit": 25165824,
+      "value": 23311610,
+      "ok": true
+    },
+    {
+      "gate": "lecture de l'atelier ≤ 8 Mio",
+      "limit": 8388608,
+      "value": 5190319,
+      "ok": true
+    }
+  ],
+  "capacity": []
+}

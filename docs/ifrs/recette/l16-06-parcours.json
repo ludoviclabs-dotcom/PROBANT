@@ -1,0 +1,238 @@
+{
+  "capturedAt": "2026-10-30T21:47:30.534Z",
+  "dossierId": "ecdb6967-022b-453c-be54-e75a44d6cc65",
+  "periodId": "period-cabc536c56357d5fae16cc06e69c90d40da55a8499d93923e3618106228464ee",
+  "owner": "Camille Recette",
+  "beforeRestart": {
+    "run": {
+      "id": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+      "version": 7,
+      "state": "blocked",
+      "importIds": [
+        "import-7d4112568e0c249dc8923c5471ff33170c15094b900d2fdab765bc773e6b13e9",
+        "import-99489f88c4ecffb0fed106cd42e0fc143426c24bb4b03bda7113a4b72a85589d",
+        "import-b690c27f42c55746ffe05dfec71b157aa3871bfcbbfde672d6b1efbdc97d861d",
+        "import-d434de7fc5dc22caa9b9094a933ea0a474b96333abe28083ac5b2d2ab7ba06ad"
+      ],
+      "policies": [
+        {
+          "kind": "short_term_exemption",
+          "answer": {
+            "kind": "value",
+            "value": "not_elected"
+          },
+          "assetCategory": "Matériel de bureau"
+        }
+      ],
+      "population": "373a39cbc3c0d47c5385fac21a96433301df7d719f46296b296e49fd481f18fd"
+    },
+    "sourceHeads": [
+      {
+        "document_type": "lease_assumptions",
+        "import_id": "import-99489f88c4ecffb0fed106cd42e0fc143426c24bb4b03bda7113a4b72a85589d"
+      },
+      {
+        "document_type": "lease_contracts",
+        "import_id": "import-7d4112568e0c249dc8923c5471ff33170c15094b900d2fdab765bc773e6b13e9"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-d434de7fc5dc22caa9b9094a933ea0a474b96333abe28083ac5b2d2ab7ba06ad"
+      },
+      {
+        "document_type": "lease_schedule",
+        "import_id": "import-b690c27f42c55746ffe05dfec71b157aa3871bfcbbfde672d6b1efbdc97d861d"
+      }
+    ],
+    "qualification": [
+      [
+        "F01",
+        "eligible_v1"
+      ],
+      [
+        "F03",
+        "eligible_v1"
+      ]
+    ],
+    "contentHash": "ecc18ebc3b6e4820a9e1e5cf451e4e8c01d7026d3e3aa72d59a6aba38944d76e",
+    "actions": {
+      "create": "Une feuille existe déjà pour cet exercice",
+      "configure": "La feuille n'est plus modifiable dans cet état",
+      "freeze": "Population déjà figée",
+      "execute": "Calcul déjà enregistré pour cette version",
+      "revise": "permise",
+      "resolve": "Feuille calculée requise",
+      "conclude": "Calcul terminé requis",
+      "submit": "Calcul terminé requis",
+      "review": "Aucune version soumise",
+      "lock": "Version approuvée requise",
+      "export_diagnostic": "permise",
+      "export_reviewed": "Version approuvée ou verrouillée requise"
+    },
+    "exportHash": "d115625d1efcfdda573725528fea0c3d7430720323192a2fd61cc6df8d6c6712",
+    "ifrsWorks": {
+      "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
+      "lineages": [
+        {
+          "procedure": "ifrs16.leases",
+          "label": "Locations IFRS 16 — preneur, périmètre V1",
+          "rootId": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "logicalId": "ifrs16.leases:workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "runId": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "revision": 1,
+          "version": 7,
+          "state": "blocked",
+          "contentHash": "ecc18ebc3b6e4820a9e1e5cf451e4e8c01d7026d3e3aa72d59a6aba38944d76e",
+          "sourcesCurrent": true,
+          "ruleCurrent": true,
+          "outcome": null,
+          "bundle": null,
+          "selection": {
+            "status": "non_selectionne",
+            "reasons": [],
+            "runId": null,
+            "revision": null,
+            "runVersion": null,
+            "bundleHash": null,
+            "by": null,
+            "at": null,
+            "base": null
+          },
+          "posting": {
+            "status": "non_documentee",
+            "text": null,
+            "by": null,
+            "at": null,
+            "citations": []
+          },
+          "toDecide": false,
+          "previous": []
+        }
+      ],
+      "orphanSelections": [],
+      "denominators": {
+        "lineages": 1,
+        "reviewed": 0,
+        "selected": 0,
+        "toReexamine": 0,
+        "postingsDocumented": 0
+      }
+    }
+  },
+  "afterRestart": {
+    "run": {
+      "id": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+      "version": 7,
+      "state": "blocked",
+      "importIds": [
+        "import-7d4112568e0c249dc8923c5471ff33170c15094b900d2fdab765bc773e6b13e9",
+        "import-99489f88c4ecffb0fed106cd42e0fc143426c24bb4b03bda7113a4b72a85589d",
+        "import-b690c27f42c55746ffe05dfec71b157aa3871bfcbbfde672d6b1efbdc97d861d",
+        "import-d434de7fc5dc22caa9b9094a933ea0a474b96333abe28083ac5b2d2ab7ba06ad"
+      ],
+      "policies": [
+        {
+          "kind": "short_term_exemption",
+          "answer": {
+            "kind": "value",
+            "value": "not_elected"
+          },
+          "assetCategory": "Matériel de bureau"
+        }
+      ],
+      "population": "373a39cbc3c0d47c5385fac21a96433301df7d719f46296b296e49fd481f18fd"
+    },
+    "sourceHeads": [
+      {
+        "document_type": "lease_assumptions",
+        "import_id": "import-99489f88c4ecffb0fed106cd42e0fc143426c24bb4b03bda7113a4b72a85589d"
+      },
+      {
+        "document_type": "lease_contracts",
+        "import_id": "import-7d4112568e0c249dc8923c5471ff33170c15094b900d2fdab765bc773e6b13e9"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-d434de7fc5dc22caa9b9094a933ea0a474b96333abe28083ac5b2d2ab7ba06ad"
+      },
+      {
+        "document_type": "lease_schedule",
+        "import_id": "import-b690c27f42c55746ffe05dfec71b157aa3871bfcbbfde672d6b1efbdc97d861d"
+      }
+    ],
+    "qualification": [
+      [
+        "F01",
+        "eligible_v1"
+      ],
+      [
+        "F03",
+        "eligible_v1"
+      ]
+    ],
+    "contentHash": "ecc18ebc3b6e4820a9e1e5cf451e4e8c01d7026d3e3aa72d59a6aba38944d76e",
+    "actions": {
+      "create": "Une feuille existe déjà pour cet exercice",
+      "configure": "La feuille n'est plus modifiable dans cet état",
+      "freeze": "Population déjà figée",
+      "execute": "Calcul déjà enregistré pour cette version",
+      "revise": "permise",
+      "resolve": "Feuille calculée requise",
+      "conclude": "Calcul terminé requis",
+      "submit": "Calcul terminé requis",
+      "review": "Aucune version soumise",
+      "lock": "Version approuvée requise",
+      "export_diagnostic": "permise",
+      "export_reviewed": "Version approuvée ou verrouillée requise"
+    },
+    "exportHash": "d115625d1efcfdda573725528fea0c3d7430720323192a2fd61cc6df8d6c6712",
+    "ifrsWorks": {
+      "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
+      "lineages": [
+        {
+          "procedure": "ifrs16.leases",
+          "label": "Locations IFRS 16 — preneur, périmètre V1",
+          "rootId": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "logicalId": "ifrs16.leases:workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "runId": "workpaper-170c61b18c4b72a0c22e7eec97b4e14a63d5fa97262e6785cc46593605e2ad4c",
+          "revision": 1,
+          "version": 7,
+          "state": "blocked",
+          "contentHash": "ecc18ebc3b6e4820a9e1e5cf451e4e8c01d7026d3e3aa72d59a6aba38944d76e",
+          "sourcesCurrent": true,
+          "ruleCurrent": true,
+          "outcome": null,
+          "bundle": null,
+          "selection": {
+            "status": "non_selectionne",
+            "reasons": [],
+            "runId": null,
+            "revision": null,
+            "runVersion": null,
+            "bundleHash": null,
+            "by": null,
+            "at": null,
+            "base": null
+          },
+          "posting": {
+            "status": "non_documentee",
+            "text": null,
+            "by": null,
+            "at": null,
+            "citations": []
+          },
+          "toDecide": false,
+          "previous": []
+        }
+      ],
+      "orphanSelections": [],
+      "denominators": {
+        "lineages": 1,
+        "reviewed": 0,
+        "selected": 0,
+        "toReexamine": 0,
+        "postingsDocumented": 0
+      }
+    }
+  }
+}
