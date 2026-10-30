@@ -27,7 +27,7 @@ const ROUTES = [
   { route: "/dashboard/synthese", heading: { name: "Synthèse", level: 1 } },
   { route: "/dashboard/risques", heading: { name: "Cartographie des risques", level: 1 } },
   { route: "/dashboard/cloisons", heading: { name: "Revue par cloison", level: 1 } },
-  { route: "/dashboard/dossier", heading: { name: "Dossier & preuve", level: 2 } },
+  { route: "/dashboard/dossier", heading: { name: "Dossier & preuve", level: 1 } },
   {
     route: "/dashboard/fiscalite",
     heading: { name: "Couverture des contrôles et lignes à traiter", level: 2 },

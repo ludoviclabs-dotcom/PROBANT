@@ -1,14 +1,11 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { Download } from "lucide-react";
-import type { CriticityBand, CycleRiskScore } from "@/lib/risk-mapping";
-import {
-  CURRENT_EXERCISE,
-  isSimulatedExercise,
-  simulateHistoricalComposite,
-  type HistoricalExercise,
-} from "@/lib/risk-mapping";
+import p from "@/components/charte/page.module.css";
+import type { CycleRiskScore } from "@/lib/risk-mapping";
+import { CURRENT_EXERCISE, isSimulatedExercise, simulateHistoricalComposite, type HistoricalExercise } from "@/lib/risk-mapping";
+import { BAND_RANGE, compositeText, displayComposite } from "@/lib/risk-mapping/view";
+import s from "./risk.module.css";
 
 /**
  * Vue temporelle (Bloc 3) : évolution du composite de chaque cycle sélectionné
@@ -17,56 +14,44 @@ import {
  * Seul `CURRENT_EXERCISE` (2024) est un exercice réel : sa valeur est le
  * composite réellement calculé. 2022/2023 sont ENTIÈREMENT SIMULÉS par
  * `simulateHistoricalComposite` (hash déterministe, jamais un vrai chiffre
- * d'audit) — les segments correspondants sont tracés en POINTILLÉ dans une
+ * d'audit) — les segments correspondants sont tracés en TIRETS dans une
  * zone hachurée, et un disclaimer permanent est affiché sous le graphique. Ce
  * composant ne calcule rien lui-même : il ne fait que projeter les
  * `CycleRiskScore` déjà produits par le moteur pur.
  *
- * Rendu SVG custom (v2) : recharts ne permet pas les bandes de criticité de
- * fond, la zone simulée hachurée, le tracé réel animé (`pathLength`) ni le
- * crosshair fidèles à la maquette. L'export PNG (sérialisation du <svg>) reste
- * inchangé.
+ * Charte « instruments » : chaque série est distinguée par sa luminosité (encre, encre 2, encre 3) ET la forme de
+ * ses repères (rond, carré, losange, triangle), reprise dans le sélecteur et l'étiquette de fin — jamais par la teinte
+ * seule. Les bandes de criticité sont des filets tiretés nommés, sans aplat de couleur. L'export PNG sérialise le
+ * <svg> avec ses couleurs résolues (les jetons de l'ambiance n'existent pas hors de la page).
  */
 
 const EXERCISES: HistoricalExercise[] = [2022, 2023, CURRENT_EXERCISE];
 
-/** Palette cyclique pour les séries (une couleur par cycle affiché). */
-const LINE_COLORS = [
-  "#38bdf8",
-  "#f97316",
-  "#a78bfa",
-  "#22c55e",
-  "#ef4444",
-  "#eab308",
-  "#ec4899",
-  "#14b8a6",
+type Marker = "circle" | "square" | "diamond" | "triangle";
+
+/** Style de chaque série : luminosité + forme de repère (8 combinaisons distinctes). */
+const SERIES_STYLE: { color: string; marker: Marker }[] = [
+  { color: "var(--pb-ink)", marker: "circle" },
+  { color: "var(--pb-ink-2)", marker: "square" },
+  { color: "var(--pb-ink)", marker: "diamond" },
+  { color: "var(--pb-ink-2)", marker: "triangle" },
+  { color: "var(--pb-ink-3)", marker: "circle" },
+  { color: "var(--pb-ink-3)", marker: "square" },
+  { color: "var(--pb-ink-3)", marker: "diamond" },
+  { color: "var(--pb-ink-3)", marker: "triangle" },
 ];
 
 /** Nombre maximal de cycles affichables simultanément (lisibilité du graphe). */
 const MAX_SELECTED = 8;
 
-/** Couleur sémantique de chaque bande de criticité (identique aux autres vues v2). */
-const BAND_HEX: Record<CriticityBand, string> = {
-  critique: "#ef4444",
-  élevé: "#f97316",
-  modéré: "#eab308",
-  faible: "#3b82f6",
-  non_évalué: "#5c6b82",
-};
-
-/**
- * Bandes de criticité tracées en fond du graphe : bornes alignées sur
- * `criticityBand` (scoring.ts) — faible [0,25[, modéré [25,55[, élevé [55,75[,
- * critique [75,100].
- */
-const CRITICITY_BANDS: { band: CriticityBand; from: number; to: number; label: string }[] = [
-  { band: "critique", from: 75, to: 100, label: "critique" },
-  { band: "élevé", from: 55, to: 75, label: "élevé" },
-  { band: "modéré", from: 25, to: 55, label: "modéré" },
-  { band: "faible", from: 0, to: 25, label: "faible" },
+/** Bornes des bandes, lues dans la même source que la légende du registre. */
+const BAND_LINES: { at: number; label: string }[] = [
+  { at: BAND_RANGE.critique.min, label: "critique" },
+  { at: BAND_RANGE.élevé.min, label: "élevé" },
+  { at: BAND_RANGE.modéré.min, label: "modéré" },
 ];
 
-// Géométrie du plot (viewBox aligné sur la maquette v2).
+// Géométrie du plot.
 const VIEW_W = 960;
 const VIEW_H = 420;
 const PLOT_LEFT = 46;
@@ -78,6 +63,8 @@ const PLOT_H = PLOT_BOTTOM - PLOT_TOP;
 
 /** Graduations Y (repères de lecture 0-25-50-75-100). */
 const Y_TICKS = [0, 25, 50, 75, 100] as const;
+
+const MONO = { fontFamily: "var(--pb-font-mono)" } as const;
 
 interface RiskTemporalChartProps {
   scores: CycleRiskScore[];
@@ -96,9 +83,31 @@ function yOfValue(value: number): number {
   return PLOT_BOTTOM - (Math.min(100, Math.max(0, value)) / 100) * PLOT_H;
 }
 
-/** Point (x,y) d'un exercice pour une valeur donnée, arrondi pour un `d` propre. */
 function pointOf(exercise: HistoricalExercise, value: number): string {
   return `${xOfExercise(exercise).toFixed(1)},${yOfValue(value).toFixed(1)}`;
+}
+
+/** Chemin d'un repère centré en (0,0). */
+function markerPath(marker: Marker, size: number): string {
+  const h = size / 2;
+  switch (marker) {
+    case "square":
+      return `M${-h} ${-h}h${size}v${size}h${-size}z`;
+    case "diamond":
+      return `M0 ${-h * 1.25}L${h * 1.25} 0L0 ${h * 1.25}L${-h * 1.25} 0z`;
+    case "triangle":
+      return `M0 ${-h * 1.2}L${h * 1.2} ${h}L${-h * 1.2} ${h}z`;
+    default:
+      return `M${-h} 0a${h} ${h} 0 1 0 ${size} 0a${h} ${h} 0 1 0 ${-size} 0`;
+  }
+}
+
+function MarkerGlyph({ style }: { style: (typeof SERIES_STYLE)[number] }) {
+  return (
+    <svg width="10" height="10" viewBox="-5 -5 10 10" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }}>
+      <path d={markerPath(style.marker, 7)} style={{ fill: style.color }} />
+    </svg>
+  );
 }
 
 interface SeriesPoint {
@@ -109,30 +118,46 @@ interface SeriesPoint {
 
 interface TemporalSeries {
   slug: string;
-  color: string;
+  style: (typeof SERIES_STYLE)[number];
   points: SeriesPoint[];
-  /** Chemin du segment simulé (exercices ≤ 2023), pointillé. */
+  /** Chemin du segment simulé (exercices ≤ 2023), tireté. */
   dSim: string;
-  /** Chemin du segment réel (2023 → 2024), trait plein animé. */
+  /** Chemin du segment réel (2023 → 2024), trait plein. */
   dReal: string;
-  /** Valeur réelle courante (2024) et delta vs. 2023 simulé, pour le label de fin. */
+  /** Valeur réelle courante (2024, entier affiché) et écart vs 2023 simulé, pour le libellé de fin. */
   endValue: number | null;
   endY: number | null;
   delta: number | null;
 }
 
+/** Copie du <svg> avec les couleurs, traits et polices résolus : l'image exportée ne connaît pas les jetons de la page. */
+function resolvedClone(source: SVGSVGElement, width: number, height: number): SVGSVGElement {
+  const clone = source.cloneNode(true) as SVGSVGElement;
+  const from = [source, ...Array.from(source.querySelectorAll<SVGElement>("*"))];
+  const to = [clone, ...Array.from(clone.querySelectorAll<SVGElement>("*"))];
+  const props = ["fill", "fill-opacity", "stroke", "stroke-width", "stroke-dasharray", "stroke-opacity", "opacity", "font-family", "font-size", "font-weight", "letter-spacing"];
+  from.forEach((el, i) => {
+    const target = to[i];
+    if (!target) return;
+    const cs = getComputedStyle(el);
+    for (const prop of props) target.style.setProperty(prop, cs.getPropertyValue(prop));
+    target.style.setProperty("animation", "none");
+  });
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", String(width));
+  clone.setAttribute("height", String(height));
+  return clone;
+}
+
 export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
   const scoreBySlug = useMemo(() => {
     const map = new Map<string, CycleRiskScore>();
-    for (const s of scores) map.set(s.cycleSlug, s);
+    for (const sc of scores) map.set(sc.cycleSlug, sc);
     return map;
   }, [scores]);
 
   // Sélection par défaut : les 4 premiers cycles évalués (ordre stable des props).
-  const defaultSelection = useMemo(() => {
-    const evaluated = cycles.filter((slug) => scoreBySlug.get(slug)?.composite != null);
-    return evaluated.slice(0, 4);
-  }, [cycles, scoreBySlug]);
+  const defaultSelection = useMemo(() => cycles.filter((slug) => scoreBySlug.get(slug)?.composite != null).slice(0, 4), [cycles, scoreBySlug]);
 
   const [selectedCycles, setSelectedCycles] = useState<string[]>(defaultSelection);
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
@@ -141,7 +166,7 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
 
   function toggleCycle(slug: string) {
     setSelectedCycles((prev) => {
-      if (prev.includes(slug)) return prev.filter((s) => s !== slug);
+      if (prev.includes(slug)) return prev.filter((x) => x !== slug);
       if (prev.length >= MAX_SELECTED) return prev;
       return [...prev, slug];
     });
@@ -150,11 +175,11 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
   // Chaque cycle → une série : points sur les 3 exercices, chemin simulé
   // (≤ 2023, dupliqué à la jonction 2023) et chemin réel (2023 → 2024). Rien
   // n'est recalculé ici : on projette `simulateHistoricalComposite` (2022/2023
-  // déterministe, 2024 = composite réel du moteur).
+  // déterministe, 2024 = composite réel du moteur, affiché en partie entière).
   const series: TemporalSeries[] = useMemo(
     () =>
       selectedCycles.map((slug, i) => {
-        const color = LINE_COLORS[i % LINE_COLORS.length];
+        const style = SERIES_STYLE[i % SERIES_STYLE.length];
         const current = scoreBySlug.get(slug)?.composite ?? null;
         const points: SeriesPoint[] = EXERCISES.map((exercise) => ({
           exercise,
@@ -162,51 +187,34 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
           simulated: isSimulatedExercise(exercise),
         }));
 
-        // Segment simulé : exercices ≤ 2023 (inclut la jonction 2023).
-        const simPts = points
-          .filter((p) => p.exercise <= 2023 && p.value !== null)
-          .map((p) => pointOf(p.exercise, p.value as number));
+        const simPts = points.filter((pt) => pt.exercise <= 2023 && pt.value !== null).map((pt) => pointOf(pt.exercise, pt.value as number));
         const dSim = simPts.length >= 2 ? `M${simPts.join(" L")}` : "";
 
-        // Segment réel : exercices ≥ 2023 (jonction 2023 → 2024 réel).
-        const realPts = points
-          .filter((p) => p.exercise >= 2023 && p.value !== null)
-          .map((p) => pointOf(p.exercise, p.value as number));
+        const realPts = points.filter((pt) => pt.exercise >= 2023 && pt.value !== null).map((pt) => pointOf(pt.exercise, pt.value as number));
         const dReal = realPts.length >= 2 ? `M${realPts.join(" L")}` : "";
 
-        const endValue = points.find((p) => p.exercise === CURRENT_EXERCISE)?.value ?? null;
-        const prevValue = points.find((p) => p.exercise === 2023)?.value ?? null;
-        const delta =
-          endValue !== null && prevValue !== null ? endValue - prevValue : null;
+        const endRaw = points.find((pt) => pt.exercise === CURRENT_EXERCISE)?.value ?? null;
+        const endValue = displayComposite(endRaw);
+        const prevValue = points.find((pt) => pt.exercise === 2023)?.value ?? null;
+        const delta = endValue !== null && prevValue !== null ? endValue - prevValue : null;
 
-        return {
-          slug,
-          color,
-          points,
-          dSim,
-          dReal,
-          endValue,
-          endY: endValue !== null ? yOfValue(endValue) : null,
-          delta,
-        };
+        return { slug, style, points, dSim, dReal, endValue, endY: endRaw !== null ? yOfValue(endRaw) : null, delta };
       }),
     [selectedCycles, scoreBySlug],
   );
 
   const hasSelection = selectedCycles.length > 0;
 
-  // Résumé textuel alternatif (sr-only) : le SVG n'est pas nativement lisible
-  // par un lecteur d'écran, donc on relit `series` (déjà calculé, aucune valeur
-  // recalculée ni inventée) pour produire une description équivalente.
+  // Résumé textuel alternatif (sr-only) : le SVG n'est pas lisible par un lecteur d'écran.
   const textSummary = useMemo(() => {
     if (!hasSelection) return "";
-    const lines = series.map((s) => {
-      const points = s.points.map((p) => {
-        const suffix = p.simulated ? " (simulé)" : " (réel)";
-        const reading = typeof p.value === "number" ? `${Math.round(p.value)}/100` : "non évalué";
-        return `${p.exercise}${suffix} : ${reading}`;
+    const lines = series.map((sr) => {
+      const pts = sr.points.map((pt) => {
+        const suffix = pt.simulated ? " (simulé)" : " (réel)";
+        const reading = typeof pt.value === "number" ? `${compositeText(pt.value)}/100` : "non évalué";
+        return `${pt.exercise}${suffix} : ${reading}`;
       });
-      return `${s.slug} — ${points.join(", ")}`;
+      return `${sr.slug} — ${pts.join(", ")}`;
     });
     return `Évolution du composite pour ${selectedCycles.length} cycle(s) sur ${EXERCISES.length} exercices (2022 et 2023 simulés, ${CURRENT_EXERCISE} réel). ${lines.join(" · ")}.`;
   }, [hasSelection, series, selectedCycles.length]);
@@ -216,9 +224,7 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
     if (!svg) return;
     const rect = svg.getBoundingClientRect();
     if (rect.width === 0) return;
-    // Position du curseur ramenée dans le repère du viewBox.
     const vx = ((e.clientX - rect.left) / rect.width) * VIEW_W;
-    // Exercice le plus proche.
     let nearest = 0;
     let best = Infinity;
     EXERCISES.forEach((ex, idx) => {
@@ -236,26 +242,21 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
   const hoverRows = useMemo(() => {
     if (hoverExercise === null) return [];
     return series
-      .map((s) => ({
-        slug: s.slug,
-        color: s.color,
-        value: s.points.find((p) => p.exercise === hoverExercise)?.value ?? null,
-      }))
+      .map((sr) => ({ slug: sr.slug, style: sr.style, value: sr.points.find((pt) => pt.exercise === hoverExercise)?.value ?? null }))
       .filter((r) => r.value !== null);
   }, [hoverExercise, series]);
 
   function exportPng() {
-    const svg = chartWrapperRef.current?.querySelector("svg");
-    if (!svg) return;
-
-    const serializer = new XMLSerializer();
-    const svgString = serializer.serializeToString(svg);
-    const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(svgBlob);
+    const svg = svgRef.current;
+    const wrapper = chartWrapperRef.current;
+    if (!svg || !wrapper) return;
 
     const rect = svg.getBoundingClientRect();
     const width = rect.width || VIEW_W;
     const height = rect.height || VIEW_H;
+    const svgString = new XMLSerializer().serializeToString(resolvedClone(svg, width, height));
+    const url = URL.createObjectURL(new Blob([svgString], { type: "image/svg+xml;charset=utf-8" }));
+    const background = getComputedStyle(wrapper).getPropertyValue("--pb-bg").trim() || "#111214";
 
     const img = new Image();
     img.onload = () => {
@@ -271,479 +272,198 @@ export function RiskTemporalChart({ scores, cycles }: RiskTemporalChartProps) {
       }
       ctx.scale(scale, scale);
       // Fond opaque : le SVG n'a pas de fond propre exportable.
-      ctx.fillStyle = "#0b0f17";
+      ctx.fillStyle = background;
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(img, 0, 0, width, height);
       URL.revokeObjectURL(url);
 
-      const pngUrl = canvas.toDataURL("image/png");
       const link = document.createElement("a");
-      link.href = pngUrl;
+      link.href = canvas.toDataURL("image/png");
       link.download = "cartographie-risques-vue-temporelle.png";
       link.click();
     };
     img.src = url;
   }
 
-  // Abscisse (en %) de la zone simulée : de 2022 à 2023.
   const simZoneX = xOfExercise(2022);
   const simZoneW = xOfExercise(2023) - simZoneX;
 
   return (
-    <div className="flex flex-col gap-3">
-      {/* En-tête : compteur, export, chips de sélection des cycles */}
-      <div
-        style={{
-          borderRadius: 11,
-          border: "1px solid var(--pb-border-soft)",
-          background: "var(--pb-surface-inset)",
-          padding: "10px 12px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            flexWrap: "wrap",
-            marginBottom: 8,
-          }}
-        >
-          <span style={{ fontSize: 10.5, fontWeight: 600, color: "var(--pb-text-faint)" }}>
-            Cycles affichés {selectedCycles.length}/{MAX_SELECTED}
-          </span>
-          <button
-            type="button"
-            onClick={exportPng}
-            disabled={!hasSelection}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-[10.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
-            style={{
-              borderColor: "var(--pb-border)",
-              background: "transparent",
-              color: "var(--pb-text-muted)",
-            }}
-            onMouseEnter={(e) => {
-              if (hasSelection) {
-                e.currentTarget.style.background = "var(--pb-surface-3)";
-                e.currentTarget.style.color = "var(--pb-text)";
-              }
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-              e.currentTarget.style.color = "var(--pb-text-muted)";
-            }}
-          >
-            <Download className="h-3 w-3" />
-            Exporter en PNG
-          </button>
-        </div>
-        <div
-          className="pb-scroll"
-          style={{ display: "flex", flexWrap: "wrap", gap: 5, maxHeight: 88, overflowY: "auto" }}
-        >
-          {cycles.map((slug) => {
-            const active = selectedCycles.includes(slug);
-            const disabled = !active && selectedCycles.length >= MAX_SELECTED;
-            const color = LINE_COLORS[selectedCycles.indexOf(slug) % LINE_COLORS.length];
-            return (
-              <button
-                key={slug}
-                type="button"
-                onClick={() => toggleCycle(slug)}
-                disabled={disabled}
-                aria-pressed={active}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 6,
-                  borderRadius: 8,
-                  border: `1px solid ${
-                    active
-                      ? "color-mix(in srgb, var(--pb-accent) 60%, transparent)"
-                      : "var(--pb-border)"
-                  }`,
-                  background: active
-                    ? "color-mix(in srgb, var(--pb-accent) 12%, transparent)"
-                    : "transparent",
-                  padding: "3px 9px",
-                  fontSize: 10.5,
-                  fontWeight: 500,
-                  color: active ? "var(--pb-text)" : "var(--pb-text-muted)",
-                  cursor: disabled ? "not-allowed" : "pointer",
-                  opacity: disabled ? 0.5 : 1,
-                  transition: "background .15s, border-color .15s, color .15s",
-                }}
-              >
-                <span
-                  aria-hidden
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: 99,
-                    background: active ? color : "var(--pb-border-strong)",
-                  }}
-                />
+    <div>
+      <div className={s.seriesHead}>
+        <span className={p.key}>
+          Cycles affichés <span className={p.mono}>{selectedCycles.length}/{MAX_SELECTED}</span>
+        </span>
+        <button type="button" onClick={exportPng} disabled={!hasSelection} className={p.btnSecondary}>
+          Exporter en PNG
+        </button>
+      </div>
+      <div className={s.seriesPicker} role="group" aria-label={`Cycles à afficher, ${MAX_SELECTED} au plus`}>
+        {cycles.map((slug) => {
+          const index = selectedCycles.indexOf(slug);
+          const active = index >= 0;
+          const disabled = !active && selectedCycles.length >= MAX_SELECTED;
+          return (
+            <button key={slug} type="button" className={p.toggle} onClick={() => toggleCycle(slug)} disabled={disabled} aria-pressed={active}>
+              <span className={s.seriesToggle}>
+                {active && <MarkerGlyph style={SERIES_STYLE[index % SERIES_STYLE.length]} />}
                 {slug}
-              </button>
-            );
-          })}
-        </div>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Graphique */}
       {hasSelection ? (
-        <div
-          ref={chartWrapperRef}
-          style={{
-            position: "relative",
-            borderRadius: 12,
-            border: "1px solid var(--pb-border-soft)",
-            background: "var(--pb-surface-inset)",
-            padding: "10px 6px 4px",
-          }}
-        >
-          {/* Résumé texte équivalent pour lecteur d'écran (le SVG est aria-hidden). */}
-          <p className="sr-only">{textSummary}</p>
+        <div role="region" aria-label="Évolution du composite, défilement horizontal" tabIndex={0} className={s.chartRegion}>
+          <div ref={chartWrapperRef} className={`${s.chartInner} ${s.temporalInner}`}>
+            {/* Résumé texte équivalent pour lecteur d'écran (le SVG est aria-hidden). */}
+            <p className="sr-only">{textSummary}</p>
 
-          <svg
-            ref={svgRef}
-            viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
-            width="100%"
-            aria-hidden="true"
-            style={{ display: "block" }}
-            onMouseMove={handleMove}
-            onMouseLeave={() => setHoverIdx(null)}
-          >
-            <defs>
-              {/* Hachure diagonale de la zone simulée (2022→2023). */}
-              <pattern
-                id="pbSimHatch"
-                width="7"
-                height="7"
-                patternTransform="rotate(45)"
-                patternUnits="userSpaceOnUse"
-              >
-                <rect width="7" height="7" fill="transparent" />
-                <rect width="1.5" height="7" fill="var(--pb-track)" />
-              </pattern>
-            </defs>
-
-            {/* Bandes de criticité en fond (rect translucides par plage). */}
-            {CRITICITY_BANDS.map((b) => {
-              const yTop = yOfValue(b.to);
-              const yBottom = yOfValue(b.from);
-              const hex = BAND_HEX[b.band];
-              return (
-                <g key={b.band}>
-                  <rect
-                    x={PLOT_LEFT}
-                    y={yTop}
-                    width={PLOT_W}
-                    height={yBottom - yTop}
-                    fill={`color-mix(in srgb, ${hex} 7%, transparent)`}
-                  />
-                  <text
-                    x={PLOT_RIGHT - 6}
-                    y={yTop + 11}
-                    fontSize={8.5}
-                    fontWeight={600}
-                    fill={`color-mix(in srgb, ${hex} 62%, transparent)`}
-                    textAnchor="end"
-                  >
-                    {b.label}
-                  </text>
-                </g>
-              );
-            })}
-
-            {/* Zone simulée hachurée (2022 → 2023) + libellé. */}
-            <rect
-              x={simZoneX}
-              y={PLOT_TOP}
-              width={simZoneW}
-              height={PLOT_H}
-              fill="url(#pbSimHatch)"
-              opacity={0.6}
-            />
-            <text
-              x={simZoneX + simZoneW / 2}
-              y={PLOT_TOP + 14}
-              fontSize={9}
-              fill="var(--pb-text-faint)"
-              textAnchor="middle"
-              letterSpacing={1}
+            {/* Le tracé laisse une marge à droite pour les libellés de fin de série (HTML). */}
+            <div className={s.plotArea}>
+            <svg
+              ref={svgRef}
+              viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
+              aria-hidden="true"
+              className={s.chart}
+              onMouseMove={handleMove}
+              onMouseLeave={() => setHoverIdx(null)}
             >
-              zone simulée
-            </text>
+              <defs>
+                {/* Hachure diagonale de la zone simulée (2022→2023). */}
+                <pattern id="pbSimHatch" width="7" height="7" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
+                  <rect width="1.2" height="7" style={{ fill: "var(--pb-rule-strong)" }} />
+                </pattern>
+              </defs>
 
-            {/* Grille horizontale + graduations Y (JetBrains Mono). */}
-            {Y_TICKS.map((t) => {
-              const gy = yOfValue(t);
-              return (
-                <g key={`y-${t}`}>
-                  <line
-                    x1={PLOT_LEFT}
-                    y1={gy}
-                    x2={PLOT_RIGHT}
-                    y2={gy}
-                    stroke="var(--pb-track)"
-                    strokeWidth={1}
-                    strokeDasharray="3 4"
-                  />
-                  <text
-                    x={PLOT_LEFT - 8}
-                    y={gy + 3}
-                    fontSize={9}
-                    fill="var(--pb-text-faint)"
-                    textAnchor="end"
-                    fontFamily="'JetBrains Mono', monospace"
-                  >
-                    {t}
-                  </text>
-                </g>
-              );
-            })}
+              {/* Zone simulée hachurée (2022 → 2023) + libellé. */}
+              <rect x={simZoneX} y={PLOT_TOP} width={simZoneW} height={PLOT_H} fill="url(#pbSimHatch)" />
+              <text x={simZoneX + simZoneW / 2} y={PLOT_TOP + 16} fontSize={12} textAnchor="middle" letterSpacing={1} style={{ ...MONO, fill: "var(--pb-ink-3)" }}>
+                ZONE SIMULÉE
+              </text>
 
-            {/* Axe X : ticks + années (2024 en gras, accentué). */}
-            {EXERCISES.map((ex) => {
-              const gx = xOfExercise(ex);
-              const isCurrent = ex === CURRENT_EXERCISE;
-              return (
-                <g key={`x-${ex}`}>
-                  <line
-                    x1={gx}
-                    y1={PLOT_BOTTOM}
-                    x2={gx}
-                    y2={PLOT_BOTTOM + 6}
-                    stroke="var(--pb-border)"
-                    strokeWidth={1}
-                  />
-                  <text
-                    x={gx}
-                    y={PLOT_BOTTOM + 19}
-                    fontSize={10}
-                    fill={isCurrent ? "var(--pb-text-bright)" : "var(--pb-text-faint)"}
-                    textAnchor="middle"
-                    fontWeight={isCurrent ? 700 : 400}
-                  >
-                    {ex}
-                  </text>
-                </g>
-              );
-            })}
+              {/* Grille horizontale + graduations Y. */}
+              {Y_TICKS.map((t) => {
+                const gy = yOfValue(t);
+                return (
+                  <g key={`y-${t}`}>
+                    <line x1={PLOT_LEFT} y1={gy} x2={PLOT_RIGHT} y2={gy} strokeWidth={1} style={{ stroke: "var(--pb-rule)" }} />
+                    <text x={PLOT_LEFT - 8} y={gy + 4} fontSize={12} textAnchor="end" style={{ ...MONO, fill: "var(--pb-ink-3)" }}>
+                      {t}
+                    </text>
+                  </g>
+                );
+              })}
 
-            {/* Crosshair au survol (sous les tracés). */}
-            {hoverX !== null && (
-              <line
-                x1={hoverX}
-                y1={PLOT_TOP}
-                x2={hoverX}
-                y2={PLOT_BOTTOM}
-                stroke="var(--pb-border-strong)"
-                strokeWidth={1}
-              />
-            )}
+              {/* Bornes des bandes de criticité : filets tiretés nommés (aucun aplat). */}
+              {BAND_LINES.map((b) => {
+                const gy = yOfValue(b.at);
+                return (
+                  <g key={b.label}>
+                    <line x1={PLOT_LEFT} y1={gy} x2={PLOT_RIGHT} y2={gy} strokeWidth={1} strokeDasharray="4 4" style={{ stroke: "var(--pb-rule-strong)" }} />
+                    <text x={PLOT_RIGHT - 6} y={gy - 6} fontSize={12} textAnchor="end" style={{ ...MONO, fill: "var(--pb-ink-3)" }}>
+                      {b.label} ≥ {b.at}
+                    </text>
+                  </g>
+                );
+              })}
 
-            {/* Séries : segment simulé pointillé + segment réel plein animé + points. */}
-            {series.map((s, si) => (
-              <g key={s.slug}>
-                {s.dSim && (
-                  <path
-                    d={s.dSim}
-                    fill="none"
-                    stroke={s.color}
-                    strokeWidth={2}
-                    strokeDasharray="6 5"
-                    opacity={0.75}
-                    style={{ animation: "pbFadeIn .7s ease both" }}
-                  />
-                )}
-                {s.dReal && (
-                  <path
-                    d={s.dReal}
-                    fill="none"
-                    stroke={s.color}
-                    strokeWidth={2.4}
-                    strokeLinecap="round"
-                    pathLength={1}
-                    style={{
-                      strokeDasharray: 1,
-                      animation: `pbDraw .8s ease ${(0.2 + si * 0.08).toFixed(2)}s both`,
-                    }}
-                  />
-                )}
-                {s.points.map((p) =>
-                  p.value === null ? null : (
-                    <circle
-                      key={`${s.slug}-${p.exercise}`}
-                      cx={xOfExercise(p.exercise)}
-                      cy={yOfValue(p.value)}
-                      r={p.simulated ? 3 : 3.6}
-                      fill={s.color}
-                      stroke={p.simulated ? "none" : "var(--pb-surface-inset)"}
-                      strokeWidth={p.simulated ? 0 : 1.4}
-                      style={{ animation: "pbFadeIn .5s ease both" }}
+              {/* Axe X : ticks + années (l'exercice réel en encre pleine). */}
+              {EXERCISES.map((ex) => {
+                const gx = xOfExercise(ex);
+                const isCurrent = ex === CURRENT_EXERCISE;
+                return (
+                  <g key={`x-${ex}`}>
+                    <line x1={gx} y1={PLOT_BOTTOM} x2={gx} y2={PLOT_BOTTOM + 6} strokeWidth={1} style={{ stroke: "var(--pb-rule-strong)" }} />
+                    <text x={gx} y={PLOT_BOTTOM + 22} fontSize={13} textAnchor="middle" style={{ ...MONO, fill: isCurrent ? "var(--pb-ink)" : "var(--pb-ink-3)" }}>
+                      {ex}
+                      {isCurrent ? " réel" : " simulé"}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Crosshair au survol (sous les tracés). */}
+              {hoverX !== null && <line x1={hoverX} y1={PLOT_TOP} x2={hoverX} y2={PLOT_BOTTOM} strokeWidth={1} style={{ stroke: "var(--pb-ink-3)" }} />}
+
+              {/* Séries : segment simulé tireté + segment réel plein + repères. */}
+              {series.map((sr, si) => (
+                <g key={sr.slug}>
+                  {sr.dSim && <path d={sr.dSim} fill="none" strokeWidth={1.6} strokeDasharray="6 5" style={{ stroke: sr.style.color, animation: "pbFadeIn .7s ease both" }} />}
+                  {sr.dReal && (
+                    <path
+                      d={sr.dReal}
+                      fill="none"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      pathLength={1}
+                      style={{ stroke: sr.style.color, strokeDasharray: 1, animation: `pbDraw .8s ease ${(0.2 + si * 0.08).toFixed(2)}s both` }}
                     />
-                  ),
-                )}
-              </g>
-            ))}
-          </svg>
-
-          {/* Labels de fin de série (HTML overlay) : slug, valeur réelle, delta. */}
-          {series.map((s) => {
-            if (s.endValue === null || s.endY === null) return null;
-            const topPct = (s.endY / VIEW_H) * 100;
-            const deltaPositive = (s.delta ?? 0) >= 0;
-            const deltaHex = s.delta === null ? "var(--pb-text-faint)" : deltaPositive ? "#ef4444" : "#22c55e";
-            return (
-              <div
-                key={`end-${s.slug}`}
-                style={{
-                  position: "absolute",
-                  left: `${(PLOT_RIGHT / VIEW_W) * 100}%`,
-                  top: `${topPct}%`,
-                  transform: "translate(8px, -50%)",
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 5,
-                  fontSize: 10,
-                  color: "var(--pb-text-muted)",
-                  pointerEvents: "none",
-                  whiteSpace: "nowrap",
-                  animation: "pbFadeIn .6s ease .6s both",
-                }}
-              >
-                <span
-                  aria-hidden
-                  style={{ width: 7, height: 7, borderRadius: 99, background: s.color, flexShrink: 0 }}
-                />
-                <span
-                  style={{
-                    maxWidth: 118,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {s.slug}
-                </span>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontWeight: 700,
-                    color: "var(--pb-text)",
-                  }}
-                >
-                  {Math.round(s.endValue)}
-                </span>
-                {s.delta !== null && Math.round(s.delta) !== 0 && (
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 9.5,
-                      fontWeight: 600,
-                      color: deltaHex,
-                    }}
-                  >
-                    {deltaPositive ? "+" : ""}
-                    {Math.round(s.delta)}
-                  </span>
-                )}
-              </div>
-            );
-          })}
-
-          {/* Tooltip au survol : valeurs de chaque cycle à l'exercice pointé. */}
-          {hoverExercise !== null && hoverRows.length > 0 && (
-            <div
-              style={{
-                position: "absolute",
-                top: 14,
-                // Ancré à gauche quand on survole la colonne la plus à droite
-                // (2024), à droite sinon, pour ne pas masquer les points visés.
-                ...(hoverIdx !== null && hoverIdx >= EXERCISES.length - 1
-                  ? { left: 14 }
-                  : { right: 14 }),
-                minWidth: 180,
-                maxWidth: 230,
-                padding: "8px 10px",
-                borderRadius: 10,
-                border: "1px solid var(--pb-border-strong)",
-                background: "color-mix(in srgb, var(--pb-surface-2) 96%, transparent)",
-                boxShadow: "0 8px 24px rgba(0,0,0,0.45)",
-                pointerEvents: "none",
-                animation: "pbFadeIn .15s ease both",
-              }}
-            >
-              <div style={{ fontSize: 10, fontWeight: 700, color: "var(--pb-text-bright)", marginBottom: 5 }}>
-                Exercice {hoverExercise} {isSimulatedExercise(hoverExercise) ? "(simulé)" : "(réel)"}
-              </div>
-              {hoverRows.map((r) => (
-                <div
-                  key={r.slug}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 7,
-                    fontSize: 10,
-                    color: "var(--pb-text-muted)",
-                    padding: "1.5px 0",
-                  }}
-                >
-                  <span
-                    aria-hidden
-                    style={{ width: 7, height: 7, borderRadius: 99, background: r.color, flexShrink: 0 }}
-                  />
-                  <span
-                    style={{
-                      flex: 1,
-                      maxWidth: 130,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {r.slug}
-                  </span>
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      color: "var(--pb-text)",
-                      fontWeight: 600,
-                    }}
-                  >
-                    {Math.round(r.value as number)}
-                  </span>
-                </div>
+                  )}
+                  {sr.points.map((pt) =>
+                    pt.value === null ? null : (
+                      <path
+                        key={`${sr.slug}-${pt.exercise}`}
+                        d={markerPath(sr.style.marker, pt.simulated ? 6 : 8)}
+                        transform={`translate(${xOfExercise(pt.exercise).toFixed(1)} ${yOfValue(pt.value).toFixed(1)})`}
+                        strokeWidth={pt.simulated ? 0 : 1.4}
+                        style={{ fill: sr.style.color, stroke: "var(--pb-bg)", animation: "pbFadeIn .5s ease both" }}
+                      />
+                    ),
+                  )}
+                </g>
               ))}
+            </svg>
+
+            {/* Libellés de fin de série (HTML) : repère, cycle, valeur réelle, écart vs 2023 simulé. */}
+            <div className={s.endLabels} aria-hidden="true">
+              {series.map((sr) => {
+                if (sr.endValue === null || sr.endY === null) return null;
+                return (
+                  <div key={`end-${sr.slug}`} className={s.endLabel} style={{ left: `${(PLOT_RIGHT / VIEW_W) * 100}%`, top: `${(sr.endY / VIEW_H) * 100}%` }}>
+                    <MarkerGlyph style={sr.style} />
+                    <span>{sr.slug}</span>
+                    <span className={s.endValue}>{sr.endValue}</span>
+                    {sr.delta !== null && sr.delta !== 0 && <span className={s.ref}>{sr.delta > 0 ? `+${sr.delta}` : `−${Math.abs(sr.delta)}`}</span>}
+                  </div>
+                );
+              })}
             </div>
-          )}
+            </div>
+
+            {/* Carte au survol : valeurs de chaque cycle à l'exercice pointé. */}
+            {hoverExercise !== null && hoverRows.length > 0 && (
+              <div className={s.card} style={hoverIdx !== null && hoverIdx >= EXERCISES.length - 1 ? { left: 14 } : { right: 14 }} aria-hidden="true">
+                <p className={s.cardTitle}>
+                  Exercice {hoverExercise} {isSimulatedExercise(hoverExercise) ? "(simulé)" : "(réel)"}
+                </p>
+                <ul className={s.cardList}>
+                  {hoverRows.map((r) => (
+                    <li key={r.slug}>
+                      <MarkerGlyph style={r.style} />
+                      <span>{r.slug}</span>
+                      <span className={s.endValue}>{compositeText(r.value)}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            height: 180,
-            alignItems: "center",
-            justifyContent: "center",
-            borderRadius: 12,
-            border: "1px dashed var(--pb-border)",
-            fontSize: 11.5,
-            color: "var(--pb-text-faint)",
-          }}
-        >
-          Sélectionnez au moins un cycle pour afficher son évolution.
-        </div>
+        <div className={s.emptyChart}>Sélectionnez au moins un cycle pour afficher son évolution.</div>
       )}
 
-      <p className="text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
-        <strong className="text-[var(--pb-text-muted)]">2022 et 2023 sont entièrement simulés</strong>{" "}
-        (variation déterministe autour du composite réel, aucun dossier ne les a
-        produits) — seul l&apos;exercice {CURRENT_EXERCISE} est un exercice réel. Les
-        segments simulés sont tracés en pointillé pour rappeler cette nature ; le
-        composite reste une heuristique interne non opposable.
+      <p className={p.note}>
+        <svg width="22" height="6" viewBox="0 0 22 6" aria-hidden="true" focusable="false" style={{ flexShrink: 0 }}>
+          <line x1="0" y1="3" x2="22" y2="3" strokeWidth="1.5" strokeDasharray="4 3" style={{ stroke: "var(--pb-ink-2)" }} />
+        </svg>
+        <span>
+          <strong className={p.soft}>2022 et 2023 sont entièrement simulés</strong> (variation déterministe autour du composite réel,
+          aucun dossier ne les a produits) — seul l&apos;exercice {CURRENT_EXERCISE} est un exercice réel. Les segments simulés sont
+          tracés en tirets pour rappeler cette nature ; le composite reste une heuristique interne non opposable.
+        </span>
       </p>
     </div>
   );

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { History } from "lucide-react";
 import { RISK_AXES, type RiskAxisId } from "@/lib/risk-mapping";
+import s from "./risk.module.css";
 
 /**
  * Panneau autonome d'historique des ajustements de jugement d'un cycle.
@@ -16,15 +16,11 @@ import { RISK_AXES, type RiskAxisId } from "@/lib/risk-mapping";
  * N'importe volontairement PAS `CycleRiskPanel` (évite tout import circulaire) :
  * composant autonome, à monter depuis `CycleRiskPanel` par un futur agent.
  *
- * Style aligné sur `CycleRiskPanel` (classes Tailwind + variables `--pb-*`,
- * tailles de police ~11px).
+ * Charte « instruments » : liste à filets continus, sans carte ni pastille de couleur ; l'axe est nommé en
+ * toutes lettres et le mouvement d'ajustement est en chiffres mono.
  */
 
 /** Seuls les axes probabilité/détectabilité sont ajustables (voir RISK_AXES). */
-const AXIS_LABEL: Record<string, string> = Object.fromEntries(
-  RISK_AXES.map((axis) => [axis.id, axis.short]),
-);
-
 const AXIS_FULL_LABEL: Record<string, string> = Object.fromEntries(
   RISK_AXES.map((axis) => [axis.id, axis.label]),
 );
@@ -91,51 +87,28 @@ export function AdjustmentHistoryPanel({ cycleSlug }: { cycleSlug: string }) {
   }, [cycleSlug]);
 
   return (
-    <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        <History className="h-3.5 w-3.5 text-[var(--pb-text-faint)]" />
-        <h4 className="text-[12px] font-semibold text-[var(--pb-text)]">
-          Historique des ajustements
-        </h4>
-        <span className="rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-3)] px-1.5 py-0.5 text-[10px] text-[var(--pb-text-faint)]">
-          journal simulé — non durable
-        </span>
-      </div>
+    <div className={s.history}>
+      <h4 className={s.subHead}>
+        Historique des ajustements
+        <span className={s.subNote}>journal simulé — non durable</span>
+      </h4>
 
-      {entries === null && (
-        <p className="mt-3 text-[11px] text-[var(--pb-text-faint)]">Chargement…</p>
-      )}
+      {entries === null && <p className={s.emptyText}>Chargement…</p>}
 
-      {entries !== null && entries.length === 0 && (
-        <p className="mt-3 text-[11px] text-[var(--pb-text-faint)]">
-          Aucun ajustement historisé pour ce cycle.
-        </p>
-      )}
+      {entries !== null && entries.length === 0 && <p className={s.emptyText}>Aucun ajustement historisé pour ce cycle.</p>}
 
       {entries !== null && entries.length > 0 && (
-        <ul className="mt-3 space-y-2">
+        <ul className={s.historyList}>
           {entries.map((entry) => (
-            <li
-              key={entry.id}
-              className="rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface)] p-2.5"
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span
-                  className="rounded-md border border-[var(--pb-accent)]/40 bg-[var(--pb-accent)]/10 px-1.5 py-0.5 text-[10px] font-semibold text-[var(--pb-accent)]"
-                  title={AXIS_FULL_LABEL[entry.axe] ?? entry.axe}
-                >
-                  {AXIS_LABEL[entry.axe] ?? entry.axe}
-                </span>
-                <span className="tnum text-[11px] text-[var(--pb-text-muted)]">
+            <li key={entry.id}>
+              <div className={s.axisHead}>
+                <span>{AXIS_FULL_LABEL[entry.axe] ?? entry.axe}</span>
+                <span className={s.historyMove}>
                   {formatStep(entry.previousValue)} → {formatStep(entry.newValue)}
                 </span>
               </div>
-              {entry.commentaire && (
-                <p className="mt-1 text-[11px] leading-relaxed text-[var(--pb-text-muted)]">
-                  {entry.commentaire}
-                </p>
-              )}
-              <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-[var(--pb-text-faint)]">
+              {entry.commentaire && <p className={s.riskDesc}>{entry.commentaire}</p>}
+              <div className={s.historyMeta}>
                 <span>{formatDate(entry.changedAt)}</span>
                 <span>·</span>
                 <span>Auditeur (session demo)</span>

@@ -1,0 +1,529 @@
+/*
+  Pages du tableau de bord — ambiance « salle d'instruments » (charte v1). Socle commun des écrans Cartographie,
+  Revue par cloison, Fiscalité, Dossier & preuve et Tests complémentaires : un en-tête éditorial, des sections
+  séparées par des filets, des registres en tableau, des bascules textuelles soulignées et un panneau de détail
+  sur le plan 2. Aucune carte arrondie, aucune ombre portée ; rayons 0 / 2 px ; cibles d'au moins 44 px.
+  Toutes les valeurs lisent les jetons de `app/tokens.css` : l'élément racine porte `data-ambiance="instruments"`.
+*/
+
+.page {
+  position: relative;
+  min-height: 100%;
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font-family: var(--pb-font-sans);
+  font-size: 15px;
+  line-height: 24px;
+  container-type: inline-size;
+}
+
+.content {
+  padding: 0 clamp(16px, 4.5cqw, 64px) 96px;
+}
+
+/* ── Atomes ──────────────────────────────────────────────────────────────── */
+
+.mono {
+  font-family: var(--pb-font-mono);
+}
+
+.soft {
+  color: var(--pb-ink-2);
+}
+
+.faint {
+  color: var(--pb-ink-3);
+}
+
+.signal {
+  color: var(--pb-signal);
+}
+
+.num {
+  font-family: var(--pb-font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/** Libellé de champ ou d'en-tête : capitales mono. */
+.key {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+/** Glyphe ou trait + libellé, sur une ligne. */
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+/** Légende ou note de méthode, précédée d'un trait de famille. */
+.note {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  margin: 12px 0 0;
+  max-width: 90ch;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+/* ── En-tête de page ─────────────────────────────────────────────────────── */
+
+.intro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 24px 64px;
+  padding: 48px 0 32px;
+}
+
+.introMain {
+  flex: 1 1 560px;
+  min-width: 0;
+}
+
+.introAside {
+  flex: 0 1 460px;
+  min-width: 0;
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-2);
+}
+
+.title {
+  margin: 14px 0 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 380;
+  font-size: clamp(32px, 3.4cqw, 44px);
+  line-height: 1.08;
+  letter-spacing: -0.012em;
+  text-wrap: balance;
+}
+
+.lead {
+  margin: 18px 0 0;
+  max-width: 64ch;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--pb-ink-2);
+  text-wrap: pretty;
+}
+
+.lead strong {
+  font-weight: 500;
+  color: var(--pb-ink);
+}
+
+/* ── Relevés (dl) ────────────────────────────────────────────────────────── */
+
+.readouts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 180px), 1fr));
+  margin: 0;
+  border-top: 1px solid var(--pb-rule-strong);
+  border-left: 1px solid var(--pb-rule);
+}
+
+.readouts > div {
+  min-width: 0;
+  padding: 10px 12px;
+  border-right: 1px solid var(--pb-rule);
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.readouts dt {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.readouts dd {
+  margin: 4px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 20px;
+  line-height: 28px;
+  overflow-wrap: anywhere;
+}
+
+.readoutNote {
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+/* ── Mesures (bandeau de chiffres sous filet fort) ───────────────────────── */
+
+.measures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 40px;
+}
+
+.measure {
+  flex: 1 1 220px;
+  min-width: 0;
+  padding: 16px 0 20px;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.measureHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+}
+
+.measureValue {
+  margin: 8px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 28px;
+  line-height: 36px;
+}
+
+.measureText {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+/* ── Sections ────────────────────────────────────────────────────────────── */
+
+.section {
+  padding-top: 56px;
+}
+
+.sectionHead {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 16px;
+  padding-bottom: 14px;
+}
+
+.sectionNumeral {
+  font-family: var(--pb-font-serif);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--pb-ink-3);
+}
+
+.sectionTitle {
+  margin: 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 32px;
+}
+
+.sectionRule {
+  flex: 1 1 120px;
+  align-self: center;
+  height: 1px;
+  background: var(--pb-rule-strong);
+}
+
+.sectionNote {
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+/** Intertitre de groupe dans une liste (ex. « Bilan — actif ») : capitales mono et filet. */
+.groupHead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0;
+  padding: 36px 0 8px;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink);
+}
+
+.groupHead::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--pb-rule-strong);
+}
+
+/* ── Barre d'outils, champs et bascules ──────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  min-height: 56px;
+  padding: 6px 0;
+  border-top: 1px solid var(--pb-rule);
+  border-bottom: 1px solid var(--pb-rule);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.toolbarEnd {
+  margin-left: auto;
+}
+
+.toggleGroup {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+}
+
+.toggleGroup > .key {
+  margin-right: 6px;
+}
+
+/** Bascule textuelle : soulignée en bleu de vérification quand elle est active (aria-pressed ou aria-selected). */
+.toggle {
+  min-height: 32px;
+  padding: 0 6px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pb-ink-3);
+  cursor: pointer;
+  text-underline-offset: 5px;
+  text-decoration-color: var(--pb-verif);
+}
+
+.toggle:hover {
+  color: var(--pb-ink);
+}
+
+.toggle[aria-pressed="true"],
+.toggle[aria-selected="true"],
+.toggle[aria-current="true"] {
+  color: var(--pb-ink);
+  text-decoration: underline;
+}
+
+.toggle:disabled {
+  cursor: not-allowed;
+  color: var(--pb-ink-3);
+  opacity: 0.6;
+}
+
+.field {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.field input,
+.field select,
+.field textarea,
+.input {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.field textarea,
+textarea.input {
+  padding: 8px 10px;
+  line-height: 20px;
+}
+
+/* ── Boutons ─────────────────────────────────────────────────────────────── */
+
+.btnPrimary,
+.btnSecondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--pb-radius-1);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.2;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.btnPrimary {
+  border: 1px solid var(--pb-verif);
+  background: var(--pb-verif);
+  color: var(--pb-on-verif);
+}
+
+.btnPrimary:hover {
+  border-color: var(--pb-ink);
+  background: var(--pb-ink);
+  color: var(--pb-on-verif);
+}
+
+.btnSecondary {
+  border: 1px solid var(--pb-rule-strong);
+  background: transparent;
+  color: var(--pb-ink);
+}
+
+.btnSecondary:hover {
+  border-color: var(--pb-ink);
+  color: var(--pb-ink);
+}
+
+.btnPrimary:disabled,
+.btnSecondary:disabled {
+  cursor: not-allowed;
+  border-color: var(--pb-rule);
+  background: transparent;
+  color: var(--pb-ink-3);
+}
+
+/** Lien-bouton souligné (« Afficher les 31 autres », « Réinitialiser »). */
+.btnQuiet {
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.btnQuiet:hover {
+  color: var(--pb-ink);
+}
+
+/* ── Registres (tableaux) ────────────────────────────────────────────────── */
+
+.scrollX {
+  overflow-x: auto;
+}
+
+.register {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.register thead tr {
+  border-top: 1px solid var(--pb-rule-strong);
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.register thead th {
+  padding: 10px 12px;
+  font-weight: 500;
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pb-ink-3);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.register tbody th,
+.register td {
+  padding: 12px;
+  border-bottom: 1px solid var(--pb-rule);
+  vertical-align: top;
+  text-align: left;
+  font-weight: 400;
+}
+
+.register th:first-child,
+.register td:first-child {
+  padding-left: 0;
+}
+
+.register th:last-child,
+.register td:last-child {
+  padding-right: 0;
+}
+
+.register tbody tr[aria-selected="true"],
+.register tbody tr[data-selected] {
+  background: var(--pb-plane-2);
+}
+
+/* ── Panneau de détail ───────────────────────────────────────────────────── */
+
+.panel {
+  min-width: 0;
+  background: var(--pb-plane-2);
+  border-top: 2px solid var(--pb-ink);
+}
+
+.panelSection {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.panelSection:last-child {
+  border-bottom: 0;
+}
+
+.panelTitle {
+  margin: 10px 0 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 30px;
+}
+
+/* ── Mise en page « liste + panneau » ────────────────────────────────────── */
+
+.split {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px 40px;
+  align-items: flex-start;
+}
+
+.splitMain {
+  flex: 999 1 600px;
+  min-width: 0;
+}
+
+.splitAside {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page * {
+    scroll-behavior: auto;
+  }
+}

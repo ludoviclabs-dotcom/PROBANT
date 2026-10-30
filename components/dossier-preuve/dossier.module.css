@@ -1,0 +1,495 @@
+/*
+  Dossier & preuve — ambiance « instruments ». Complète le socle `components/charte/page.module.css` : matrice de
+  complétude des chaînes, entrées « colonne latérale + chaîne de preuve », pied de références. Aucune carte arrondie,
+  aucune ombre ; la ligne de preuve prend le trait de la famille (plein, tirets, pointillé), un maillon absent est
+  en tirets pâles. Toutes les couleurs lisent les jetons de `app/tokens.css`.
+*/
+
+/*
+  Pont vers les composants partagés non migrés (référentiel, feuilles de travail) : leurs variables héritées prennent
+  ici les valeurs de la charte, sans modifier leur apparence sur les autres écrans.
+*/
+.bridge {
+  --pb-surface: var(--pb-plane-2);
+  --pb-surface-2: var(--pb-plane-3);
+  --pb-surface-3: var(--pb-plane-3);
+  --pb-surface-inset: var(--pb-bg);
+  --pb-border: var(--pb-rule);
+  --pb-border-soft: var(--pb-rule);
+  --pb-border-strong: var(--pb-rule-strong);
+  --pb-text: var(--pb-ink);
+  --pb-text-bright: var(--pb-ink);
+  --pb-text-muted: var(--pb-ink-2);
+  --pb-text-faint: var(--pb-ink-3);
+  --pb-accent: var(--pb-verif);
+}
+
+/* Liens du texte : soulignés (la teinte seule ne les distingue pas) ; les liens-boutons gardent leur classe. */
+.bridge a:not([class]) {
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── En-tête : export et relevés ─────────────────────────────────────────── */
+
+.exportBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.exportStatus {
+  margin: 0;
+  max-width: 46ch;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.exportStatus:empty {
+  display: none;
+}
+
+.exportStatus[data-tone="error"] {
+  padding-left: 10px;
+  border-left: 2px solid var(--pb-signal);
+  color: var(--pb-ink);
+}
+
+dl.readouts dd {
+  font-size: 16px;
+  line-height: 24px;
+}
+
+/* Divulgation du référentiel : le panneau suit la charte (aucune ombre, rayon 2 px, plan 3). */
+.edition > div {
+  border-radius: var(--pb-radius-1);
+  border-color: var(--pb-rule-strong);
+  background: var(--pb-plane-3);
+  box-shadow: none;
+  font-family: var(--pb-font-sans);
+  font-size: 12px;
+  color: var(--pb-ink-2);
+}
+
+.edition > summary {
+  color: var(--pb-verif);
+}
+
+.absent {
+  color: var(--pb-ink-3);
+}
+
+/* ── Matrice de complétude ───────────────────────────────────────────────── */
+
+.matrixScroll {
+  position: relative;
+  overflow-x: auto;
+  margin-top: 8px;
+  padding-bottom: 6px;
+}
+
+.matrix {
+  min-width: max-content;
+}
+
+.mHead,
+.mRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mHead {
+  align-items: flex-end;
+  height: 28px;
+}
+
+.mRow {
+  height: 24px;
+}
+
+.mRow + .mRow {
+  margin-top: 2px;
+}
+
+.mRow[data-key="fecLines"] {
+  margin-top: 12px;
+}
+
+.mLabel {
+  flex: 0 0 136px;
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+  white-space: nowrap;
+}
+
+.mRow[data-key="decision"] .mLabel {
+  color: var(--pb-ink);
+}
+
+.mGroup {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+}
+
+.mGroupHead {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pb-ink-2);
+  white-space: nowrap;
+  overflow: visible;
+}
+
+.cell {
+  display: block;
+  width: 12px;
+  height: 12px;
+  border: 1px solid var(--pb-rule-strong);
+}
+
+.cell[data-on] {
+  border-color: var(--pb-ink);
+  background: var(--pb-ink);
+}
+
+.mRow[data-key="decision"] .cell:not([data-on]) {
+  border-style: dashed;
+  border-color: var(--pb-ink-3);
+}
+
+.mRow[data-key="decision"] .cell[data-on] {
+  border-color: var(--pb-verif);
+  background: var(--pb-verif);
+}
+
+.mRow[data-key="other"] .cell[data-on] {
+  border-color: var(--pb-ink-2);
+  background: var(--pb-ink-2);
+}
+
+.mCount {
+  margin-left: 6px;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-2);
+  white-space: nowrap;
+}
+
+.mRow[data-key="decision"] .mCount {
+  color: var(--pb-ink);
+}
+
+.matrixNote {
+  margin: 14px 0 0;
+  max-width: 90ch;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+/* ── Barre de filtres et légende ─────────────────────────────────────────── */
+
+.toolbar {
+  margin-top: 8px;
+}
+
+.toolbar select,
+.toolbar input {
+  min-height: 44px;
+}
+
+.toolbar input[type="search"] {
+  width: min(220px, 60vw);
+}
+
+.count {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-2);
+  white-space: nowrap;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 24px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.legend li {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  max-width: min(100%, 56ch);
+}
+
+.legend li > svg,
+.legend li > .legendMark {
+  align-self: center;
+}
+
+.legendMark {
+  position: relative;
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+.legendMarks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.legendMarks li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── Entrées ─────────────────────────────────────────────────────────────── */
+
+.entries {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.entry {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px 40px;
+  padding: 32px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  animation: entryIn var(--pb-dur-base) var(--pb-ease) both;
+  animation-delay: calc(var(--i, 0) * var(--pb-stagger));
+}
+
+@keyframes entryIn {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.side {
+  flex: 0 1 210px;
+  min-width: 170px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.sideSeverity {
+  font-weight: 500;
+  color: var(--pb-ink);
+}
+
+.entryId {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-3);
+  overflow-wrap: anywhere;
+}
+
+/* 1024 px : 210 + 40 + 480 tiennent sur une ligne ; à 390, la colonne latérale passe au-dessus. */
+.body {
+  flex: 1 1 480px;
+  min-width: 0;
+}
+
+.entryTitle {
+  margin: 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 30px;
+  text-wrap: pretty;
+}
+
+/* Ligne de preuve : un trait par maillon, au style de la famille. */
+.chain {
+  display: flex;
+  flex-wrap: wrap;
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.chain li {
+  position: relative;
+  flex: 1 1 170px;
+  min-width: 0;
+  padding: 18px 24px 0 0;
+  overflow-wrap: anywhere;
+}
+
+.chain[data-f="dd"] li {
+  border-top: 2px solid var(--pb-ink);
+}
+
+.chain[data-f="pa"] li {
+  border-top: 1.5px dashed var(--pb-ink-2);
+}
+
+.chain[data-f="pi"] li {
+  border-top: 1.5px dotted var(--pb-ink-3);
+}
+
+.chain li[data-marker="missing"] {
+  border-top-style: dashed;
+  border-top-color: var(--pb-rule-strong);
+  color: var(--pb-ink-3);
+}
+
+.stepKey {
+  display: block;
+  margin-bottom: 4px;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.marker {
+  position: absolute;
+  left: 0;
+  box-sizing: border-box;
+}
+
+.marker[data-kind="source"] {
+  top: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--pb-ink);
+}
+
+.marker[data-kind="step"] {
+  top: -6px;
+  left: 4px;
+  width: 2px;
+  height: 10px;
+  background: var(--pb-ink);
+}
+
+.marker[data-kind="result"] {
+  top: -7px;
+  width: 12px;
+  height: 12px;
+  border: 1.5px solid var(--pb-ink);
+  border-radius: 50%;
+  background: var(--pb-bg);
+}
+
+.marker[data-kind="decision"] {
+  top: -6px;
+  left: 1px;
+  width: 10px;
+  height: 10px;
+  transform: rotate(45deg);
+  background: var(--pb-verif);
+}
+
+.marker[data-kind="missing"] {
+  top: -7px;
+  width: 12px;
+  height: 12px;
+  border: 1px dashed var(--pb-ink-3);
+  background: var(--pb-bg);
+}
+
+/* Les repères de la légende reprennent les mêmes formes, posés dans une boîte de 12 px. */
+.legendMark .marker {
+  top: 1px;
+}
+
+.legendMark .marker[data-kind="step"] {
+  top: 1px;
+}
+
+.refs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  margin: 20px 0 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--pb-rule);
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+}
+
+.refs > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.refs b {
+  font-weight: 400;
+  color: var(--pb-ink-2);
+}
+
+.empty {
+  margin: 24px 0 0;
+  padding: 20px 0;
+  border-top: 1px dashed var(--pb-rule-strong);
+  border-bottom: 1px dashed var(--pb-rule-strong);
+  font-size: 14px;
+  color: var(--pb-ink-2);
+}
+
+.more {
+  margin-top: 8px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .entry {
+    animation: none;
+  }
+}

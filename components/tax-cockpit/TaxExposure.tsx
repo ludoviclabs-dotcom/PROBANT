@@ -1,47 +1,36 @@
 "use client";
 
 /**
- * Acte III — l'exposition. Une seule infographie de couverture (matrice impôt
- * × cycle de micro-barres + barre empilée « tous cycles ») remplace les quatre
- * panneaux d'analyse qui répétaient la même information. En dessous, la zone
- * de travail : toutes les lignes de réconciliation et tous les contrôles,
- * filtrables par sortie ; un clic ouvre le tiroir de détail.
+ * Acte III — l'exposition. Un registre impôt × cycle (nombre de contrôles, micro-barre décorative, sortie la plus
+ * prioritaire en glyphe + mot, décomposition en clair), la ligne « Tous cycles » et sa légende ; puis la zone de
+ * travail : toutes les lignes de réconciliation et tous les contrôles, filtrables par sortie (bascules soulignées
+ * avec leur dénombrement), paginées par 100 ; un clic ou Entrée ouvre le tiroir de détail.
  */
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
+import p from "@/components/charte/page.module.css";
 import {
-  TAX_OUTCOME_LABEL,
-  TAX_OUTCOME_ORDER,
+  buildOutcomeFilters,
   TAX_TYPE_LABEL,
+  TAX_TYPE_SHORT_LABEL,
   type TaxCockpitDatasets,
   type TaxRiskMatrixCell,
 } from "@/lib/tax/cockpit";
-import { BODY, C, MONO, OUTCOME_COLOR, OUTCOME_MARK, SANS, SERIF } from "./fiscal-style";
+import { ActLine } from "./ActLine";
+import { findingReading, findingTitle } from "./finding-text";
+import { asOutcome, OutcomeGlyph, OutcomeMark, outcomeOfLabel, type OutcomeKey } from "./OutcomeMark";
 import { SourcesBlock } from "./TaxSources";
+import x from "./fiscalite.module.css";
 
 const PAGE_SIZE = 100;
-const GRID = "minmax(44px, 74px) minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 2fr) minmax(64px, 130px)";
 
-const SEGMENT_COLOR: Readonly<Record<string, string>> = {
-  passed: C.green,
-  difference: C.red,
-  risk: C.orange,
-  missing: C.amber,
-  inconclusive: C.accent,
-};
-const SEGMENT_MARK: Readonly<Record<string, string>> = {
-  passed: "✓",
-  difference: "✖",
-  risk: "⚠",
-  missing: "⚠",
-  inconclusive: "•",
-};
-
-const eyebrow: React.CSSProperties = {
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: ".16em",
-  color: C.faint,
+/** Segment de couverture → sortie (glyphe de la légende). */
+const SEGMENT_OUTCOME: Readonly<Record<string, OutcomeKey>> = {
+  passed: "passed",
+  difference: "reconciliation_difference",
+  risk: "potential_tax_risk",
+  missing: "missing_information",
+  inconclusive: "inconclusive",
 };
 
 export function TaxExposure({
@@ -50,22 +39,17 @@ export function TaxExposure({
   onOutcomeFilterChange,
   activeRowId,
   onOpenRow,
-  onAnnounce,
 }: {
   datasets: TaxCockpitDatasets;
   outcomeFilter: string;
   onOutcomeFilterChange: (outcome: string) => void;
   activeRowId: string | null;
   onOpenRow: (rowId: string, opener: HTMLElement) => void;
-  onAnnounce?: (message: string) => void;
 }) {
   const { riskMatrix, coverage, findings } = datasets;
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-
-  const presentOutcomes = useMemo(() => {
-    const present = new Set(Object.values(findings.outcomeByRowId));
-    return TAX_OUTCOME_ORDER.filter((outcome) => present.has(outcome));
-  }, [findings.outcomeByRowId]);
+  const uid = useId();
+  const filters = useMemo(() => buildOutcomeFilters(findings), [findings]);
 
   const filteredRows = useMemo(
     () =>
@@ -76,237 +60,150 @@ export function TaxExposure({
   );
   const visibleRows = filteredRows.slice(0, visibleCount);
 
-  const chip = (on: boolean): React.CSSProperties => ({
-    border: on ? "1px solid rgba(91,157,255,.6)" : "1px solid rgba(255,255,255,.1)",
-    borderRadius: 999,
-    background: on ? "rgba(91,157,255,.14)" : "transparent",
-    color: on ? C.text : C.muted,
-    cursor: "pointer",
-    fontFamily: BODY,
-    fontSize: 11.5,
-    padding: "5px 12px",
-  });
+  const choose = (outcome: string) => {
+    onOutcomeFilterChange(outcome);
+    setVisibleCount(PAGE_SIZE);
+  };
 
   return (
-    <section
-      aria-labelledby="tax-exposure-title"
-      className="fx-section"
-      style={{ maxWidth: 1200, margin: "0 auto", padding: "72px 24px 0" }}
-    >
-      <div style={eyebrow}>Acte III · L&apos;exposition</div>
-      <h2
-        id="tax-exposure-title"
-        className="fx-h-act"
-        style={{ margin: "12px 0 0", fontFamily: SERIF, fontSize: 32, fontWeight: 400, color: C.text }}
-      >
+    <section aria-labelledby="tax-exposure-title" className={x.act}>
+      <ActLine numeral="III" name="L'exposition" />
+      <h2 id="tax-exposure-title" className={x.actTitle}>
         Couverture des contrôles et lignes à traiter
       </h2>
-      <p style={{ margin: "8px 0 0", maxWidth: "84ch", fontSize: 12.5, lineHeight: 1.7, color: C.muted }}>
-        Les {coverage.totalControls} contrôles exécutés, croisés par impôt et par cycle de revue. La micro-barre
-        de chaque cellule décompose ses sorties ; le filet coloré sous la cellule reprend la sortie la plus
-        prioritaire de l&apos;intersection.
+      <p className={x.lede}>
+        Les <span className={x.mono}>{coverage.totalControls}</span> contrôles exécutés, croisés par impôt et par cycle de
+        revue. La micro-barre décompose les sorties de chaque croisement ; la dernière colonne en donne la plus
+        prioritaire, en mot.
       </p>
 
       {riskMatrix.cells.length === 0 ? (
-        <p style={{ margin: "28px 0 0", fontSize: 13, color: C.muted }}>Aucun contrôle exécuté sur ce périmètre.</p>
+        <p className={x.empty}>Aucun contrôle exécuté sur ce périmètre.</p>
       ) : (
-        <div role="group" aria-label={riskMatrix.title} style={{ marginTop: 28 }}>
-          {riskMatrix.taxes.map((taxType) => (
-            <div
-              key={taxType}
-              className="fx-matrix-row"
-              style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "stretch" }}
-            >
-              <div
-                className="fx-matrix-label"
-                style={{
-                  width: 132,
-                  flexShrink: 0,
-                  display: "flex",
-                  alignItems: "center",
-                  fontFamily: SANS,
-                  fontSize: 13,
-                  color: C.textSoft,
-                }}
-              >
-                {TAX_TYPE_LABEL[taxType]}
-              </div>
-              <div className="fx-matrix-cells" style={{ flex: 1, minWidth: 0, display: "flex", gap: 10 }}>
-                {riskMatrix.cells
-                  .filter((cell) => cell.taxType === taxType)
-                  .map((cell) => (
-                    <MatrixCell key={`${cell.taxType}:${cell.cycle}`} cell={cell} onAnnounce={onAnnounce} />
-                  ))}
-              </div>
-            </div>
-          ))}
+        <div role="region" aria-label={`${riskMatrix.title}, défilement horizontal`} tabIndex={0} className={`${p.scrollX} ${x.tableRegion}`}>
+          <table className={`${p.register} ${x.matrixTable}`}>
+            <caption className="sr-only">{riskMatrix.summary}</caption>
+            <thead>
+              <tr>
+                <th scope="col">Impôt</th>
+                <th scope="col">Cycle</th>
+                <th scope="col" className={p.num}>
+                  Contrôles
+                </th>
+                <th scope="col">Décomposition</th>
+                <th scope="col">Sortie prioritaire</th>
+              </tr>
+            </thead>
+            <tbody>
+              {riskMatrix.taxes.flatMap((taxType) => {
+                const cells = riskMatrix.cells.filter((cell) => cell.taxType === taxType);
+                return cells.map((cell, index) => (
+                  <MatrixRow key={`${cell.taxType}:${cell.cycle}`} cell={cell} first={index === 0} span={cells.length} />
+                ));
+              })}
+              {coverage.totalControls > 0 && (
+                <tr className={x.matrixTotal}>
+                  <th scope="row" colSpan={2}>
+                    Tous cycles
+                  </th>
+                  <td className={p.num}>{coverage.totalControls}</td>
+                  <td>
+                    <span className={x.microbar} aria-hidden="true">
+                      {coverage.segments
+                        .filter((segment) => segment.count > 0)
+                        .map((segment) => (
+                          <span key={segment.key} data-outcome={SEGMENT_OUTCOME[segment.key] ?? "none"} style={{ flexGrow: segment.count }} />
+                        ))}
+                    </span>
+                  </td>
+                  <td>
+                    <ul className={x.legend} aria-label={coverage.summary}>
+                      {coverage.segments.map((segment) => (
+                        <li key={segment.key}>
+                          <OutcomeGlyph outcome={SEGMENT_OUTCOME[segment.key] ?? "none"} />
+                          {segment.label} : <span className={x.mono}>{segment.count}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
       )}
 
       {coverage.totalControls > 0 && (
         <>
-          <div style={{ marginTop: 22, display: "flex", gap: 10, alignItems: "center" }}>
-            <div
-              className="fx-matrix-label"
-              style={{ width: 132, flexShrink: 0, fontSize: 11, textTransform: "uppercase", letterSpacing: ".1em", color: C.faint }}
-            >
-              Tous cycles
-            </div>
-            <div
-              role="img"
-              aria-label={coverage.summary}
-              style={{
-                flex: 1,
-                minWidth: 0,
-                display: "flex",
-                height: 10,
-                borderRadius: 5,
-                overflow: "hidden",
-                background: C.track,
-              }}
-            >
-              {coverage.segments
-                .filter((segment) => segment.count > 0)
-                .map((segment, index) => (
-                  <div
-                    key={segment.key}
-                    title={`${segment.label} : ${segment.count} contrôle(s)`}
-                    style={{
-                      width: `${(segment.count / coverage.totalControls) * 100}%`,
-                      background: SEGMENT_COLOR[segment.key] ?? C.accent,
-                      transformOrigin: "left",
-                      animation: `fxBarIn .6s cubic-bezier(.2,.7,.3,1) ${index * 0.06}s both`,
-                    }}
-                  />
-                ))}
-            </div>
-          </div>
-          <ul
-            style={{
-              margin: "12px 0 0",
-              padding: 0,
-              listStyle: "none",
-              display: "flex",
-              flexWrap: "wrap",
-              gap: "6px 22px",
-              fontSize: 11.5,
-              color: C.muted,
-            }}
-          >
-            {coverage.segments.map((segment) => (
-              <li key={segment.key}>
-                <span aria-hidden="true" style={{ color: SEGMENT_COLOR[segment.key] }}>
-                  {SEGMENT_MARK[segment.key]}
-                </span>{" "}
-                {segment.label} : <span style={{ fontFamily: MONO, color: C.text }}>{segment.count}</span>
-              </li>
-            ))}
-            <li style={{ color: C.faint }}>
-              Total : <span style={{ fontFamily: MONO, color: C.text }}>{coverage.totalControls}</span> contrôles
-            </li>
-          </ul>
-          <p style={{ margin: "10px 0 0", fontSize: 11.5, lineHeight: 1.6, color: C.faint }}>
-            Une sortie « non concluant » n&apos;est pas une anomalie : c&apos;est une procédure supplémentaire à
-            programmer (ISA 330). Le niveau de preuve retenu est le plus faible niveau nécessaire à la
-            conclusion, jamais une moyenne.
+          <p className={p.note}>
+            Une sortie « non concluant » n&apos;est pas une anomalie : c&apos;est une procédure supplémentaire à programmer
+            (ISA 330). Le niveau de preuve retenu est le plus faible niveau nécessaire à la conclusion, jamais une moyenne.
           </p>
           <SourcesBlock dataset={riskMatrix} />
         </>
       )}
 
-      <div
-        style={{
-          marginTop: 48,
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 16,
-          flexWrap: "wrap",
-        }}
-      >
-        <h3 style={{ margin: 0, fontFamily: SANS, fontSize: 15, fontWeight: 600, color: C.text }}>
-          Lignes de réconciliation et contrôles
-        </h3>
-        <div role="group" aria-label="Filtrer les lignes par statut" style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          <button
-            type="button"
-            aria-pressed={outcomeFilter === "tous"}
-            onClick={() => {
-              onOutcomeFilterChange("tous");
-              setVisibleCount(PAGE_SIZE);
-            }}
-            style={chip(outcomeFilter === "tous")}
-          >
-            Tous
-          </button>
-          {presentOutcomes.map((outcome) => (
-            <button
-              key={outcome}
-              type="button"
-              aria-pressed={outcomeFilter === outcome}
-              onClick={() => {
-                onOutcomeFilterChange(outcome);
-                setVisibleCount(PAGE_SIZE);
-              }}
-              style={chip(outcomeFilter === outcome)}
-            >
-              {TAX_OUTCOME_LABEL[outcome]}
-            </button>
-          ))}
-        </div>
+      <h3 className={x.linesTitle} id={`${uid}-lines`}>
+        Lignes de réconciliation et contrôles
+      </h3>
+      <div role="group" aria-label="Filtrer les lignes par statut" className={x.filterBar}>
+        <span className={p.key} aria-hidden="true">
+          Lignes
+        </span>
+        <FilterToggle
+          label="Toutes"
+          count={filters.total}
+          pressed={outcomeFilter === "tous"}
+          onClick={() => choose("tous")}
+          descriptionId={`${uid}-all`}
+        />
+        {filters.options.map((option) => (
+          <FilterToggle
+            key={option.outcome}
+            label={option.label}
+            count={option.count}
+            pressed={outcomeFilter === option.outcome}
+            onClick={() => choose(option.outcome)}
+            descriptionId={`${uid}-${option.outcome}`}
+          />
+        ))}
+        <span className={x.filterNote}>
+          <span className={x.mono}>{filters.reconciliationLines}</span> réconciliations ·{" "}
+          <span className={x.mono}>{filters.controls}</span> contrôles
+        </span>
       </div>
 
-      <div role="table" aria-label={`Tableau d'exploration : ${findings.title}`} aria-describedby="tax-findings-note">
+      <div role="table" aria-labelledby={`${uid}-lines`} aria-describedby={`${uid}-note`} className={x.lines}>
         <div role="rowgroup">
-          <div
-            role="row"
-            className="fx-find-head"
-            style={{
-              marginTop: 16,
-              display: "grid",
-              gridTemplateColumns: GRID,
-              gap: "0 14px",
-              padding: "0 12px 10px",
-              borderBottom: "1px solid rgba(255,255,255,.08)",
-              fontSize: 11,
-              textTransform: "uppercase",
-              letterSpacing: ".1em",
-              color: C.faint,
-            }}
-          >
+          <div role="row" className={x.linesHead}>
             <div role="columnheader">Impôt</div>
             <div role="columnheader">Contrôle</div>
             <div role="columnheader">Sortie</div>
             <div role="columnheader">Lecture</div>
-            <div role="columnheader" style={{ textAlign: "right" }}>
+            <div role="columnheader" className={x.right}>
               Montant
             </div>
           </div>
         </div>
         <div role="rowgroup">
           {visibleRows.length === 0 ? (
-            <div role="row">
-              <div role="cell" style={{ padding: "18px 12px", fontSize: 13, color: C.muted }}>
-                Aucune ligne pour ce filtre.
-              </div>
+            <div role="row" className={x.linesEmpty}>
+              <div role="cell">Aucune ligne pour ce filtre.</div>
             </div>
           ) : (
             visibleRows.map((row) => {
               const detail = findings.details[row.id];
-              const outcome = findings.outcomeByRowId[row.id];
-              const color = OUTCOME_COLOR[outcome] ?? C.accent;
-              const rawLabel = String(row.cells.label ?? row.id);
+              const outcome = asOutcome(findings.outcomeByRowId[row.id]);
               const controlId = detail?.controlId ?? null;
-              const title =
-                controlId && rawLabel.startsWith(`${controlId} — `) ? rawLabel.slice(controlId.length + 3) : rawLabel;
-              const active = activeRowId === row.id;
+              const amount = detail?.amountDisplay ?? "—";
               return (
                 <div
                   key={row.id}
                   role="row"
                   tabIndex={0}
                   data-row-id={row.id}
-                  className="fx-find-row"
+                  data-active={activeRowId === row.id ? "" : undefined}
+                  className={x.lineRow}
                   onClick={(event) => onOpenRow(row.id, event.currentTarget)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -314,60 +211,22 @@ export function TaxExposure({
                       onOpenRow(row.id, event.currentTarget);
                     }
                   }}
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: GRID,
-                    gap: "0 14px",
-                    alignItems: "center",
-                    padding: "17px 12px",
-                    borderBottom: "1px solid rgba(255,255,255,.05)",
-                    cursor: "pointer",
-                    background: active ? "rgba(255,255,255,.05)" : "transparent",
-                    transition: "background .18s ease",
-                  }}
                 >
-                  <div role="cell" className="fx-c-tax" style={{ fontSize: 11.5, color: C.faint }}>
+                  <div role="cell" className={x.cTax}>
                     {String(row.cells.tax)}
                   </div>
-                  <div role="cell" className="fx-c-ctrl" style={{ fontSize: 13, color: C.text, minWidth: 0 }}>
-                    {title}
-                    {controlId && (
-                      <div style={{ marginTop: 2, fontFamily: MONO, fontSize: 10.5, color: C.faint, overflowWrap: "anywhere" }}>
-                        {controlId}
-                      </div>
-                    )}
+                  <div role="cell" className={x.cCtrl}>
+                    {findingTitle(row, detail)}
+                    {controlId && <span className={x.controlId}>{controlId}</span>}
                   </div>
-                  <div role="cell" className="fx-c-out" style={{ fontSize: 12, fontWeight: 600, color }}>
-                    <span aria-hidden="true">{OUTCOME_MARK[outcome]} </span>
-                    {String(row.cells.status)}
+                  <div role="cell" className={x.cOut}>
+                    <OutcomeMark outcome={outcome} label={String(row.cells.status)} />
                   </div>
-                  <div
-                    role="cell"
-                    className="fx-c-read"
-                    style={{
-                      fontSize: 12,
-                      lineHeight: 1.5,
-                      color: C.muted,
-                      display: "-webkit-box",
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: "vertical",
-                      overflow: "hidden",
-                    }}
-                  >
-                    {detail?.reading ?? "—"}
+                  <div role="cell" className={x.cRead}>
+                    {findingReading(detail)}
                   </div>
-                  <div
-                    role="cell"
-                    className="fx-c-amt"
-                    style={{
-                      textAlign: "right",
-                      fontFamily: MONO,
-                      fontVariantNumeric: "tabular-nums",
-                      fontSize: 13,
-                      color: C.textSoft,
-                    }}
-                  >
-                    {detail?.amountDisplay ?? "—"}
+                  <div role="cell" className={x.cAmt} data-muted={amount === "—" ? "" : undefined}>
+                    {amount}
                   </div>
                 </div>
               );
@@ -377,89 +236,72 @@ export function TaxExposure({
       </div>
 
       {filteredRows.length > visibleCount && (
-        <button
-          type="button"
-          className="fx-btn-ghost"
-          onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
-          style={{
-            marginTop: 12,
-            border: "1px solid rgba(255,255,255,.12)",
-            borderRadius: 9,
-            background: "transparent",
-            padding: "8px 14px",
-            fontFamily: BODY,
-            fontSize: 12.5,
-            color: C.textSoft,
-            cursor: "pointer",
-          }}
-        >
-          Afficher {Math.min(PAGE_SIZE, filteredRows.length - visibleCount)} ligne(s) de plus (
-          {filteredRows.length - visibleCount} restantes)
+        <button type="button" className={p.btnQuiet} onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}>
+          Afficher {Math.min(PAGE_SIZE, filteredRows.length - visibleCount)} ligne(s) de plus ({filteredRows.length - visibleCount}{" "}
+          restantes)
         </button>
       )}
-      <p id="tax-findings-note" style={{ margin: "14px 0 0", fontSize: 11.5, color: C.faint }}>
-        {visibleRows.length} ligne(s) affichée(s) · {coverage.totalControls} contrôles exécutés au total sur
-        l&apos;exercice
+      <p id={`${uid}-note`} className={x.linesNote}>
+        <span className={x.mono}>{visibleRows.length}</span> ligne(s) affichée(s) ·{" "}
+        <span className={x.mono}>{coverage.totalControls}</span> contrôles exécutés au total sur l&apos;exercice. Un clic sur
+        une ligne ouvre son détail : montant, formule, données utilisées, limites, preuve, sources, historique.
       </p>
       <SourcesBlock dataset={findings} />
-      <div style={{ height: 40 }} />
     </section>
   );
 }
 
-function MatrixCell({ cell, onAnnounce }: { cell: TaxRiskMatrixCell; onAnnounce?: (message: string) => void }) {
-  const worst = cell.outcomeBreakdown[0];
-  const color = worst ? (OUTCOME_COLOR[worst.outcome] ?? C.accent) : C.accent;
-  const breakdownText = cell.outcomeBreakdown.map((entry) => `${entry.count} ${entry.label.toLowerCase()}`).join(" · ");
-  let at = 0;
-  const stops = cell.outcomeBreakdown.map((entry) => {
-    const from = (at / cell.controlCount) * 100;
-    at += entry.count;
-    return `${OUTCOME_COLOR[entry.outcome] ?? C.accent} ${from.toFixed(2)}% ${((at / cell.controlCount) * 100).toFixed(2)}%`;
-  });
-  const description = `${TAX_TYPE_LABEL[cell.taxType]} × ${cell.cycle} — ${cell.controlCount} contrôle(s) : ${breakdownText}. Sortie la plus prioritaire : ${cell.worstOutcomeLabel ?? "aucune"}.`;
+/** Bascule soulignée : le mot est le nom accessible, le dénombrement en est la description. */
+function FilterToggle({
+  label,
+  count,
+  pressed,
+  onClick,
+  descriptionId,
+}: {
+  label: string;
+  count: number;
+  pressed: boolean;
+  onClick: () => void;
+  descriptionId: string;
+}) {
   return (
-    <div
-      role="group"
-      tabIndex={0}
-      aria-label={description}
-      title={description}
-      className="fx-cell"
-      onFocus={() => onAnnounce?.(description)}
-      style={{
-        flex: 1,
-        minWidth: 0,
-        borderRadius: 10,
-        background: "rgba(255,255,255,.035)",
-        padding: "12px 14px",
-        cursor: "default",
-        borderBottom: `3px solid ${color}`,
-        transition: "background .2s ease, transform .2s ease, box-shadow .2s ease",
-      }}
-    >
-      <div style={{ fontSize: 10.5, textTransform: "uppercase", letterSpacing: ".1em", color: C.muted }}>{cell.cycle}</div>
-      <div style={{ marginTop: 6, display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontFamily: MONO, fontVariantNumeric: "tabular-nums", fontSize: 18, color: C.text }}>
-          {cell.controlCount}
+    <button type="button" className={`${p.toggle} ${x.filterToggle}`} aria-pressed={pressed} aria-describedby={descriptionId} onClick={onClick}>
+      {label}
+      <span className={x.filterCount} aria-hidden="true">
+        {count}
+      </span>
+      <span id={descriptionId} hidden>
+        {count} ligne{count > 1 ? "s" : ""}
+      </span>
+    </button>
+  );
+}
+
+function MatrixRow({ cell, first, span }: { cell: TaxRiskMatrixCell; first: boolean; span: number }) {
+  const breakdown = cell.outcomeBreakdown.map((entry) => `${entry.count} ${entry.label.toLowerCase()}`).join(" · ");
+  return (
+    <tr data-matrix-cell={`${cell.taxType}:${cell.cycle}`}>
+      {first && (
+        <th scope="rowgroup" rowSpan={span} className={x.matrixTax}>
+          <abbr title={TAX_TYPE_LABEL[cell.taxType]}>{TAX_TYPE_SHORT_LABEL[cell.taxType]}</abbr>
+        </th>
+      )}
+      <th scope="row" className={x.matrixCycle}>
+        {cell.cycle}
+      </th>
+      <td className={p.num}>{cell.controlCount}</td>
+      <td>
+        <span className={x.microbar} aria-hidden="true">
+          {cell.outcomeBreakdown.map((entry) => (
+            <span key={entry.outcome} data-outcome={entry.outcome} style={{ flexGrow: entry.count }} />
+          ))}
         </span>
-        <span style={{ fontSize: 12, fontWeight: 600, color }}>
-          <span aria-hidden="true">{worst ? OUTCOME_MARK[worst.outcome] : ""} </span>
-          {cell.worstOutcomeLabel}
-        </span>
-      </div>
-      <div style={{ marginTop: 4, fontSize: 11, lineHeight: 1.4, color: C.muted }}>{breakdownText}</div>
-      <div
-        aria-hidden="true"
-        style={{
-          marginTop: 10,
-          height: 4,
-          borderRadius: 3,
-          overflow: "hidden",
-          background: `linear-gradient(90deg, ${stops.join(", ")})`,
-          transformOrigin: "left",
-          animation: "fxBarIn .5s cubic-bezier(.2,.7,.3,1) both",
-        }}
-      />
-    </div>
+      </td>
+      <td>
+        {cell.worstOutcomeLabel ? <OutcomeMark outcome={outcomeOfLabel(cell.worstOutcomeLabel)} label={cell.worstOutcomeLabel} /> : "—"}
+        <span className={x.breakdown}>{breakdown}</span>
+      </td>
+    </tr>
   );
 }
