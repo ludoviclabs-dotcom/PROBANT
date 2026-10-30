@@ -6,6 +6,8 @@ import { LEASE_RULE_BASIS, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
 import type { ImportBatch } from "./imports";
 import { leaseFacts } from "./lease-sources";
 import type { LeaseWork } from "./lease-work";
+
+const NOT_COMPUTED: Record<Exclude<ContractStatus, "eligible_v1">, string> = { non_location: "non-location documentée", exemption_documentee: "exemption documentée", a_qualifier: "données à compléter", hors_scope_v1: "hors périmètre V1" };
 import type { EvidenceLink, Population, SelectionSet, WorkpaperScope } from "./model";
 
 /**
@@ -39,7 +41,7 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
   const q = qualifyLeases(facts, period, work, rule), selected = new Set(selection.selectedIds);
   const contracts: LeaseContractResult[] = q.contracts.filter(c => selected.has(c.contractId)).map(c => {
     const base = { contractId: c.contractId, version: c.version, status: c.status, reasons: c.reasons, fingerprint: c.fingerprint, dues: c.dues };
-    if (c.status !== "eligible_v1" || !c.inputs) return { ...base, result: "not_applicable" as const, resultReasons: ["Contrat " + c.status + " : aucun calcul"] };
+    if (c.status !== "eligible_v1" || !c.inputs) return { ...base, result: "not_applicable" as const, resultReasons: ["Aucun calcul : " + (c.status === "eligible_v1" ? "entrées incomplètes" : NOT_COMPUTED[c.status])] };
     const r = computeLease(c.inputs, period);
     if (r.result === "not_commenced") return { ...base, result: "not_commenced" as const, resultReasons: r.reasons };
     return { ...base, result: r.result, resultReasons: r.reasons, exact: r.exact, debtInitial: r.debtInitial, depreciationMonths: r.depreciationMonths, schedule: r.schedule, closing: r.closing, maxAbsRoundingGap: r.maxAbsRoundingGap, opening: r.opening };

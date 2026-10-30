@@ -4,6 +4,8 @@ import type { AccountingPeriod } from "@/lib/canonical-model/period";
 import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
+import { leaseWorkspaceView, type LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
+import { mayReviewOwnWork } from "@/lib/auth/review-kind";
 import { ClientsRuntime } from "./clients-runtime";
 import { ClientsImports, ClientsWorkpaperRepository, rows, type ClientsSql } from "./clients-persistence";
 import type { ImportBatch, ImportMapping } from "./imports";
@@ -69,7 +71,12 @@ export class LeaseRuntime extends ClientsRuntime {
         try { qualification[run.id] = run.leaseWork ? qualifyLeases(leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval)), run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null; }
         catch (error) { qualification[run.id] = null; qualificationIssues[run.id] = error instanceof Error ? error.message : "L16_SOURCES_INVALID"; }
       }
-      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues };
+      // Server view-model (C02): steps, allowed actions and their reasons; the screen derives nothing else.
+      const ruleValidated = LEASE_TEMPLATE.rule!.validation === "validated", base = { mode: "real" as const, permissions: view.permissions, actorId: view.actorId, selfReviewAllowed: mayReviewOwnWork(view.reviewKind),
+        sourceTypes: heads.map(h => h.document_type), requiredTypes: LEASE_REQUIRED_TYPES, ruleValidated };
+      const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null })]));
+      const emptyWorkspace = leaseWorkspaceView({ ...base, run: null, sourcesCurrent: true, ruleCurrent: true, qualification: null });
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, workspace, emptyWorkspace };
     });
     const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
       rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };

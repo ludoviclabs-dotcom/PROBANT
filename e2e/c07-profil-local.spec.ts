@@ -102,8 +102,8 @@ test("page /local : profil, relecture, dossiers et liens de travail aux trois la
       await expect(page.getByRole("status").filter({ hasText: /Dossier créé|existait déjà/ })).toBeVisible();
     }
     await expect(page.getByRole("heading", { level: 2, name: /^Travaux · / })).toBeVisible();
-    // Une entrée par route du registre, plus le dossier de clôture : Paie et Congés (C12), Emprunts (C13).
-    await expect(page.locator("ul a[href*='?dossierId=']")).toHaveCount(15);
+    // Une entrée par route du registre, plus le dossier de clôture : Paie et Congés (C12), Emprunts (C13), Locations IFRS 16 (IFRS C02).
+    await expect(page.locator("ul a[href*='?dossierId=']")).toHaveCount(16);
     expect(await noOverflow(page), "débordement horizontal à " + width).toBe(true);
     expect(await axeSerious(page), "axe serious/critical à " + width).toEqual([]);
     await capture(page, "local-" + width);

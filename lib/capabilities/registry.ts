@@ -12,8 +12,9 @@ export * from "./procedures";
  * 1.4.1 (C14): Provisions mission restitution and export at exact version; the closing file binds one sheet lineage per programme procedure and reads sources through family adapters.
  * 1.5.0 (IFRS C01): framework axis outside the journal cycles — ifrs16.leases (Clients store) stated as a storage and review base without engine nor screen.
  * 1.5.1 (IFRS L16-01, L16-02): closed source dictionary, portfolio qualification and the pure engine; real execution still blocked until the named rule review; no screen.
+ * 1.5.2 (IFRS C02): /ifrs/locations page (matrix, inspector, steps, read-only synthetic scenario); local profile link.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.5.1";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.2";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -84,10 +85,10 @@ export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
     "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
   modes: {
     historical: { implemented: false, scope: "Absent des constats historiques" },
-    scenario: { implemented: false, scope: "Scénario synthétique prévu avec le moteur (L16-02)" },
-    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée ; aucun écran, ni cadrage PCG ni retraitement (L16-03)." },
+    scenario: { implemented: true, scope: "Scénario synthétique en lecture seule (/ifrs/locations?demo=1) : « simulation non revue », calculé par le même moteur, jamais enregistré" },
+    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée ; page /ifrs/locations (matrice de complétude, inspecteur, scénario synthétique en lecture seule), sans cadrage PCG ni retraitement (L16-03)." },
   },
-  pageAvailable: false }));
+  pageAvailable: true }));
 export function reconciliationCycles() {
   return CAPABILITY_REGISTRY.flatMap(c => c.reconciliation ? [c.reconciliation] : []).sort((a, b) => RECONCILIATION_DEFINITIONS.indexOf(a) - RECONCILIATION_DEFINITIONS.indexOf(b));
 }

@@ -1,0 +1,57 @@
+import type { WorkpaperRun } from "@/lib/workpapers/model";
+import type { LeaseQualification } from "./qualification";
+
+/**
+ * Modèle de vue du poste « Locations IFRS 16 » (C02), calculé par le serveur : étapes, actions permises et leur motif, fraîcheur.
+ * L'interface n'en déduit rien d'autre : aucune action n'est inférée d'un libellé ou d'un zéro affiché.
+ */
+export type StepState = "done" | "current" | "todo" | "blocked";
+export type StepId = "sources" | "qualification" | "freeze" | "calculation" | "review";
+export interface WorkspaceStep { id: StepId; label: string; state: StepState; reason: string | null; exceptions: number | null }
+export type ActionId = "create" | "configure" | "freeze" | "execute" | "revise" | "submit" | "review" | "lock";
+export interface ActionState { allowed: boolean; reason: string | null }
+export interface LeaseWorkspaceView {
+  mode: "real" | "demo";
+  freshness: "current" | "source_replaced" | "rule_replaced" | "no_sheet";
+  engine: "computed" | "blocked_rule_review" | "blocked_other" | "not_run";
+  steps: WorkspaceStep[];
+  actions: Record<ActionId, ActionState>;
+}
+export interface ViewModelInput {
+  mode: "real" | "demo"; run: WorkpaperRun | null; permissions: readonly string[]; actorId: string | null; selfReviewAllowed: boolean;
+  sourceTypes: readonly string[]; requiredTypes: readonly string[]; sourcesCurrent: boolean; ruleCurrent: boolean; ruleValidated: boolean; qualification: LeaseQualification | null;
+}
+const REVIEW_RULE = "Règle à revoir : la relecture personnelle nommée n'est pas consignée (docs/ifrs/REVUE_REGLE_IFRS16.md)";
+
+export function leaseWorkspaceView(i: ViewModelInput): LeaseWorkspaceView {
+  const run = i.run, canPrepare = i.mode === "real" && i.permissions.includes("prepare"), canReview = i.mode === "real" && i.permissions.includes("review") && (!run || i.actorId !== run.preparedBy || i.selfReviewAllowed);
+  const missingTypes = i.requiredTypes.filter(t => !i.sourceTypes.includes(t)), sourcesReady = missingTypes.length === 0 || !!run?.population;
+  const toQualify = i.qualification?.contracts.filter(c => c.status === "a_qualifier").length ?? null;
+  const preparer = !!run && run.preparedBy === i.actorId, fresh = i.sourcesCurrent && i.ruleCurrent;
+  const engine: LeaseWorkspaceView["engine"] = run?.result ? (run.result.execution === "completed" ? "computed" : run.result.blockedControls.includes("rule_not_applicable") ? "blocked_rule_review" : "blocked_other") : "not_run";
+  const deny = (reason: string): ActionState => ({ allowed: false, reason });
+  const ok: ActionState = { allowed: true, reason: null };
+  const prepareGuard = (): ActionState | null => i.mode === "demo" ? deny("Scénario synthétique en lecture seule : rien n'est enregistré") : !canPrepare ? deny("Droit de préparation requis") : !run ? deny("Aucune feuille") : !preparer ? deny("Seul le préparateur de la feuille la modifie") : !fresh ? deny(i.sourcesCurrent ? "Règle remplacée : créer une révision" : "Source remplacée ou ajoutée : créer une révision") : null;
+  const actions: Record<ActionId, ActionState> = {
+    create: i.mode === "demo" ? deny("Scénario synthétique en lecture seule") : !canPrepare ? deny("Droit de préparation requis") : run ? deny("Une feuille existe déjà pour cet exercice") : ok,
+    configure: prepareGuard() ?? (["draft", "ready", "executed"].includes(run!.state) ? ok : deny("La feuille n'est plus modifiable dans cet état")),
+    freeze: prepareGuard() ?? (run!.state !== "draft" || run!.population ? deny("Population déjà figée") : !run!.leaseWork ? deny("Enregistrer d'abord les politiques et confirmations") : missingTypes.length ? deny("Sources requises absentes : " + missingTypes.join(", ")) : ok),
+    execute: prepareGuard() ?? (run!.state !== "ready" ? deny(run!.population ? "Calcul déjà enregistré pour cette version" : "Figer d'abord la population") : !i.ruleValidated ? deny(REVIEW_RULE) : ok),
+    revise: i.mode === "demo" ? deny("Scénario synthétique en lecture seule") : !canPrepare || !run ? deny("Droit de préparation et feuille requis") : run.state === "superseded" ? deny("Révision déjà remplacée") : ok,
+    submit: prepareGuard() ?? (run!.state !== "executed" ? deny("Calcul terminé requis") : !run!.conclusion ? deny("Conclusion citée requise") : run!.notes.some(n => n.blocking && !n.resolution) ? deny("Points bloquants ouverts") : ok),
+    review: i.mode === "demo" ? deny("Scénario synthétique en lecture seule") : !run || run.state !== "awaiting_review" ? deny("Aucune version soumise") : !canReview ? deny("Relecture réservée à une identité autorisée") : ok,
+    lock: i.mode === "demo" ? deny("Scénario synthétique en lecture seule") : !run || run.state !== "approved" ? deny("Version approuvée requise") : !canReview ? deny("Relecture réservée à une identité autorisée") : ok,
+  };
+  const reviewed = !!run && ["approved", "locked"].includes(run.state);
+  const steps: WorkspaceStep[] = [
+    { id: "sources", label: "Déposer et approuver les sources", state: sourcesReady ? "done" : "current", reason: sourcesReady ? null : "Sources requises absentes : " + missingTypes.join(", "), exceptions: null },
+    { id: "qualification", label: "Qualifier les contrats", state: !sourcesReady ? "todo" : run?.leaseWork && toQualify === 0 ? "done" : "current",
+      reason: !sourcesReady ? null : !run?.leaseWork ? "Politiques et confirmations à enregistrer" : toQualify ? "Données à compléter" : null, exceptions: toQualify },
+    { id: "freeze", label: "Figer la population", state: run?.population ? "done" : actions.freeze.allowed ? "current" : "blocked", reason: run?.population ? null : actions.freeze.reason, exceptions: null },
+    { id: "calculation", label: "Calculer dette et droit d'utilisation", state: engine === "computed" ? "done" : !run?.population ? "todo" : engine === "blocked_rule_review" || !i.ruleValidated ? "blocked" : actions.execute.allowed ? "current" : "blocked",
+      reason: engine === "computed" ? null : !i.ruleValidated && i.mode === "real" ? REVIEW_RULE : engine === "blocked_other" ? "Calcul bloqué : voir les contrôles du résultat" : actions.execute.reason,
+      exceptions: run?.result?.execution === "completed" ? run.notes.filter(n => n.blocking && !n.resolution).length : null },
+    { id: "review", label: "Conclure et relire", state: reviewed ? "done" : run?.state === "executed" || run?.state === "awaiting_review" ? "current" : "todo", reason: null, exceptions: null },
+  ];
+  return { mode: i.mode, freshness: !run ? "no_sheet" : !i.sourcesCurrent ? "source_replaced" : !i.ruleCurrent ? "rule_replaced" : "current", engine, steps, actions };
+}

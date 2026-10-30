@@ -1,12 +1,13 @@
-# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, L16-01 et L16-02 réalisés
+# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 et L16-02 réalisés
 
 État au 29/10/2026 :
 - **C00** : documentaire (contrats, périmètre, sources, attendus), restreint à IFRS 16.
 - **C01** : socle local (virgule fixe, contrats communs, feuille `ifrs16.leases`, API, registre, migration `0022`).
 - **L16-01**, partie serveur : dictionnaire fermé des sources, modèles CSV, qualification du portefeuille et couverture. L'interface attend C02.
 - **L16-02** : moteur pur, égal à l'oracle au centime, branché sur la feuille.
+- **C02** : page `/ifrs/locations` (bandeau de contexte, rail des étapes, matrice de complétude, inspecteur, scénario synthétique en lecture seule), entrée « Référentiels » du profil local.
 
-**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a encore ni page `/ifrs/locations`, ni cadrage PCG, ni retraitement.
+**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a encore ni graphique métier (L16-04), ni cadrage PCG, ni retraitement (L16-03).
 
 Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
@@ -15,6 +16,8 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 | Élément | Rôle |
 |---|---|
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | **Où en est le chantier** : moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
+| [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |
+| [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : relecture nommée de la règle, texte UE |
 | [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | **À faire par l'utilisateur** : relecture nommée de la règle, qui ouvre l'exécution réelle |
 | [`DICTIONNAIRE_L16.md`](./DICTIONNAIRE_L16.md) · [`modeles/`](./modeles/) | Dictionnaire des sources et modèles CSV, produits depuis le code |
 | [`handoffs/C01.md`](./handoffs/C01.md) | Socle C01 : livré, contrat des nouvelles données, décisions C01-D01 → D09, table d'erreurs, bilan des migrations, recette, contrat transmis à C02 et L16-01 |

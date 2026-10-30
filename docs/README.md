@@ -63,14 +63,15 @@ Règle : le plan ne se réécrit pas pour refléter l'état d'exécution — c'e
 | [`recette/c15/RAPPORT.md`](./recette/c15/RAPPORT.md) | **Rapport unique** : capacités livrées, défauts corrigés avant / après, matrice du rapport du 12/10/2026, parcours réel persistant avec arrêt et reprise, recette visuelle, contrôles, non vérifiés, limites (dont C10 absente) |
 | [`recette/c15/ATTENDUS.md`](./recette/c15/ATTENDUS.md) | Attendus posés à la main avant exécution (`attendus.py` → `attendus.json`) |
 
-## IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, L16-01 et L16-02 réalisés
+## IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 et L16-02 réalisés
 
-C00 (documentaire), C01 (socle), L16-01 (dictionnaire et qualification, sans interface) et L16-02 (moteur) sont réalisés, restreints à IFRS 16. L'exécution réelle reste bloquée jusqu'à la relecture nommée de la règle par l'utilisateur ; il n'y a ni page, ni cadrage PCG, ni retraitement.
+C00 (documentaire), C01 (socle), L16-01 (dictionnaire et qualification), L16-02 (moteur) et C02 (page `/ifrs/locations`) sont réalisés, restreints à IFRS 16. L'exécution réelle reste bloquée jusqu'à la relecture nommée de la règle par l'utilisateur (rappel : `ifrs/RAPPELS.md`) ; il n'y a ni graphique métier, ni cadrage PCG, ni retraitement.
 
 | Document | À quoi il sert |
 |---|---|
 | [`ifrs/README.md`](./ifrs/README.md) | **Point d'entrée** : état, provenance et intégrité du plan, règles d'usage |
 | [`ifrs/handoffs/L16-02.md`](./ifrs/handoffs/L16-02.md) · [`ifrs/handoffs/L16-01.md`](./ifrs/handoffs/L16-01.md) | Moteur et oracle ; dictionnaire, qualification, cas → statut → cause → action |
+| [`ifrs/handoffs/C02.md`](./ifrs/handoffs/C02.md) | Langage visuel, composants, sélection, captures |
 | [`ifrs/REVUE_REGLE_IFRS16.md`](./ifrs/REVUE_REGLE_IFRS16.md) | Relecture nommée de la règle, à faire par l'utilisateur |
 | [`ifrs/handoffs/C01.md`](./ifrs/handoffs/C01.md) | Socle C01 : contrat des nouvelles données, décisions, table d'erreurs, bilan des migrations, recette |
 | [`ifrs/handoffs/C00.md`](./ifrs/handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |

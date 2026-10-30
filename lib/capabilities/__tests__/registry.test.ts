@@ -32,7 +32,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.5.1");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.5.2");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -94,12 +94,12 @@ describe("IFRS C01 axe « référentiel », hors cycles du journal", () => {
     expect(CAPABILITY_REGISTRY.some(c => c.procedures.some(p => (p.id as string) === "ifrs16.leases") || c.routes.includes("/ifrs/locations"))).toBe(false);
     expect(CL_ENGINE_PROCEDURES.some(p => (p.id as string) === "ifrs16.leases")).toBe(false);
   });
-  it("dit un socle sans moteur ni écran : rien n'est annoncé exécuté, aucune page n'est promise avant C02, jamais « IFRS complet »", () => {
+  it("dit ce qui existe : page et scénario synthétique, persistance locale non annoncée tant que la règle n'est pas validée, jamais « IFRS complet »", () => {
     const [leases] = CAPABILITY_FRAMEWORKS;
-    expect(leases).toMatchObject({ id: "ifrs16.leases", family: "clients", route: "/ifrs/locations", pageAvailable: false });
-    expect(Object.values(leases.modes).every(m => !m.implemented)).toBe(true);
+    expect(leases).toMatchObject({ id: "ifrs16.leases", family: "clients", route: "/ifrs/locations", pageAvailable: true });
+    expect(leases.modes).toMatchObject({ historical: { implemented: false }, scenario: { implemented: true }, local_persistent: { implemented: false } });
     expect(leases.modes.local_persistent.scope).toContain("exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée");
-    expect(leases.modes.local_persistent.scope).toContain("aucun écran");
+    expect(leases.modes.local_persistent.scope).toContain("page /ifrs/locations");
     expect(leases.modes.local_persistent.scope).toContain("sans annexe exhaustive ni effet fiscal");
     expect([leases.modes.local_persistent.scope, ...leases.exclusions].join(" ")).not.toMatch(/IFRS complet(?! ?,)|conformité IFRS/);
     expect(leases.exclusions.join(" ")).toMatch(/X33/);

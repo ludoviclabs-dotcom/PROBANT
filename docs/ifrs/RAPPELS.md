@@ -1,0 +1,8 @@
+# Rappels du chantier IFRS
+
+Actions laissées en attente par décision de l'utilisateur. Une ligne se retire seulement quand l'action est faite, avec sa date et le commit.
+
+| Ouvert le | Rappel | Pourquoi c'est en attente | Ce qui en dépend |
+|---|---|---|---|
+| 30/10/2026 | **Relecture personnelle nommée de la règle `ifrs16.leases` 1.0.0** : suivre [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md), puis consigner nom et date dans `lib/ifrs/leases/rule-review.ts` | L'utilisateur a choisi de faire C02 d'abord (30/10/2026). C'est un acte humain : aucune session ne le fait à sa place | Toute exécution réelle de la feuille Locations ; le passage d'IFRS 16 à `verified` dans la base de connaissance |
+| 30/10/2026 | **Texte de l'Union européenne d'IFRS 16** (règlement 2023/1803) à lire quand EUR-Lex sera accessible | EUR-Lex renvoie une page vide (quatre essais au 29/10/2026), accès non contourné | La juridiction `EU_adopted` en réel (X33) |
