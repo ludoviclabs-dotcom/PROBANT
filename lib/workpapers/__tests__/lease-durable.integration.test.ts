@@ -267,9 +267,16 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect(await view(owner, dossierSolo)).toMatchObject({ actorId: LOCAL_OWNER_SUBJECT, reviewKind: "personal" });
   }, 60000);
 
-  it("le dossier de clôture et la feuille Emprunts se lisent à l'identique avec des feuilles Locations présentes", async () => {
-    const after = await (await closing.GET(request(closer, "GET", undefined, dossierA, "", randomUUID(), "/api/workpapers/closing"))).json();
-    expect(after).toEqual(closingBefore);
+  it("le dossier de clôture lit les cycles et Emprunts à l'identique avec des feuilles Locations présentes ; elles n'apparaissent qu'en « Travaux IFRS »", async () => {
+    type Read = { evaluation: Record<string, unknown> & { ifrs: { lineages: { rootId: string; state: string; selection: { status: string } }[] } }; projection: Record<string, unknown> & { ifrsWorks: unknown; hash: string } };
+    const after = await (await closing.GET(request(closer, "GET", undefined, dossierA, "", randomUUID(), "/api/workpapers/closing"))).json() as Read, before = closingBefore as Read;
+    // L16-05: everything but the IFRS section (and the projection hash that covers it) is read exactly as before the Locations sheets existed.
+    const strip = (r: Read) => ({ ...r, evaluation: { ...r.evaluation, ifrs: null }, projection: { ...r.projection, ifrsWorks: null, hash: null } });
+    expect(strip(after)).toEqual(strip(before));
+    expect(before.evaluation.ifrs.lineages).toEqual([]);
+    // No sheet here is reviewed nor computed under a validated rule: nothing is selected, nothing is to decide.
+    expect(after.evaluation.ifrs.lineages.every(l => l.selection.status === "non_selectionne" && !["approved", "locked"].includes(l.state))).toBe(true);
+    expect(after.evaluation.ifrs.lineages.length).toBeGreaterThan(0);
     const all = await readStoreHeads(db as never, { organizationId: orgA, dossierId: dossierA, periodId: pid, mode: "real" });
     expect(all.some(r => r.run.template.id === "ifrs16.leases")).toBe(true);
     expect(sheetLineages(observeRuns(all)).map(l => l.procedure)).toEqual(["loans.review"]);

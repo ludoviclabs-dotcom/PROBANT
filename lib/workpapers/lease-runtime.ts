@@ -6,18 +6,20 @@ import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
 import { frameLeases, type LeaseFraming } from "@/lib/ifrs/leases/framing";
 import { leasePortfolioView, type LeasePortfolioView } from "@/lib/ifrs/leases/portfolio";
+import { leaseReviewSummary, type LeaseReviewSummary } from "@/lib/ifrs/leases/review-summary";
 import { materializeBundle, type AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import { leaseWorkspaceView, type LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
 import { mayReviewOwnWork } from "@/lib/auth/review-kind";
 import { ClientsRuntime } from "./clients-runtime";
 import { ClientsImports, ClientsWorkpaperRepository, rows, type ClientsSql } from "./clients-persistence";
 import type { ImportBatch, ImportMapping } from "./imports";
-import { LEASE_TEMPLATE, LeaseRegistry } from "./lease-adapter";
+import { LEASE_TEMPLATE, LeaseRegistry, leaseRuleCurrent } from "./lease-adapter";
 import { leaseReviewPoints, type LeaseResult } from "./lease-review";
 import type { LeaseCommand } from "./lease-commands";
 import { assertLeaseBatch, isLeaseType, leaseFacts, LEASE_REQUIRED_TYPES, LEASE_TYPES, resolveLeaseCitation, type LeaseType } from "./lease-sources";
+import { buildLeaseExport, type LeaseExportFormat, type LeaseExportKind } from "./lease-export";
 import { leaseDraftOf, stampLeaseWork } from "./lease-work";
-import { periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } from "./model";
+import { contentHash, periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } from "./model";
 import type { Principal } from "./policy";
 import { freezePopulation, selectPopulation } from "./selection";
 import { WorkpaperService } from "./service";
@@ -31,8 +33,7 @@ export class LeaseImportError extends Error {}
 type Head = { document_type: string; import_id: string };
 /** Sources figées toujours têtes de leurs types, et aucune source de ces types ajoutée après le gel (même règle que l'adaptateur de clôture). */
 const sourcesCurrentFor = (run: WorkpaperRun, heads: Head[]) => run.importIds.every(i => heads.some(h => h.import_id === i)) && (!run.population || heads.every(h => run.importIds.includes(h.import_id)));
-/** Règle courante : gabarit et règle à la version de l'adaptateur ; une autre version se révise, jamais ne se réexécute. */
-const ruleCurrentFor = (run: WorkpaperRun) => run.template.version === LEASE_TEMPLATE.version && run.template.rule?.version === LEASE_TEMPLATE.rule!.version;
+const ruleCurrentFor = leaseRuleCurrent;
 const citationText = (c: NoteCitation) => "\nPièce : " + c.fileName + " ; version " + c.sha256 + " ; ligne " + (c.row ?? "non applicable");
 
 /**
@@ -69,11 +70,14 @@ export class LeaseRuntime extends ClientsRuntime {
       const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
       const qualification: Record<string, LeaseQualification | null> = {}, qualificationIssues: Record<string, string> = {};
       const framing: Record<string, LeaseFraming | null> = {}, adjustments: Record<string, AdjustmentBundle | null> = {}, portfolio: Record<string, LeasePortfolioView | null> = {};
+      const review: Record<string, LeaseReviewSummary> = {};
+      const contentHashes: Record<string, string> = Object.fromEntries(view.runs.map(r => [r.id, contentHash(r)]));
       for (const run of view.runs) {
         sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run);
         const ids = run.importIds.length ? run.importIds : heads.map(h => h.import_id);
+        let facts: ReturnType<typeof leaseFacts> | null = null;
         try {
-          const facts = leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval));
+          facts = leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval));
           qualification[run.id] = run.leaseWork ? qualifyLeases(facts, run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null;
           // Framing is shown before any calculation: it compares the PCG lines with the qualified schedule, without the engine.
           framing[run.id] = qualification[run.id] ? frameLeases(qualification[run.id]!, facts.lease_ledger, run.period) : null;
@@ -83,18 +87,38 @@ export class LeaseRuntime extends ClientsRuntime {
         adjustments[run.id] = result?.bundle ? materializeBundle(result.bundle, run) : null;
         // Portfolio line, table, series and bridges (L16-04) are read from the stored result, never recomputed by the screen.
         portfolio[run.id] = leasePortfolioView(run, view.runs, qualification[run.id] ?? null);
+        // Review summary (L16-05): exceptions, cited judgements, framing, results and points, from the same frozen sources.
+        review[run.id] = leaseReviewSummary(run, result, qualification[run.id] ?? null, facts ? [...facts.lease_contracts, ...facts.lease_assumptions] : [], adjustments[run.id]);
       }
       // Server view-model (C02): steps, allowed actions and their reasons; the screen derives nothing else.
       const ruleValidated = LEASE_TEMPLATE.rule!.validation === "validated", base = { mode: "real" as const, permissions: view.permissions, actorId: view.actorId, selfReviewAllowed: mayReviewOwnWork(view.reviewKind),
         sourceTypes: heads.map(h => h.document_type), requiredTypes: LEASE_REQUIRED_TYPES, ruleValidated };
       const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null, framing: framing[run.id] ?? null })]));
       const emptyWorkspace = leaseWorkspaceView({ ...base, run: null, sourcesCurrent: true, ruleCurrent: true, qualification: null });
-      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, portfolio, workspace, emptyWorkspace };
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, portfolio, review, contentHashes, workspace, emptyWorkspace };
     });
     const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
       rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
     if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024) throw new ApiError("L16_LIMIT_EXCEEDED", "État trop volumineux.", 413);
     return response;
+  }
+  /**
+   * Export d'une version exacte (L16-05) : le navigateur nomme la version et l'empreinte qu'il a lues ; une autre empreinte est un conflit.
+   * Lecture seule, droit d'export ; une version ancienne reste exportable en diagnostic, l'export revu exige la version revue courante.
+   */
+  async leaseExport(request: Request, dossierId: string, pid: string, input: { id: string; version: number; expectedHash: string; format: LeaseExportFormat; kind: LeaseExportKind }) {
+    return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor) => {
+      const repository = new ClientsWorkpaperRepository(tx), versions = await repository.history(scope, input.id), run = versions.find(v => v.version === input.version);
+      if (!run || run.template.id !== "ifrs16.leases") throw new Error("WORKPAPER_VERSION_NOT_FOUND");
+      if (contentHash(run) !== input.expectedHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+      const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), frozen = imports.batches.filter(b => run.importIds.includes(b.id) && b.approval);
+      const facts = leaseFacts(frozen), qualification = run.leaseWork ? qualifyLeases(facts, run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null;
+      const result = run.result?.execution === "completed" ? run.result.result as LeaseResult : null, head = versions.at(-1)!;
+      return buildLeaseExport({ run, result, qualification, facts: [...facts.lease_contracts, ...facts.lease_assumptions], bundle: result?.bundle ? materializeBundle(result.bundle, run) : null,
+        sources: frozen.map(b => ({ importId: b.id, documentVersionId: b.document.id, documentType: b.document.documentType, fileName: b.document.fileName, sha256: b.document.byteHash, rows: b.rows.length, approvedAt: b.approval?.at ?? null })),
+        standing: { latestRevision: head.version === run.version && (await this.latestRevisionId(tx, scope, run.rootId)) === run.id, sourcesCurrent: sourcesCurrentFor(run, heads), ruleCurrent: ruleCurrentFor(run) },
+        kind: input.kind, format: input.format, emission: { exportedAt: new Date(this.now() * 1000).toISOString(), exportedBy: actor.id } });
+    });
   }
   async leaseCommand(request: Request, dossierId: string, pid: string, command: LeaseCommand, key: string) {
     return this.transaction(request, dossierId, pid, ["review", "lock"].includes(command.command) ? "review" : "prepare", async (tx, scope, actor) => this.receipt(tx, scope, actor, key, { operation: "lease_command", ...command }, async () => {

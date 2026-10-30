@@ -3,6 +3,7 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { Money } from "@/lib/canonical-model/money";
 import type { ReviewKind } from "@/lib/auth/review-kind";
 import type { CycleFingerprint } from "./closing-cycles";
+import { postingKey, type IfrsState } from "./closing-ifrs";
 import type { ClosingAmount, ClosingAssertion, ClosingCommandName, ClosingCycle, ClosingMilestone, ClosingNature, ClosingStep, ClosingThreshold, CycleFamily, EngineProcedureId, PieceKind, ResolvedCitation } from "./closing-contract";
 
 /**
@@ -62,9 +63,11 @@ export interface ClosingState {
   limitations: Record<string, Limitation>; contradictions: Record<string, Contradiction>; validations: ClosingValidation[];
   bindings: Record<string, SheetBinding>; exclusions: Record<string, SheetExclusion>; milestones: Record<string, Milestone>; thresholds: Record<string, Threshold>; personalCompletions: PersonalCompletion[];
   eventTreatments: Record<string, EventTreatment>;
+  /** IFRS works (L16-05): current selections by lineage and documented postings; earlier decisions stay in the journal. */
+  ifrs: IfrsState;
 }
 export const emptyState = (): ClosingState => ({ seq: 0, headHash: GENESIS_HASH, risks: {}, procedures: {}, populations: {}, applicability: {}, itgcScopes: {}, records: [], requests: {}, pieces: [],
-  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [], bindings: {}, exclusions: {}, milestones: {}, thresholds: {}, personalCompletions: [], eventTreatments: {} });
+  conclusions: {}, reviews: {}, reviewPoints: {}, misstatements: {}, limitations: {}, contradictions: {}, validations: [], bindings: {}, exclusions: {}, milestones: {}, thresholds: {}, personalCompletions: [], eventTreatments: {}, ifrs: { selections: [], postings: {} } });
 export const exclusionKey = (engine: string, rootId: string) => engine + "|" + rootId;
 const attribution = (p: Record<string, never>): Attribution => ({ ...(p.kind ? { kind: p.kind } : {}), ...(p.reviewerName ? { reviewerName: p.reviewerName } : {}) });
 
@@ -152,6 +155,13 @@ function apply(s: ClosingState, e: ClosingEvent) {
     case "correct_event_effect": (s.eventTreatments[p.eventId] ??= { eventId: p.eventId }).correction = { ...stamp, basis: p.basis, basisHash: p.basisHash, mapHash: p.mapHash, text: p.text, citations: p.citations,
       ...(p.correctedCents !== undefined ? { correctedCents: p.correctedCents } : {}) }; break;
     case "assess_event_effect": (s.eventTreatments[p.eventId] ??= { eventId: p.eventId }).assessment = { ...stamp, ...attribution(p), basis: p.basis, basisHash: p.basisHash, mapHash: p.mapHash, text: p.text }; break;
+    case "select_ifrs_bundle": {
+      const selection = p.selection as unknown as IfrsState["selections"][number];
+      s.ifrs.selections = [...s.ifrs.selections.filter(x => x.logicalId !== selection.logicalId), selection].sort((a, b) => (a.logicalId < b.logicalId ? -1 : 1));
+      break;
+    }
+    case "withdraw_ifrs_bundle": s.ifrs.selections = s.ifrs.selections.filter(x => x.logicalId !== p.logicalId); break;
+    case "document_ifrs_posting": s.ifrs.postings[postingKey(p.logicalId, p.bundleHash)] = { ...stamp, logicalId: p.logicalId, bundleHash: p.bundleHash, text: p.text, citations: p.citations }; break;
     case "mark_personal_complete": s.personalCompletions.push({ ...stamp, text: p.text, reviewerName: p.reviewerName, headHash: p.headHash, headSeq: p.headSeq, cycles: p.cycles, limits: p.limits }); break;
     default: throw new Error("CL_JOURNAL_CORRUPTED");
   }

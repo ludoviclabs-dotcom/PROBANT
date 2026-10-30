@@ -4,6 +4,7 @@ import { assertionLabel, CL_CYCLE_LABELS, CL_MILESTONE_LABELS, CL_NATURE_LABELS,
   type ClosingAssertion, type ClosingMilestone, type ClosingNature, type ClosingStep, type ClosingThreshold, type ResolvedCitation } from "./closing-contract";
 import { fingerprintChanged, sheetLineages, type CycleObservation, type SheetLineage } from "./closing-cycles";
 import { formatCents } from "./stock-contract";
+import { projectIfrsWorks, type FrameworkSheet, type IfrsWorks } from "./closing-ifrs";
 import { EVENT_MAP_NOT_READ, projectEventEffects, type ClosingEventEffects, type EventDenominators, type EventMapRead } from "./closing-events";
 import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, procedureBasis, type Attribution, type ClosingEvent, type ClosingState, type Conclusion, type Contradiction, type ItgcScopeEntry, type Limitation, type Misstatement, type PopulationEntry, type Review, type ReviewPoint, type RiskEntry, type WorkRecord } from "./closing-journal";
 
@@ -81,6 +82,8 @@ export interface Denominators {
 export interface ClosingEvaluation {
   opened: boolean; period?: AccountingPeriod; entity?: string; risks: RiskView[]; procedures: ProcedureView[]; indicators: Indicator[]; denominators: Denominators; missing: MissingItem[]; coherence: CoherencePoint[];
   misstatements: MisstatementSummary; blockers: RemainingItem[];
+  /** IFRS works (L16-05): apart from the cycles, the misstatements and the C05 effects; never a blocker of the cycles. */
+  ifrs: IfrsWorks;
   /** Items satisfied only by a named personal review (solo): the conditions of a professional review stay distinct and unmet. */
   professionalGaps: RemainingItem[];
   /** Recorded facts, as written in the journal (authors, dates, citations): the browser lists them, it never re-derives them. */
@@ -230,7 +233,7 @@ function misstatementView(s: ClosingState, m: Misstatement): MisstatementView {
 }
 
 /** `events`: the transversal events map as read by the server; when it is not read, its effects stay unknown (never zero). */
-export function evaluateClosing(s: ClosingState, observations: CycleObservation[], events: EventMapRead = EVENT_MAP_NOT_READ): ClosingEvaluation {
+export function evaluateClosing(s: ClosingState, observations: CycleObservation[], events: EventMapRead = EVENT_MAP_NOT_READ, framework: FrameworkSheet[] = []): ClosingEvaluation {
   const lineages = sheetLineages(observations);
   const sharingByEngine = new Map<string, number>();
   for (const p of Object.values(s.procedures)) if (p.nature === "engine" && p.engine) sharingByEngine.set(p.engine, (sharingByEngine.get(p.engine) ?? 0) + 1);
@@ -421,7 +424,7 @@ export function evaluateClosing(s: ClosingState, observations: CycleObservation[
   return { opened: !!s.opened, ...(s.opened ? { period: s.opened.period, entity: s.opened.entity } : {}), risks, procedures, indicators, denominators, missing, coherence, misstatements: summary, blockers, professionalGaps,
     items: { misstatements, limitations, contradictions, reviewPoints: points, staleCorrections: misstatements.filter(m => m.correction && !correctionCurrent(s, m)).map(m => m.misstatementId), staleResolutions: contradictions.filter(c => c.resolution && !resolutionCurrent(s, c)).map(c => c.contradictionId),
       cancelledRequests: requests.flatMap(r => r.closed?.outcome === "cancelled" ? [{ requestId: r.requestId, description: r.description, reason: r.closed.reason }] : []) },
-    findings: { misstatements: mviews, contradictions: cviews }, events: eventEffects.block,
+    findings: { misstatements: mviews, contradictions: cviews }, events: eventEffects.block, ifrs: projectIfrsWorks(framework, s),
     closable: !!s.opened && blockers.length === 0 && professionalGaps.length === 0, observations, sheets, outsideProgram, validation, personal, dates, thresholds, thresholdNotice: CL_THRESHOLD_NOTICE, noOpinion: CL_NO_OPINION };
 }
 
@@ -466,6 +469,9 @@ export function journalView(events: ClosingEvent[]): JournalLine[] {
         case "correct_event_effect": { const b = p.basis as { invoiceId: string; candidate: string | null; countedCents: number }; return "Effet d’événement " + b.invoiceId + " (" + (b.candidate ?? "effet") + ", compté une fois " + formatCents(String(b.countedCents)) + ")"
           + (p.correctedCents !== undefined ? " corrigé partiellement (" + formatCents(String(p.correctedCents)) + ")" : " corrigé") + cite(p.citations) + " — carte " + String(p.mapHash).slice(0, 12) + "…"; }
         case "assess_event_effect": { const b = p.basis as { invoiceId: string; candidate: string | null }; return "Effet d’événement " + b.invoiceId + " (" + (b.candidate ?? "effet") + ") non corrigé : appréciation documentée" + who(p) + " — carte " + String(p.mapHash).slice(0, 12) + "…"; }
+        case "select_ifrs_bundle": { const x = p.selection as unknown as { logicalId: string; revision: number; runVersion: number; bundleHash: string }; return "Retraitement IFRS " + x.logicalId + " sélectionné pour la base déclarée (r" + x.revision + " · v" + x.runVersion + ", empreinte " + x.bundleHash.slice(0, 12) + "…)" + (p.effect === "replaced" ? " — remplace la version précédente" : p.effect === "replayed" ? " — même sélection rejouée, aucun montant doublé" : ""); }
+        case "withdraw_ifrs_bundle": return "Sélection du retraitement IFRS " + p.logicalId + " retirée (empreinte " + String(p.bundleHash).slice(0, 12) + "…)";
+        case "document_ifrs_posting": return "Comptabilisation du retraitement IFRS " + p.logicalId + " documentée" + cite(p.citations);
         case "mark_personal_complete": return "Dossier personnel marqué terminé — relecture personnelle nommée : " + p.reviewerName + " ; " + plural((p.limits as unknown[]).length, "limite visible", "limites visibles");
       }
     })();

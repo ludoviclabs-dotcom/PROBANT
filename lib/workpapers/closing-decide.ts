@@ -4,6 +4,8 @@ import type { ReviewKind } from "@/lib/auth/review-kind";
 import { engineProcedure, isControl, stepsFor, type CitationInput, type ClosingCommand, type PieceKind, type ResolvedCitation } from "./closing-contract";
 import { fingerprint, sheetLineages, type CycleObservation } from "./closing-cycles";
 import { evaluateClosing } from "./closing-evaluate";
+import { decideIfrsPosting, decideIfrsSelection, decideIfrsWithdrawal, type FrameworkSheet } from "./closing-ifrs";
+import type { WorkpaperScope } from "./model";
 import { contributionsDiscordance, currentEffect, EVENT_MAP_NOT_READ, type EventMapRead } from "./closing-events";
 import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resolutionCurrent, latestPieceVersion, nextId, procedureBasis, type Attribution, type ClosingEventType, type ClosingState } from "./closing-journal";
 
@@ -11,7 +13,7 @@ import { correctionCurrent, currentValidation, exclusionKey, isSuperseded, resol
  * Decision rules of the professional file: one command, checked against the folded journal, becomes one event.
  * Identifiers, authors, dates, citations (file name, hash, kind) and dependency hashes are set here by the server, never by the browser.
  */
-export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[]; reviewKind?: ReviewKind; displayName?: string;
+export interface DecideContext { actorId: string; at: string; closingAuthority: boolean; observations: CycleObservation[]; framework?: FrameworkSheet[]; scope?: WorkpaperScope; reviewKind?: ReviewKind; displayName?: string;
   /** The transversal events map read by the server for this command (C14 suite); without it, no event effect can be decided and its effects stay unknown. */
   events?: EventMapRead }
 export interface Decision { type: ClosingEventType; payload: Record<string, unknown> }
@@ -289,6 +291,12 @@ export function decide(s: ClosingState, command: ClosingCommand, ctx: DecideCont
       const o = lineage.current;
       return { type: "exclude_sheet", payload: { engine: command.engine, rootId: o.rootId, reason: command.reason, runId: o.runId, revision: o.revision, version: o.version, contentHash: o.contentHash } };
     }
+    case "select_ifrs_bundle": {
+      if (!ctx.scope) throw new Error("WORKPAPER_SCOPE_MISMATCH");
+      return { type: "select_ifrs_bundle", payload: decideIfrsSelection(s, command, { actorId: ctx.actorId, at: ctx.at, scope: ctx.scope, sheets: ctx.framework ?? [] }) as unknown as Record<string, unknown> };
+    }
+    case "withdraw_ifrs_bundle": return { type: "withdraw_ifrs_bundle", payload: decideIfrsWithdrawal(s, command) };
+    case "document_ifrs_posting": return { type: "document_ifrs_posting", payload: decideIfrsPosting(s, command, c => resolveCitation(s, c)) as unknown as Record<string, unknown> };
     case "set_milestone": {
       if ((command.milestone === "autre") !== !!command.label) throw new Error("CL_MILESTONE_LABEL");
       return { type: "set_milestone", payload: { milestone: command.milestone, ...(command.label ? { label: command.label } : {}), date: command.date, citations: resolveAll(s, command.citations) } };

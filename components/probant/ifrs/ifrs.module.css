@@ -173,6 +173,13 @@
 .readout { font-size: 13px; color: var(--pb-ink-2); font-variant-numeric: tabular-nums; }
 .readout strong { color: var(--pb-ink); }
 
+/* Revue (L16-05) : points et leur état écrit, rangées d'export. */
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.points li { border-left: var(--pb-break-w) solid var(--pb-rule); padding: 4px 0 4px 10px; }
+.points li[data-state="blocking"] { border-color: var(--pb-signal); }
+.points li[data-state="resolved"] { border-color: var(--l16-ok); }
+.exportRow { display: grid; gap: 4px; padding: 8px 0; border-top: var(--pb-rule-w) solid var(--pb-rule); }
+
 /* Frise du contrat : exercice en fond, contrat en barre, une marque par échéance. */
 .timelinePeriod { fill: var(--pb-plane-2); stroke: var(--pb-rule-strong); stroke-dasharray: 3 3; }
 .timelineBar { fill: var(--l16-debt); }

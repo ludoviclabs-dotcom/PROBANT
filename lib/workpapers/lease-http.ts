@@ -4,6 +4,7 @@ import { ApiError } from "@/lib/api/errors";
 import { durableChainEnabled } from "@/lib/runtime/profile";
 import { ClientsConflict } from "./clients-persistence";
 import { clientsApprovalSchema, clientsPeriodSchema, leaseCommandSchema } from "./lease-commands";
+import { LEASE_EXPORT_FORMATS } from "./lease-export";
 import { LEASE_TYPES, leaseMappingSchema } from "./lease-sources";
 import { LeaseError, LeaseImportError, type LeaseRuntime } from "./lease-runtime";
 import { periodId } from "./model";
@@ -26,7 +27,7 @@ export const LEASE_ERROR_STATUS: Readonly<Record<string, number>> = Object.freez
     "LOCKED_WORKPAPER_IMMUTABLE", "IMPORT_REJECTED_OR_STALE", "INPUTS_ALREADY_FROZEN"],
   413: ["L16_LIMIT_EXCEEDED"],
   422: ["L16_CONTRACT_INVALID", "L16_IMPORT_SCHEMA_INVALID", "L16_DUPLICATE_CONTRACT", "L16_CITATION_INVALID", "L16_CURRENT_SOURCES_REQUIRED", "L16_PERIOD_MISMATCH", "L16_BASE_UNKNOWN", "L16_BASE_MISMATCH",
-    "L16_BUNDLE_ALREADY_INCLUDED", "L16_BUNDLE_NOT_REVIEWED", "L16_BUNDLE_NOT_SELECTED", "L16_BUNDLE_UNBALANCED", "L16_BUNDLE_INVALID", "L16_WORK_REQUIRED", "L16_WORK_INVALID", "L16_POPULATION_MAPPING_INVALID", "L16_RATE_INVALID", "L16_PERIOD_CALENDAR_INVALID",
+    "L16_BUNDLE_ALREADY_INCLUDED", "L16_BUNDLE_NOT_REVIEWED", "L16_BUNDLE_NOT_SELECTED", "L16_BUNDLE_UNBALANCED", "L16_BUNDLE_INVALID", "L16_WORK_REQUIRED", "L16_WORK_INVALID", "L16_POPULATION_MAPPING_INVALID", "L16_RATE_INVALID", "L16_PERIOD_CALENDAR_INVALID", "L16_EXPORT_NOT_REVIEWED", "L16_EXPORT_NO_ADJUSTMENT",
     "CALCULATION_NOT_READY", "UNRESOLVED_BLOCKING_NOTE", "PREPARATION_INCOMPLETE", "USE_DEDICATED_COMMAND", "WORKPAPER_PERIOD_INVALID", "WORKPAPER_SCOPE_MISMATCH", "WORKPAPER_INPUTS_REQUIRED",
     "REQUIRED_DOCUMENT_MISSING", "CONCLUSION_REQUIRED", "REVIEW_NOTE_REQUIRED", "NOTE_RESOLUTION_INVALID", "NOTE_ID_INVALID", "INSTANCE_KEY_REQUIRED", "PERSONAL_REVIEWER_NAME_REQUIRED",
     "DOCUMENT_TYPE_OUT_OF_SCOPE", "REAL_IMPORT_STORAGE_DISABLED", "POPULATION_EMPTY_OR_DUPLICATE", "POPULATION_IMPORT_UNAPPROVED", "POPULATION_IMPORTS_INVALID", "POPULATION_ROW_INVALID"],
@@ -72,7 +73,16 @@ function scope(request: Request) {
   return q.data;
 }
 
-/** Commandes HTTP de l'atelier (C00 § 8). L'export et le scénario de démonstration arrivent avec le moteur et la revue (L16-02, L16-05). */
+/** Corps d'un export (C00 § 8, limité à 4 096 octets) : version exacte et empreinte lues, format et nature. */
+export const leaseExportSchema = z.object({ id: z.string().min(1).max(200), version: z.number().int().positive(), expectedHash: z.string().regex(/^[a-f0-9]{64}$/),
+  format: z.enum(LEASE_EXPORT_FORMATS), kind: z.enum(["diagnostic", "reviewed"]) }).strict();
+/** Fichier d'export : nom neutre, type explicite, empreinte métier en en-tête ; jamais mis en cache. */
+export function exportResponse(file: { fileName: string; mediaType: string; content: string; businessHash: string }) {
+  return new Response(file.content, { headers: { ...headers, "Content-Type": file.mediaType, "Content-Disposition": "attachment; filename=\"" + file.fileName.replace(/[^A-Za-z0-9._-]/g, "_") + "\"",
+    "X-Content-Type-Options": "nosniff", "X-Probant-Business-Hash": file.businessHash } });
+}
+
+/** Commandes HTTP de l'atelier (C00 § 8), export de la version lue (L16-05). */
 export function leaseHandlers(create: () => LeaseRuntime, enabled: () => void = requireLeasesChain, report: (error: unknown) => void = () => {}) {
   return {
     GET: async (request: Request) => {
@@ -95,6 +105,15 @@ export function leaseHandlers(create: () => LeaseRuntime, enabled: () => void = 
         await runtime.check(request, q.dossierId, "read");
         const command = leaseCommandSchema.parse(await (await bounded(request, 500_000)).json());
         return Response.json(await runtime.leaseCommand(request, q.dossierId, q.periodId, command, request.headers.get("Idempotency-Key") ?? ""), { headers });
+      } catch (e) { report(e); return leaseFailure(e); }
+    },
+    exportPOST: async (request: Request) => {
+      try {
+        enabled();
+        const q = scope(request), runtime = create();
+        await runtime.check(request, q.dossierId, "download");
+        const body = leaseExportSchema.parse(await (await bounded(request, 4096)).json());
+        return exportResponse(await runtime.leaseExport(request, q.dossierId, q.periodId, body));
       } catch (e) { report(e); return leaseFailure(e); }
     },
     importsPOST: async (request: Request) => {

@@ -17,7 +17,7 @@ export function closingFailureStatus(code: string) {
   // An altered journal or piece is an integrity failure of the server, never a user input error.
   return /CL_JOURNAL_CORRUPTED|CL_PIECE_BYTES_CHANGED/.test(code) ? 500 : /SESSION_INVALID|AUTHENTICATION_REQUIRED/.test(code) ? 401 : /FORBIDDEN/.test(code) ? 403 : /NOT_FOUND/.test(code) ? 404
     : /STALE|CONFLICT|IDEMPOTENCY_KEY_REUSED/.test(code) ? 409
-    : /^(CL_|WORKPAPER_|IDEMPOTENCY_)/.test(code) ? 422 : 503;
+    : /^(CL_|WORKPAPER_|IDEMPOTENCY_|L16_)/.test(code) ? 422 : 503;
 }
 function failure(error: unknown) {
   if (error instanceof ClosingConflict) return Response.json({ error: error.message, currentSeq: error.currentSeq, expectedSeq: error.expectedSeq }, { status: 409, headers });

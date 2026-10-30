@@ -3,6 +3,7 @@ import type { ReviewKind } from "@/lib/auth/review-kind";
 import type { ContractFraming, FramingLineStatus, FramingStatus, LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { ContractStatus, LeaseQualification, QualificationReason, QualifiedContract } from "@/lib/ifrs/leases/qualification";
 import type { LeasePortfolioView, ReviewMark } from "@/lib/ifrs/leases/portfolio";
+import type { LeaseReviewSummary } from "@/lib/ifrs/leases/review-summary";
 import type { LeaseContractAdjustment, LeaseResultKind } from "@/lib/workpapers/lease-review";
 import type { AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import type { LeaseWorkspaceView, StepState } from "@/lib/ifrs/leases/view-model";
@@ -20,6 +21,8 @@ export interface LeaseView {
   framing: Record<string, LeaseFraming | null>; adjustments: Record<string, AdjustmentBundle | null>;
   /** Ligne de synthèse, table, séries et ponts du portefeuille (L16-04), établis par le serveur depuis le résultat de la version. */
   portfolio?: Record<string, LeasePortfolioView | null>;
+  /** Synthèse de revue (L16-05) et empreinte de chaque version lue, nommée par un export ou une sélection. */
+  review?: Record<string, LeaseReviewSummary>; contentHashes?: Record<string, string>;
   workspace: Record<string, LeaseWorkspaceView>; emptyWorkspace: LeaseWorkspaceView;
   capability: { engine: string; realExecution: "allowed" | "blocked_rule_review_required"; rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; requiredTypes: readonly string[] };
 }
@@ -110,6 +113,9 @@ const MESSAGES: Record<string, string> = {
   IDEMPOTENCY_KEY_REUSED: "Commande déjà envoyée avec un autre contenu : rechargez avant de reprendre.",
   WORKPAPER_PERIOD_INVALID: "Exercice invalide pour ce dossier.",
   L16_QUERY_INVALID: "Adresse invalide : dossier ou exercice mal formé.",
+  L16_EXPORT_NOT_REVIEWED: "Export revu impossible : la version n'est ni approuvée ni verrouillée. L'export diagnostic reste disponible.",
+  L16_EXPORT_NO_ADJUSTMENT: "Aucun retraitement proposé pour cette version : pas de journal à exporter.",
+  EXPORT_SNAPSHOT_CONFLICT: "La feuille a changé depuis votre lecture : rechargez, puis exportez la version affichée.",
 };
 export function leaseFailureMessage(code: string | undefined, status: number): string {
   if (code && MESSAGES[code]) return MESSAGES[code];

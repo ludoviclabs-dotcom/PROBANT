@@ -10,6 +10,7 @@ import { stableSha256 } from "@/lib/synthesis/canonical";
 import { CL_COMMAND_PERMISSION, CL_HASH_NOTICE, type ClosingCommand, type PieceKind } from "./closing-contract";
 import { observeRuns, type CycleObservation } from "./closing-cycles";
 import { sourcesCurrentAdapter } from "./closing-adapters";
+import { observeFramework } from "./closing-ifrs";
 import { decide, decideUpload, type Decision } from "./closing-decide";
 import { evaluateClosing, journalView } from "./closing-evaluate";
 import { EVENT_MAP_FAILURES, EVENT_MAP_NOT_READ, type EventMapRead, type EventMapReader } from "./closing-events";
@@ -59,6 +60,11 @@ export class ClosingRuntime {
   }
   /** Current heads of every family with their sources checked by each family's own adapter (C14): a source replaced after a lock is seen, nothing is recalculated. */
   private async observe(tx: ClosingTx, scope: WorkpaperScope) { return observeRuns(await tx.cycleRuns(scope), sourcesCurrentAdapter(await tx.cycleSourceHeads(scope))); }
+  /** Framework sheets (IFRS, L16-05), observed apart from the cycles with the same source adapter: never a cycle observation. */
+  private async framework(tx: ClosingTx, scope: WorkpaperScope) {
+    const adapter = sourcesCurrentAdapter(await tx.cycleSourceHeads(scope));
+    return observeFramework(await tx.frameworkRuns(scope), run => adapter({ family: "clients", run }));
+  }
   /**
    * The transversal events map (C11), read through its own runtime and authorization before the file transaction (never inside it: the dossier row stays locked by
    * one connection only). A map of another dossier or period is not retained; an unreadable map is stated as such and its effects stay unknown, never zero.
@@ -75,8 +81,8 @@ export class ClosingRuntime {
   }
   /** Evaluation and single projection of the file, from the same journal, observation and events map. */
   private async model(tx: ClosingTx, scope: WorkpaperScope, observed?: CycleObservation[], eventMap: EventMapRead = EVENT_MAP_NOT_READ) {
-    const events = await tx.events(scope), state = fold(events), observations = observed ?? await this.observe(tx, scope);
-    const evaluation = evaluateClosing(state, observations, eventMap), journal = journalView(events);
+    const events = await tx.events(scope), state = fold(events), observations = observed ?? await this.observe(tx, scope), framework = await this.framework(tx, scope);
+    const evaluation = evaluateClosing(state, observations, eventMap, framework), journal = journalView(events);
     return { state, evaluation, journal, projection: projectDossier({ dossierId: scope.dossierId, periodId: scope.periodId, seq: state.seq, headHash: state.headHash, evaluation, journal }) };
   }
   /** Read model: journal, folded state, evaluation, projection and observed cycle sheets, computed in the same transaction. */
@@ -119,6 +125,7 @@ export class ClosingRuntime {
         if (command.command === "open" && periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
         if (command.expectedSeq !== state.seq) throw new ClosingConflict(state.seq, command.expectedSeq);
         const decision = decide(state, command, { actorId: identity.subject, at, closingAuthority: permission === "sign" && this.closingAuthority(identity, scope) === true, observations, events: eventMap,
+          framework: await this.framework(tx, scope), scope,
           ...(identity.reviewKind ? { reviewKind: identity.reviewKind } : {}), ...(identity.displayName ? { displayName: identity.displayName } : {}) });
         return this.append(tx, scope, identity.subject, at, decision, { seq: state.seq, hash: state.headHash });
       });

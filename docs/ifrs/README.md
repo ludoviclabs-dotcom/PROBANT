@@ -1,4 +1,4 @@
-# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-04 réalisés
+# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-05 réalisés
 
 État au 30/10/2026 :
 - **C00** : documentaire (contrats, périmètre, sources, attendus), restreint à IFRS 16.
@@ -8,8 +8,9 @@
 - **C02** : page `/ifrs/locations` (bandeau de contexte, rail des étapes, matrice de complétude, inspecteur, scénario synthétique en lecture seule), entrée « Référentiels » du profil local.
 - **L16-03** : cadrage des loyers sur la base PCG, contrat par contrat et ligne à ligne ; retraitement de clôture proposé (écritures, pont par poste), égal à l'oracle ; sélection et retrait par version attendue (logique pure) ; modèle d'export du journal.
 - **L16-04** : poste visuel — rail en cinq étapes (Sources, Qualification, Calcul, Retraitements, Revue), ligne de synthèse du portefeuille, table paginée, graphiques dette / droit d'utilisation et principal / intérêts avec leurs tableaux, ponts dette et droit d'utilisation séparés, comparaison de deux versions exécutées, frise du contrat dans l'inspecteur.
+- **L16-05** : synthèse de revue, résolution citée des points, relecture personnelle nommée et verrouillage à l'écran ; exports JSON, CSV et HTML imprimable avec manifeste (diagnostic ou revu, même empreinte métier) ; section « Travaux IFRS » du dossier de clôture (sélection pour une base déclarée, retrait, comptabilisation documentée par une pièce), jamais additionnée aux anomalies ; exemple d'exports dans [`exemples/l16-05/`](./exemples/l16-05/).
 
-**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a encore ni sélection branchée sur le dossier de clôture, ni export de la feuille (L16-05), ni recette de volume (L16-06).
+**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). Il n'y a pas encore de recette de volume ni de recette finale (L16-06).
 
 Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
@@ -17,7 +18,8 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 
 | Élément | Rôle |
 |---|---|
-| [`handoffs/L16-04.md`](./handoffs/L16-04.md) | **Où en est le chantier** : poste visuel, vue de portefeuille serveur, graphiques et tableaux, comparaison de versions, captures [`captures/l16-04/`](./captures/l16-04/) |
+| [`handoffs/L16-05.md`](./handoffs/L16-05.md) | **Où en est le chantier** : revue, exports et manifeste, travaux IFRS du dossier de clôture, inventaire des contrôles pour L16-06, captures [`captures/l16-05/`](./captures/l16-05/) |
+| [`handoffs/L16-04.md`](./handoffs/L16-04.md) | poste visuel, vue de portefeuille serveur, graphiques et tableaux, comparaison de versions, captures [`captures/l16-04/`](./captures/l16-04/) |
 | [`handoffs/L16-03.md`](./handoffs/L16-03.md) | cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
 | [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |

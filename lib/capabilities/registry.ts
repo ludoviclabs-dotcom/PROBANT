@@ -15,8 +15,9 @@ export * from "./procedures";
  * 1.5.2 (IFRS C02): /ifrs/locations page (matrix, inspector, steps, read-only synthetic scenario); local profile link.
  * 1.5.3 (IFRS L16-03): rent framing on the PCG base and proposed closing adjustment (journal, bridge by line item), tax not computed; selection still by the closing journal (L16-05).
  * 1.5.4 (IFRS L16-04): visual workstation on /ifrs/locations — five-step rail, portfolio line and table, debt / right-of-use and principal / interest charts with equivalent tables, bridges, version comparison.
+ * 1.5.5 (IFRS L16-05): review summary, cited resolutions and named personal review on the sheet; JSON / CSV / printable HTML exports with manifest (diagnostic or reviewed); selection for a declared base in the closing file (« Travaux IFRS »), never added to misstatements nor C05.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.5.4";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.5";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -88,7 +89,7 @@ export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
   modes: {
     historical: { implemented: false, scope: "Absent des constats historiques" },
     scenario: { implemented: true, scope: "Scénario synthétique en lecture seule (/ifrs/locations?demo=1) : « simulation non revue », calculé par le même moteur, jamais enregistré" },
-    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée ; page /ifrs/locations (matrice de complétude, table du portefeuille, graphiques dette et droit d'utilisation avec leurs tableaux, ponts, comparaison de deux versions exécutées, inspecteur, scénario synthétique en lecture seule) ; cadrage des loyers sur la base PCG et retraitement de clôture proposé (écritures, pont par poste), impôt non calculé ; sélection pour une base par le dossier de clôture, non encore branchée (L16-05)." },
+    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée ; page /ifrs/locations (matrice de complétude, table du portefeuille, graphiques dette et droit d'utilisation avec leurs tableaux, ponts, comparaison de deux versions exécutées, inspecteur, scénario synthétique en lecture seule) ; cadrage des loyers sur la base PCG et retraitement de clôture proposé (écritures, pont par poste), impôt non calculé ; synthèse de revue, résolution citée des points et relecture personnelle nommée ; exports JSON, CSV et HTML imprimable avec manifeste, diagnostic ou revu ; sélection pour une base déclarée au dossier de clôture (section « Travaux IFRS »), jamais ajoutée aux anomalies ; la sélection ne prouve pas la comptabilisation." },
   },
   pageAvailable: true }));
 export function reconciliationCycles() {

@@ -16,6 +16,9 @@ import type { LeaseCommand } from "../lease-commands";
 import type { LeaseResult } from "../lease-review";
 import { contentHash, periodId, type WorkpaperRun } from "../model";
 import { decideBundleSelection } from "@/lib/ifrs/shared/selection";
+import { closingHandlers } from "../closing-http";
+import { ClosingRuntime } from "../closing-runtime";
+import { PostgresClosingDatabase } from "../closing-store";
 import { assertDisposableDatabase } from "./disposable-database";
 import { leaseFiles, LEASE_PERIOD } from "./lease-fixture";
 
@@ -28,7 +31,7 @@ vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: { reviewedB
   confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } } }));
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par simulation, moteur réel, relecture personnelle nommée", () => {
-  let client: ReturnType<typeof postgres>, http: ReturnType<typeof leaseHandlers>, sessions: DrizzleSessionStore;
+  let client: ReturnType<typeof postgres>, http: ReturnType<typeof leaseHandlers>, closing: ReturnType<typeof closingHandlers>, sessions: DrizzleSessionStore;
   const now = 1_830_500_000, org = randomUUID(), dossier = randomUUID(), historicalDossier = randomUUID(), pid = periodId(LEASE_PERIOD);
   const config = { secret: "disposable-leases-validated-secret-0000000000000000", idleTtlSeconds: 3600, absoluteTtlSeconds: 7200, appOrigin: "https://probant.example.test" };
   const profileId = randomUUID(), localAuth: LocalAuthConfig = { profileId, issuer: LOCAL_ISSUER_PREFIX + profileId, organizationId: org, ownerName: "Camille Martin (exemple)", ownerReview: "personal", simulationEnabled: false };
@@ -63,6 +66,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     sessions = new DrizzleSessionStore(db);
     const authorizer = new RequestAuthorizer({ sessionStore: sessions, sessionConfig: config, nowEpochSeconds: () => now, dossierOwnership: new DrizzleDossierOwnershipReader(db), localAuth });
     http = leaseHandlers(() => new LeaseRuntime(db, authorizer, () => now), () => {});
+    closing = closingHandlers(() => new ClosingRuntime(new PostgresClosingDatabase(db), authorizer, () => now, () => false), () => {});
     await client`INSERT INTO organizations (id,name) VALUES (${org},'Locations validées')`;
     for (const d of [dossier, historicalDossier]) await client`INSERT INTO dossiers (id,organization_id,external_ref) VALUES (${d},${org},${d})`;
     const secret = newSessionSecret(), record = await sessions.create({ tokenSha256: sessionTokenDigest(secret), issuer: localAuth.issuer, subject: LOCAL_OWNER_SUBJECT, organizationId: org, roles: [], acr: "mfa", amr: ["mfa"], mfaSatisfied: true, nowEpochSeconds: now, idleTtlSeconds: 3600, absoluteTtlSeconds: 7200 });
@@ -71,6 +75,13 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
   afterAll(async () => { if (client) await client.end(); });
 
   const view = async (d: string = dossier) => { const r = await http.GET(request("GET", undefined, d)); expect(r.status).toBe(200); return r.json(); };
+  /** Export of an exact version (L16-05): the file, its business hash and status. */
+  const exportOf = async (body: Record<string, unknown>) => { const r = await http.exportPOST(request("POST", JSON.stringify(body))); return { status: r.status, hash: r.headers.get("X-Probant-Business-Hash"), text: await r.text() }; };
+  const closingCall = async (method: "GET" | "POST", body?: Record<string, unknown>) => {
+    const r = await (method === "GET" ? closing.GET : closing.POST)(new Request(config.appOrigin + "/api/workpapers/closing?dossierId=" + dossier + "&periodId=" + pid, { method,
+      headers: { cookie: SESSION_COOKIE + "=" + owner.secret, origin: config.appOrigin, [CSRF_HEADER]: owner.csrf, "Idempotency-Key": randomUUID(), ...(body ? { "Content-Type": "application/json" } : {}) }, ...(body ? { body: JSON.stringify(body) } : {}) }));
+    return { status: r.status, body: await r.json() };
+  };
   it("exécution réelle : chiffres de l'oracle au centime, cadrés sur la base PCG, retraitement proposé puis revu à version exacte ; conclusion, relecture personnelle nommée et verrouillage", async () => {
     let run = await ok({ command: "create_leases", period: LEASE_PERIOD, instanceKey: "l16-02-valide" });
     expect(run.template.rule).toMatchObject({ version: "1.0.0", validation: "validated" });
@@ -103,6 +114,10 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     const contracts = batches.find(b => b.document.documentType === "lease_contracts")!;
     run = await ok({ command: "conclude", ...target(run), text: "Dette et droit d'utilisation recalculés sur paramètres sourcés ; loyers cadrés sur la base PCG ; retraitement proposé, impôt non calculé.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } });
     run = await ok({ command: "submit", ...target(run) });
+    // L16-05: before the review, only a diagnostic export exists; the reviewed one says why it is refused.
+    const submitted = { id: run.id, version: run.version, expectedHash: contentHash(run) };
+    expect(await exportOf({ ...submitted, format: "json", kind: "reviewed" })).toMatchObject({ status: 422, text: expect.stringContaining("L16_EXPORT_NOT_REVIEWED") });
+    expect((await exportOf({ ...submitted, format: "json", kind: "diagnostic" })).status).toBe(200);
     run = await ok({ command: "review", ...target(run), decision: "approved", text: "Relecture personnelle des paramètres, de l'échéancier et des preuves.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id }, submittedHash: run.submittedHash! });
     expect(run.approval).toMatchObject({ actorId: LOCAL_OWNER_SUBJECT, kind: "personal", reviewerName: "Camille Martin (exemple)" });
     const reviewed = (await view()).adjustments[run.id];
@@ -111,6 +126,42 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     expect(run.state).toBe("locked");
     const locked = (await view()).adjustments[run.id];
     expect(locked).toMatchObject({ status: "reviewed", bundleHash: proposed.bundleHash });
+    // L16-05 reviewed export of the locked version: twice the same business hash and data; totals equal to the result.
+    const lockedRef = { id: run.id, version: run.version, expectedHash: contentHash(run) };
+    const first = await exportOf({ ...lockedRef, format: "json", kind: "reviewed" }), second = await exportOf({ ...lockedRef, format: "json", kind: "reviewed" });
+    expect([first.status, second.status]).toEqual([200, 200]);
+    expect(first.hash).toBe(second.hash);
+    expect(JSON.parse(first.text).business).toEqual(JSON.parse(second.text).business);
+    expect(JSON.parse(first.text).business.journal.totals).toEqual({ debit: { amount: "51901.17", currency: "EUR" }, credit: { amount: "51901.17", currency: "EUR" } });
+    const report = await exportOf({ ...lockedRef, format: "html", kind: "reviewed" });
+    expect(report.hash).toBe(first.hash);
+    expect(report.text).toContain("relecture personnelle nommée de Camille Martin (exemple)");
+    expect(report.text).toContain("débit 51\u202f901,17\u00a0€, crédit 51\u202f901,17\u00a0€");
+    // An earlier version stays readable as a diagnostic export; a hash other than the version read is a conflict.
+    expect((await exportOf({ id: run.id, version: proposed.runVersion, expectedHash: proposed.contentHash, format: "contracts_csv", kind: "diagnostic" })).status).toBe(200);
+    expect(await exportOf({ id: run.id, version: proposed.runVersion, expectedHash: proposed.contentHash, format: "json", kind: "reviewed" })).toMatchObject({ status: 422, text: expect.stringContaining("L16_EXPORT_NOT_REVIEWED") });
+    expect(await exportOf({ ...lockedRef, expectedHash: proposed.contentHash, format: "json", kind: "diagnostic" })).toMatchObject({ status: 409, text: expect.stringContaining("EXPORT_SNAPSHOT_CONFLICT") });
+    expect((await http.exportPOST(request("POST", JSON.stringify({ ...lockedRef, format: "json", kind: "reviewed", pad: "x".repeat(5000) })))).status).toBe(413);
+
+    // L16-05 closing file: the « Travaux IFRS » section lists the lineage; selecting it adds nothing to the misstatements nor to the C05 effects.
+    expect((await closingCall("POST", { command: "open", period: LEASE_PERIOD, entity: "LOCATIONS SAS (synthétique)", expectedSeq: 0 })).status).toBe(200);
+    const opened = (await closingCall("GET")).body;
+    expect(opened.projection.schemaVersion).toBe("closing-dossier-1.2.0");
+    expect(opened.projection.ifrsWorks.lineages).toMatchObject([{ rootId: run.rootId, state: "locked", selection: { status: "non_selectionne" }, toDecide: true, bundle: { status: "reviewed", taxStatus: "not_computed" } }]);
+    const selectBody = { command: "select_ifrs_bundle", procedure: "ifrs16.leases", rootId: run.rootId, runId: run.id, version: run.version, contentHash: contentHash(run), bundleHash: locked.bundleHash,
+      base: { includedAdjustments: { kind: "declared", identities: [] }, limits: "Grand livre PCG du dossier ; pont partiel limité au retraitement IFRS 16" } };
+    expect(await closingCall("POST", { ...selectBody, version: proposed.runVersion, expectedSeq: opened.seq })).toMatchObject({ status: 409, body: { error: "L16_BUNDLE_STALE" } });
+    const selected = await closingCall("POST", { ...selectBody, expectedSeq: opened.seq });
+    expect(selected.status, JSON.stringify(selected.body)).toBe(200);
+    const lineage = selected.body.view.projection.ifrsWorks.lineages[0];
+    expect(lineage).toMatchObject({ selection: { status: "selectionne", runVersion: run.version, base: { baseKind: "PCG" } }, posting: { status: "non_documentee" }, toDecide: false });
+    expect(selected.body.view.projection.findings.totals).toEqual(opened.projection.findings.totals);
+    expect(selected.body.view.projection.findings.events).toEqual(opened.projection.findings.events);
+    expect(selected.body.view.projection.completion.blockers).toEqual(opened.projection.completion.blockers);
+    const withdrawn = await closingCall("POST", { command: "withdraw_ifrs_bundle", rootId: run.rootId, runId: run.id, bundleHash: locked.bundleHash, expectedSeq: selected.body.view.seq });
+    expect(withdrawn.body.view.projection.ifrsWorks.lineages[0].selection.status).toBe("non_selectionne");
+    expect((await closingCall("POST", { ...selectBody, expectedSeq: withdrawn.body.view.seq })).status).toBe(200);
+
     // Selection for a base is decided by the closing journal (L16-05); the pure decision accepts this exact version and nothing older.
     const ledger = batches.find(b => b.document.documentType === "lease_ledger")!;
     const sheet = { runId: run.id, rootId: run.rootId, revision: run.revision, version: run.version, state: run.state, contentHash: contentHash(run), latestRevision: true, sourcesCurrent: true, ruleCurrent: true };
@@ -130,6 +181,11 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     expect(() => decide({ sourcesCurrent: false })).toThrow("L16_BUNDLE_STALE");
     const refused = await http.POST(request("POST", JSON.stringify({ command: "conclude", ...target(run), text: "Reprise.", citation: { documentVersionId: contracts.document.id, rowId: contracts.rows[1].id } })));
     expect(refused.status).toBe(409); expect((await refused.json()).error).toBe("L16_SOURCE_REPLACED_REVISION_REQUIRED");
+    // L16-05: the closing file keeps the selection and says it is to re-examine; the reviewed export is refused, the diagnostic one stays readable.
+    const stale = (await closingCall("GET")).body.projection.ifrsWorks.lineages[0];
+    expect(stale.selection).toMatchObject({ status: "a_reexaminer", reasons: ["source remplacée ou ajoutée"] });
+    expect(await exportOf({ ...lockedRef, format: "json", kind: "reviewed" })).toMatchObject({ status: 409, text: expect.stringContaining("L16_SOURCE_REPLACED_REVISION_REQUIRED") });
+    expect((await exportOf({ ...lockedRef, format: "html", kind: "diagnostic" })).text).toContain("sources remplacées");
   }, 90000);
 
   it("contrat historique sans ouverture : diagnostic, point bloquant sans montant ; l'approbation est refusée tant qu'il n'est pas résolu", async () => {

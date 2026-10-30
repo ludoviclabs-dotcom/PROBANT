@@ -56,7 +56,10 @@ describe("C02 modèle de vue Locations", () => {
     expect(leaseWorkspaceView(input({ run: run({ state: "awaiting_review" }), selfReviewAllowed: false })).actions.review.reason).toMatch(/identité autorisée/);
   });
   it("scénario synthétique : rien n'est permis, chaque action le dit", () => {
-    const v = leaseWorkspaceView(input({ mode: "demo", permissions: [] }));
-    expect(Object.values(v.actions).every(a => !a.allowed && a.reason)).toBe(true);
+    const v = leaseWorkspaceView(input({ mode: "demo", permissions: [] })), { export_diagnostic: _read, ...mutations } = v.actions;
+    void _read;
+    expect(Object.values(mutations).every(a => !a.allowed && a.reason)).toBe(true);
+    // L16-05: the simulation can be read as a diagnostic export, never as a reviewed one.
+    expect(v.actions.export_reviewed.reason).toMatch(/diagnostic seulement, jamais revu/);
   });
 });

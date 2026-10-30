@@ -97,7 +97,7 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
     "Retraitement proposé limité aux contrats calculés et cadrés au centime ; les autres restent listés avec leur motif, jamais compensés",
     "Base PCG du droit d'utilisation, de la dette et de l'ouverture : 0,00 par condition de la base visée, vérifiée à la sélection par son manifeste (X29)",
     "Impôt non calculé (taxStatus not_computed) : effet avant impôt seulement, sans taux ni effet nul supposé ; le résultat net IFRS n'est pas attesté",
-    "Sélection pour une base et comptabilisation hors de la feuille : sélection par le journal de clôture (L16-05) ; sélectionner ne prouve pas la comptabilisation",
+    "Sélection pour une base et comptabilisation hors de la feuille : sélection par le dossier de clôture (section « Travaux IFRS ») ; sélectionner ne prouve pas la comptabilisation, seule une pièce citée la documente",
     "Sous-total limité aux contrats calculés ; le registre fourni ne prouve pas l'exhaustivité des contrats de l'entité",
     ...(LEASE_RULE_BASIS.status === "review_required" ? ["Règle à revoir : scénario synthétique seulement, aucune exécution réelle"] : []),
   ];

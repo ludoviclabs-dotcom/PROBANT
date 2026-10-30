@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { frozen, moneySchema, type ProcedureTemplate } from "./model";
+import { frozen, moneySchema, type ProcedureTemplate, type WorkpaperRun } from "./model";
 import { CalculationRegistry, type CalculationRequest } from "./calculations";
 import { frameworkBlockers } from "@/lib/ifrs/shared/context";
 import { IFRS16_RULE, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
@@ -37,3 +37,6 @@ export class LeaseRegistry extends CalculationRegistry {
     return registry.execute(request);
   }
 }
+
+/** Règle courante : gabarit et règle à la version de l'adaptateur ; une autre version se révise, jamais ne se réexécute (lue aussi par le dossier de clôture). */
+export const leaseRuleCurrent = (run: WorkpaperRun) => run.template.version === LEASE_TEMPLATE.version && run.template.rule?.version === LEASE_TEMPLATE.rule!.version;

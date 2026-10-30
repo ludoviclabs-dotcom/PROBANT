@@ -81,7 +81,7 @@ export const citationInputSchema = z.object({ pieceVersionId, page: z.number().i
 export type CitationInput = z.infer<typeof citationInputSchema>;
 const citations = (min: number) => z.array(citationInputSchema).min(min).max(20);
 const seq = z.number().int().min(0).max(1_000_000);
-const rootIdSchema = z.string().min(1).max(200);
+const rootIdSchema = z.string().min(1).max(200), sha64 = z.string().regex(/^[a-f0-9]{64}$/);
 /** Economic event of the transversal events map (C11) and the fingerprint of the effect the browser has read (C14 suite). */
 const eventIdSchema = z.string().regex(/^event-[a-f0-9]{64}$/), effectBasisSchema = z.string().regex(/^[a-f0-9]{64}$/);
 const periodSchema = z.object({ startDate: date, closingDate: date, asOfDate: date, currency: z.literal("EUR"), validation: z.enum(["provisional", "confirmed"]) }).strict();
@@ -132,6 +132,12 @@ export const closingCommandSchema = z.discriminatedUnion("command", [
   z.object({ command: z.literal("set_milestone"), expectedSeq: seq, milestone: z.enum(CL_MILESTONES), label: text(120).optional(), date, citations: citations(0) }).strict(),
   z.object({ command: z.literal("set_threshold"), expectedSeq: seq, threshold: z.enum(CL_THRESHOLDS), amount: amountSchema, basis: text(300).optional(),
     rate: z.string().regex(/^(100|\d{1,2}(\.\d{1,2})?)$/).optional(), rationale: text(1000), citations: citations(0) }).strict(),
+  // IFRS works (L16-05): the closing file is the only consumer selecting a reviewed adjustment for a declared base; the server completes the manifest.
+  z.object({ command: z.literal("select_ifrs_bundle"), expectedSeq: seq, procedure: z.literal("ifrs16.leases"), rootId: rootIdSchema, runId: rootIdSchema, version: z.number().int().positive(), contentHash: sha64, bundleHash: sha64,
+    base: z.object({ includedAdjustments: z.discriminatedUnion("kind", [z.object({ kind: z.literal("declared"), identities: z.array(z.string().regex(/^ifrs16:lease:[A-Za-z0-9._:-]{1,200}$/)).max(10_000) }).strict(),
+      z.object({ kind: z.literal("unknown"), reason: text(2000) }).strict()]), limits: text(4000) }).strict() }).strict(),
+  z.object({ command: z.literal("withdraw_ifrs_bundle"), expectedSeq: seq, rootId: rootIdSchema, runId: rootIdSchema, bundleHash: sha64 }).strict(),
+  z.object({ command: z.literal("document_ifrs_posting"), expectedSeq: seq, rootId: rootIdSchema, bundleHash: sha64, text: text(1000), citations: citations(1) }).strict(),
   z.object({ command: z.literal("mark_personal_complete"), expectedSeq: seq, text: text(1500) }).strict(),
   z.object({ command: z.literal("validate_closing"), expectedSeq: seq, text: text(1500) }).strict(),
   z.object({ command: z.literal("reopen"), expectedSeq: seq, reason: text(1000) }).strict(),
@@ -146,6 +152,7 @@ export const CL_COMMAND_PERMISSION: Record<ClosingCommandName, "prepare" | "revi
   record_contradiction: "prepare", resolve_contradiction: "prepare", validate_closing: "sign", reopen: "sign",
   bind_sheet: "prepare", exclude_sheet: "prepare", set_milestone: "prepare", set_threshold: "prepare", mark_personal_complete: "review",
   correct_event_effect: "prepare", assess_event_effect: "review",
+  select_ifrs_bundle: "prepare", withdraw_ifrs_bundle: "prepare", document_ifrs_posting: "prepare",
 };
 export const pieceUploadSchema = z.object({ expectedSeq: seq, label: text(160), kind: z.enum(CL_PIECE_KINDS), pieceId: z.string().regex(/^PC-\d{1,4}$/).optional() }).strict();
 

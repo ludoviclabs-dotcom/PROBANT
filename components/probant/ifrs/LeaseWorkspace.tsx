@@ -18,6 +18,7 @@ import { LeaseChartsPanel } from "./LeaseCharts";
 import { PolicyEditor } from "./PolicyEditor";
 import { ComparisonPanel, PortfolioTable, SummaryLine } from "./Portfolio";
 import { ActionBar, ContextBand, StateNotice, StepRail } from "./Primitives";
+import { ReviewPanel, type ExportFormat } from "./ReviewPanel";
 import { SourcesPanel } from "./SourcesPanel";
 import { useLeaseSelection, type LeaseSelectionState } from "./useLeaseSelection";
 import s from "./ifrs.module.css";
@@ -45,7 +46,8 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
   const run = useMemo(() => view ? [...view.runs].sort((a, b) => b.revision - a.revision)[0] ?? null : null, [view]);
   const workspace = run ? view?.workspace[run.id] ?? null : view?.emptyWorkspace ?? null;
   const qualification = run ? view?.qualification[run.id] ?? null : null;
-  const framing = run ? view?.framing?.[run.id] ?? null : null, bundle = run ? view?.adjustments?.[run.id] ?? null : null, portfolio = run ? view?.portfolio?.[run.id] ?? null : null;
+  const framing = run ? view?.framing?.[run.id] ?? null : null, bundle = run ? view?.adjustments?.[run.id] ?? null : null, portfolio = run ? view?.portfolio?.[run.id] ?? null : null, review = run ? view?.review?.[run.id] ?? null : null;
+  const [exported, setExported] = useState("");
   const result = run?.result?.execution === "completed" ? run.result.result as LeaseResult : null;
   const canPrepare = !demo && !!view?.permissions.includes("prepare");
   const saving = status === "saving";
@@ -96,6 +98,30 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
     } catch (e) { setStatus("failed"); setError(e instanceof Error ? e.message : "Échec de la commande"); }
     finally { busy.current = false; }
   }
+  /**
+   * Export d'une version lue (L16-05) : le serveur reçoit la version et l'empreinte affichées ; une version changée depuis est un conflit.
+   * Le scénario synthétique ne donne qu'un export diagnostic. Le fichier est téléchargé tel que le serveur l'a produit.
+   */
+  async function exportFile(kind: "diagnostic" | "reviewed", format: ExportFormat) {
+    if (!run || busy.current) return;
+    busy.current = true; setError(""); setExported("");
+    try {
+      let response: Response;
+      if (demo) response = await fetch("/api/workpapers/locations-ifrs16/demo/export?" + new URLSearchParams({ format }), { cache: "no-store" });
+      else {
+        await session();
+        response = await fetch("/api/workpapers/locations-ifrs16/export?" + new URLSearchParams({ dossierId, periodId: pid }), { method: "POST", cache: "no-store",
+          headers: { "Content-Type": "application/json", "x-probant-csrf": csrf.current, "Idempotency-Key": crypto.randomUUID() },
+          body: JSON.stringify({ id: run.id, version: run.version, expectedHash: view?.contentHashes?.[run.id] ?? "", format, kind }) });
+      }
+      if (!response.ok) { const data = await response.json().catch(() => ({})); throw new Error(leaseFailureMessage(data.error, response.status)); }
+      const blob = await response.blob(), name = /filename="([^"]+)"/.exec(response.headers.get("Content-Disposition") ?? "")?.[1] ?? "export-locations-ifrs16";
+      const url = URL.createObjectURL(blob), link = document.createElement("a");
+      link.href = url; link.download = name; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+      setExported("Export téléchargé : " + name + " · empreinte métier " + (response.headers.get("X-Probant-Business-Hash") ?? "").slice(0, 12) + "…");
+    } catch (e) { setError(e instanceof Error ? e.message : "Export impossible"); }
+    finally { busy.current = false; }
+  }
   const command = (name: string, fields: Record<string, unknown> = {}) => run ? mutate({ command: name, id: run.id, expectedVersion: run.version, ...fields }) : Promise.resolve();
   function onAction(id: ActionId) {
     if (id === "create") void mutate({ command: "create_leases", period, instanceKey: "ifrs16-" + pid });
@@ -142,7 +168,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
       <p>Aucune donnée n'a été écrasée et la commande n'est pas rejouée.</p><button type="button" onClick={() => { setConflict(null); setStatus("idle"); void refresh(); }}>Recharger la version serveur</button></StateNotice>}
     {!view && !loading && !error && !demo && <StateNotice tone="info" title="Ouvrir une feuille Locations IFRS 16">Choisissez le dossier et l'exercice, ou explorez le <DossierContextAnchor href="/ifrs/locations?demo=1">scénario synthétique</DossierContextAnchor>.</StateNotice>}
     {view && workspace && <div className={s.layout}>
-      <StepRail steps={workspace.steps} anchors={{ sources: "l16-sources-title", calculation: "l16-portfolio-title", ...(qualification ? { qualification: "l16-matrix-title" } : {}), ...(run ? { adjustment: "l16-adjustment-title" } : {}) }}/>
+      <StepRail steps={workspace.steps} anchors={{ sources: "l16-sources-title", calculation: "l16-portfolio-title", ...(qualification ? { qualification: "l16-matrix-title" } : {}), ...(run ? { adjustment: "l16-adjustment-title" } : {}), ...(run && review ? { review: "l16-review-title" } : {}) }}/>
       <div className={s.work} data-inspector={selected && docked ? "open" : "closed"}>
         <div style={{ minWidth: 0 }}>
           {view.capability.realExecution !== "allowed" && !demo && <StateNotice title="Calcul réel bloqué : règle à revoir">La relecture personnelle nommée de la règle n'est pas consignée (docs/ifrs/REVUE_REGLE_IFRS16.md). Les sources, la qualification et le gel restent possibles ; aucun montant n'est publié pour ce dossier.</StateNotice>}
@@ -167,6 +193,9 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
               : <p className={s.muted}>{result ? "Une seule version exécutée pour cette feuille : rien à comparer. Une révision exécutée sera comparée à celle-ci, sans attribution d'effet." : "Comparaison possible entre deux versions exécutées de la feuille."}</p>}
           </section>
           {run && <AdjustmentPanel result={result} bundle={bundle} framing={framing} onOpen={(id, el) => openContract(id, "ledger", el)}/>}
+          {run && review && <ReviewPanel run={run} summary={review} qualification={qualification} actions={workspace.actions} busy={saving} demo={demo}
+            onCommand={(name, fields) => void command(name, fields)} onExport={(kind, format) => void exportFile(kind, format)}/>}
+          {exported && <p role="status" className={s.saveState} data-state="saved">{exported}</p>}
           <SourcesPanel view={view} period={period} required={view.capability.requiredTypes} canPrepare={canPrepare && !run?.population} busy={saving} onPreview={d => void mutate(d, true)} onApprove={c => void mutate({ command: "approve_import", ...c }, true)}/>
         </div>
         {selected && <Inspector title={"Contrat " + selected.contractId} kicker="Inspecteur" docked={docked} onClose={close} returnTo={trigger.current}>

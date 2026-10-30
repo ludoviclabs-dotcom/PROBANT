@@ -1,4 +1,4 @@
-import { mkdirSync } from "node:fs";
+import { mkdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
@@ -7,7 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
  * 1. Scénario synthétique en lecture seule (/ifrs/locations?demo=1), calculé par le moteur côté serveur, aux trois largeurs.
  * 2. L16-03 : cadrage PCG, écritures du retraitement proposé, pont par poste et écart de cadrage, aux trois largeurs.
  * 3. L16-04 : rail en cinq étapes, ligne de synthèse, table, graphiques et tableaux égaux au JSON, frise dans l'inspecteur.
- * 4. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
+ * 4. L16-05 : synthèse de revue, points générés, exports diagnostic téléchargés égaux à l'écran et au JSON, impression du rapport HTML.
+ * 5. Dossier réel sans session : l'écran dit la cause et l'action, sans chiffre ni écran fictivement terminé.
  * Captures : docs/ifrs/captures/c02 (IFRS_C02_OUT pour les déplacer). Données exclusivement synthétiques.
  */
 const OUT = process.env.IFRS_C02_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "c02");
@@ -202,6 +203,57 @@ test.describe("IFRS L16-04 · poste visuel (scénario synthétique)", () => {
     for (const [svg, box] of widths) expect(svg).toBeLessThanOrEqual(box + 1);
     await context.close();
   });
+});
+
+const OUT_L5 = process.env.IFRS_L16_05_OUT ?? path.join(process.cwd(), "docs", "ifrs", "captures", "l16-05");
+const centsOf = (amount: string) => BigInt(amount.replace(".", "").replace(/^(-?)0+(?=\d)/, "$1"));
+test.describe("IFRS L16-05 · revue et exports (scénario synthétique)", () => {
+  for (const width of WIDTHS) {
+    test(`largeur ${width} : synthèse de revue, points générés, export diagnostic téléchargé égal à l'écran et au JSON, export revu refusé avec son motif`, async ({ browser }) => {
+      const context = await browser.newContext({ viewport: { width, height: 900 }, locale: "fr-FR", reducedMotion: "reduce", acceptDownloads: true }), page = await context.newPage();
+      const json = await (await page.request.get("/api/workpapers/locations-ifrs16/demo")).json(), runId = json.runs[0].id as string;
+      const debtClosing = json.portfolio[runId].summary.amounts.debtClosing as Money;
+      await page.goto("/ifrs/locations?demo=1");
+      await expect(page.getByRole("heading", { name: "Revue et exports" })).toBeVisible();
+      await expect(page.getByLabel("Synthèse de revue", { exact: true })).toContainText("2 point(s) bloquant(s) ouvert(s) sur 6 · conclusion absente · aucune relecture · impôt non calculé");
+      await expect(page.getByRole("region", { name: "Synthèse de revue par contrat — défilement horizontal au clavier" }).getByRole("row")).toHaveCount(8);
+      const reviewed = page.getByRole("group", { name: "Export revu" });
+      await expect(reviewed.getByText("Scénario synthétique : export diagnostic seulement, jamais revu")).toBeVisible();
+      for (const b of await reviewed.getByRole("button").all()) await expect(b).toBeDisabled();
+      await page.getByRole("navigation", { name: "Étapes du travail" }).getByRole("link", { name: "Revue" }).click();
+      await expect(page).toHaveURL(/#l16-review-title$/);
+
+      const diagnostic = page.getByRole("group", { name: "Export diagnostic" });
+      const [html] = await Promise.all([page.waitForEvent("download"), diagnostic.getByRole("button", { name: "Rapport HTML imprimable" }).click()]);
+      expect(html.suggestedFilename()).toBe("simulation-non-revue-locations-ifrs16-SYN-LEAS-r1v5-diagnostic.html");
+      const report = readFileSync((await html.path())!, "utf8");
+      expect(report).toContain("dette " + eur(debtClosing));
+      expect(report).toContain("débit 51 901,17 €, crédit 51 901,17 €");
+      await expect(page.getByRole("status").filter({ hasText: "Export téléchargé" })).toContainText("empreinte métier");
+      const [csv] = await Promise.all([page.waitForEvent("download"), diagnostic.getByRole("button", { name: "CSV contrats" }).click()]);
+      const [head, ...rows] = readFileSync((await csv.path())!, "utf8").trim().split("\r\n").map(l => l.split(","));
+      const col = head.indexOf("debt_closing"), total = rows.reduce((t, r) => t + (r[col] ? centsOf(r[col]) : 0n), 0n);
+      expect(total).toBe(centsOf(debtClosing.amount));
+      await noOverflow(page); await axe(page);
+      mkdirSync(OUT_L5, { recursive: true });
+      await page.getByRole("heading", { name: "Revue et exports" }).scrollIntoViewIfNeeded();
+      await page.screenshot({ path: path.join(OUT_L5, "revue-" + width + ".jpg"), type: "jpeg", quality: 78 });
+
+      if (width === 1440) {
+        // Printing the HTML report: repeated table headers, context on each table, several pages without a broken layout.
+        const print = await context.newPage();
+        await print.setContent(report);
+        await print.emulateMedia({ media: "print" });
+        expect(await print.evaluate(() => getComputedStyle(document.querySelector("thead")!).display)).toBe("table-header-group");
+        expect(await print.locator("caption").first().textContent()).toContain("Dossier SYN-LEASES · exercice 01/01/2026 → 31/12/2026 · feuille r1 · v5");
+        const pages = ((await print.pdf({ format: "A4" })).toString("latin1").match(/\/Type\s*\/Page[^s]/g) ?? []).length;
+        expect(pages).toBeGreaterThanOrEqual(2);
+        await print.screenshot({ path: path.join(OUT_L5, "rapport-impression-1440.jpg"), type: "jpeg", quality: 78 });
+        await print.close();
+      }
+      await context.close();
+    });
+  }
 });
 
 test.describe("IFRS C02 · dossier réel sans session", () => {

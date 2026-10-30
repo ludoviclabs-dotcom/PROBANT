@@ -1,4 +1,5 @@
 "use client";
+import { ClosingIfrsWorks } from "./ClosingIfrsWorks";
 import { DossierScopedInput } from "@/components/probant/DossierScopedInput";
 import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -142,7 +143,8 @@ export function ClosingWorkspace({ initialDossierId = "", initialPeriodValue = e
         </div>
         <div className={cl.layout} data-panel={procedure ? "open" : "closed"}>
           <div role="tabpanel" id="cl-tabpanel" aria-labelledby={"cl-tab-" + tab} style={{ minWidth: 0 }}>
-            {tab === "programme" ? <ClosingProgram view={view} filters={filters} setFilters={setFilters} selected={selected} onOpen={open} canPrepare={canPrepare} send={send} busy={saving}/> : null}
+            {tab === "programme" ? <><ClosingProgram view={view} filters={filters} setFilters={setFilters} selected={selected} onOpen={open} canPrepare={canPrepare} send={send} busy={saving}/>
+              <ClosingIfrsWorks view={view} canPrepare={canPrepare} send={send} busy={saving}/></> : null}
             {tab === "pieces" ? <ClosingPieces view={view} onOpen={open} canPrepare={canPrepare} send={send} upload={upload} busy={saving} download={download}/> : null}
             {tab === "anomalies" ? <ClosingFindings view={view} canPrepare={canPrepare} canReview={canReview} send={send} busy={saving} onOpen={open} download={download}/> : null}
             {tab === "revue" ? <ClosingReview view={view} canPrepare={canPrepare} canReview={canReview} send={send} busy={saving} onOpen={open} download={download}/> : null}

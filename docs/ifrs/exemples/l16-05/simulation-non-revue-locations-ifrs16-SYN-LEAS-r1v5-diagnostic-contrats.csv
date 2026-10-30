@@ -1,0 +1,8 @@
+export_version,business_hash,contract_id,version,status,result,amounts,framing,adjustment,debt_opening,additions,interest,payments,debt_closing,depreciation,rou_net_closing
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,D04,v1,a_qualifier,not_applicable,aucun montant déterminé,not_applicable,not_applicable,,,,,,,
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,D05,v1,exemption_documentee,not_applicable,aucun montant déterminé,not_applicable,not_applicable,,,,,,,
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,D06,v1,hors_scope_v1,not_applicable,aucun montant déterminé,not_applicable,not_applicable,,,,,,,
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,D07,v1,non_location,not_applicable,aucun montant déterminé,not_applicable,not_applicable,,,,,,,
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,D08,v1,eligible_v1,computed,déterminés,difference,excluded,0.00,9218.06,281.34,4800.00,4699.40,4609.03,4609.03
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,F01,v1,eligible_v1,computed,déterminés,framed,included,0.00,2940.99,59.01,3000.00,0.00,2940.99,0.00
+ifrs16-export-1,9bf27564ca94a26dd089cba1cf111fdbb91569f3d7bb406b80a061e0538f2a81,F03,v1,eligible_v1,computed,déterminés,framed,included,0.00,33421.27,1398.49,12000.00,22819.76,11140.42,22280.85
