@@ -93,7 +93,9 @@ describe("L16-05 exemple synthétique publié", () => {
   it("docs/ifrs/exemples/l16-05 est exactement ce que le code produit (npm run ifrs:l16-docs) : aucune dérive silencieuse", async () => {
     for (const format of LEASE_EXPORT_FORMATS) {
       const file = await leaseDemoExport(format, LEASE_EXAMPLE_EMISSION);
-      expect(readFileSync(join(__dirname, "../../../docs/ifrs/exemples/l16-05", file.fileName), "utf8"), file.fileName).toBe(file.content);
+      // Line endings are normalized on both sides: Git may check the example out with CRLF (core.autocrlf), as for the journal model.
+      const lf = (text: string) => text.replace(/\r\n/g, "\n");
+      expect(lf(readFileSync(join(__dirname, "../../../docs/ifrs/exemples/l16-05", file.fileName), "utf8")), file.fileName).toBe(lf(file.content));
     }
   });
 });
