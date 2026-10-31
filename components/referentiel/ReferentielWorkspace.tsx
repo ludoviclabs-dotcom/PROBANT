@@ -12,9 +12,10 @@ import {
   computeScope,
   countRegistry,
   registryLabel,
+  selectRegistry,
 } from "@/lib/referentiel/view-model";
 import { LibrarySection, type LibraryVariant } from "./LibrarySection";
-import { registryOf, type Registry } from "./themes";
+import type { Registry } from "./themes";
 import { YearFrieze } from "./YearFrieze";
 import x from "./referentiel.module.css";
 
@@ -89,13 +90,10 @@ export function ReferentielWorkspace({
   };
 
   const chooseRegistry = (r: Registry | "all") => {
-    if (r === "all" || registry === r) {
-      setRegistry("all");
-      return;
-    }
-    setRegistry(r);
-    // Un thème de l'autre famille ne laisserait aucune entrée : il est retiré.
-    if (theme !== "all" && registryOf(theme) !== r) setTheme("all");
+    // Recliquer la famille active revient à « toutes ». Les règles de `selectRegistry` sont aussi celles des comptes.
+    const next = selectRegistry(theme, registry === r ? "all" : r);
+    setRegistry(next.registry);
+    setTheme(next.theme);
   };
 
   const status = q

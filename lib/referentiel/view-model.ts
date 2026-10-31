@@ -95,8 +95,20 @@ export function themeCounts(
     .sort((a, b) => b.n - a.n);
 }
 
+/**
+ * Filtres après le choix d'une famille : « toutes » garde le thème actif ; une famille ne le garde que s'il lui
+ * appartient (un thème de l'autre famille ne laisserait aucune entrée). Partagé par la page et les comptes de l'index.
+ */
+export function selectRegistry(
+  theme: SourceTheme | "all",
+  registry: Registry | "all",
+): { registry: Registry | "all"; theme: SourceTheme | "all" } {
+  const keepTheme = theme === "all" || registry === "all" || registryOf(theme) === registry;
+  return { registry, theme: keepTheme ? theme : "all" };
+}
+
 export interface IndexCounts {
-  /** Comptes par famille sur `dated` : cliquer une famille remet le thème à « tous ». */
+  /** Comptes par famille sur `dated`, après `selectRegistry` : le thème gardé par le choix est appliqué. */
   registries: { all: number; "droit-dur": number; methode: number };
   /** Nombre d'entrées du périmètre de l'index des thèmes (`regScope`). */
   themesAll: number;
@@ -106,18 +118,27 @@ export interface IndexCounts {
 
 /**
  * Comptes de l'index : chaque compte vaut le nombre d'entrées qu'afficherait un clic sur ce filtre, les autres filtres
- * restant posés (recherche, millésime, et famille pour les thèmes).
+ * restant posés (recherche, millésime, et famille pour les thèmes ; thème gardé ou retiré selon `selectRegistry` pour
+ * les familles).
  */
 export function indexCounts(scope: LibraryScope, activeTheme: SourceTheme | "all"): IndexCounts {
   const themes = themeCounts(scope.regScope);
   if (activeTheme !== "all" && !themes.some((t) => t.theme === activeTheme)) {
     themes.push({ theme: activeTheme, n: 0, registry: registryOf(activeTheme) });
   }
+  const afterChoosing = (registry: Registry | "all") => {
+    const next = selectRegistry(activeTheme, registry);
+    return scope.dated.filter(
+      (s) =>
+        (next.registry === "all" || registryOf(s.theme) === next.registry) &&
+        (next.theme === "all" || s.theme === next.theme),
+    ).length;
+  };
   return {
     registries: {
-      all: scope.dated.length,
-      "droit-dur": countRegistry(scope.dated, "droit-dur"),
-      methode: countRegistry(scope.dated, "methode"),
+      all: afterChoosing("all"),
+      "droit-dur": afterChoosing("droit-dur"),
+      methode: afterChoosing("methode"),
     },
     themesAll: scope.regScope.length,
     themes,

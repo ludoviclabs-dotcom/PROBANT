@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { SourceTheme } from "@/lib/canonical-model";
 import { SOURCES } from "@/lib/referentiel/sources";
 import {
   SEUILS_FAMILY,
@@ -11,6 +12,7 @@ import {
   indexCounts,
   registryFamily,
   registryLabel,
+  selectRegistry,
   themeCounts,
 } from "@/lib/referentiel/view-model";
 import { registryOf } from "@/components/referentiel/themes";
@@ -154,6 +156,31 @@ describe("view-model du référentiel", () => {
       n: 0,
       registry: "droit-dur",
     });
+  });
+
+  it("index : avec un thème actif, le compte d'une famille vaut la liste obtenue en la choisissant", () => {
+    // Cas relevé en revue : thème « Admissibilité » + famille « Droit dur », puis retour à « toutes » — le thème est
+    // gardé, la liste montre 3 entrées ; le compte de « toutes » doit dire 3, pas 27.
+    const withTheme = computeScope(sources, { ...all, registry: "droit-dur", theme: "Admissibilité" });
+    const c = indexCounts(withTheme, "Admissibilité");
+    expect(c.registries).toEqual({ all: 3, "droit-dur": 3, methode: 8 });
+    expect(selectRegistry("Admissibilité", "all")).toEqual({ registry: "all", theme: "Admissibilité" });
+    expect(selectRegistry("Admissibilité", "methode")).toEqual({ registry: "methode", theme: "all" });
+
+    // Invariant : pour tout millésime, tout thème actif et toute famille choisie, compte = entrées affichées après choix.
+    const themes = [...new Set(sources.map((s) => s.theme))].filter((t): t is SourceTheme => t !== undefined);
+    for (const year of [null, "2009", "2013", "2021", "2023", "2024", "2026"]) {
+      for (const theme of ["all", ...themes] as const) {
+        for (const registry of ["all", "droit-dur", "methode"] as const) {
+          const base = { ...all, year, theme, registry };
+          const counts = indexCounts(computeScope(sources, base), theme);
+          for (const choice of ["all", "droit-dur", "methode"] as const) {
+            const next = { ...base, ...selectRegistry(theme, choice) };
+            expect(computeScope(sources, next).filtered).toHaveLength(counts.registries[choice]);
+          }
+        }
+      }
+    }
   });
 
   it("regroupe par famille de texte dans l'ordre de première apparition", () => {
