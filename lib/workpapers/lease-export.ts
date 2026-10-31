@@ -7,7 +7,7 @@ import type { LeaseQualification, SourceFact } from "@/lib/ifrs/leases/qualifica
 import { ANNEX_LIMITS, leaseReviewSummary, type LeaseReviewSummary } from "@/lib/ifrs/leases/review-summary";
 import type { AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
 import { canonicalJson, stableSha256 } from "@/lib/synthesis/canonical";
-import type { LeaseResult } from "./lease-review";
+import { scheduleRows, type LeaseResult } from "./lease-review";
 import { contentHash, type WorkpaperRun } from "./model";
 
 /**
@@ -44,7 +44,7 @@ const STATEMENT = {
 
 function business(i: LeaseExportInput) {
   const { run, result, bundle } = i, review: LeaseReviewSummary = leaseReviewSummary(run, result, i.qualification, i.facts, bundle), charts = result ? leaseCharts(result) : null;
-  const schedules = (result?.contracts ?? []).filter(c => c.schedule).flatMap(c => c.schedule!.map(r => ({ contractId: c.contractId, result: c.result, t: r.t, dueDate: r.dueDate,
+  const schedules = (result?.contracts ?? []).filter(c => c.schedule).flatMap(c => scheduleRows(c.schedule!).map(r => ({ contractId: c.contractId, result: c.result, t: r.t, dueDate: r.dueDate,
     undiscountedPayment: r.payment, openingDebt: r.openingDebt, interest: r.interest, principal: r.principal, closingDebt: r.closingDebt })));
   return {
     exportVersion: LEASE_EXPORT_VERSION, kind: i.kind, statement: STATEMENT[i.kind],

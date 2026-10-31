@@ -1,4 +1,7 @@
 import { z } from "zod";
+import type { CalculationRun } from "@/lib/canonical-model/calculation";
+import { stableSha256 } from "@/lib/synthesis/canonical";
+import type { ImportBatch } from "./imports";
 import { frozen, moneySchema, type ProcedureTemplate, type WorkpaperRun } from "./model";
 import { CalculationRegistry, type CalculationRequest } from "./calculations";
 import { frameworkBlockers } from "@/lib/ifrs/shared/context";
@@ -28,14 +31,40 @@ export class LeaseRegistry extends CalculationRegistry {
     const work = leaseWorkSchema.safeParse((request.parameters as { work?: unknown } | null)?.work);
     const blockers = work.success ? frameworkBlockers(work.data.framework, request.scope.mode) : [];
     if (blockers.length) {
-      const traced = new CalculationRegistry().execute(request);
+      const traced = inputByReference(new CalculationRegistry().execute(request), request.imports);
       return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers], result: { status: "framework_not_activatable", reason: blockers.join(" ; ") } });
     }
     const registry = new CalculationRegistry();
     registry.register(IFRS16_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), z.object({ runId: z.string().min(1), rootId: z.string().min(1), revision: z.number().int().positive(), work: leaseWorkSchema }).strict(),
       z.custom<LeaseResult>(isLeaseResult), (_input, p) => evaluateLeases(request.scope, request.period, request.imports, { runId: p.runId, rootId: p.rootId, revision: p.revision }, request.population, request.selection, p.work as LeaseWork), r => r.outcome);
-    return registry.execute(request);
+    return inputByReference(registry.execute(request), request.imports);
   }
+}
+
+type StoredInput = { imports: { id: string; mappingHash: string; rowCount: number; rowsHash: string }[] } & Record<string, unknown>;
+/**
+ * Entrées du calcul par référence (option O1 de `docs/ifrs/CAPACITE_LOCATIONS.md`) : chaque version de la feuille recopie le calcul, donc la
+ * copie des lignes sources figées laisse place à leur nombre et à leur empreinte. Ce sont les `normalizedHash` déjà calculés par le registre
+ * dans `sourceRefs`. Les lignes restent dans le store d'imports, en ajout seul. `inputHash`, calculé par le registre sur les entrées
+ * complètes avant ce remplacement, se vérifie en les reconstituant (`leaseCalculationInput`).
+ */
+export function inputByReference(run: CalculationRun, imports: readonly ImportBatch[]): CalculationRun {
+  const input = run.input as { imports?: { id: string; mappingHash: string; rows: ImportBatch["rows"] }[] } | null;
+  if (!input?.imports) return run;
+  const documentOf = new Map(imports.map(b => [b.id, b.document.id])), hashOf = new Map(run.sourceRefs.map(r => [r.documentVersionId, r.normalizedHash]));
+  return frozen({ ...run, input: { ...input, imports: input.imports.map(b => ({ id: b.id, mappingHash: b.mappingHash, rowCount: b.rows.length, rowsHash: hashOf.get(documentOf.get(b.id)!)! })) } });
+}
+/**
+ * Entrées exactes d'un calcul Locations, reconstituées depuis les sources figées : chaque source doit redonner son nombre de lignes et son
+ * empreinte, sinon `L16_INPUT_SOURCE_MISMATCH` ; l'empreinte du tout redonne alors `inputHash`.
+ */
+export function leaseCalculationInput(run: CalculationRun, imports: readonly ImportBatch[]) {
+  const input = run.input as StoredInput;
+  return { ...input, imports: input.imports.map(ref => {
+    const batch = imports.find(b => b.id === ref.id);
+    if (!batch || batch.rows.length !== ref.rowCount || stableSha256(batch.rows) !== ref.rowsHash) throw new Error("L16_INPUT_SOURCE_MISMATCH");
+    return { id: ref.id, mappingHash: ref.mappingHash, rows: batch.rows };
+  }) };
 }
 
 /** Règle courante : gabarit et règle à la version de l'adaptateur ; une autre version se révise, jamais ne se réexécute (lue aussi par le dossier de clôture). */

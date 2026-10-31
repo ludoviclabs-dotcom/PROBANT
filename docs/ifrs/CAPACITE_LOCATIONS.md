@@ -1,6 +1,10 @@
 # Capacité de l'atelier Locations — comparaison des options
 
-Relevé du 31/10/2026, sur la branche locale `claude/probant-ifrs-tools-proposal-925b7b`. Il fait suite à `handoffs/L16-06.md` § 5.4. Aucune option n'est implémentée : chacune est **construite concrètement** sur la feuille exécutée d'un portefeuille synthétique (graine 16006). Ses octets sont ensuite comptés porte par porte, comme le runtime réel les compte (`scripts/ifrs/capacite-l16.ts`). Résultats bruts : [`recette/charge/capacite-options-120m.json`](./recette/charge/capacite-options-120m.json) et [`-36m.json`](./recette/charge/capacite-options-36m.json).
+Relevé du 31/10/2026, sur la branche locale `claude/probant-ifrs-tools-proposal-925b7b`. Il fait suite à `handoffs/L16-06.md` § 5.4.
+
+Pour la comparaison, chaque option a été **construite concrètement** sur la feuille exécutée d'un portefeuille synthétique (graine 16006). Ses octets ont ensuite été comptés porte par porte, comme le runtime réel les compte. Le script de comparaison, `scripts/ifrs/capacite-l16.ts`, se relit avec `git show be34ada:scripts/ifrs/capacite-l16.ts`. Il construisait les options à partir de l'ancien format et a été retiré quand O1 et O2 ont été implémentées (§ 7). Résultats bruts : [`recette/charge/capacite-options-120m.json`](./recette/charge/capacite-options-120m.json) et [`-36m.json`](./recette/charge/capacite-options-36m.json).
+
+**Mise à jour : O1 et O2 sont implémentées** ; capacité mesurée au § 7.
 
 **Fiabilité des chiffres** :
 
@@ -69,7 +73,7 @@ Lecture du tableau :
 
 ## 5. Temps
 
-Le registre de calcul partagé coûte environ 50 ms par contrat de 120 mois : 0,6 s à 12 contrats, 5,4 s à 100 (`charge-*.json`). O1, faite dans l'adaptateur, ne change pas ce coût, car l'empreinte des entrées est calculée avant. **Au-delà d'environ 40 contrats de 120 mois, une exécution dépasse 2 s**, seuil au-delà duquel le plan exige une progression affichée. Avec les combinaisons J et H, un calcul de 243 contrats prendrait de l'ordre de 12 s : progression, voire tâche locale avec reprise. Ces temps ne sont pas mesurés sous les options. Les lectures et les exports, dominés par l'empreinte de la feuille, diminueraient avec sa taille ; ce n'est pas mesuré non plus.
+Le registre de calcul partagé coûte environ 50 ms par contrat de 120 mois : 0,6 s à 12 contrats, 5,4 s à 100 (`charge-*.json`). O1, faite dans l'adaptateur, ne change pas ce coût, car l'empreinte des entrées est calculée avant. **Au-delà d'environ 40 contrats de 120 mois, une exécution dépasse 2 s**, seuil au-delà duquel le plan exige une progression affichée. Avec les combinaisons J et H, un calcul de 243 contrats prendrait de l'ordre de 12 s : progression, voire tâche locale avec reprise. Ces temps n'étaient pas mesurés sous les options au moment de la comparaison. Ils le sont depuis la mise en œuvre de O1 + O2 (§ 7) : le registre descend à environ 29 ms par contrat, parce que le résultat, plus petit, est haché deux fois plus vite. Les lectures et les exports sont divisés par 4 à 6.
 
 ## 6. Recommandation
 
@@ -86,3 +90,52 @@ Le registre de calcul partagé coûte environ 50 ms par contrat de 120 mois : 0,
    La cible de capacité de l'atelier serait plutôt à fixer d'après le portefeuille réel attendu.
 
 La décision qui conditionne l'étape 2 est le **nombre et la durée des contrats réellement attendus** dans un dossier.
+
+## 7. Mise en œuvre de O1 + O2 (31/10/2026)
+
+**Ce qui a changé** :
+
+- **O1, dans l'adaptateur Locations** (`lease-adapter.ts`). Le calcul stocké garde, par source, `rowCount` et `rowsHash` au lieu des lignes, que ce soit après une exécution complète ou bloquée. `leaseCalculationInput` reconstitue les entrées depuis les sources figées et redonne `inputHash`. Une source altérée est refusée (`L16_INPUT_SOURCE_MISMATCH`).
+- **O2, format `ifrs16-result-2`** (`lease-review.ts`) :
+  - échéances comptées ;
+  - échéancier en colonnes (`scheduleColumns` et `scheduleRows`) ;
+  - preuves ligne à ligne regroupées par pièce ;
+  - sur la feuille, une preuve vérifiée par pièce (`leaseRunEvidence`), seul ajout dans la branche Locations de `WorkpaperService.execute`.
+
+  Les lecteurs (`portfolio.ts`, `lease-export.ts`) lisent les colonnes. Le contrat commun (§ 4.6) est mis à jour.
+- **Contrat de données, moteur et règle inchangés.** L'exemple publié `exemples/l16-05` ne change que par ses empreintes : aucun montant ni aucune ligne ne bouge.
+
+**Capacité mesurée sur le code réel** (`bench-l16.ts`, recherche dichotomique) :
+
+| Durée | Avant | Après | Porte qui refuse maintenant |
+|---|---|---|---|
+| 120 mois | 9 | **30** | aperçu de l'échéancier à l'import (3 Mio) |
+| 36 mois | 29 | **101** | aperçu de l'échéancier |
+| 12 mois | 88 | **308** | aperçu de l'échéancier |
+
+Ces chiffres sont exactement ceux prédits au § 4 (ligne D).
+
+| À 100 contrats de 120 mois (au-delà de l'import, calculable) | Avant | Après |
+|---|---|---|
+| Feuille exécutée | 38,4 Mio | 3,0 Mio |
+| Historique, de la création au verrouillage | 231 Mio | 18 Mio |
+| Lecture de l'atelier | 48,2 Mio | 14,5 Mio |
+| Exécution par le registre partagé | 5,4 s | 2,9 s |
+| Lecture sérialisée / empreinte de la feuille | 4,9 s / 2,2 s | 0,76 s / 0,16 s |
+| Export, selon le format | 2,4 à 2,6 s | 0,47 à 0,60 s |
+
+**Contrôles** :
+
+- **Tests ajoutés** (`lease-recette.test.ts`) :
+  - preuve d'entrée revérifiée et source altérée refusée ;
+  - colonnes identiques aux lignes du moteur ;
+  - échéances comptées comme la qualification ;
+  - preuves complètes, uniques, regroupées par pièce, et citées par le retraitement ;
+  - une preuve vérifiée par pièce sur la feuille.
+- **Chaîne PostgreSQL** : la recette vérifie aussi la preuve d'entrée et les preuves de la feuille, y compris après redémarrage.
+
+**Toujours non fait** :
+
+- O3, R, O4 et O5.
+- La lecture dépasserait 8 Mio vers 55 contrats de 120 mois. Elle ne bloque pas tant que l'import borne à 30 ; si O4 relève les limites d'import, R devient nécessaire.
+- Au-delà d'environ 70 contrats de 120 mois, une exécution par le registre dépasse 2 s, et le plan exige alors une progression affichée.

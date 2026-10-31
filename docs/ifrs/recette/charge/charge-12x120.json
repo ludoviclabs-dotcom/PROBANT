@@ -44,144 +44,144 @@
     "outcome": "no_exception_detected"
   },
   "timings": {
-    "generationMs": 2.5,
-    "sourcesReadMs": 287.8,
+    "generationMs": 3.1,
+    "sourcesReadMs": 292.2,
     "l16": {
-      "evaluateColdMs": 82.5,
+      "evaluateColdMs": 83,
       "evaluateWarm": {
         "n": 5,
-        "minMs": 62.76,
-        "medianMs": 65.12,
-        "p95Ms": 82.78,
-        "maxMs": 82.78
+        "minMs": 61.11,
+        "medianMs": 64.48,
+        "p95Ms": 81.83,
+        "maxMs": 81.83
       },
       "qualification": {
         "n": 5,
-        "minMs": 19.69,
-        "medianMs": 21.18,
-        "p95Ms": 29,
-        "maxMs": 29
+        "minMs": 19.29,
+        "medianMs": 21.55,
+        "p95Ms": 28.64,
+        "maxMs": 28.64
       },
       "oneContractEngine": {
         "n": 100,
         "minMs": 0.62,
-        "medianMs": 0.66,
-        "p95Ms": 1.35,
-        "maxMs": 1.89
+        "medianMs": 0.67,
+        "p95Ms": 1.23,
+        "maxMs": 1.82
       },
       "reevaluateAfterOneContractChanged": {
         "n": 5,
-        "minMs": 57.69,
-        "medianMs": 65.27,
-        "p95Ms": 82.06,
-        "maxMs": 82.06
+        "minMs": 59.4,
+        "medianMs": 71.46,
+        "p95Ms": 91.11,
+        "maxMs": 91.11
       }
     },
     "sharedRegistry": {
-      "coldMs": 641.7,
+      "coldMs": 357,
       "warm": {
         "n": 5,
-        "minMs": 588.22,
-        "medianMs": 601.57,
-        "p95Ms": 609.05,
-        "maxMs": 609.05
+        "minMs": 359.38,
+        "medianMs": 369.87,
+        "p95Ms": 471,
+        "maxMs": 471
       }
     },
     "views": {
       "portfolio": {
         "n": 5,
-        "minMs": 0.6,
-        "medianMs": 0.69,
-        "p95Ms": 2.13,
-        "maxMs": 2.13
+        "minMs": 0.63,
+        "medianMs": 0.79,
+        "p95Ms": 2.32,
+        "maxMs": 2.32
       },
       "charts": {
         "n": 5,
-        "minMs": 0.35,
-        "medianMs": 0.44,
-        "p95Ms": 0.49,
-        "maxMs": 0.49
+        "minMs": 0.44,
+        "medianMs": 0.51,
+        "p95Ms": 1.45,
+        "maxMs": 1.45
       },
       "reviewSummary": {
         "n": 5,
-        "minMs": 0.13,
-        "medianMs": 0.19,
-        "p95Ms": 0.94,
-        "maxMs": 0.94
+        "minMs": 0.11,
+        "medianMs": 0.16,
+        "p95Ms": 1.11,
+        "maxMs": 1.11
       },
       "readSerialized": {
         "n": 5,
-        "minMs": 556.74,
-        "medianMs": 573.72,
-        "p95Ms": 586.25,
-        "maxMs": 586.25
+        "minMs": 98.9,
+        "medianMs": 101.06,
+        "p95Ms": 104.86,
+        "maxMs": 104.86
       },
       "contentHash": {
         "n": 5,
-        "minMs": 240.46,
-        "medianMs": 247.18,
-        "p95Ms": 255.15,
-        "maxMs": 255.15
+        "minMs": 19.9,
+        "medianMs": 20.32,
+        "p95Ms": 25.86,
+        "maxMs": 25.86
       },
       "screenFilter": {
         "n": 100,
         "minMs": 0,
         "medianMs": 0,
-        "p95Ms": 0.01,
-        "maxMs": 0.2
+        "p95Ms": 0.02,
+        "maxMs": 0.22
       }
     },
     "exports": {
       "json": {
         "n": 5,
-        "minMs": 297.92,
-        "medianMs": 299.45,
-        "p95Ms": 317.94,
-        "maxMs": 317.94,
+        "minMs": 74.15,
+        "medianMs": 76.24,
+        "p95Ms": 83.12,
+        "maxMs": 83.12,
         "bytes": 556676
       },
       "html": {
         "n": 5,
-        "minMs": 291.29,
-        "medianMs": 297.79,
-        "p95Ms": 305.01,
-        "maxMs": 305.01,
+        "minMs": 65.13,
+        "medianMs": 71.16,
+        "p95Ms": 75.64,
+        "maxMs": 75.64,
         "bytes": 331597
       },
       "contracts_csv": {
         "n": 5,
-        "minMs": 282.62,
-        "medianMs": 285.11,
-        "p95Ms": 314.47,
-        "maxMs": 314.47,
+        "minMs": 59.68,
+        "medianMs": 61.08,
+        "p95Ms": 67.33,
+        "maxMs": 67.33,
         "bytes": 2596
       },
       "schedules_csv": {
         "n": 5,
-        "minMs": 286.57,
-        "medianMs": 297.03,
-        "p95Ms": 322.28,
-        "maxMs": 322.28,
+        "minMs": 62.69,
+        "medianMs": 83.47,
+        "p95Ms": 95.69,
+        "maxMs": 95.69,
         "bytes": 220439
       },
       "bridges_csv": {
         "n": 5,
-        "minMs": 292.56,
-        "medianMs": 303.18,
-        "p95Ms": 331.94,
-        "maxMs": 331.94,
+        "minMs": 63.74,
+        "medianMs": 71.06,
+        "p95Ms": 82.06,
+        "maxMs": 82.06,
         "bytes": 1658
       },
       "journal_csv": {
         "n": 5,
-        "minMs": 291.48,
-        "medianMs": 294.27,
-        "p95Ms": 324.23,
-        "maxMs": 324.23,
+        "minMs": 61.79,
+        "medianMs": 66.92,
+        "p95Ms": 74.81,
+        "maxMs": 74.81,
         "bytes": 31284
       }
     },
-    "materializeBundleMs": 258
+    "materializeBundleMs": 25.6
   },
   "sizes": {
     "perSource": {
@@ -215,46 +215,46 @@
       }
     },
     "draftRunBytes": 5806,
-    "executedRunBytes": 4841580,
+    "executedRunBytes": 391773,
     "executedRunParts": {
-      "input": 1346298,
-      "runEvidence": 961152,
+      "input": 7030,
+      "runEvidence": 2530,
       "contractsWithoutDuesAndSchedules": 60883,
-      "dues": 840201,
-      "schedules": 626334,
-      "evidence": 961152,
+      "dues": 372,
+      "schedules": 134346,
+      "evidence": 141052,
       "bundle": 30956,
       "notes": 2
     },
-    "chainBytes": 29078510,
-    "readBytes": 6113094
+    "chainBytes": 2379668,
+    "readBytes": 1870188
   },
   "memory": {
     "start": {
-      "rssMiB": 103,
-      "heapUsedMiB": 20.6
+      "rssMiB": 84.1,
+      "heapUsedMiB": 20.3
     },
     "afterSources": {
-      "rssMiB": 160.9,
-      "heapUsedMiB": 23.2
+      "rssMiB": 143.1,
+      "heapUsedMiB": 22.9
     },
     "afterEvaluateCold": {
-      "rssMiB": 160.8,
-      "heapUsedMiB": 26.2
+      "rssMiB": 143.1,
+      "heapUsedMiB": 25
     },
     "afterRegistry": {
-      "rssMiB": 303.2,
-      "heapUsedMiB": 32.1
+      "rssMiB": 258,
+      "heapUsedMiB": 26.5
     },
     "afterViews": {
-      "rssMiB": 311.2,
-      "heapUsedMiB": 44
+      "rssMiB": 262.9,
+      "heapUsedMiB": 30.3
     },
     "afterExports": {
-      "rssMiB": 310.8,
-      "heapUsedMiB": 44.2
+      "rssMiB": 266.1,
+      "heapUsedMiB": 30.5
     },
-    "peakRssMiB": 573.6
+    "peakRssMiB": 482.8
   },
   "gates": [
     {
@@ -338,48 +338,48 @@
     {
       "gate": "version de feuille ≤ 3,5 Mio (écriture)",
       "limit": 3670016,
-      "value": 4607945,
-      "ok": false
+      "value": 365039,
+      "ok": true
     },
     {
       "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
       "limit": 25165824,
-      "value": 29078510,
-      "ok": false
+      "value": 2379668,
+      "ok": true
     },
     {
       "gate": "lecture de l'atelier ≤ 8 Mio",
       "limit": 8388608,
-      "value": 6113094,
+      "value": 1870188,
       "ok": true
     }
   ],
   "capacity": [
     {
       "months": 120,
-      "maxContracts": 9,
-      "schedules": 1080,
-      "refusedAt": 10,
+      "maxContracts": 30,
+      "schedules": 3600,
+      "refusedAt": 31,
       "binding": [
-        "version de feuille ≤ 3,5 Mio (écriture) (3.66 Mio)"
+        "lease_schedule · aperçu ≤ 3 Mio (store) (3.05 Mio)"
       ]
     },
     {
       "months": 36,
-      "maxContracts": 29,
-      "schedules": 1044,
-      "refusedAt": 30,
+      "maxContracts": 101,
+      "schedules": 3636,
+      "refusedAt": 102,
       "binding": [
-        "version de feuille ≤ 3,5 Mio (écriture) (3.61 Mio)"
+        "lease_schedule · aperçu ≤ 3 Mio (store) (3.00 Mio)"
       ]
     },
     {
       "months": 12,
-      "maxContracts": 88,
-      "schedules": 1056,
-      "refusedAt": 89,
+      "maxContracts": 308,
+      "schedules": 3696,
+      "refusedAt": 309,
       "binding": [
-        "version de feuille ≤ 3,5 Mio (écriture) (3.52 Mio)"
+        "lease_schedule · aperçu ≤ 3 Mio (store) (3.00 Mio)"
       ]
     }
   ]

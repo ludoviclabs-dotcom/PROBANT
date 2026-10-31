@@ -53,7 +53,7 @@ describe("L16-03 résultat : calcul, cadrage et retraitement restent trois objet
     expect(bundle.lines.filter(l => l.contractId === "F03").map(l => ({ account: l.account, side: l.side, amount: l.amount.amount }))).toEqual(oracle.fixtures.find(f => f.id === "L16-F03")!.closings[0].bundle);
     const rent = bundle.lines.find(l => l.contractId === "F03" && l.account === "pcg_rent_neutralized")!;
     expect(rent.evidence).toEqual([ "sheet-r1:lease:" + ledger.rows.find(r => r.normalized!.key === "GL-613-F03-2026")!.id ]);
-    expect(result.evidence.map(e => e.rowId)).toEqual(expect.arrayContaining(ledger.rows.map(r => r.id)));
+    expect(result.evidence.documents.flatMap(d => d.rows.map(r => r.rowId))).toEqual(expect.arrayContaining(ledger.rows.map(r => r.id)));
     expect(result.bridge!.rows.find(r => r.poste === "pnl_before_tax")).toMatchObject({ base: { amount: "-15000.00" }, baseBasis: "ledger", adjustment: { amount: "-538.91" }, target: { amount: "-15538.91" } });
     expect(result.bridge!.rows.filter(r => r.poste !== "pnl_before_tax").every(r => r.baseBasis === "condition")).toBe(true);
     expect(result.ledgerFraming).toMatchObject({ byStatus: { framed: 2 }, lines: { framed: 4, unattached: 0 } });

@@ -1,6 +1,6 @@
 import { loanWorkSchema, type LoanWork, type LoanResult } from "./loan-review";
 import { leaseWorkSchema, type LeaseWork } from "./lease-work";
-import type { LeaseResult } from "./lease-review";
+import { leaseRunEvidence, type LeaseResult } from "./lease-review";
 import type { payrollObservation } from "./payroll-observation";
 import type { PayrollState } from "./payroll-contract";
 import { exceptionalWorkSchema, type ExceptionalWork, type ExceptionalResult } from './exceptional-dossier';
@@ -264,7 +264,8 @@ export class WorkpaperService {
       }
       if (this.realAdapter === "ifrs16.leases" && result.execution === "completed") {
         const value = result.result as LeaseResult; assertScope(scope, value.scope); if (value.runId !== run.id) throw new Error("L16_RESULT_IDENTITY_MISMATCH");
-        evidence = [...new Map([...evidence, ...value.evidence].map(link => [link.id, link])).values()];
+        // One verified link per cited document on the sheet; the row-by-row proofs stay in the result, never copied (CAPACITE_LOCATIONS.md, O2).
+        evidence = [...new Map([...evidence, ...leaseRunEvidence(value)].map(link => [link.id, link])).values()];
       }
       if(this.realAdapter === 'exceptional.review' && result.execution === 'completed') { const value=result.result as ExceptionalResult; if(value.runId!==run.id)throw Error('EXCEPTIONAL_RESULT_IDENTITY_MISMATCH'); evidence=[...new Map([...evidence,...value.evidence].map(link=>[link.id,link])).values()]; }
       if(this.realAdapter === 'investments.review' && result.execution === 'completed') {

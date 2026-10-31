@@ -10,7 +10,7 @@ import { LEASE_TEMPLATE, LeaseRegistry } from "../lease-adapter";
 import { LEASE_ERROR_STATUS, leaseFailure, leaseHandlers, requireLeasesChain } from "../lease-http";
 import { LeaseError, LeaseImportError, type LeaseRuntime } from "../lease-runtime";
 import { assertLeaseBatch, LEASE_MAPPING, resolveLeaseCitation } from "../lease-sources";
-import type { LeaseResult } from "../lease-review";
+import { leaseRunEvidence, type LeaseResult } from "../lease-review";
 import { leaseDraftOf, leaseWorkDraftSchema, stampLeaseWork, type LeaseWorkDraft } from "../lease-work";
 import { contentHash, periodId, validateRun, type WorkpaperRun, type WorkpaperScope } from "../model";
 import type { Principal } from "../policy";
@@ -146,7 +146,9 @@ describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée t
     expect(result.contracts.map(c => [c.contractId, c.framing.status, c.adjustment.status])).toEqual([["F01", "framed", "included"], ["F03", "framed", "included"]]);
     expect(result.bundle).toMatchObject({ logicalId: "ifrs16.leases:workpaper-l16", revision: 1, identities: ["ifrs16:lease:F01", "ifrs16:lease:F03"], taxStatus: "not_computed" });
     expect(result.limitations.some(l => /not_computed/.test(l))).toBe(true);
-    expect(result.evidence.every(e => e.procedureId === "workpaper-l16" && e.status === "verified")).toBe(true);
+    // One verified link per cited document on the sheet; the row-by-row proofs stay grouped in the result.
+    expect(leaseRunEvidence(result).every(e => e.procedureId === "workpaper-l16" && e.status === "verified" && e.precision === "document")).toBe(true);
+    expect(result.evidence.documents.length).toBe(leaseRunEvidence(result).length);
     expect(stableSha256(new LeaseRegistry().execute(await request(demo)))).toBe(stableSha256(r));
   });
   it("X33 : EU_adopted ajoute son propre motif en réel, pas en scénario ; une autre procédure ou unité est refusée", async () => {
@@ -183,7 +185,7 @@ describe("IFRS C01 table explicite des erreurs HTTP (D21)", () => {
   });
   it("aucun code levé par la chaîne Locations ne retombe en 503 par défaut : il est dans la table ou classé technique", () => {
     // Invariants internes : leur échec signale un défaut du code, jamais une action de l'utilisateur.
-    const TECHNICAL = ["L16_DIVISION_BY_ZERO", "L16_ROOT_INVALID", "L16_INTEGER_INVALID", "L16_FIXED_INVALID", "INVALID_EUR_MONEY", "L16_ADAPTER_INVALID",
+    const TECHNICAL = ["L16_INPUT_SOURCE_MISMATCH", "L16_DIVISION_BY_ZERO", "L16_ROOT_INVALID", "L16_INTEGER_INVALID", "L16_FIXED_INVALID", "INVALID_EUR_MONEY", "L16_ADAPTER_INVALID",
       "L16_SCHEDULE_RESIDUAL", "L16_ROUNDING_GAP_EXCEEDED", "L16_DEPRECIATION_INVALID", "L16_BRIDGE_IDENTITY", "L16_MODEL_INVALID", "L16_CHART_IDENTITY", "L16_COMPARISON_PERIOD_MISMATCH",
       "BLOCKED_RESULT_REQUIRED", "COMPLETED_RESULT_REQUIRED", "FAILED_RESULT_REQUIRED", "CLIENT_REAL_SCOPE_REQUIRED", "CLIENT_TEMPLATE_REQUIRED", "WORKPAPER_VERSION_INVALID", "REVISION_INVALID",
       "SOURCE_BYTES_CHANGED", "CLIENT_PROJECTION_OUT_OF_SCOPE"];

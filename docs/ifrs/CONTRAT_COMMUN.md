@@ -56,7 +56,7 @@ Le patron de référence est la feuille Emprunts (`loans.review`, mission C13) :
 | Page | `/ifrs/locations` (l'IFRS 18 éventuel prendra `/ifrs/presentation`) |
 | API | `/api/workpapers/locations-ifrs16`, avec `/imports`, `/export` et `/demo` (synthétique), comme `/api/workpapers/emprunts` |
 | Travail de la feuille | `WorkpaperRun.leaseWork`, `schemaVersion: "ifrs16-leases-1"` |
-| Résultat | `schemaVersion: "ifrs16-result-1"` |
+| Résultat | `schemaVersion: "ifrs16-result-2"` (format compact depuis le 31/10/2026 ; `ifrs16-result-1` n’a jamais été stocké en réel) |
 | Retraitement | `schemaVersion: "ifrs-bundle-1"`, `kind: "closing_adjustment"` |
 | Unité de population | `lease_contract` : un contrat qualifié par lignée |
 | Types de documents | `lease_contracts` (contrats et versions), `lease_assumptions` (taux, durée, exemptions, réponses de périmètre), `lease_schedule` (échéances et règlements), `lease_ledger` (lignes 612 / 613 / 614 et pièces), `lease_opening` (ouverture historique). Requis au gel : les trois premiers. `lease_ledger` est requis pour un retraitement déterminé, `lease_opening` pour une reprise historique |
@@ -136,7 +136,7 @@ Résultat unique lu par la table, les graphiques, la revue et l'export. Aucun mo
 
 ```ts
 interface LeaseResult {
-  schemaVersion: "ifrs16-result-1"; runId: string; scope: WorkpaperScope; period: AccountingPeriod;
+  schemaVersion: "ifrs16-result-2"; runId: string; scope: WorkpaperScope; period: AccountingPeriod;
   rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; engineVersion: string;
   arithmetic: { scale: 40; rounding: "half_away_from_zero_cent"; publication: "rounded_balances" };
   contracts: {
@@ -144,17 +144,26 @@ interface LeaseResult {
     reasons: string[];              // identifiants Xnn et messages
     fingerprint: string;            // contrat + politique + règle : sert à comparer deux versions
     exact?: { monthlyRate: string; debtInitial: string };   // 40 décimales, en chaîne
-    schedule?: ScheduleRow[];       // paginé dans l'API au-delà d'un seuil (L16-04)
+    dues: { count: number; payable: number };  // détail des échéances relu sur les sources figées (qualification)
+    schedule?: ScheduleColumns;     // échéancier publié du moteur, en colonnes (t, dueDate, payment, openingDebt, interest, …)
     closing?: ClosingFigures;       // même structure que l'oracle (RECETTE_REFERENCE § 3)
     result: "computed" | "diagnostic" | "not_commenced" | "not_applicable";
   }[];
   portfolio: { byStatus: Record<string, number>; computedSubtotal: ClosingFigures | null; blockedIds: string[] };  // le sous-total porte « contrats calculés »
   ledgerFraming: { matched: number; unmatched: number; absMatched: Money; absUnmatched: Money; differences: KnownAmount[] };
   bundle: AdjustmentBundle | null;  // L16-03 ; null si un contrat calculé n'est pas cadré
-  limitations: string[]; evidence: EvidenceLink[];
+  limitations: string[];
+  evidence: { purpose: string; documents: { documentVersionId: string; rows: { rowId: string; row: number | null }[] }[] };  // preuves ligne à ligne, par pièce
   outcome: "no_exception_detected" | "exceptions_detected" | "inconclusive";
 }
 ```
+
+**Format compact (31/10/2026, `CAPACITE_LOCATIONS.md`, options O1 et O2).** Chaque version de la feuille recopie le calcul entier : le résultat ne garde donc que ce que les sources figées ne redonnent pas.
+- **Échéances** : seulement comptées dans le résultat.
+- **Échéancier** : écrit en colonnes.
+- **Preuves** : regroupées par pièce, en gardant chaque ligne. Une preuve de ligne garde l'identifiant `runId:lease:rowId` que citent les écritures du retraitement.
+- **Feuille** : le service y ajoute une preuve vérifiée par pièce citée (`leaseRunEvidence`), sans recopier le détail ligne à ligne.
+- **Entrées du calcul** : `result.input` garde, par source, son nombre de lignes et son empreinte au lieu des lignes. `inputHash` se revérifie en reconstituant les entrées depuis les sources figées (`leaseCalculationInput`), et une source altérée est refusée (`L16_INPUT_SOURCE_MISMATCH`).
 
 **Classement du résultat.** Un retraitement normal **n'est pas** une exception d'audit.
 - `inconclusive` : au moins un contrat de la population est `a_qualifier` ou en `diagnostic`.

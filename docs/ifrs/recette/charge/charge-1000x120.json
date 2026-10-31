@@ -44,74 +44,74 @@
     "outcome": "no_exception_detected"
   },
   "timings": {
-    "generationMs": 153,
-    "sourcesReadMs": 1285.9,
+    "generationMs": 157.7,
+    "sourcesReadMs": 1342.8,
     "l16": {
-      "evaluateColdMs": 5042.6,
+      "evaluateColdMs": 5060.8,
       "evaluateWarm": {
         "n": 5,
-        "minMs": 4755.18,
-        "medianMs": 5076.77,
-        "p95Ms": 5200.85,
-        "maxMs": 5200.85
+        "minMs": 4370.27,
+        "medianMs": 4613.05,
+        "p95Ms": 5210.6,
+        "maxMs": 5210.6
       },
       "qualification": {
         "n": 5,
-        "minMs": 1561.65,
-        "medianMs": 1615.6,
-        "p95Ms": 1751.56,
-        "maxMs": 1751.56
+        "minMs": 1555.27,
+        "medianMs": 1666.28,
+        "p95Ms": 1754.69,
+        "maxMs": 1754.69
       },
       "oneContractEngine": {
         "n": 100,
-        "minMs": 0.61,
-        "medianMs": 0.66,
-        "p95Ms": 1.47,
-        "maxMs": 3.71
+        "minMs": 0.56,
+        "medianMs": 0.59,
+        "p95Ms": 1.27,
+        "maxMs": 16.91
       },
       "reevaluateAfterOneContractChanged": {
         "n": 5,
-        "minMs": 4840.37,
-        "medianMs": 5120.27,
-        "p95Ms": 5443.83,
-        "maxMs": 5443.83
+        "minMs": 4478.28,
+        "medianMs": 4761.74,
+        "p95Ms": 5109.83,
+        "maxMs": 5109.83
       }
     },
     "sharedRegistry": null,
     "views": {
       "portfolio": {
         "n": 5,
-        "minMs": 35.27,
-        "medianMs": 37.29,
-        "p95Ms": 47.48,
-        "maxMs": 47.48
+        "minMs": 49.52,
+        "medianMs": 52.18,
+        "p95Ms": 65.3,
+        "maxMs": 65.3
       },
       "charts": {
         "n": 5,
-        "minMs": 33.4,
-        "medianMs": 37.42,
-        "p95Ms": 43.27,
-        "maxMs": 43.27
+        "minMs": 46.82,
+        "medianMs": 48.7,
+        "p95Ms": 49.7,
+        "maxMs": 49.7
       },
       "reviewSummary": {
         "n": 5,
-        "minMs": 202.31,
-        "medianMs": 204.92,
-        "p95Ms": 225.47,
-        "maxMs": 225.47
+        "minMs": 204.79,
+        "medianMs": 209.31,
+        "p95Ms": 215.49,
+        "maxMs": 215.49
       },
       "readSerialized": null,
       "contentHash": null,
       "screenFilter": {
         "n": 100,
-        "minMs": 0.15,
-        "medianMs": 0.19,
-        "p95Ms": 0.32,
-        "maxMs": 1.22
+        "minMs": 0.14,
+        "medianMs": 0.17,
+        "p95Ms": 0.38,
+        "maxMs": 0.76
       }
     },
     "exports": {},
-    "materializeBundleMs": 23680.6
+    "materializeBundleMs": 1678.2
   },
   "sizes": {
     "perSource": {
@@ -145,42 +145,42 @@
       }
     },
     "draftRunBytes": 130227,
-    "executedRunBytes": 347444139,
+    "executedRunBytes": 25900557,
     "executedRunParts": {
-      "input": 101931337,
-      "runEvidence": 65572764,
+      "input": 131193,
+      "runEvidence": 2190,
       "contractsWithoutDuesAndSchedules": 4942434,
-      "dues": 54896658,
-      "schedules": 52266635,
-      "evidence": 65572764,
+      "dues": 31000,
+      "schedules": 11267635,
+      "evidence": 7264558,
       "bundle": 2093143,
       "notes": 2
     },
-    "chainBytes": 2085315969,
-    "readBytes": 418738228
+    "chainBytes": 156054477,
+    "readBytes": 114445535
   },
   "memory": {
     "start": {
-      "rssMiB": 86.7,
+      "rssMiB": 83.6,
       "heapUsedMiB": 20.3
     },
     "afterSources": {
-      "rssMiB": 360.5,
+      "rssMiB": 355.9,
       "heapUsedMiB": 182.4
     },
     "afterEvaluateCold": {
-      "rssMiB": 1005.9,
-      "heapUsedMiB": 366
+      "rssMiB": 1006.2,
+      "heapUsedMiB": 296.4
     },
     "afterViews": {
-      "rssMiB": 1004.2,
-      "heapUsedMiB": 390.5
+      "rssMiB": 1459.7,
+      "heapUsedMiB": 373.6
     },
     "afterExports": {
-      "rssMiB": 974.1,
-      "heapUsedMiB": 390.6
+      "rssMiB": 1459.7,
+      "heapUsedMiB": 373.6
     },
-    "peakRssMiB": 3053.3
+    "peakRssMiB": 2002.9
   },
   "gates": [
     {
@@ -234,19 +234,19 @@
     {
       "gate": "version de feuille ≤ 3,5 Mio (écriture)",
       "limit": 3670016,
-      "value": 328043304,
+      "value": 23750611,
       "ok": false
     },
     {
       "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
       "limit": 25165824,
-      "value": 2085315969,
+      "value": 156054477,
       "ok": false
     },
     {
       "gate": "lecture de l'atelier ≤ 8 Mio",
       "limit": 8388608,
-      "value": 418738228,
+      "value": 114445535,
       "ok": false
     }
   ],

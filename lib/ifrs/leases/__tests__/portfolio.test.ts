@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { cents, money } from "@/lib/canonical-model/money";
 import { leaseDemoView } from "@/lib/workpapers/lease-demo";
-import type { LeaseContractResult, LeaseResult } from "@/lib/workpapers/lease-review";
+import { scheduleColumns, type LeaseContractResult, type LeaseResult } from "@/lib/workpapers/lease-review";
 import type { WorkpaperNote, WorkpaperRun } from "@/lib/workpapers/model";
 import { computeLease } from "../engine";
 import { compareLeaseResults, leaseCharts, leasePortfolioView, portfolioRows, portfolioSummary } from "../portfolio";
@@ -88,7 +88,7 @@ describe("L16-04 comparaison de deux versions exécutées", () => {
     const r = computeLease({ contractId: "F03", version: "v1", commencement: "2026-01-01", months: 36, payment: { amount: change.payment ?? "1000.00", currency: "EUR" }, annualRate: change.annualRate ?? "0.05", usefulLifeMonths: 36, opening: null },
       { startDate: "2026-01-01", closingDate: "2026-12-31" });
     if (r.result !== "computed") throw new Error("fixture");
-    next.contracts[i] = { ...next.contracts[i], exact: r.exact, debtInitial: r.debtInitial, schedule: r.schedule, closing: r.closing, depreciationMonths: r.depreciationMonths } as LeaseContractResult;
+    next.contracts[i] = { ...next.contracts[i], exact: r.exact, debtInitial: r.debtInitial, schedule: scheduleColumns(r.schedule), closing: r.closing, depreciationMonths: r.depreciationMonths } as LeaseContractResult;
     return next;
   }
   const at = (result: LeaseResult, revision: number) => ({ runId: "R" + revision, revision, version: 5, result });

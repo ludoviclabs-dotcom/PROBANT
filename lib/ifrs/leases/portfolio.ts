@@ -95,11 +95,11 @@ export function portfolioRows(qualification: LeaseQualification | null, result: 
 
 /** Solde de dette et droit d'utilisation net d'un contrat calculé à une fin de mois, et flux de l'échéance de ce mois (zéro avant le commencement). */
 function contractAt(c: LeaseContractResult, index: number) {
-  const rows = c.schedule!, start = monthIndex(rows[0].dueDate), elapsed = index - start + 1;
+  const s = c.schedule!, n = s.t.length, start = monthIndex(s.dueDate[0]), elapsed = index - start + 1;
   if (elapsed < 1) return { debt: ZERO, rouNet: ZERO, payments: ZERO, interest: ZERO, principal: ZERO };
-  const rou = cents(c.debtInitial!), row = elapsed <= rows.length ? rows[elapsed - 1] : null;
-  return { debt: cents(rows[Math.min(elapsed, rows.length) - 1].closingDebt), rouNet: rou - accumulatedDepreciationCents(rou, c.depreciationMonths!, elapsed),
-    payments: row ? cents(row.payment) : ZERO, interest: row ? cents(row.interest) : ZERO, principal: row ? cents(row.principal) : ZERO };
+  const rou = cents(c.debtInitial!), k = elapsed <= n ? elapsed - 1 : -1, amount = (column: string[], i: number) => cents({ amount: column[i], currency: s.currency });
+  return { debt: amount(s.closingDebt, Math.min(elapsed, n) - 1), rouNet: rou - accumulatedDepreciationCents(rou, c.depreciationMonths!, elapsed),
+    payments: k >= 0 ? amount(s.payment, k) : ZERO, interest: k >= 0 ? amount(s.interest, k) : ZERO, principal: k >= 0 ? amount(s.principal, k) : ZERO };
 }
 
 /** Séries et ponts du portefeuille calculé ; `null` sans contrat calculé. Toute identité manquée au centime lève L16_CHART_IDENTITY. */
@@ -140,9 +140,9 @@ function factualChanges(a: LeaseContractResult, b: LeaseContractResult): string[
   if (a.status !== b.status) out.push("statut " + a.status + " → " + b.status);
   if (a.result !== b.result) out.push("résultat " + a.result + " → " + b.result);
   if (ra && rb) {
-    if (ra[0].dueDate !== rb[0].dueDate) out.push("première échéance " + ra[0].dueDate + " → " + rb[0].dueDate);
-    if (ra.length !== rb.length) out.push("nombre d'échéances " + ra.length + " → " + rb.length);
-    if (ra[0].payment.amount !== rb[0].payment.amount) out.push("loyer mensuel " + ra[0].payment.amount + " → " + rb[0].payment.amount);
+    if (ra.dueDate[0] !== rb.dueDate[0]) out.push("première échéance " + ra.dueDate[0] + " → " + rb.dueDate[0]);
+    if (ra.t.length !== rb.t.length) out.push("nombre d'échéances " + ra.t.length + " → " + rb.t.length);
+    if (ra.payment[0] !== rb.payment[0]) out.push("loyer mensuel " + ra.payment[0] + " → " + rb.payment[0]);
   }
   if (a.exact && b.exact && a.exact.monthlyRate !== b.exact.monthlyRate) out.push("taux mensuel exact modifié");
   if (a.depreciationMonths !== b.depreciationMonths && a.depreciationMonths && b.depreciationMonths) out.push("durée d'amortissement " + a.depreciationMonths + " → " + b.depreciationMonths + " mois");
@@ -174,7 +174,7 @@ export function compareLeaseResults(previous: { runId: string; revision: number;
   return { previous: { runId: previous.runId, revision: previous.revision, version: previous.version }, current: { runId: current.runId, revision: current.revision, version: current.version }, rows, limits };
 }
 
-const completed = (run: WorkpaperRun) => run.result?.execution === "completed" && (run.result.result as LeaseResult | undefined)?.schemaVersion === "ifrs16-result-1" ? run.result.result as LeaseResult : null;
+const completed = (run: WorkpaperRun) => run.result?.execution === "completed" && (run.result.result as LeaseResult | undefined)?.schemaVersion === "ifrs16-result-2" ? run.result.result as LeaseResult : null;
 
 /**
  * Vue de portefeuille d'une version de feuille : sans résultat, la synthèse et la table lisent la qualification seule (montants absents) ;

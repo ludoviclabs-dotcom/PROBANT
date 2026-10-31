@@ -13,7 +13,9 @@ import { leaseHandlers } from "../lease-http";
 import { LeaseRuntime } from "../lease-runtime";
 import { LEASE_MAPPING, type LeaseType } from "../lease-sources";
 import type { LeaseCommand } from "../lease-commands";
-import type { LeaseResult } from "../lease-review";
+import { leaseRunEvidence, type LeaseResult } from "../lease-review";
+import { leaseCalculationInput } from "../lease-adapter";
+import { stableSha256 } from "@/lib/synthesis/canonical";
 import { contentHash, periodId, type WorkpaperRun } from "../model";
 import { decideBundleSelection } from "@/lib/ifrs/shared/selection";
 import { closingHandlers } from "../closing-http";
@@ -101,7 +103,9 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     expect(result.contracts[1].closing).toMatchObject({ additions: { amount: "33421.27" }, interest: { amount: "1398.49" }, debtClosing: { amount: "22819.76" }, depreciation: { amount: "11140.42" }, rouNetClosing: { amount: "22280.85" } });
     expect(result.portfolio.computedSubtotal).toMatchObject({ label: "contrats calculés", contracts: 2, debtClosing: { amount: "22819.76" }, interest: { amount: "1457.50" } });
     expect(result.coverage.ledger).toMatchObject({ lines: 4, matched: 4, unmatched: 0 });
-    expect(run.evidence.length).toBe(result.evidence.length);
+    // CAPACITE_LOCATIONS.md O2: one verified link per cited document on the sheet; O1: the source rows are referenced, the input hash re-derived from them.
+    expect(run.evidence).toEqual(leaseRunEvidence(result));
+    expect(stableSha256(leaseCalculationInput(run.result!, batches))).toBe(run.result!.inputHash);
     // L16-03: both contracts framed; the adjustment carries this sheet's lineage and revision and is materialized at the exact version read.
     expect(result.contracts.map(c => [c.contractId, c.framing.status, c.adjustment.status])).toEqual([["F01", "framed", "included"], ["F03", "framed", "included"]]);
     expect(result.bundle).toMatchObject({ logicalId: "ifrs16.leases:" + run.rootId, revision: 1, runId: run.id, identities: ["ifrs16:lease:F01", "ifrs16:lease:F03"], taxStatus: "not_computed" });
@@ -199,7 +203,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     const sheetOf = (v: { runs: WorkpaperRun[] }) => v.runs.find(r => r.id === run.id)!;
     expect(sheetOf(restarted)).toEqual(sheetOf(beforeRestart));
     expect(sheetOf(restarted)).toMatchObject({ state: "locked", approval: { kind: "personal", reviewerName: "Camille Martin (exemple)" }, conclusion: expect.stringContaining("Dette et droit d'utilisation recalculés") });
-    expect(sheetOf(restarted).evidence.length).toBe(result.evidence.length);
+    expect(sheetOf(restarted).evidence).toEqual(leaseRunEvidence(result));
     for (const key of ["adjustments", "review", "portfolio", "contentHashes", "sourcesCurrent", "workspace"] as const) expect(restarted[key][run.id], key).toEqual(beforeRestart[key][run.id]);
     expect(closingAfter.projection.ifrsWorks).toEqual(closingBefore.projection.ifrsWorks);
     expect(closingAfter.projection.ifrsWorks.lineages[0].selection.status).toBe("a_reexaminer");

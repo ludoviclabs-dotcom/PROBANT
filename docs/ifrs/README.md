@@ -27,7 +27,7 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 | Élément | Rôle |
 |---|---|
 | [`handoffs/L16-06.md`](./handoffs/L16-06.md) | **Où en est le chantier** : verdict, matrice exigences → tests → résultats, propriétés et mutations, charge et capacité, parcours réel, blocages avant C03, captures [`captures/l16-06/`](./captures/l16-06/) |
-| [`CAPACITE_LOCATIONS.md`](./CAPACITE_LOCATIONS.md) | **Décision en attente** : capacité réelle de l'atelier (9 contrats de 120 mois), options mesurées et recommandation |
+| [`CAPACITE_LOCATIONS.md`](./CAPACITE_LOCATIONS.md) | Capacité de l'atelier : options mesurées, O1 + O2 faites (30 contrats de 120 mois au lieu de 9) ; cible au-delà à décider |
 | [`recette/`](./recette/) | Oracle C00 et attendus aléatoires ([`proprietes_l16.py`](./recette/proprietes_l16.py)), résultats des mutations, mesures de charge ([`charge/`](./recette/charge/)), état du parcours réel |
 | [`handoffs/L16-05.md`](./handoffs/L16-05.md) | Revue, exports et manifeste, travaux IFRS du dossier de clôture, inventaire des contrôles pour L16-06, captures [`captures/l16-05/`](./captures/l16-05/) |
 | [`handoffs/L16-04.md`](./handoffs/L16-04.md) | poste visuel, vue de portefeuille serveur, graphiques et tableaux, comparaison de versions, captures [`captures/l16-04/`](./captures/l16-04/) |

@@ -1,10 +1,13 @@
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import type { CalculationRun } from "@/lib/canonical-model/calculation";
+import { leaseSchedule } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases } from "@/lib/ifrs/leases/qualification";
+import { stableSha256 } from "@/lib/synthesis/canonical";
 import type { ImportBatch } from "../imports";
-import { LeaseRegistry } from "../lease-adapter";
-import { leaseReviewPoints, type LeaseResult } from "../lease-review";
+import { leaseCalculationInput, LeaseRegistry } from "../lease-adapter";
+import { leaseReviewPoints, leaseRunEvidence, scheduleRows, type LeaseResult } from "../lease-review";
 import { leaseFacts, type LeaseType } from "../lease-sources";
 import { stampLeaseWork } from "../lease-work";
 import { periodId, type WorkpaperScope } from "../model";
@@ -43,7 +46,10 @@ async function execute(edit: (rows: Rows) => void) {
   const run = new LeaseRegistry().execute({ scope, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "1.0.0" }, imports: batches, population, selection, parameters: { runId: "recette-r1", rootId: "recette", revision: 1, work } });
   expect(run.execution, run.blockedControls.join(",")).toBe("completed");
   const result = run.result as LeaseResult, of = (id: string) => result.contracts.find(c => c.contractId === id)!;
-  return { result, of, codes: (id: string) => of(id).reasons.map(r => r.code), inBundle: (id: string) => !!result.bundle?.lines.some(l => l.contractId === id) };
+  // The detail of the dues is read again from the frozen sources, as the server's read does (the result only counts them).
+  const q = qualifyLeases(leaseFacts(batches), LEASE_PERIOD, work, { id: "ifrs16.leases", version: "1.0.0", basisStatus: "review_required" });
+  return { run, batches, result, of, dues: (id: string) => q.contracts.find(c => c.contractId === id)!.dues, codes: (id: string) => of(id).reasons.map(r => r.code),
+    inBundle: (id: string) => !!result.bundle?.lines.some(l => l.contractId === id) };
 }
 
 describe("L16-06 matrice de recette — cas complétés, par l'exécution serveur", () => {
@@ -75,8 +81,8 @@ describe("L16-06 matrice de recette — cas complétés, par l'exécution serveu
     expect(r.of("U1").closing).toMatchObject({ paymentsInPeriod: 1, payments: { amount: "900.00" }, debtClosing: { amount: "0.00" }, rouNetClosing: { amount: "0.00" } });
     expect(r.of("U12").closing).toMatchObject({ paymentsInPeriod: 12, payments: { amount: "6000.00" }, debtClosing: { amount: "0.00" } });
     expect(r.of("U120")).toMatchObject({ result: "computed", depreciationMonths: 120, closing: { paymentsInPeriod: 12, payments: { amount: "3000.00" } } });
-    expect(r.of("U120").schedule).toHaveLength(120);
-    expect(new Set(r.of("U120").schedule!.map(d => d.dueDate)).size).toBe(120);
+    expect(r.of("U120").schedule!.t).toHaveLength(120);
+    expect(new Set(r.of("U120").schedule!.dueDate).size).toBe(120);
     expect(r.of("U12P")).toMatchObject({ status: "a_qualifier", result: "not_applicable" }); expect(r.codes("U12P")).toContain("Q08");
     expect(r.of("C15")).toMatchObject({ status: "hors_scope_v1", result: "not_applicable" }); expect(r.codes("C15")).toContain("X17");
     expect(r.of("DD")).toMatchObject({ status: "a_qualifier", result: "not_applicable" }); expect(r.codes("DD")).toContain("Q10");
@@ -114,7 +120,7 @@ describe("L16-06 matrice de recette — cas complétés, par l'exécution serveu
     });
     expect(r.of("VU")).toMatchObject({ status: "hors_scope_v1", result: "not_applicable" }); expect(r.codes("VU")).toContain("X21");
     expect(r.of("VT")).toMatchObject({ status: "eligible_v1", result: "computed", framing: { status: "framed" }, adjustment: { status: "included" } });
-    expect(r.of("VT").dues.filter(d => d.role === "exigible").every(d => d.settlement === "regle" && d.amount.amount === "400.00" && d.paidAmount?.amount === "480.00" && d.paidVat?.amount === "80.00")).toBe(true);
+    expect(r.dues("VT").filter(d => d.role === "exigible").every(d => d.settlement === "regle" && d.amount.amount === "400.00" && d.paidAmount?.amount === "480.00" && d.paidVat?.amount === "80.00")).toBe(true);
     expect(r.result.bundle!.taxStatus).toBe("not_computed");
   });
 
@@ -149,6 +155,41 @@ describe("L16-06 matrice de recette — cas complétés, par l'exécution serveu
     expect(rate.F01).toBe(base.F01); expect(rate.F03).not.toBe(base.F03);
     const policy = fingerprints(await qualify(undefined, { ...work, policies: work.policies.slice(1) }));
     expect(policy.F01).not.toBe(base.F01); expect(policy.F03).not.toBe(base.F03);
+  });
+});
+
+describe("Capacité (CAPACITE_LOCATIONS.md, O1 + O2) : feuille compacte, preuves intactes", () => {
+  const portfolio = (rows: Rows) => { for (const [id, months] of [["C1", 36], ["C2", 120], ["C3", 24]] as const) add(rows, id, months, "500.00"); };
+  it("O1 : la feuille ne recopie pas les lignes sources ; leurs nombre et empreinte redonnent l'empreinte des entrées ; une source altérée est refusée", async () => {
+    const r = await execute(portfolio), calc = r.run as CalculationRun, input = calc.input as { imports: Record<string, unknown>[] };
+    expect(input.imports.every(b => !("rows" in b) && typeof b.rowCount === "number" && /^[a-f0-9]{64}$/.test(String(b.rowsHash)))).toBe(true);
+    expect(JSON.stringify(calc.input)).not.toContain("Details");
+    expect(stableSha256(leaseCalculationInput(calc, r.batches))).toBe(calc.inputHash);
+    const altered = r.batches.map(b => b.document.documentType !== "lease_schedule" ? b : { ...b, rows: b.rows.slice(1) });
+    expect(() => leaseCalculationInput(calc, altered)).toThrow("L16_INPUT_SOURCE_MISMATCH");
+  });
+
+  it("O2 : échéancier en colonnes identique aux lignes du moteur ; échéances comptées comme la qualification ; preuves ligne à ligne complètes, regroupées par pièce", async () => {
+    const r = await execute(portfolio), q = qualifyLeases(leaseFacts(r.batches), LEASE_PERIOD, work, { id: "ifrs16.leases", version: "1.0.0", basisStatus: "review_required" });
+    expect(r.result.schemaVersion).toBe("ifrs16-result-2");
+    for (const c of r.result.contracts.filter(x => x.result === "computed")) {
+      const inputs = q.contracts.find(x => x.contractId === c.contractId)!.inputs!;
+      expect(scheduleRows(c.schedule!), c.contractId).toEqual(leaseSchedule(inputs).rows);
+    }
+    for (const c of r.result.contracts) expect(c.dues, c.contractId).toEqual({ count: r.dues(c.contractId).length, payable: r.dues(c.contractId).filter(d => d.role === "exigible").length });
+    // Every proof of the selected contracts and every matched ledger line, once, sorted; the adjustment cites only rows that are there.
+    const cited = r.result.evidence.documents.flatMap(d => d.rows.map(x => x.rowId));
+    const expected = new Set([...q.contracts.flatMap(c => c.evidence.map(p => p.rowId)), ...r.result.contracts.filter(c => c.adjustment.status === "included").flatMap(c => c.framing.lines.filter(l => l.status === "matched").map(l => l.proof.rowId))]);
+    expect(new Set(cited)).toEqual(expected);
+    expect(cited.length).toBe(expected.size);
+    expect(r.result.bundle!.lines.flatMap(l => l.evidence).every(id => cited.includes(id.slice((r.result.runId + ":lease:").length)))).toBe(true);
+  });
+
+  it("O2 : sur la feuille, une preuve vérifiée par pièce citée, avec son nombre de lignes ; aucune copie ligne à ligne", async () => {
+    const r = await execute(portfolio), links = leaseRunEvidence(r.result);
+    expect(links.map(l => l.documentVersionId)).toEqual(r.result.evidence.documents.map(d => d.documentVersionId));
+    expect(links.every(l => l.precision === "document" && l.status === "verified" && l.procedureId === r.result.runId && !l.rowId)).toBe(true);
+    expect(links.map(l => Number(/: (\d+) ligne/.exec(l.purpose)![1]))).toEqual(r.result.evidence.documents.map(d => d.rows.length));
   });
 });
 

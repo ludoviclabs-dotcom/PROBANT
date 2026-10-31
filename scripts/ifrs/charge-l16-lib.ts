@@ -8,9 +8,9 @@ import { leaseWorkspaceView } from "../../lib/ifrs/leases/view-model";
 import { materializeBundle } from "../../lib/ifrs/shared/bundle";
 import type { CalculationRun } from "../../lib/canonical-model/calculation";
 import { previewImport, type ImportBatch } from "../../lib/workpapers/imports";
-import { LEASE_TEMPLATE, LeaseRegistry } from "../../lib/workpapers/lease-adapter";
+import { inputByReference, LEASE_TEMPLATE, LeaseRegistry } from "../../lib/workpapers/lease-adapter";
 import { LEASE_PERIOD, leaseFile, seededLeaseRows, type LeaseRow } from "../../lib/workpapers/lease-fixture";
-import { evaluateLeases, leaseReviewPoints, type LeaseResult } from "../../lib/workpapers/lease-review";
+import { evaluateLeases, leaseReviewPoints, leaseRunEvidence, type LeaseResult } from "../../lib/workpapers/lease-review";
 import { leaseFacts, LEASE_MAPPING, LEASE_REQUIRED_TYPES, LEASE_TYPES, type LeaseType } from "../../lib/workpapers/lease-sources";
 import { stampLeaseWork } from "../../lib/workpapers/lease-work";
 import { contentHash, periodId, type WorkpaperRun, type WorkpaperScope } from "../../lib/workpapers/model";
@@ -113,16 +113,16 @@ export const execute = (imports: ImportBatch[], s: Sheet) => new LeaseRegistry()
   parameters: { ...LINEAGE, work: s.work } });
 /**
  * The stored run as the runtime writes it after execution; the registry part (`input`, `sourceRefs`) is rebuilt when the registry is not measured.
- * WorkpaperService.execute copies the result's evidence onto the run (`run.evidence`): every later version stores it twice.
+ * WorkpaperService.execute adds one verified link per cited document onto the run (`leaseRunEvidence`).
  */
 export function runOf(imports: ImportBatch[], s: Sheet, calculation: CalculationRun): WorkpaperRun {
   const result = calculation.result as LeaseResult;
   return { id: LINEAGE.runId, rootId: LINEAGE.rootId, revision: 1, version: 6, schemaVersion: "1.0.0", scope: SCOPE, period: LEASE_PERIOD, template: LEASE_TEMPLATE, state: "executed", preparedBy: ACTOR.id,
-    importIds: imports.map(b => b.id).sort(), population: s.population, selection: s.selection, leaseWork: s.work, result: calculation, evidence: result.evidence, findings: [], events: [],
+    importIds: imports.map(b => b.id).sort(), population: s.population, selection: s.selection, leaseWork: s.work, result: calculation, evidence: leaseRunEvidence(result), findings: [], events: [],
     notes: leaseReviewPoints(result).map(x => ({ id: "lease:" + x.key, kind: "observation" as const, text: x.text, amount: x.amount, authorId: ACTOR.id, blocking: x.blocking })) };
 }
-/** Same shape as the registry's completed run, without executing it: the `input` copy of every source row is what the registry stores. */
-export const calculationShape = (imports: ImportBatch[], s: Sheet, result: LeaseResult) => calculationOf(imports, s, result, imports.map(b => ({ documentId: b.document.logicalId, documentVersionId: b.document.id, normalizedHash: "0".repeat(64), fingerprint: b.document.byteHash, parserVersion: b.document.parserVersion, mappingVersion: b.mapping.version })));
+/** Same shape as the registry's completed run, without executing it, then stored as the Locations adapter stores it: source rows referenced (O1). */
+export const calculationShape = (imports: ImportBatch[], s: Sheet, result: LeaseResult) => inputByReference(calculationOf(imports, s, result, imports.map(b => ({ documentId: b.document.logicalId, documentVersionId: b.document.id, normalizedHash: "0".repeat(64), fingerprint: b.document.byteHash, parserVersion: b.document.parserVersion, mappingVersion: b.mapping.version }))), imports);
 const calculationOf = (imports: ImportBatch[], s: Sheet, result: LeaseResult, sourceRefs: unknown[]) => ({ id: "calculation-bench", calculationKey: "ifrs16.leases", ruleVersion: LEASE_TEMPLATE.version, inputHash: "0".repeat(64), scope: SCOPE, period: LEASE_PERIOD,
   sourceRefs, input: { scope: SCOPE, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: LEASE_TEMPLATE.version }, sourceRefs, imports: imports.map(b => ({ id: b.id, mappingHash: b.mappingHash, rows: b.rows })), population: s.population, selection: s.selection, parameters: { ...LINEAGE, work: s.work } },
   findings: [], warnings: [], blockedControls: [], execution: "completed", outcome: result.outcome, result }) as CalculationRun;

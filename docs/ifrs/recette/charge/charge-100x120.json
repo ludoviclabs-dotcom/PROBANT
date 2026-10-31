@@ -44,144 +44,144 @@
     "outcome": "no_exception_detected"
   },
   "timings": {
-    "generationMs": 11.3,
-    "sourcesReadMs": 2096.7,
+    "generationMs": 10.2,
+    "sourcesReadMs": 2062.9,
     "l16": {
-      "evaluateColdMs": 563.7,
+      "evaluateColdMs": 538.4,
       "evaluateWarm": {
         "n": 5,
-        "minMs": 452.99,
-        "medianMs": 463.21,
-        "p95Ms": 534.95,
-        "maxMs": 534.95
+        "minMs": 445.88,
+        "medianMs": 454.29,
+        "p95Ms": 511.46,
+        "maxMs": 511.46
       },
       "qualification": {
         "n": 5,
-        "minMs": 162.97,
-        "medianMs": 163.97,
-        "p95Ms": 166.39,
-        "maxMs": 166.39
+        "minMs": 161.72,
+        "medianMs": 166.11,
+        "p95Ms": 175.38,
+        "maxMs": 175.38
       },
       "oneContractEngine": {
         "n": 100,
-        "minMs": 0.62,
-        "medianMs": 0.64,
-        "p95Ms": 1.13,
-        "maxMs": 1.49
+        "minMs": 0.57,
+        "medianMs": 0.63,
+        "p95Ms": 1.55,
+        "maxMs": 1.74
       },
       "reevaluateAfterOneContractChanged": {
         "n": 5,
-        "minMs": 450.56,
-        "medianMs": 477.21,
-        "p95Ms": 517.72,
-        "maxMs": 517.72
+        "minMs": 453.9,
+        "medianMs": 473.44,
+        "p95Ms": 495.9,
+        "maxMs": 495.9
       }
     },
     "sharedRegistry": {
-      "coldMs": 5265.3,
+      "coldMs": 2961.6,
       "warm": {
         "n": 5,
-        "minMs": 4989.05,
-        "medianMs": 5368.68,
-        "p95Ms": 5720.55,
-        "maxMs": 5720.55
+        "minMs": 2877.97,
+        "medianMs": 2892.03,
+        "p95Ms": 3167.44,
+        "maxMs": 3167.44
       }
     },
     "views": {
       "portfolio": {
         "n": 5,
-        "minMs": 3.19,
-        "medianMs": 3.88,
-        "p95Ms": 6.42,
-        "maxMs": 6.42
+        "minMs": 3.35,
+        "medianMs": 4.6,
+        "p95Ms": 6.97,
+        "maxMs": 6.97
       },
       "charts": {
         "n": 5,
-        "minMs": 2.39,
-        "medianMs": 3.69,
-        "p95Ms": 4.65,
-        "maxMs": 4.65
+        "minMs": 2.67,
+        "medianMs": 3.85,
+        "p95Ms": 7.16,
+        "maxMs": 7.16
       },
       "reviewSummary": {
         "n": 5,
-        "minMs": 2.6,
-        "medianMs": 3.31,
-        "p95Ms": 3.57,
-        "maxMs": 3.57
+        "minMs": 1.96,
+        "medianMs": 2.28,
+        "p95Ms": 3.42,
+        "maxMs": 3.42
       },
       "readSerialized": {
         "n": 5,
-        "minMs": 4841.59,
-        "medianMs": 4873.59,
-        "p95Ms": 5145.99,
-        "maxMs": 5145.99
+        "minMs": 759.36,
+        "medianMs": 764.57,
+        "p95Ms": 805.03,
+        "maxMs": 805.03
       },
       "contentHash": {
         "n": 5,
-        "minMs": 2126.58,
-        "medianMs": 2150.95,
-        "p95Ms": 2275.69,
-        "maxMs": 2275.69
+        "minMs": 160.17,
+        "medianMs": 164.25,
+        "p95Ms": 166.84,
+        "maxMs": 166.84
       },
       "screenFilter": {
         "n": 100,
         "minMs": 0.02,
-        "medianMs": 0.03,
-        "p95Ms": 0.09,
-        "maxMs": 0.82
+        "medianMs": 0.02,
+        "p95Ms": 0.04,
+        "maxMs": 0.2
       }
     },
     "exports": {
       "json": {
         "n": 5,
-        "minMs": 2534.66,
-        "medianMs": 2564.27,
-        "p95Ms": 2760.28,
-        "maxMs": 2760.28,
+        "minMs": 585.83,
+        "medianMs": 595.62,
+        "p95Ms": 606.64,
+        "maxMs": 606.64,
         "bytes": 4527196
       },
       "html": {
         "n": 5,
-        "minMs": 2479.77,
-        "medianMs": 2518.01,
-        "p95Ms": 2545.75,
-        "maxMs": 2545.75,
+        "minMs": 533.81,
+        "medianMs": 566.29,
+        "p95Ms": 664,
+        "maxMs": 664,
         "bytes": 2698193
       },
       "contracts_csv": {
         "n": 5,
-        "minMs": 2395.18,
-        "medianMs": 2419.01,
-        "p95Ms": 2429.76,
-        "maxMs": 2429.76,
+        "minMs": 463.28,
+        "medianMs": 466.5,
+        "p95Ms": 482.67,
+        "maxMs": 482.67,
         "bytes": 20434
       },
       "schedules_csv": {
         "n": 5,
-        "minMs": 2416.54,
-        "medianMs": 2437.47,
-        "p95Ms": 2677.44,
-        "maxMs": 2677.44,
+        "minMs": 487.31,
+        "medianMs": 490.05,
+        "p95Ms": 540.19,
+        "maxMs": 540.19,
         "bytes": 1844133
       },
       "bridges_csv": {
         "n": 5,
-        "minMs": 2415.73,
-        "medianMs": 2421.57,
-        "p95Ms": 2611.18,
-        "maxMs": 2611.18,
+        "minMs": 464.33,
+        "medianMs": 474.52,
+        "p95Ms": 478.88,
+        "maxMs": 478.88,
         "bytes": 1672
       },
       "journal_csv": {
         "n": 5,
-        "minMs": 2394.03,
-        "medianMs": 2443.91,
-        "p95Ms": 2630.84,
-        "maxMs": 2630.84,
+        "minMs": 462.74,
+        "medianMs": 465.28,
+        "p95Ms": 476.4,
+        "maxMs": 476.4,
         "bytes": 259092
       }
     },
-    "materializeBundleMs": 2142.4
+    "materializeBundleMs": 190.5
   },
   "sizes": {
     "perSource": {
@@ -215,46 +215,46 @@
       }
     },
     "draftRunBytes": 20410,
-    "executedRunBytes": 40272311,
+    "executedRunBytes": 3130455,
     "executedRunParts": {
-      "input": 11197868,
-      "runEvidence": 8019880,
+      "input": 21638,
+      "runEvidence": 2534,
       "contractsWithoutDuesAndSchedules": 507879,
-      "dues": 7013236,
-      "schedules": 5229332,
-      "evidence": 8019880,
+      "dues": 3100,
+      "schedules": 1129432,
+      "evidence": 1181636,
       "bundle": 252356,
       "notes": 2
     },
-    "chainBytes": 241735916,
-    "readBytes": 50590241
+    "chainBytes": 18884780,
+    "readBytes": 15173374
   },
   "memory": {
     "start": {
-      "rssMiB": 83.6,
-      "heapUsedMiB": 20.3
+      "rssMiB": 99.8,
+      "heapUsedMiB": 20.4
     },
     "afterSources": {
-      "rssMiB": 323.8,
-      "heapUsedMiB": 40.7
+      "rssMiB": 339.9,
+      "heapUsedMiB": 40.8
     },
     "afterEvaluateCold": {
-      "rssMiB": 325,
-      "heapUsedMiB": 60.8
+      "rssMiB": 341.3,
+      "heapUsedMiB": 55.7
     },
     "afterRegistry": {
-      "rssMiB": 514.3,
-      "heapUsedMiB": 104.4
+      "rssMiB": 485.8,
+      "heapUsedMiB": 59.7
     },
     "afterViews": {
-      "rssMiB": 609.9,
-      "heapUsedMiB": 201.1
+      "rssMiB": 528.7,
+      "heapUsedMiB": 89.3
     },
     "afterExports": {
-      "rssMiB": 610,
-      "heapUsedMiB": 201.8
+      "rssMiB": 529.5,
+      "heapUsedMiB": 90
     },
-    "peakRssMiB": 1271.5
+    "peakRssMiB": 843.6
   },
   "gates": [
     {
@@ -338,19 +338,19 @@
     {
       "gate": "version de feuille ≤ 3,5 Mio (écriture)",
       "limit": 3670016,
-      "value": 38331476,
-      "ok": false
+      "value": 2914609,
+      "ok": true
     },
     {
       "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
       "limit": 25165824,
-      "value": 241735916,
-      "ok": false
+      "value": 18884780,
+      "ok": true
     },
     {
       "gate": "lecture de l'atelier ≤ 8 Mio",
       "limit": 8388608,
-      "value": 50590241,
+      "value": 15173374,
       "ok": false
     }
   ],

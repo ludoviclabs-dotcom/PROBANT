@@ -4,7 +4,7 @@ import type { AdjustmentBundleCore } from "@/lib/ifrs/shared/bundle";
 import { buildLeaseBundle, leaseBridge, LOGICAL_ACCOUNTS_VERSION, type LeaseBridge } from "@/lib/ifrs/leases/adjustment";
 import { computeLease, LEASE_ENGINE_VERSION, type ClosingFigures, type ContractComputation, type ScheduleRow } from "@/lib/ifrs/leases/engine";
 import { frameLeases, type ContractFraming, type LeaseFraming } from "@/lib/ifrs/leases/framing";
-import { qualifyLeases, CONTRACT_STATUSES, type ContractStatus, type LeaseQualification, type QualificationReason, type QualifiedDue, type SourceProof } from "@/lib/ifrs/leases/qualification";
+import { qualifyLeases, CONTRACT_STATUSES, type ContractStatus, type LeaseQualification, type QualificationReason, type SourceProof } from "@/lib/ifrs/leases/qualification";
 import { LEASE_RULE_BASIS, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
 import type { ImportBatch } from "./imports";
 import { leaseFacts } from "./lease-sources";
@@ -14,22 +14,27 @@ const NOT_COMPUTED: Record<Exclude<ContractStatus, "eligible_v1">, string> = { n
 import type { EvidenceLink, Population, SelectionSet, WorkpaperScope } from "./model";
 
 /**
- * Résultat canonique de la feuille « Locations IFRS 16 » (C00 § 4.6, `ifrs16-result-1`) : une seule projection lue par la table, la revue
+ * Résultat canonique de la feuille « Locations IFRS 16 » (C00 § 4.6, `ifrs16-result-2`) : une seule projection lue par la table, la revue
  * et l'export ; aucun montant n'est recalculé dans React. Calcul (moteur), cadrage sur la base PCG et retraitement proposé restent trois objets :
  * un contrat calculé mais non cadré garde ses chiffres, sans retraitement sélectionnable (X27, X28).
+ * Format compact (option O2 de `docs/ifrs/CAPACITE_LOCATIONS.md`) : chaque version de la feuille recopie le résultat entier, qui ne porte donc
+ * que ce que la qualification des sources figées ne redonne pas. Les échéances qualifiées sont comptées (leur détail se relit sur les sources
+ * figées), l'échéancier du moteur est en colonnes, les preuves sont regroupées par pièce, ligne à ligne.
  */
 export type LeaseResultKind = "computed" | "diagnostic" | "not_commenced" | "not_applicable";
 /** Inclusion d'un contrat dans le retraitement proposé : seul un contrat calculé et cadré au centime y entre. */
 export interface LeaseContractAdjustment { status: "included" | "excluded" | "not_applicable"; reason: string | null }
 export interface LeaseContractResult {
-  contractId: string; version: string | null; status: ContractStatus; reasons: QualificationReason[]; fingerprint: string; dues: QualifiedDue[];
+  contractId: string; version: string | null; status: ContractStatus; reasons: QualificationReason[]; fingerprint: string;
+  /** Échéances qualifiées : nombre, dont exigibles à la date de revue ; leur détail (règlements, preuves) se relit sur les sources figées. */
+  dues: { count: number; payable: number };
   result: LeaseResultKind; resultReasons: string[];
-  exact?: { monthlyRate: string; debtInitial: string }; debtInitial?: Money; depreciationMonths?: number; schedule?: ScheduleRow[]; closing?: ClosingFigures; maxAbsRoundingGap?: Money;
+  exact?: { monthlyRate: string; debtInitial: string }; debtInitial?: Money; depreciationMonths?: number; schedule?: ScheduleColumns; closing?: ClosingFigures; maxAbsRoundingGap?: Money;
   opening?: Extract<ContractComputation, { result: "computed" | "diagnostic" }>["opening"];
   framing: ContractFraming; adjustment: LeaseContractAdjustment;
 }
 export interface LeaseResult {
-  schemaVersion: "ifrs16-result-1"; runId: string; scope: WorkpaperScope; period: AccountingPeriod;
+  schemaVersion: "ifrs16-result-2"; runId: string; scope: WorkpaperScope; period: AccountingPeriod;
   rule: { id: "ifrs16.leases"; version: string; basisStatus: "review_required" | "validated" }; engineVersion: string;
   arithmetic: { scale: 40; rounding: "half_away_from_zero_cent"; publication: "rounded_balances" };
   contracts: LeaseContractResult[];
@@ -39,9 +44,27 @@ export interface LeaseResult {
   ledgerFraming: Omit<LeaseFraming, "contracts">;
   /** Contenu du retraitement (C01-D02) ; version de feuille, empreinte et statut proposé / revu sont matérialisés à la lecture. */
   bundle: AdjustmentBundleCore | null; bundleTotals: { debit: Money; credit: Money } | null; bridge: LeaseBridge | null; logicalAccountsVersion: typeof LOGICAL_ACCOUNTS_VERSION;
-  limitations: string[]; evidence: EvidenceLink[];
+  limitations: string[]; evidence: LeaseEvidence;
   outcome: "no_exception_detected" | "exceptions_detected" | "inconclusive";
 }
+/** Échéancier publié du moteur en colonnes : les valeurs de ses lignes, sans répéter les clés ni la devise. */
+export interface ScheduleColumns {
+  currency: "EUR"; t: number[]; dueDate: string[]; payment: string[]; openingDebt: string[]; interest: string[]; principal: string[]; closingDebt: string[];
+  economicInterestRounded: string[]; roundingGap: string[];
+}
+const SCHEDULE_AMOUNTS = ["payment", "openingDebt", "interest", "principal", "closingDebt", "economicInterestRounded", "roundingGap"] as const;
+export function scheduleColumns(rows: readonly ScheduleRow[]): ScheduleColumns {
+  return { currency: "EUR", t: rows.map(r => r.t), dueDate: rows.map(r => r.dueDate), ...Object.fromEntries(SCHEDULE_AMOUNTS.map(k => [k, rows.map(r => r[k].amount)])) } as ScheduleColumns;
+}
+export function scheduleRows(c: ScheduleColumns): ScheduleRow[] {
+  return c.t.map((t, i) => ({ t, dueDate: c.dueDate[i], ...Object.fromEntries(SCHEDULE_AMOUNTS.map(k => [k, { amount: c[k][i], currency: c.currency }])) }) as ScheduleRow);
+}
+/**
+ * Preuves du résultat, ligne à ligne, regroupées par pièce : chaque ligne citée garde son identifiant et son numéro. L'identifiant de preuve
+ * d'une ligne reste `runId:lease:rowId`, celui que citent les écritures du retraitement.
+ */
+export interface LeaseEvidence { purpose: string; documents: { documentVersionId: string; rows: { rowId: string; row: number | null }[] }[] }
+const EVIDENCE_PURPOSE = "Source de location citée (contrat, hypothèses, échéances, ouverture ou charge PCG cadrée)";
 const SUMMED = ["payments", "debtOpening", "additions", "interest", "principal", "debtClosing", "rouGross", "accumulatedOpening", "depreciation", "accumulatedClosing", "rouNetOpening", "rouNetClosing", "openingEquityEffect"] as const;
 const evidenceId = (runId: string, rowId: string) => runId + ":lease:" + rowId;
 
@@ -55,7 +78,8 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
   const framingOf = new Map(framing.contracts.map(f => [f.contractId, f]));
   const contracts: LeaseContractResult[] = q.contracts.filter(c => selected.has(c.contractId)).map(c => {
     const f = framingOf.get(c.contractId)!;
-    const base = { contractId: c.contractId, version: c.version, status: c.status, reasons: c.reasons, fingerprint: c.fingerprint, dues: c.dues, framing: f };
+    const base = { contractId: c.contractId, version: c.version, status: c.status, reasons: c.reasons, fingerprint: c.fingerprint,
+      dues: { count: c.dues.length, payable: c.dues.filter(d => d.role === "exigible").length }, framing: f };
     const none = { status: "not_applicable" as const, reason: null };
     if (c.status !== "eligible_v1" || !c.inputs) return { ...base, result: "not_applicable" as const, resultReasons: ["Aucun calcul : " + (c.status === "eligible_v1" ? "entrées incomplètes" : NOT_COMPUTED[c.status])], adjustment: none };
     const r = computeLease(c.inputs, period);
@@ -64,7 +88,7 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
     const adjustment: LeaseContractAdjustment = r.result !== "computed" ? { status: "excluded", reason: "Calcul en diagnostic : aucun retraitement déterminé (X24)" }
       : f.status === "framed" ? { status: "included", reason: null }
       : { status: "excluded", reason: (f.status === "difference" ? "Écart connu de cadrage : " : "Loyer de la base non cadré : ") + f.gaps.filter(g => g.code !== "info").map(g => g.code + " " + g.message).join(" ; ") };
-    return { ...base, result: r.result, resultReasons: r.reasons, exact: r.exact, debtInitial: r.debtInitial, depreciationMonths: r.depreciationMonths, schedule: r.schedule, closing: r.closing, maxAbsRoundingGap: r.maxAbsRoundingGap, opening: r.opening, adjustment };
+    return { ...base, result: r.result, resultReasons: r.reasons, exact: r.exact, debtInitial: r.debtInitial, depreciationMonths: r.depreciationMonths, schedule: scheduleColumns(r.schedule), closing: r.closing, maxAbsRoundingGap: r.maxAbsRoundingGap, opening: r.opening, adjustment };
   });
   const computed = contracts.filter(c => c.result === "computed");
   const sum = (k: typeof SUMMED[number]) => money(computed.reduce((t, c) => t + cents(c.closing![k]), 0n));
@@ -75,15 +99,19 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
   // Ledger lines cited by a framed contract join the evidence: the neutralized rent points to its PCG rows.
   const included = contracts.filter(c => c.adjustment.status === "included");
   for (const c of included) for (const l of c.framing.lines) if (l.status === "matched") proofs.set(l.proof.rowId, l.proof);
-  const evidence: EvidenceLink[] = [...proofs.values()].sort((a, b) => (a.rowId < b.rowId ? -1 : 1)).map(p => ({ id: evidenceId(runId, p.rowId), scope, procedureId: runId, documentVersionId: p.documentVersionId, rowId: p.rowId,
-    ...(p.row ? { locator: { row: p.row } } : {}), precision: "row" as const, status: "verified" as const, purpose: "Source de location citée (contrat, hypothèses, échéances, ouverture ou charge PCG cadrée)" }));
+  const byDocument = new Map<string, { rowId: string; row: number | null }[]>();
+  for (const p of [...proofs.values()].sort((a, b) => (a.rowId < b.rowId ? -1 : 1))) {
+    const rows = byDocument.get(p.documentVersionId);
+    if (rows) rows.push({ rowId: p.rowId, row: p.row ?? null }); else byDocument.set(p.documentVersionId, [{ rowId: p.rowId, row: p.row ?? null }]);
+  }
+  const evidence: LeaseEvidence = { purpose: EVIDENCE_PURPOSE, documents: [...byDocument].sort(([a], [b]) => (a < b ? -1 : 1)).map(([documentVersionId, rows]) => ({ documentVersionId, rows })) };
   const ledgerBatch = frozen.find(b => b.document.documentType === "lease_ledger" && b.approval) ?? null;
   const qualified = new Map(q.contracts.map(c => [c.contractId, c]));
   const bundle = buildLeaseBundle({ runId, rootId: lineage.rootId, revision: lineage.revision, scope, period,
     ledgerRef: ledgerBatch ? { importId: ledgerBatch.id, documentVersionId: ledgerBatch.document.id, sha256: ledgerBatch.document.byteHash } : null,
     contracts: included.map(c => {
       // Calculation proofs: contract, assumptions and opening rows; the dues stay on the schedule, the rent line cites the ledger.
-      const own = qualified.get(c.contractId)!.evidence.filter(p => !c.dues.some(d => d.proof.rowId === p.rowId));
+      const q = qualified.get(c.contractId)!, dueRows = new Set(q.dues.map(d => d.proof.rowId)), own = q.evidence.filter(p => !dueRows.has(p.rowId));
       return { contractId: c.contractId, version: c.version!, closing: c.closing!, evidence: { calculation: own.map(p => evidenceId(runId, p.rowId)), ledger: c.framing.lines.filter(l => l.status === "matched").map(l => evidenceId(runId, l.proof.rowId)) } };
     }) });
   const excluded = contracts.filter(c => c.adjustment.status === "excluded").map(c => ({ contractId: c.contractId, reason: c.adjustment.reason! }));
@@ -104,7 +132,7 @@ export function evaluateLeases(scope: WorkpaperScope, period: AccountingPeriod, 
   const side = (x: "debit" | "credit") => money(bundle!.lines.filter(l => l.side === x).reduce((t, l) => t + cents(l.amount), 0n));
   const { contracts: _framed, ...ledgerFraming } = framing;
   void _framed;
-  return { schemaVersion: "ifrs16-result-1", runId, scope, period, rule, engineVersion: LEASE_ENGINE_VERSION, arithmetic: { scale: 40, rounding: "half_away_from_zero_cent", publication: "rounded_balances" }, contracts,
+  return { schemaVersion: "ifrs16-result-2", runId, scope, period, rule, engineVersion: LEASE_ENGINE_VERSION, arithmetic: { scale: 40, rounding: "half_away_from_zero_cent", publication: "rounded_balances" }, contracts,
     portfolio: { byStatus, byResult, computedSubtotal: computed.length ? { label: "contrats calculés", contracts: computed.length, ...Object.fromEntries(SUMMED.map(k => [k, sum(k)])) as Omit<ClosingFigures, "periodStart" | "closing" | "paymentsInPeriod"> } : null,
       blockedIds: contracts.filter(c => c.result !== "computed").map(c => c.contractId) },
     coverage: q.coverage, orphans: q.orphans, ledgerFraming, bundle, bundleTotals: bundle ? { debit: side("debit"), credit: side("credit") } : null, bridge, logicalAccountsVersion: LOGICAL_ACCOUNTS_VERSION, limitations, evidence, outcome };
@@ -132,4 +160,16 @@ export function leaseReviewPoints(result: LeaseResult): { key: string; text: str
     text: result.ledgerFraming.lines.unattached + " ligne(s) de la base sans contrat du registre : conservée(s), jamais compensée(s) ; contrat à identifier ou charge hors location à documenter." }] : [];
   return [...contracts, ...framing, ...unattached];
 }
-export function isLeaseResult(value: unknown): value is LeaseResult { return !!value && typeof value === "object" && (value as LeaseResult).schemaVersion === "ifrs16-result-1"; }
+export function isLeaseResult(value: unknown): value is LeaseResult { return !!value && typeof value === "object" && (value as LeaseResult).schemaVersion === "ifrs16-result-2"; }
+/** Résultat exécuté d'une version, s'il est au format courant ; un autre format n'est jamais relu comme celui-ci. */
+export const leaseResultOf = (run: { result?: { execution: string; result: unknown } }): LeaseResult | null =>
+  run.result?.execution === "completed" && isLeaseResult(run.result.result) ? run.result.result : null;
+
+/**
+ * Preuves recopiées sur la feuille par le service à l'exécution : une par pièce citée, vérifiée, avec son nombre de lignes. La soumission
+ * exige une preuve vérifiée sur la feuille ; le détail ligne à ligne reste dans le résultat (`evidence.documents`), sans copie.
+ */
+export function leaseRunEvidence(result: LeaseResult): EvidenceLink[] {
+  return result.evidence.documents.map(d => ({ id: result.runId + ":lease-document:" + d.documentVersionId, scope: result.scope, procedureId: result.runId, documentVersionId: d.documentVersionId,
+    precision: "document" as const, status: "verified" as const, purpose: result.evidence.purpose + " : " + d.rows.length + " ligne(s), citées ligne à ligne dans le résultat de la feuille" }));
+}
