@@ -518,9 +518,15 @@ entries:
     dataRequirements: []
     disclosureRequirements: []
     # 29/10/2026 (IFRS L16-01, L16-02) : § 5-38, annexe A, B3-B42 et C1 lus par extraction outillée et paraphrase ; texte UE non lu.
-    # Reste review_required jusqu'à la relecture personnelle nommée de la fiche de règle (docs/ifrs/REVUE_REGLE_IFRS16.md).
-    status: review_required
+    # 31/10/2026 : relecture personnelle nommée de la fiche de règle consignée (lib/ifrs/leases/rule-review.ts), juridiction IASB seulement ;
+    # le texte de l'Union européenne reste non lu (juridiction EU_adopted bloquée en réel, X33).
+    status: verified
     sources:
+      - sourceId: ifrs-16
+        kind: primary
+        url: https://www.ifrs.org/content/dam/ifrs/publications/html-standards/english/2026/issued/ifrs16.html
+        retrievedAt: "2026-10-31"
+        note: Texte IASB 2026 « issued », relu par l'utilisateur pour la relecture nommée de la fiche de règle ifrs16.leases.
       - sourceId: ifrs-standards-master
         kind: primary
         url: https://www.ifrs.org/issued-standards/list-of-standards/

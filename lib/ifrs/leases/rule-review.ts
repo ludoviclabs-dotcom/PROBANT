@@ -15,4 +15,9 @@ export interface LeaseRuleReview {
   jurisdiction: "IASB";
   confirmations: { wordByWordParagraphs: true; b9ToB33: true; internalPoliciesAccepted: true; referenceCasesExamined: true };
 }
-export const LEASE_RULE_REVIEW: LeaseRuleReview | null = null;
+export const LEASE_RULE_REVIEW: LeaseRuleReview | null = {
+  reviewedBy: "Ludo Labs",
+  reviewedAt: "2026-10-31T16:50:00.000Z",
+  jurisdiction: "IASB",
+  confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true },
+};;

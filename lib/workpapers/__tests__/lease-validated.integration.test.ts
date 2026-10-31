@@ -25,9 +25,9 @@ import { assertDisposableDatabase } from "./disposable-database";
 import { leaseFiles, LEASE_PERIOD } from "./lease-fixture";
 
 /**
- * L16-02 — chaîne complète avec une règle validée. **Simulation de test** : la relecture nommée de la fiche est remplacée ici par une valeur
- * de recette, pour vérifier le branchement du moteur (exécution réelle, preuves, points de revue, conclusion, relecture personnelle, verrouillage).
- * En dehors de ce fichier, la règle reste `review_required` tant que l'utilisateur n'a pas consigné sa relecture (`lib/ifrs/leases/rule-review.ts`).
+ * L16-02 — chaîne complète avec une règle validée. La relecture nommée de la fiche est remplacée ici par une valeur de recette fixe, pour que
+ * cette recette ne dépende ni du nom ni de la date consignés par l'utilisateur dans `lib/ifrs/leases/rule-review.ts` (relecture réelle du
+ * 31/10/2026) ; elle vérifie le branchement du moteur (exécution réelle, preuves, points de revue, conclusion, relecture personnelle, verrouillage).
  */
 vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: { reviewedBy: "Relecture simulée de recette", reviewedAt: "2026-10-29T12:00:00.000Z", jurisdiction: "IASB",
   confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } } }));

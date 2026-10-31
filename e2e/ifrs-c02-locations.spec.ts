@@ -42,7 +42,8 @@ test.describe("IFRS C02 · scénario synthétique en lecture seule", () => {
       await page.goto("/ifrs/locations?demo=1");
       await expect(page.getByRole("heading", { name: "Matrice de complétude" })).toBeVisible();
       await expect(page.getByRole("note").filter({ hasText: "Simulation non revue" })).toBeVisible();
-      await expect(page.getByLabel("Contexte de la feuille")).toContainText("ifrs16.leases 1.0.0 · à revoir");
+      // The rule carries the user's named review (31/10/2026); the scenario itself stays an unreviewed simulation.
+      await expect(page.getByLabel("Contexte de la feuille")).toContainText("ifrs16.leases 1.0.0 · validée");
       await expect(matrix(page).getByRole("row")).toHaveCount(8);
       // The synthetic scenario is read-only: no action bar, no policy editor, no upload form.
       await expect(page.getByRole("group", { name: "Actions de la feuille" })).toHaveCount(0);

@@ -1,4 +1,5 @@
 import { durableChainEnabled } from "@/lib/runtime/profile";
+import { LEASE_RULE_REVIEW } from "@/lib/ifrs/leases/rule-review";
 import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliation-definitions";
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
 import { CAPABILITY_CYCLE_IDS, CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, FRAMEWORK_PROCEDURES, type CapabilityCycleId } from "./procedures";
@@ -16,8 +17,9 @@ export * from "./procedures";
  * 1.5.3 (IFRS L16-03): rent framing on the PCG base and proposed closing adjustment (journal, bridge by line item), tax not computed; selection still by the closing journal (L16-05).
  * 1.5.4 (IFRS L16-04): visual workstation on /ifrs/locations — five-step rail, portfolio line and table, debt / right-of-use and principal / interest charts with equivalent tables, bridges, version comparison.
  * 1.5.5 (IFRS L16-05): review summary, cited resolutions and named personal review on the sheet; JSON / CSV / printable HTML exports with manifest (diagnostic or reviewed); selection for a declared base in the closing file (« Travaux IFRS »), never added to misstatements nor C05.
+ * 1.5.6 (IFRS, relecture nommée de la règle consignée) : la chaîne locale Locations est annoncée, exécution réelle ouverte pour la juridiction IASB seulement.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.5.5";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.6";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -85,11 +87,11 @@ export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
   requiredSources: ["Contrats et versions transcrits (lease_contracts)", "Hypothèses de taux, durée, exemptions et réponses de périmètre citées (lease_assumptions)", "Échéances et règlements (lease_schedule)",
     "Grand livre 612 / 613 / 614 et pièces pour un retraitement déterminé (lease_ledger)", "Ouverture historique validée pour une reprise (lease_opening)"],
   exclusions: ["Preneur seulement, euros, loyers fixes mensuels à terme échu, 1 à 120 mois (docs/ifrs/SCOPE_V1.md)", "Ni IFRS complet, ni annexe exhaustive, ni effet fiscal ; aucune méthode de transition choisie par l'outil",
-    "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
+    "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", LEASE_RULE_REVIEW ? "Règle relue pour la seule juridiction IASB (relecture personnelle nommée consignée) ; aucune autre juridiction n'est exécutable en réel" : "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
   modes: {
     historical: { implemented: false, scope: "Absent des constats historiques" },
     scenario: { implemented: true, scope: "Scénario synthétique en lecture seule (/ifrs/locations?demo=1) : « simulation non revue », calculé par le même moteur, jamais enregistré" },
-    local_persistent: { implemented: false, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée ; page /ifrs/locations (matrice de complétude, table du portefeuille, graphiques dette et droit d'utilisation avec leurs tableaux, ponts, comparaison de deux versions exécutées, inspecteur, scénario synthétique en lecture seule) ; cadrage des loyers sur la base PCG et retraitement de clôture proposé (écritures, pont par poste), impôt non calculé ; synthèse de revue, résolution citée des points et relecture personnelle nommée ; exports JSON, CSV et HTML imprimable avec manifeste, diagnostic ou revu ; sélection pour une base déclarée au dossier de clôture (section « Travaux IFRS »), jamais ajoutée aux anomalies ; la sélection ne prouve pas la comptabilisation." },
+    local_persistent: { implemented: LEASE_RULE_REVIEW !== null, scope: "Locations IFRS 16, preneur, périmètre V1 ; retraitement de clôture proposé, sans annexe exhaustive ni effet fiscal. Sources au dictionnaire fermé, qualification du portefeuille et moteur de calcul ; " + (LEASE_RULE_REVIEW ? "exécution réelle ouverte pour la juridiction IASB depuis la relecture personnelle nommée de la fiche de règle" : "exécution réelle bloquée tant que la fiche de règle n'a pas reçu sa relecture personnelle nommée") + " ; page /ifrs/locations (matrice de complétude, table du portefeuille, graphiques dette et droit d'utilisation avec leurs tableaux, ponts, comparaison de deux versions exécutées, inspecteur, scénario synthétique en lecture seule) ; cadrage des loyers sur la base PCG et retraitement de clôture proposé (écritures, pont par poste), impôt non calculé ; synthèse de revue, résolution citée des points et relecture personnelle nommée ; exports JSON, CSV et HTML imprimable avec manifeste, diagnostic ou revu ; sélection pour une base déclarée au dossier de clôture (section « Travaux IFRS »), jamais ajoutée aux anomalies ; la sélection ne prouve pas la comptabilisation." },
   },
   pageAvailable: true }));
 export function reconciliationCycles() {

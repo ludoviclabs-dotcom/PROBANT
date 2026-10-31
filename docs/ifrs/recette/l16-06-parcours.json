@@ -1,18 +1,18 @@
 {
-  "capturedAt": "2026-10-31T14:22:10.000Z",
-  "dossierId": "41fac20d-7ebe-4050-896f-d8b0f9f4615b",
+  "capturedAt": "2026-10-31T16:35:25.343Z",
+  "dossierId": "06406f88-154a-42ae-ad42-b196c46c99df",
   "periodId": "period-cabc536c56357d5fae16cc06e69c90d40da55a8499d93923e3618106228464ee",
   "owner": "Camille Recette",
   "beforeRestart": {
     "run": {
-      "id": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-      "version": 7,
-      "state": "blocked",
+      "id": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+      "version": 11,
+      "state": "locked",
       "importIds": [
-        "import-4e0314c3b69c784caea40cff075b12c077932645add38f0bd70e6e2c05136812",
-        "import-5d43a929af31aab76f95dc638301e3893f789a403f98cac85db459fb9e7c39bf",
-        "import-6333bb94cc1ec803c36fd1c3be4bf061e52d238f99fbb82fb47047133cc09998",
-        "import-e0a1c64eafc073a97bfd42765297453f0afaf6c7c42516cf3a50132a4c5aec28"
+        "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4",
+        "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588",
+        "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196",
+        "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
       ],
       "policies": [
         {
@@ -24,24 +24,24 @@
           "assetCategory": "Matériel de bureau"
         }
       ],
-      "population": "6866db54ea4b1ccf971e2476776bb02de29cade50c013d22565057a7b9fc67b4"
+      "population": "8df7b078e718fed0ac8e49041dc30ef24b9a22723335fa9515beb6072d654962"
     },
     "sourceHeads": [
       {
-        "document_type": "lease_assumptions",
-        "import_id": "import-5d43a929af31aab76f95dc638301e3893f789a403f98cac85db459fb9e7c39bf"
-      },
-      {
         "document_type": "lease_contracts",
-        "import_id": "import-4e0314c3b69c784caea40cff075b12c077932645add38f0bd70e6e2c05136812"
+        "import_id": "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588"
       },
       {
-        "document_type": "lease_ledger",
-        "import_id": "import-e0a1c64eafc073a97bfd42765297453f0afaf6c7c42516cf3a50132a4c5aec28"
+        "document_type": "lease_assumptions",
+        "import_id": "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
       },
       {
         "document_type": "lease_schedule",
-        "import_id": "import-6333bb94cc1ec803c36fd1c3be4bf061e52d238f99fbb82fb47047133cc09998"
+        "import_id": "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4"
       }
     ],
     "qualification": [
@@ -54,7 +54,7 @@
         "eligible_v1"
       ]
     ],
-    "contentHash": "f4cd41eab56852c219e15a759093b3345d02c76657f1811f747ef772a571b74d",
+    "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
     "actions": {
       "create": "Une feuille existe déjà pour cet exercice",
       "configure": "La feuille n'est plus modifiable dans cet état",
@@ -67,36 +67,55 @@
       "review": "Aucune version soumise",
       "lock": "Version approuvée requise",
       "export_diagnostic": "permise",
-      "export_reviewed": "Version approuvée ou verrouillée requise"
+      "export_reviewed": "permise"
     },
-    "exportHash": "6f31b619100d2919cb6780d1456dc42deab3b756e05409d45972e38c37a3839f",
+    "exportHash": "ee66bd3528582ef80048e029d7848d293e348485d283546bc4b08b304a516884",
     "ifrsWorks": {
       "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
       "lineages": [
         {
           "procedure": "ifrs16.leases",
           "label": "Locations IFRS 16 — preneur, périmètre V1",
-          "rootId": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-          "logicalId": "ifrs16.leases:workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-          "runId": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
+          "rootId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "logicalId": "ifrs16.leases:workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
           "revision": 1,
-          "version": 7,
-          "state": "blocked",
-          "contentHash": "f4cd41eab56852c219e15a759093b3345d02c76657f1811f747ef772a571b74d",
+          "version": 11,
+          "state": "locked",
+          "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
           "sourcesCurrent": true,
           "ruleCurrent": true,
-          "outcome": null,
-          "bundle": null,
+          "outcome": "no_exception_detected",
+          "bundle": {
+            "status": "reviewed",
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "contracts": 2,
+            "lines": 11,
+            "debit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "credit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "taxStatus": "not_computed"
+          },
           "selection": {
-            "status": "non_selectionne",
+            "status": "selectionne",
             "reasons": [],
-            "runId": null,
-            "revision": null,
-            "runVersion": null,
-            "bundleHash": null,
-            "by": null,
-            "at": null,
-            "base": null
+            "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+            "revision": 1,
+            "runVersion": 11,
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "by": "proprietaire-local",
+            "at": "2026-10-31T16:35:16.000Z",
+            "base": {
+              "baseKind": "PCG",
+              "included": "aucun retraitement IFRS 16 déjà inclus, déclaré",
+              "limits": "Base PCG de l'exercice ; pont partiel limité au retraitement IFRS 16, sans autre traitement IFRS",
+              "citation": "EXEMPLE-lease_ledger.csv · 048199674c98"
+            }
           },
           "posting": {
             "status": "non_documentee",
@@ -112,8 +131,8 @@
       "orphanSelections": [],
       "denominators": {
         "lineages": 1,
-        "reviewed": 0,
-        "selected": 0,
+        "reviewed": 1,
+        "selected": 1,
         "toReexamine": 0,
         "postingsDocumented": 0
       }
@@ -121,14 +140,14 @@
   },
   "afterRestart": {
     "run": {
-      "id": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-      "version": 7,
-      "state": "blocked",
+      "id": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+      "version": 11,
+      "state": "locked",
       "importIds": [
-        "import-4e0314c3b69c784caea40cff075b12c077932645add38f0bd70e6e2c05136812",
-        "import-5d43a929af31aab76f95dc638301e3893f789a403f98cac85db459fb9e7c39bf",
-        "import-6333bb94cc1ec803c36fd1c3be4bf061e52d238f99fbb82fb47047133cc09998",
-        "import-e0a1c64eafc073a97bfd42765297453f0afaf6c7c42516cf3a50132a4c5aec28"
+        "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4",
+        "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588",
+        "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196",
+        "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
       ],
       "policies": [
         {
@@ -140,24 +159,24 @@
           "assetCategory": "Matériel de bureau"
         }
       ],
-      "population": "6866db54ea4b1ccf971e2476776bb02de29cade50c013d22565057a7b9fc67b4"
+      "population": "8df7b078e718fed0ac8e49041dc30ef24b9a22723335fa9515beb6072d654962"
     },
     "sourceHeads": [
       {
-        "document_type": "lease_assumptions",
-        "import_id": "import-5d43a929af31aab76f95dc638301e3893f789a403f98cac85db459fb9e7c39bf"
-      },
-      {
         "document_type": "lease_contracts",
-        "import_id": "import-4e0314c3b69c784caea40cff075b12c077932645add38f0bd70e6e2c05136812"
+        "import_id": "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588"
       },
       {
-        "document_type": "lease_ledger",
-        "import_id": "import-e0a1c64eafc073a97bfd42765297453f0afaf6c7c42516cf3a50132a4c5aec28"
+        "document_type": "lease_assumptions",
+        "import_id": "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
       },
       {
         "document_type": "lease_schedule",
-        "import_id": "import-6333bb94cc1ec803c36fd1c3be4bf061e52d238f99fbb82fb47047133cc09998"
+        "import_id": "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4"
       }
     ],
     "qualification": [
@@ -170,7 +189,7 @@
         "eligible_v1"
       ]
     ],
-    "contentHash": "f4cd41eab56852c219e15a759093b3345d02c76657f1811f747ef772a571b74d",
+    "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
     "actions": {
       "create": "Une feuille existe déjà pour cet exercice",
       "configure": "La feuille n'est plus modifiable dans cet état",
@@ -183,36 +202,55 @@
       "review": "Aucune version soumise",
       "lock": "Version approuvée requise",
       "export_diagnostic": "permise",
-      "export_reviewed": "Version approuvée ou verrouillée requise"
+      "export_reviewed": "permise"
     },
-    "exportHash": "6f31b619100d2919cb6780d1456dc42deab3b756e05409d45972e38c37a3839f",
+    "exportHash": "ee66bd3528582ef80048e029d7848d293e348485d283546bc4b08b304a516884",
     "ifrsWorks": {
       "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
       "lineages": [
         {
           "procedure": "ifrs16.leases",
           "label": "Locations IFRS 16 — preneur, périmètre V1",
-          "rootId": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-          "logicalId": "ifrs16.leases:workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
-          "runId": "workpaper-ad05ea26ce99edbf173f185edc5a7a925e61861256a29d1e95095b6b9e5ec1e4",
+          "rootId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "logicalId": "ifrs16.leases:workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
           "revision": 1,
-          "version": 7,
-          "state": "blocked",
-          "contentHash": "f4cd41eab56852c219e15a759093b3345d02c76657f1811f747ef772a571b74d",
+          "version": 11,
+          "state": "locked",
+          "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
           "sourcesCurrent": true,
           "ruleCurrent": true,
-          "outcome": null,
-          "bundle": null,
+          "outcome": "no_exception_detected",
+          "bundle": {
+            "status": "reviewed",
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "contracts": 2,
+            "lines": 11,
+            "debit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "credit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "taxStatus": "not_computed"
+          },
           "selection": {
-            "status": "non_selectionne",
+            "status": "selectionne",
             "reasons": [],
-            "runId": null,
-            "revision": null,
-            "runVersion": null,
-            "bundleHash": null,
-            "by": null,
-            "at": null,
-            "base": null
+            "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+            "revision": 1,
+            "runVersion": 11,
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "by": "proprietaire-local",
+            "at": "2026-10-31T16:35:16.000Z",
+            "base": {
+              "baseKind": "PCG",
+              "included": "aucun retraitement IFRS 16 déjà inclus, déclaré",
+              "limits": "Base PCG de l'exercice ; pont partiel limité au retraitement IFRS 16, sans autre traitement IFRS",
+              "citation": "EXEMPLE-lease_ledger.csv · 048199674c98"
+            }
           },
           "posting": {
             "status": "non_documentee",
@@ -228,8 +266,8 @@
       "orphanSelections": [],
       "denominators": {
         "lineages": 1,
-        "reviewed": 0,
-        "selected": 0,
+        "reviewed": 1,
+        "selected": 1,
         "toReexamine": 0,
         "postingsDocumented": 0
       }

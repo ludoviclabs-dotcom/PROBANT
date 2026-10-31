@@ -16,9 +16,9 @@
   - la charge de 1 000 contrats × 120 mois et la capacité réelle mesurée ;
   - le parcours réel sur un profil local jetable, avec redémarrage.
 
-  Il corrige la qualification quadratique et le premier enregistrement des politiques d'une feuille neuve. Verdict : **non opérationnel sur le périmètre V1 vérifié**, avec deux blocages précis (relecture de la règle, capacité du store) ; voir le handoff.
+  Il corrige la qualification quadratique et le premier enregistrement des politiques d'une feuille neuve. Verdict du 30/10/2026 : non opérationnel, avec deux blocages (relecture de la règle, capacité du store). **Verdict révisé le 31/10/2026 : opérationnel sur le périmètre V1 vérifié, pour la juridiction IASB et dans la capacité mesurée**, après la relecture de la règle par l'utilisateur et le parcours réel complet à l'écran ; voir le handoff § 1.
 
-**Exécution réelle bloquée** tant que la relecture personnelle nommée de la règle n'est pas consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)).
+**Exécution réelle ouverte depuis le 31/10/2026**, pour la juridiction IASB : la relecture personnelle nommée de la règle est consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). La juridiction de l'Union européenne reste bloquée tant que son texte n'est pas lu.
 
 Un fichier de ce répertoire est une spécification ou un relevé ; seul le code et ses tests prouvent une fonctionnalité.
 
@@ -34,9 +34,9 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 | [`handoffs/L16-03.md`](./handoffs/L16-03.md) | cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
 | [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |
-| [`FICHE_RELECTURE_UTILISATEUR.md`](./FICHE_RELECTURE_UTILISATEUR.md) | **À remplir par l'utilisateur** : relecture de la règle point par point, texte UE, cible de capacité, décision IFRS 18, modèle de réponse |
-| [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : relecture nommée de la règle, texte UE |
-| [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | **À faire par l'utilisateur** : relecture nommée de la règle, qui ouvre l'exécution réelle |
+| [`FICHE_RELECTURE_UTILISATEUR.md`](./FICHE_RELECTURE_UTILISATEUR.md) | Fiche de relecture de la règle point par point, texte UE, cible de capacité, décision IFRS 18 ; réponses reçues le 31/10/2026, reportées dans [`RAPPELS.md`](./RAPPELS.md) |
+| [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : texte UE (PDF à fournir), décision IFRS 18 reportée ; rappels clos : relecture de la règle, cible de capacité |
+| [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | Relecture nommée de la règle : consignée le 31/10/2026 (IASB) ; guide conservé |
 | [`DICTIONNAIRE_L16.md`](./DICTIONNAIRE_L16.md) · [`modeles/`](./modeles/) | Dictionnaire des sources, modèles CSV et modèle d'export du journal de retraitement, produits depuis le code |
 | [`handoffs/C01.md`](./handoffs/C01.md) | Socle C01 : livré, contrat des nouvelles données, décisions C01-D01 → D09, table d'erreurs, bilan des migrations, recette, contrat transmis à C02 et L16-01 |
 | [`handoffs/C00.md`](./handoffs/C00.md) | Décisions D01 → D25, sources lues, non-vérifiés, contrat transmis à C01 |

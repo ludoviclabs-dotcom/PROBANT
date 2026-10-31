@@ -1,4 +1,8 @@
-# Relecture de la règle `ifrs16.leases` 1.0.0 — à faire par l'utilisateur
+# Relecture de la règle `ifrs16.leases` 1.0.0
+
+**État au 31/10/2026 : relue et consignée** par l'utilisateur, Ludo Labs, pour la seule juridiction IASB (`lib/ifrs/leases/rule-review.ts`). La fiche est `validated` et l'exécution réelle est ouverte ; `EU_adopted` reste bloquée en réel (X33) tant que le texte de l'Union européenne n'est pas lu. La relecture a suivi [`FICHE_RELECTURE_UTILISATEUR.md`](./FICHE_RELECTURE_UTILISATEUR.md) ; l'utilisateur a déclaré avoir lu lui-même § 8, 22-27, 32, l'annexe A, B3-B8 et B13-B30 sur le texte IASB et recalculé les cas F01, F03, F08 et F09. Retirer la consignation (`null`) referme l'exécution réelle ; ce cas reste gardé par `lib/workpapers/__tests__/lease-regle-non-relue.test.ts`.
+
+Ce qui suit est le guide de relecture, conservé tel quel.
 
 État au 29/10/2026 : **à revoir** (`review_required`). Tant que cette relecture n'est pas consignée, aucune exécution réelle n'est possible : le registre de calcul bloque toute feuille réelle (`rule_not_applicable`). Les scénarios synthétiques et les tests restent possibles.
 

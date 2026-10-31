@@ -21,6 +21,7 @@ import { leaseHandlers } from "../lease-http";
 import { LeaseRuntime } from "../lease-runtime";
 import { LEASE_MAPPING, type LeaseType } from "../lease-sources";
 import type { LeaseCommand } from "../lease-commands";
+import type { LeaseResult } from "../lease-review";
 import { loanHandlers } from "../loan-http";
 import { LoanRuntime } from "../loan-runtime";
 import { loanFilesFromRows, loanFixtureRows } from "../loan-fixture";
@@ -130,9 +131,9 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect((closingBefore as { evaluation: { sheets: { procedure: string; current: { sourcesCurrent: boolean } }[] } }).evaluation.sheets.map(s => [s.procedure, s.current.sourcesCurrent])).toEqual([["loans.review", true]]);
   }, 60000);
 
-  it("imports approuvés → travail cité → gel → exécution : incapacité explicite, sans montant ni succès", async () => {
+  it("imports approuvés → travail cité → gel → exécution réelle (règle relue, IASB) : contrat à compléter non calculé, contrat éligible calculé et cadré", async () => {
     sheet = await ok({ command: "create_leases", period: LEASE_PERIOD, instanceKey: "c01-leases" });
-    expect(sheet).toMatchObject({ state: "draft", template: { id: "ifrs16.leases", version: "1.0.0", rule: { authority: "internal", validation: "provisional" } } });
+    expect(sheet).toMatchObject({ state: "draft", template: { id: "ifrs16.leases", version: "1.0.0", rule: { authority: "internal", validation: "validated" } } });
     batches = await importPack();
     expect(batches.map(b => b.document.documentType)).toEqual(["lease_contracts", "lease_assumptions", "lease_schedule", "lease_ledger"]);
     expect(await failure(await command({ command: "freeze_leases", ...target(sheet), criteria: "Tous les contrats", importIds: batches.map(b => b.id) }))).toEqual({ status: 422, error: "L16_WORK_REQUIRED", missing: ["configure_leases"] });
@@ -145,23 +146,26 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     expect(sheet.importIds).toEqual(batches.map(b => b.id).sort());
     expect(sheet.population!.items.map(i => i.id)).toEqual(["F01", "F03"]);
     sheet = await ok({ command: "execute", ...target(sheet) });
-    // No named review of the rule yet: the calculation registry refuses any real execution, with no result and no amount.
-    expect(sheet).toMatchObject({ state: "blocked", result: { execution: "blocked", outcome: "inconclusive", result: null }, findings: [], notes: [] });
-    expect(sheet.result!.blockedControls).toContain("rule_not_applicable");
-    expect(JSON.stringify(sheet.result!.result)).not.toMatch(/"amount"/);
+    // The named review of the rule is recorded: the real execution runs. F01 carries a not-applicable answer the field does not admit (to
+    // qualify, no amount, a blocking point); F03 is computed and framed. Unknown elsewhere keeps the outcome inconclusive.
+    expect(sheet).toMatchObject({ state: "executed", result: { execution: "completed", outcome: "inconclusive", blockedControls: [] }, findings: [] });
+    const result = sheet.result!.result as LeaseResult;
+    expect(result.contracts.map(c => [c.contractId, c.result])).toEqual([["F01", "not_applicable"], ["F03", "computed"]]);
+    expect(result.contracts[1].closing).toMatchObject({ debtClosing: { amount: "22819.76" }, interest: { amount: "1398.49" } });
+    expect(sheet.notes).toEqual([expect.objectContaining({ id: "lease:F01", blocking: true, amount: { kind: "unknown", reason: expect.any(String) } })]);
     const read = await view();
-    expect(read).toMatchObject({ capability: { engine: "1.0.0", realExecution: "blocked_rule_review_required", rule: { version: "1.0.0", basisStatus: "review_required" } }, sourcesCurrent: { [sheet.id]: true }, ruleCurrent: { [sheet.id]: true } });
+    expect(read).toMatchObject({ capability: { engine: "1.0.0", realExecution: "allowed", rule: { version: "1.0.0", basisStatus: "validated" } }, sourcesCurrent: { [sheet.id]: true }, ruleCurrent: { [sheet.id]: true } });
     expect(read.imports.every((b: ImportBatch) => b.document.documentType.startsWith("lease_"))).toBe(true);
     // The qualification of the frozen sources is read by the screen: both contracts are eligible; F01 carries a not-applicable answer the field does not admit.
     expect(read.qualification[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "a_qualifier"], ["F03", "eligible_v1"]]);
-    // L16-03: the framing is read before any calculation (the rule review still blocks the engine); no adjustment exists without a result.
+    // L16-03: framing read from the frozen sources; the proposed adjustment covers the computed and framed contract only.
     expect(read.framing[sheet.id].contracts.map((c: { contractId: string; status: string }) => [c.contractId, c.status])).toEqual([["F01", "not_applicable"], ["F03", "framed"]]);
-    expect(read.adjustments[sheet.id]).toBeNull();
-    // L16-04: before any result, the portfolio line and table read the qualification only; no amount, no chart (never a zero).
-    expect(read.portfolio[sheet.id]).toMatchObject({ summary: { registry: 2, calculable: 1, toQualify: 1, results: null, amounts: null }, charts: null, comparison: null });
-    expect(read.portfolio[sheet.id].rows.every((r: { debtClosing: unknown; review: unknown }) => r.debtClosing === null && r.review === null)).toBe(true);
-    // A blocked sheet cannot be submitted, reviewed or locked: its state forbids it, with a business code.
-    expect(await failure(await command({ command: "submit", ...target(sheet) }))).toEqual({ status: 403, error: "WORKPAPER_TRANSITION_FORBIDDEN" });
+    expect(read.adjustments[sheet.id]).toMatchObject({ status: "proposed", identities: ["ifrs16:lease:F03"] });
+    // L16-04: the portfolio amounts are those of the computed contract only, labelled partial; the contract to qualify has no amount (never a zero).
+    expect(read.portfolio[sheet.id]).toMatchObject({ summary: { registry: 2, calculable: 1, toQualify: 1, amounts: { contracts: 1, partial: true } } });
+    expect(read.portfolio[sheet.id].rows.find((r: { contractId: string }) => r.contractId === "F01")).toMatchObject({ debtClosing: null });
+    // No conclusion yet: submission is refused with a business code.
+    expect(await failure(await command({ command: "submit", ...target(sheet) }))).toMatchObject({ error: "PREPARATION_INCOMPLETE" });
   }, 60000);
 
   it("même commande rejouée : même réponse, aucun doublon ; même clé avec une autre charge : conflit", async () => {
@@ -263,7 +267,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 (socle C01) — Postgre
     solo = await ok({ command: "configure_leases", ...target(solo), work: work(pack) }, owner, dossierSolo);
     solo = await ok({ command: "freeze_leases", ...target(solo), criteria: "Recette solo C01", importIds: pack.map(b => b.id) }, owner, dossierSolo);
     solo = await ok({ command: "execute", ...target(solo) }, owner, dossierSolo);
-    expect(solo).toMatchObject({ state: "blocked", preparedBy: LOCAL_OWNER_SUBJECT, leaseWork: { authorId: LOCAL_OWNER_SUBJECT } });
+    expect(solo).toMatchObject({ state: "executed", preparedBy: LOCAL_OWNER_SUBJECT, leaseWork: { authorId: LOCAL_OWNER_SUBJECT } });
     expect(await view(owner, dossierSolo)).toMatchObject({ actorId: LOCAL_OWNER_SUBJECT, reviewKind: "personal" });
   }, 60000);
 

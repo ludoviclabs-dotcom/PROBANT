@@ -42,7 +42,9 @@ Taux annuel effectif et conversion mensuelle ; borne de 120 mois ; calendrier au
 
 ## 4. État de la règle `ifrs16.leases` 1.0.0
 
-La règle reste **`review_required`** (`validation: "provisional"`) : exécution réelle impossible, scénarios synthétiques possibles. État des quatre conditions au 29/10/2026, après L16-01 et L16-02 :
+**Mise à jour du 31/10/2026 : la règle est `validated`** (relecture personnelle nommée de Ludo Labs consignée dans `lib/ifrs/leases/rule-review.ts`, juridiction IASB). Les conditions 1, 2 et 4 sont levées par cette relecture ; la condition 3 (texte UE) ne l'est pas, et `EU_adopted` reste bloquée en réel (X33). `data/ifrs/standards.yml` passe IFRS 16 à `verified`, avec le texte IASB 2026 daté du 31/10/2026 comme source primaire.
+
+État des quatre conditions au 29/10/2026, après L16-01 et L16-02 (avant la relecture) — la règle était alors **`review_required`** (`validation: "provisional"`) :
 
 | Condition | État |
 |---|---|

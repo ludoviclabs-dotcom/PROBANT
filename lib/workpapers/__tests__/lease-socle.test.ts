@@ -115,8 +115,8 @@ describe("IFRS C01 modèle de feuille", () => {
     expect(contentHash(leaseRun({ leaseWork: work }))).not.toBe(contentHash(leaseRun()));
     expect(contentHash(leaseRun({ leaseWork: work }))).not.toBe(contentHash(leaseRun({ leaseWork: { ...work, policies: [] } })));
   });
-  it("la règle du gabarit reste interne et à revoir tant que la relecture nommée n'est pas consignée : aucune exécution réelle", () => {
-    expect(LEASE_TEMPLATE.rule).toMatchObject({ id: "ifrs16.leases", version: "1.0.0", authority: "internal", validation: "provisional", source: "docs/ifrs/CONTRAT_COMMUN.md" });
+  it("la règle du gabarit reste interne ; validée par la relecture nommée consignée (le cas non relu : lease-regle-non-relue.test.ts)", () => {
+    expect(LEASE_TEMPLATE.rule).toMatchObject({ id: "ifrs16.leases", version: "1.0.0", authority: "internal", validation: "validated", source: "docs/ifrs/CONTRAT_COMMUN.md" });
     expect(LEASE_TEMPLATE.requiredDocumentTypes).toEqual(["lease_contracts", "lease_assumptions", "lease_schedule"]);
   });
 });
@@ -129,10 +129,11 @@ describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée t
     const work = stampLeaseWork({ ...draft(), framework: { ...framework, jurisdiction } }, () => { throw new Error("unused"); }, a.id, "2027-02-01T10:00:00.000Z");
     return { scope: s, period: LEASE_PERIOD, rule: { id: "ifrs16.leases", version: "1.0.0" }, imports: batches, population, selection, parameters: { runId: "workpaper-l16", rootId: "workpaper-l16", revision: 1, work } };
   };
-  it("réel : la règle à revoir bloque l'exécution (rule_not_applicable), sans résultat ni montant", async () => {
-    const r = new LeaseRegistry().execute(await request());
-    expect(r).toMatchObject({ execution: "blocked", outcome: "inconclusive", calculationKey: "ifrs16.leases", ruleVersion: "1.0.0", result: null, findings: [] });
-    expect(r.blockedControls).toContain("rule_not_applicable");
+  it("réel, règle relue (IASB) : le moteur s'exécute avec les mêmes chiffres que le scénario ; aucun contrôle bloquant", async () => {
+    const r = new LeaseRegistry().execute(await request()), demo = new LeaseRegistry().execute(await request({ ...scope, mode: "demo" }));
+    expect(r).toMatchObject({ execution: "completed", calculationKey: "ifrs16.leases", ruleVersion: "1.0.0", blockedControls: [] });
+    expect((r.result as LeaseResult).rule).toMatchObject({ basisStatus: "validated" });
+    expect((r.result as LeaseResult).contracts.map(c => c.closing)).toEqual((demo.result as LeaseResult).contracts.map(c => c.closing));
     expect(r.sourceRefs).toHaveLength(4); expect(r.inputHash).toMatch(/^[a-f0-9]{64}$/);
   });
   it("scénario : le moteur calcule F01 et F03 aux montants de l'oracle, déterministe ; cadrés sur la base PCG, sans exception (L16-03)", async () => {

@@ -14,9 +14,9 @@ import { periodId } from "../lib/workpapers/model";
  *   node scripts/local/probant-local.mjs start --home <dossier> --sans-navigateur
  *   PROBANT_E2E_LOCAL_HOME=<dossier> PROBANT_E2E_BASE_URL=http://127.0.0.1:<a> npx playwright test e2e/ifrs-l16-06-parcours-local.spec.ts
  *
- * Sans ces variables le parcours est ignoré (non vérifié), jamais simulé. La règle `ifrs16.leases` n'étant pas relue, le parcours réel s'arrête
- * au calcul refusé avec son motif : c'est l'état réel attendu, vérifié ici ; la suite de la chaîne (calcul, revue, export revu, sélection) est
- * couverte par la recette PostgreSQL avec relecture simulée. Sources synthétiques de `lib/workpapers/lease-fixture.ts`.
+ * Sans ces variables le parcours est ignoré (non vérifié), jamais simulé. La règle `ifrs16.leases` porte la relecture personnelle nommée
+ * consignée (juridiction IASB) : le parcours va de l'import à l'export revu et à la sélection au dossier de clôture, puis constate la péremption
+ * après remplacement d'une source. Sources synthétiques de `lib/workpapers/lease-fixture.ts`.
  */
 const HOME = process.env.PROBANT_E2E_LOCAL_HOME ?? "";
 const BASE = process.env.PROBANT_E2E_BASE_URL ?? "";
@@ -25,7 +25,6 @@ const STATE = path.join(process.cwd(), "docs", "ifrs", "recette", "l16-06-parcou
 const AXE_PATH = path.join(process.cwd(), "node_modules", "axe-core", "axe.min.js");
 const PID = periodId(LEASE_PERIOD);
 const TYPES: [LeaseType, string][] = [["lease_contracts", "Contrats"], ["lease_assumptions", "Hypothèses"], ["lease_schedule", "Échéances et règlements"], ["lease_ledger", "Comptabilité (612 / 613 / 614)"]];
-const REVIEW_RULE = "Règle à revoir : la relecture personnelle nommée n'est pas consignée";
 
 test.skip(!HOME || !BASE, "Profil local jetable non démarré (PROBANT_E2E_LOCAL_HOME / PROBANT_E2E_BASE_URL absents) : non vérifié.");
 test.describe.configure({ mode: "serial", timeout: 300_000 });
@@ -76,7 +75,7 @@ async function csv(type: LeaseType, edit?: Parameters<typeof leaseFiles>[0]) { c
 const S = { dossierId: "", legalName: "", runId: "", version: 0 };
 const leasesUrl = (extra: Record<string, string> = {}) => "/api/workpapers/locations-ifrs16?" + new URLSearchParams({ dossierId: S.dossierId, periodId: PID, ...extra });
 const sheetHref = () => "/ifrs/locations?" + new URLSearchParams({ dossierId: S.dossierId, periodId: PID });
-type Read = { runs: { id: string; version: number; state: string; importIds: string[]; leaseWork?: { policies: unknown[] }; population?: { hash: string } }[]; sourceHeads: { document_type: string; import_id: string }[];
+type Read = { runs: { id: string; version: number; state: string; conclusion?: string; importIds: string[]; leaseWork?: { policies: unknown[] }; population?: { hash: string } }[]; sourceHeads: { document_type: string; import_id: string }[];
   qualification: Record<string, { contracts: { contractId: string; status: string }[] } | null>; contentHashes: Record<string, string>; workspace: Record<string, { actions: Record<string, { allowed: boolean; reason: string | null }>; freshness: string }> };
 /** What must survive a restart: the sheet, its frozen sources, its qualification, its allowed actions, and the bytes of its diagnostic export. */
 async function readBack(page: Page) {
@@ -94,7 +93,7 @@ async function readBack(page: Page) {
 }
 let saved: Awaited<ReturnType<typeof readBack>> | null = null;
 
-test("L16-06-P1 · dossier → feuille → sources approuvées → cadre et politiques → gel → calcul refusé avec son motif → export diagnostic → dossier de clôture", async ({ browser }) => {
+test("L16-06-P1 · dossier → feuille → sources approuvées → cadre et politiques → gel → calcul → conclusion → relecture personnelle → verrouillage → export revu → sélection au dossier de clôture", async ({ browser }) => {
   const page = await signedInPage(browser, 1440);
   await expect(page.getByRole("heading", { level: 1, name: "Dossiers sur ce PC" })).toBeVisible();
   S.legalName = "Recette L16-06 SAS · " + new Date().toISOString().slice(0, 19);
@@ -103,15 +102,18 @@ test("L16-06-P1 · dossier → feuille → sources approuvées → cadre et poli
   await page.getByRole("button", { name: "Créer le dossier" }).click();
   await expect(page.getByRole("status").filter({ hasText: /Dossier créé/ })).toBeVisible();
   S.dossierId = (await api(page, "/api/local/dossiers")).body.dossiers.find((d: { legalName: string }) => d.legalName === S.legalName).id;
+  const sheet = async () => ((await api(page, leasesUrl())).body as Read).runs.find(r => r.id === S.runId)!;
 
-  // Open the sheet of the exercise from its dates, then create it.
+  // Open the sheet of the exercise from its dates, then create it. The rule is reviewed: no « real calculation blocked » notice.
   await page.goto("/ifrs/locations?" + new URLSearchParams({ dossierId: S.dossierId }));
   await expect(page.getByRole("heading", { level: 1, name: "Locations IFRS 16" })).toBeVisible();
   await page.getByLabel("Début d'exercice").fill(LEASE_PERIOD.startDate);
   await page.getByLabel("Clôture").fill(LEASE_PERIOD.closingDate);
   await page.getByLabel("Date de revue").fill(LEASE_PERIOD.asOfDate);
   await page.getByRole("button", { name: "Ouvrir la feuille" }).click();
-  await expect(page.getByText("Calcul réel bloqué : règle à revoir")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Créer la feuille de l'exercice" })).toBeEnabled();
+  await expect(page.getByText("Calcul réel bloqué : règle à revoir")).toHaveCount(0);
+  await expect(page.getByText(/ifrs16\.leases 1\.0\.0 · validée/)).toBeVisible();
   await page.getByRole("button", { name: "Créer la feuille de l'exercice" }).click();
   await expect(page.getByText("Accusé serveur reçu")).toBeVisible();
   // L16-06 fix: once the sheet exists, the address names its dossier and exercise, so a reload reopens it.
@@ -139,31 +141,39 @@ test("L16-06-P1 · dossier → feuille → sources approuvées → cadre et poli
   expect(qualified.qualification[S.runId]!.contracts.map(c => [c.contractId, c.status])).toEqual([["F01", "eligible_v1"], ["F03", "eligible_v1"]]);
 
   await page.getByRole("button", { name: "Figer la population" }).click();
-  await expect(page.getByText("Accusé serveur reçu")).toBeVisible();
-  // Real execution stays refused while the rule is not reviewed: the button says why, the step is blocked, no amount is shown.
-  const calculate = page.getByRole("button", { name: "Calculer" });
-  await expect(calculate).toBeDisabled();
-  await expect(page.locator("#l16-action-execute")).toContainText(REVIEW_RULE);
-  await expect(page.getByRole("navigation", { name: "Étapes du travail" })).toContainText(REVIEW_RULE);
-  await expect(page.getByText("Moteur non disponible pour ce dossier tant que la règle n'est pas validée : aucun graphique, aucun total.")).toBeVisible();
-  const refused = await api(page, leasesUrl(), { json: { command: "execute", id: S.runId, expectedVersion: ((await api(page, leasesUrl())).body as Read).runs[0].version } });
-  expect(refused.status).toBe(200);
-  expect(refused.body.run).toMatchObject({ state: "blocked", result: { execution: "blocked", blockedControls: expect.arrayContaining(["rule_not_applicable"]) } });
-  await page.reload();
-  await expect(page.getByText("Calcul bloqué", { exact: true })).toBeVisible();
-  // Blocking controls in plain words on the screen (the export keeps the code, cited as such).
-  await expect(page.getByText("règle non applicable en réel : la relecture personnelle nommée de la règle n'est pas consignée")).toBeVisible();
-  await capture(page, "reel-calcul-bloque-1440");
+  await expect.poll(async () => (await sheet()).state).toBe("ready");
+  // Real calculation from the screen: F01 and F03 at the oracle's figures, framed on the PCG base, adjustment proposed.
+  await page.getByRole("button", { name: "Calculer" }).click();
+  await expect.poll(async () => (await sheet()).state).toBe("executed");
+  await expect(page.getByText(/22\s819,76/).first()).toBeVisible();
+  await expect(page.getByLabel("Synthèse de revue", { exact: true })).toContainText("0 point(s) bloquant(s) ouvert(s)");
+  await capture(page, "reel-calcule-1440");
 
-  // Diagnostic export of the real blocked version, from the screen: no amount, the reason written.
-  const diagnostic = page.getByRole("group", { name: "Export diagnostic" });
-  const [html] = await Promise.all([page.waitForEvent("download"), diagnostic.getByRole("button", { name: "Rapport HTML imprimable" }).click()]);
+  // Cited conclusion, submission, named personal review, lock: each step read back from the server.
+  const review = page.locator("section[aria-labelledby='l16-review-title']");
+  await review.getByLabel("Conclusion de la feuille").fill("Dette et droit d'utilisation recalculés sur paramètres sourcés ; loyers cadrés sur la base PCG ; retraitement proposé, impôt non calculé.");
+  await review.getByRole("button", { name: "Enregistrer la conclusion citée" }).click();
+  await expect.poll(async () => !!(await sheet()).conclusion).toBe(true);
+  await review.getByRole("button", { name: "Soumettre à la relecture" }).click();
+  await expect.poll(async () => (await sheet()).state).toBe("awaiting_review");
+  await review.getByLabel("Note de relecture").fill("Relecture personnelle des paramètres, de l'échéancier, du cadrage et des preuves citées.");
+  await review.getByRole("button", { name: "Approuver cette version" }).click();
+  await expect.poll(async () => (await sheet()).state).toBe("approved");
+  await review.getByRole("button", { name: "Verrouiller la version approuvée" }).click();
+  await expect.poll(async () => (await sheet()).state).toBe("locked");
+
+  // Reviewed export of the locked version, from the screen: « revu sur ce périmètre », named reviewer, totals of the adjustment.
+  const reviewed = page.getByRole("group", { name: "Export revu" });
+  const [html] = await Promise.all([page.waitForEvent("download"), reviewed.getByRole("button", { name: "Rapport HTML imprimable" }).click()]);
   const report = readFileSync((await html.path())!, "utf8");
-  expect(report).toContain("rule_not_applicable");
-  expect(report).toContain("Aucun montant.");
-  expect(report).not.toMatch(/simulation non revue/);
+  expect(report).toContain("Revu sur ce périmètre");
+  expect(report).toContain("relecture personnelle nommée de " + profileConfig().owner.name);
+  expect(report).toContain("débit 51\u202f901,17\u00a0€, crédit 51\u202f901,17\u00a0€");
+  expect(report).not.toMatch(/simulation non revue|conforme IFRS(?! ni)/);
+  await review.scrollIntoViewIfNeeded();
+  await capture(page, "reel-revu-verrouille-1440");
 
-  // Closing file: opened for the exercise; the lineage appears in « Travaux IFRS » only, neither reviewed nor selectable.
+  // Closing file: the reviewed lineage is selected for the declared base; never an anomaly, posting still not documented.
   await page.goto("/dossier-cloture?" + new URLSearchParams({ dossierId: S.dossierId, periodId: PID }));
   const openForm = page.locator("form").filter({ has: page.getByRole("heading", { name: "Ouvrir le dossier professionnel" }) });
   await openForm.getByLabel("Entité").fill(S.legalName);
@@ -173,13 +183,15 @@ test("L16-06-P1 · dossier → feuille → sources approuvées → cadre et poli
   await openForm.getByRole("button", { name: "Ouvrir le dossier" }).click();
   await page.getByRole("tab", { name: /^Programme/ }).click();
   const works = page.getByRole("region", { name: /Travaux IFRS/ });
-  await expect(works).toBeVisible();
-  await expect(works).toContainText("1 lignée(s) IFRS observée(s) · 0 revue(s)");
-  await expect(works.getByRole("button", { name: /^Sélectionner/ })).toHaveCount(0);
+  await expect(works).toContainText("1 lignée(s) IFRS observée(s) · 1 revue(s)");
+  await works.getByText("Sélectionner ce retraitement pour la base de l'exercice").click();
+  await works.getByRole("button", { name: /^Sélectionner r1 · v\d+$/ }).click();
+  await expect(works).toContainText("Sélectionné pour la base déclarée");
+  await expect(works).toContainText("non documentée : la sélection et le verrouillage ne la prouvent pas");
   await works.scrollIntoViewIfNeeded();
   await capture(page, "cloture-travaux-ifrs-1440");
   saved = await readBack(page);
-  expect(saved.ifrsWorks.lineages).toHaveLength(1);
+  expect(saved.ifrsWorks.lineages[0].selection.status).toBe("selectionne");
   await page.context().close();
 });
 
@@ -193,14 +205,14 @@ test("L16-06-P2 · arrêt de Next et de PostgreSQL, reprise : même feuille, mê
   expect(started.status, started.out).toBe(0);
   const page = await signedInPage(browser, 1440, sheetHref());
   await expect(page.getByRole("heading", { level: 1, name: "Locations IFRS 16" })).toBeVisible();
-  await expect(page.getByText("Calcul bloqué", { exact: true })).toBeVisible();
+  await expect(page.getByText(/r1 · v\d+ · verrouillée/)).toBeVisible();
   const back = await readBack(page);
   expect(back).toEqual(saved);
   writeFileSync(STATE, JSON.stringify({ capturedAt: new Date().toISOString(), dossierId: S.dossierId, periodId: PID, owner: cfg.owner.name, beforeRestart: saved, afterRestart: back }, null, 2) + "\n");
   await page.context().close();
 });
 
-test("L16-06-P3 · source remplacée après le gel (par l'API : l'écran passe par une révision) : la feuille est dite à réexaminer, chaque préparation est refusée avec son motif", async ({ browser }) => {
+test("L16-06-P3 · source remplacée après le verrouillage (par l'API : l'écran passe par une révision) : feuille à réexaminer, export revu refusé, sélection de clôture à réexaminer", async ({ browser }) => {
   const page = await signedInPage(browser, 1440, sheetHref());
   const before = (await api(page, leasesUrl())).body as Read;
   const ledger = await csv("lease_ledger", rows => { rows.lease_ledger[0].details = { ...rows.lease_ledger[0].details, fields: { ...(rows.lease_ledger[0].details.fields as object), piece: "FA-F01-2026-01-CORRIGEE" } }; });
@@ -213,6 +225,10 @@ test("L16-06-P3 · source remplacée après le gel (par l'API : l'écran passe p
   await page.reload();
   await expect(page.getByRole("alert").filter({ hasText: "Source remplacée — à réexaminer" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Créer une révision" })).toBeEnabled();
+  await expect(page.getByRole("group", { name: "Export revu" })).toContainText("Source remplacée ou ajoutée : créer une révision");
+  // The closing file keeps the selection and says it is to re-examine.
+  const closing = await api(page, "/api/workpapers/closing?" + new URLSearchParams({ dossierId: S.dossierId, periodId: PID }));
+  expect(closing.body.projection.ifrsWorks.lineages[0].selection).toMatchObject({ status: "a_reexaminer", reasons: ["source remplacée ou ajoutée"] });
   const after = (await api(page, leasesUrl())).body as Read;
   expect(after.workspace[S.runId].freshness).toBe("source_replaced");
   expect(after.workspace[S.runId].actions.configure).toEqual({ allowed: false, reason: "Source remplacée ou ajoutée : créer une révision" });
@@ -241,7 +257,8 @@ test("L16-06-P4 · états réels à 1440, 1024, 720 (zoom 200 %) et 390 : sans d
     await page.goto("/dossier-cloture?" + new URLSearchParams({ dossierId: S.dossierId, periodId: PID }));
     await page.getByRole("tab", { name: /^Programme/ }).click();
     const works = page.getByRole("region", { name: /Travaux IFRS/ });
-    await expect(works).toContainText("r1 · v7 · calcul bloqué · source remplacée");
+    await expect(works).toContainText(/r1 · v\d+ · verrouillée · source remplacée/);
+    await expect(works).toContainText("À réexaminer");
     expect(await noOverflow(page), "débordement clôture à " + width).toBe(true);
     expect(await axeSerious(page), "axe clôture à " + width).toEqual([]);
     await works.scrollIntoViewIfNeeded();
