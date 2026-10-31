@@ -36,7 +36,8 @@ function Lineage({ l, view, canPrepare, send, busy }: { l: IfrsLineage; view: Cl
       <dt>Version de tête</dt><dd>r{l.revision} · v{l.version} · {SHEET_STATE_LABELS[l.state] ?? l.state}{l.sourcesCurrent ? "" : " · source remplacée"}{l.ruleCurrent ? "" : " · règle remplacée"}{l.outcome ? " · résultat : " + l.outcome : ""} · <DossierContextAnchor href="/ifrs/locations">ouvrir la feuille</DossierContextAnchor></dd>
       <dt>Retraitement</dt><dd>{l.bundle ? (l.bundle.status === "reviewed" ? "revu" : "proposé") + " · " + l.bundle.contracts + " contrat(s), " + l.bundle.lines + " écriture(s) · débit " + euros(l.bundle.debit.amount) + " = crédit " + euros(l.bundle.credit.amount) + " · impôt non calculé" : "aucun retraitement"}</dd>
       <dt>Sélection</dt><dd><strong>{SELECTION[sel.status]}</strong>{sel.reasons.length ? " : " + sel.reasons.join(", ") : ""}{l.toDecide ? " — version revue, sélection à décider (sans bloquer la clôture des cycles)" : ""}
-        {sel.by ? " · " + sel.by + " · " + stampFr(sel.at!) + " · r" + sel.revision + " v" + sel.runVersion : ""}{sel.base ? " · base " + sel.base.baseKind + " : " + sel.base.included + " ; pièce " + sel.base.citation : ""}</dd>
+        {sel.by ? " · " + sel.by + " · " + stampFr(sel.at!) + " · r" + sel.revision + " v" + sel.runVersion : ""}{sel.base ? " · base " + sel.base.baseKind + " : " + sel.base.included + " ; pièce " + sel.base.citation : ""}
+        {sel.base?.bridge && <><br/><span>{sel.base.bridge.text}</span></>}</dd>
       <dt>Comptabilisation</dt><dd>{l.posting.status === "documentee" ? "documentée — " + l.posting.text + " · " + l.posting.citations.join(", ") + " · " + l.posting.by + " · " + stampFr(l.posting.at!) : "non documentée : la sélection et le verrouillage ne la prouvent pas"}</dd>
     </dl>
     {selectable && <details><summary>Sélectionner ce retraitement pour la base de l&apos;exercice</summary>

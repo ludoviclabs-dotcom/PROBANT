@@ -11,8 +11,8 @@ import { amountText, type ClosingEvaluation, type Denominators, type JournalLine
  * or the manual work, results, pieces, notes, misstatements and contradictions; the other sheets stay listed. No engine is recalculated, no opinion is generated.
  * 1.1.0: the effects of the transversal events map (C11) are listed beside the misstatements, at their C05 stage, with their source sheets placed in their lineage.
  */
-/** 1.2.0 (L16-05): « Travaux IFRS » section, apart from the cycles, the misstatements and the C05 effects. */
-export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.2.0";
+/** 1.2.0 (L16-05): « Travaux IFRS » section, apart from the cycles, the misstatements and the C05 effects. 1.3.0 (C03): the selected base says it stays a partial bridge. */
+export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.3.0";
 export const ASSIGNMENT_LABELS: Record<LineageAssignment, string> = { retenue: "Retenue au programme", a_rattacher: "À rattacher ou écarter", ecartee: "Écartée avec motif", hors_programme: "Hors programme" };
 /** C05 stage of an event effect after the file's review decision (residual = the part of a corrected effect left uncorrected), in the vocabulary of the misstatements. */
 export function effectStageLabel(x: Pick<DossierEventEffect, "status" | "stage" | "bridge" | "decisions">): string {

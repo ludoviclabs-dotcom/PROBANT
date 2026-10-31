@@ -154,7 +154,7 @@ describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par
     // L16-05 closing file: the « Travaux IFRS » section lists the lineage; selecting it adds nothing to the misstatements nor to the C05 effects.
     expect((await closingCall("POST", { command: "open", period: LEASE_PERIOD, entity: "LOCATIONS SAS (synthétique)", expectedSeq: 0 })).status).toBe(200);
     const opened = (await closingCall("GET")).body;
-    expect(opened.projection.schemaVersion).toBe("closing-dossier-1.2.0");
+    expect(opened.projection.schemaVersion).toBe("closing-dossier-1.3.0");
     expect(opened.projection.ifrsWorks.lineages).toMatchObject([{ rootId: run.rootId, state: "locked", selection: { status: "non_selectionne" }, toDecide: true, bundle: { status: "reviewed", taxStatus: "not_computed" } }]);
     const selectBody = { command: "select_ifrs_bundle", procedure: "ifrs16.leases", rootId: run.rootId, runId: run.id, version: run.version, contentHash: contentHash(run), bundleHash: locked.bundleHash,
       base: { includedAdjustments: { kind: "declared", identities: [] }, limits: "Grand livre PCG du dossier ; pont partiel limité au retraitement IFRS 16" } };

@@ -32,7 +32,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.5.6");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.5.7");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -104,6 +104,9 @@ describe("IFRS C01 axe « référentiel », hors cycles du journal", () => {
     expect(leases.modes.local_persistent.scope).toContain("sans annexe exhaustive ni effet fiscal");
     expect([leases.modes.local_persistent.scope, ...leases.exclusions].join(" ")).not.toMatch(/IFRS complet(?! ?,)|conformité IFRS/);
     expect(leases.exclusions.join(" ")).toMatch(/X33/);
+    // C03: the limits say the partial bridge and the absence of any IFRS 18 presentation.
+    expect(leases.exclusions.join(" ")).toContain("reste un pont partiel");
+    expect(leases.exclusions.join(" ")).toContain("Aucune présentation IFRS 18");
   });
   it("s'active par PROBANT_IFRS16_DURABLE, refusé sur Vercel production, et la configuration ne vaut pas exécution", () => {
     expect(PROCEDURE_ACTIVATION["ifrs16.leases"]).toBe("PROBANT_IFRS16_DURABLE");

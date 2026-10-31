@@ -18,8 +18,9 @@ export * from "./procedures";
  * 1.5.4 (IFRS L16-04): visual workstation on /ifrs/locations — five-step rail, portfolio line and table, debt / right-of-use and principal / interest charts with equivalent tables, bridges, version comparison.
  * 1.5.5 (IFRS L16-05): review summary, cited resolutions and named personal review on the sheet; JSON / CSV / printable HTML exports with manifest (diagnostic or reviewed); selection for a declared base in the closing file (« Travaux IFRS »), never added to misstatements nor C05.
  * 1.5.6 (IFRS, relecture nommée de la règle consignée) : la chaîne locale Locations est annoncée, exécution réelle ouverte pour la juridiction IASB seulement.
+ * 1.5.7 (IFRS C03) : les limites disent le pont partiel d'une base PCG et l'absence de présentation IFRS 18 (atelier non engagé).
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.5.6";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.7";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -87,6 +88,7 @@ export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
   requiredSources: ["Contrats et versions transcrits (lease_contracts)", "Hypothèses de taux, durée, exemptions et réponses de périmètre citées (lease_assumptions)", "Échéances et règlements (lease_schedule)",
     "Grand livre 612 / 613 / 614 et pièces pour un retraitement déterminé (lease_ledger)", "Ouverture historique validée pour une reprise (lease_opening)"],
   exclusions: ["Preneur seulement, euros, loyers fixes mensuels à terme échu, 1 à 120 mois (docs/ifrs/SCOPE_V1.md)", "Ni IFRS complet, ni annexe exhaustive, ni effet fiscal ; aucune méthode de transition choisie par l'outil",
+    "Une base PCG plus ce seul retraitement reste un pont partiel : les autres retraitements d'une base IFRS restent indéterminés", "Aucune présentation IFRS 18 : atelier non engagé (classement, sous-totaux, MPM et comparatifs de transition absents)",
     "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", LEASE_RULE_REVIEW ? "Règle relue pour la seule juridiction IASB (relecture personnelle nommée consignée) ; aucune autre juridiction n'est exécutable en réel" : "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
   modes: {
     historical: { implemented: false, scope: "Absent des constats historiques" },

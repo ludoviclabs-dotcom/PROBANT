@@ -8,7 +8,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 import type { LeaseQualification } from "@/lib/ifrs/leases/qualification";
 import type { LeaseReviewSummary } from "@/lib/ifrs/leases/review-summary";
 import type { LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
-import type { IfrsLineage, IfrsWorks } from "@/lib/workpapers/closing-ifrs";
+import { IFRS_PARTIAL_BRIDGE, type IfrsLineage, type IfrsWorks } from "@/lib/workpapers/closing-ifrs";
 import { leaseDemoView } from "@/lib/workpapers/lease-demo";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import { ClosingIfrsWorks } from "../../closing/ClosingIfrsWorks";
@@ -77,9 +77,10 @@ describe("L16-05 travaux IFRS du dossier de clôture", () => {
   it("sélection à réexaminer : motif écrit, retrait de la version lue, aucune nouvelle sélection d'une feuille dont la source est remplacée", () => {
     const send = vi.fn(async () => true), stale = lineage({ sourcesCurrent: false, toDecide: false,
       selection: { status: "a_reexaminer", reasons: ["source remplacée ou ajoutée"], runId: "RUN-A", revision: 1, runVersion: 9, bundleHash: "b".repeat(64), by: "local-owner", at: "2027-02-20T10:00:00.000Z",
-        base: { baseKind: "PCG", included: "aucun retraitement IFRS 16 déjà inclus, déclaré", limits: "Base PCG", citation: "grand-livre.csv · aaaaaaaaaaaa" } } });
+        base: { baseKind: "PCG", included: "aucun retraitement IFRS 16 déjà inclus, déclaré", limits: "Base PCG", citation: "grand-livre.csv · aaaaaaaaaaaa", bridge: { kind: "partial_bridge", text: IFRS_PARTIAL_BRIDGE } } } });
     render(<ClosingIfrsWorks view={closingView(works([stale]))} canPrepare send={send} busy={false}/>);
     expect(screen.getByText("À réexaminer")).toBeTruthy();
+    expect(screen.getByText(IFRS_PARTIAL_BRIDGE)).toBeTruthy();
     expect(screen.getByText(/: source remplacée ou ajoutée/)).toBeTruthy();
     expect(screen.queryByRole("button", { name: /^Sélectionner/ })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Retirer la sélection lue (r1 · v9)" }));

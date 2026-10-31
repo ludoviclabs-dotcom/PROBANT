@@ -19,6 +19,8 @@ export const ANNEX_LIMITS = [
   "Flux non actualisés (loyers par échéance), dette actualisée et principal par échéance sont présentés séparément ; aucun ne remplace l'autre",
   "Impôt non calculé : effets avant impôt seulement, aucune incidence fiscale déduite",
   "Contrats hors périmètre V1, à compléter ou en diagnostic : sans montant, jamais comptés pour zéro",
+  "Pont partiel : le retraitement s'ajoute à une base PCG ; les autres retraitements qu'exigerait une base IFRS restent indéterminés, et un contrat correctement calculé ne qualifie pas la base",
+  "Présentation IFRS 18 non préparée : ni classement du résultat par catégorie, ni sous-totaux, ni mesure de performance définie par la direction (MPM), ni comparatif de transition",
 ] as const;
 
 export interface Judgement { value: string | null; basis: string | null; text: string | null; proof: SourceProof | null }

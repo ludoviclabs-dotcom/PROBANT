@@ -15,6 +15,12 @@ import { contentHash, type NoteCitation, type WorkpaperRun, type WorkpaperScope 
  */
 export const IFRS_WORKS_NOTICE = "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.";
 export const IFRS_PROCEDURES = { "ifrs16.leases": "Locations IFRS 16 — preneur, périmètre V1" } as const;
+/**
+ * C03 : ce que devient une base sélectionnée. Une base PCG plus le seul retraitement IFRS 16 reste un pont partiel (C00 § 4.3) : les autres
+ * retraitements qu'exigerait une base IFRS restent indéterminés, et un contrat correctement calculé ne qualifie pas toute la base.
+ */
+export const IFRS_PARTIAL_BRIDGE = "Pont partiel (partial_bridge) : base PCG plus le seul retraitement IFRS 16 ; les autres retraitements nécessaires à une base IFRS restent indéterminés, la base n'est pas qualifiée IFRS et aucune présentation IFRS 18 n'en est tirée";
+const bridgeOf = (baseKind: string) => (baseKind === "IFRS_prepared" ? null : { kind: "partial_bridge" as const, text: IFRS_PARTIAL_BRIDGE });
 
 /** Feuille de référentiel observée par le dossier : version de tête, fraîcheur lue par la règle de la procédure, retraitement matérialisé. */
 export interface FrameworkSheet { run: WorkpaperRun; standing: SheetStanding; bundle: AdjustmentBundle | null; ledgerCitation: NoteCitation | null }
@@ -73,7 +79,7 @@ export interface IfrsLineage {
   sourcesCurrent: boolean; ruleCurrent: boolean; outcome: string | null;
   bundle: null | { status: AdjustmentBundle["status"]; bundleHash: string; contracts: number; lines: number; debit: Money; credit: Money; taxStatus: "not_computed" };
   selection: { status: "non_selectionne" | "selectionne" | "a_reexaminer"; reasons: string[]; runId: string | null; revision: number | null; runVersion: number | null; bundleHash: string | null; by: string | null; at: string | null;
-    base: null | { baseKind: string; included: string; limits: string; citation: string } };
+    base: null | { baseKind: string; included: string; limits: string; citation: string; bridge: null | { kind: "partial_bridge"; text: string } } };
   posting: { status: "non_documentee" | "documentee"; text: string | null; by: string | null; at: string | null; citations: string[] };
   /** Lignée revue sans sélection : signalée pour décision, jamais un bloqueur de la clôture des cycles. */
   toDecide: boolean;
@@ -103,7 +109,7 @@ export function projectIfrsWorks(sheets: FrameworkSheet[], s: ClosingState): Ifr
       selection: selected ? { status: standing?.status === "current" ? "selectionne" : "a_reexaminer", reasons: standing?.status === "to_reexamine" ? standing.reasons : [], runId: selected.runId, revision: selected.revision,
         runVersion: selected.runVersion, bundleHash: selected.bundleHash, by: selected.selectedBy, at: selected.selectedAt,
         base: { baseKind: selected.base.baseKind, included: selected.base.includedAdjustments.kind === "declared" ? (selected.base.includedAdjustments.identities.length ? selected.base.includedAdjustments.identities.length + " identité(s) déjà incluse(s) déclarée(s)" : "aucun retraitement IFRS 16 déjà inclus, déclaré") : "inconnu",
-          limits: selected.base.limits, citation: selected.base.citation.fileName + " · " + selected.base.citation.sha256.slice(0, 12) } }
+          limits: selected.base.limits, citation: selected.base.citation.fileName + " · " + selected.base.citation.sha256.slice(0, 12), bridge: bridgeOf(selected.base.baseKind) } }
         : { status: "non_selectionne", reasons: [], runId: null, revision: null, runVersion: null, bundleHash: null, by: null, at: null, base: null },
       posting: posting ? { status: "documentee", text: posting.text, by: posting.by, at: posting.at, citations: posting.citations.map(c => c.fileName + " v" + c.version) } : { status: "non_documentee", text: null, by: null, at: null, citations: [] },
       toDecide: reviewed && !selected, previous: ordered.slice(1).map(x => ({ runId: x.run.id, revision: x.run.revision, version: x.run.version, state: x.run.state })) };

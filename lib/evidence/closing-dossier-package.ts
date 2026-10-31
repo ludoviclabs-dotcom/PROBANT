@@ -35,7 +35,7 @@ function ifrsSection(p: DossierProjection) {
 ${table("Lignées", ["Feuille", "Version", "Retraitement", "Sélection", "Base déclarée", "Comptabilisation"], w.lineages.map(l => [l.label + " · " + l.rootId, "r" + l.revision + " · v" + l.version + " · " + l.state + (l.sourcesCurrent ? "" : " · source remplacée"),
     l.bundle ? l.bundle.status + " · " + l.bundle.contracts + " contrat(s) · débit " + l.bundle.debit.amount + " = crédit " + l.bundle.credit.amount + " · impôt non calculé" : "aucun",
     SELECTION[l.selection.status] + (l.selection.reasons.length ? " (" + l.selection.reasons.join(", ") + ")" : "") + (l.toDecide ? " — revu, à décider" : ""),
-    l.selection.base ? l.selection.base.baseKind + " · " + l.selection.base.included + " · " + l.selection.base.citation : "—",
+    l.selection.base ? l.selection.base.baseKind + " · " + l.selection.base.included + " · " + l.selection.base.citation + (l.selection.base.bridge ? " · " + l.selection.base.bridge.text : "") : "—",
     l.posting.status === "documentee" ? "documentée : " + l.posting.citations.join(", ") : "non documentée (la sélection ne la prouve pas)"]))}
 ${w.orphanSelections.length ? table("Sélections sans lignée observée", ["Lignée", "Version", "Sélectionnée par"], w.orphanSelections.map(o => [o.logicalId, o.runId + " · " + o.bundleHash.slice(0, 12), o.by + " · " + o.at])) : ""}</section>`;
 }

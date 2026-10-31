@@ -1,6 +1,6 @@
-# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-06 réalisés
+# IFRS 16 / IFRS 18 — plan versionné, lots C00, C01, C02, L16-01 à L16-06 et C03 (restreint à IFRS 16) réalisés
 
-État au 30/10/2026 :
+État au 31/10/2026 :
 - **C00** : documentaire (contrats, périmètre, sources, attendus), restreint à IFRS 16.
 - **C01** : socle local (virgule fixe, contrats communs, feuille `ifrs16.leases`, API, registre, migration `0022`).
 - **L16-01**, partie serveur : dictionnaire fermé des sources, modèles CSV, qualification du portefeuille et couverture. L'interface attend C02.
@@ -17,6 +17,7 @@
   - le parcours réel sur un profil local jetable, avec redémarrage.
 
   Il corrige la qualification quadratique et le premier enregistrement des politiques d'une feuille neuve. Verdict du 30/10/2026 : non opérationnel, avec deux blocages (relecture de la règle, capacité du store). **Verdict révisé le 31/10/2026 : opérationnel sur le périmètre V1 vérifié, pour la juridiction IASB et dans la capacité mesurée**, après la relecture de la règle par l'utilisateur et le parcours réel complet à l'écran ; voir le handoff § 1.
+- **C03**, restreint à IFRS 16 (IFRS 18 reporté) : parcours croisé sur un profil jetable — détail d'un montant et sa preuve, sélection pour une base PCG dite pont partiel (`partial_bridge`), rejeu sans double montant, base déjà retraitée refusée, simulation sans effet sur les versions revues, version d'un contrat changée (seul ce contrat change), sauvegarde et restauration relues à l'identique ; limites IFRS 18 dites dans les exports et le registre ; non-régression et charge. Étapes P18 `hors_périmètre`.
 
 **Exécution réelle ouverte depuis le 31/10/2026**, pour la juridiction IASB : la relecture personnelle nommée de la règle est consignée ([`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md)). La juridiction de l'Union européenne reste bloquée tant que son texte n'est pas lu.
 
@@ -26,7 +27,9 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 
 | Élément | Rôle |
 |---|---|
-| [`handoffs/L16-06.md`](./handoffs/L16-06.md) | **Où en est le chantier** : verdict, matrice exigences → tests → résultats, propriétés et mutations, charge et capacité, parcours réel, blocages avant C03, captures [`captures/l16-06/`](./captures/l16-06/) |
+| [`handoffs/C03.md`](./handoffs/C03.md) | **Où en est le chantier** : intégration restreinte à IFRS 16, parcours de référence → tests, non-régression, charge à la référence et à la cible, limites, note de revue et commandes, captures [`captures/c03/`](./captures/c03/) |
+| [`BACKLOG.md`](./BACKLOG.md) | Améliorations hors périmètre, non réalisées, avec source, bénéfice et dépendances |
+| [`handoffs/L16-06.md`](./handoffs/L16-06.md) | Recette L16-06 : verdict, matrice exigences → tests → résultats, propriétés et mutations, charge et capacité, parcours réel, blocages avant C03, captures [`captures/l16-06/`](./captures/l16-06/) |
 | [`CAPACITE_LOCATIONS.md`](./CAPACITE_LOCATIONS.md) | Capacité de l'atelier : options mesurées, O1 + O2 faites (30 contrats de 120 mois au lieu de 9) ; cible au-delà à décider |
 | [`recette/`](./recette/) | Oracle C00 et attendus aléatoires ([`proprietes_l16.py`](./recette/proprietes_l16.py)), résultats des mutations, mesures de charge ([`charge/`](./recette/charge/)), état du parcours réel |
 | [`handoffs/L16-05.md`](./handoffs/L16-05.md) | Revue, exports et manifeste, travaux IFRS du dossier de clôture, inventaire des contrôles pour L16-06, captures [`captures/l16-05/`](./captures/l16-05/) |

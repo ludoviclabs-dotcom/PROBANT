@@ -311,7 +311,7 @@ L'atelier suit les conventions d'Emprunts (`loan-http.ts`, `loan-commands.ts`, `
 4. **Activation.** `PROCEDURE_ACTIVATION["ifrs16.leases"] = "PROBANT_IFRS16_DURABLE"` et `configuredProcedures` couvrent les deux listes. Version du registre : `1.5.0`. L'exécution réelle exige en plus une règle `validated` (D03).
 5. **Clôture C14.**
    - `observeRuns` et `sheetLineages` n'intègrent pas `ifrs16.leases` aux sections de cycle.
-   - L16-05 ajoute la section « Travaux IFRS » sur le modèle du bloc d'événements C11 : dénominateurs propres, indicateur propre, champ de projection propre (version de schéma `closing-dossier-1.2.0`), section d'export propre. Rien n'entre dans `MisstatementSummary` ni dans les effets C05.
+   - L16-05 ajoute la section « Travaux IFRS » sur le modèle du bloc d'événements C11 : dénominateurs propres, indicateur propre, champ de projection propre (version de schéma `closing-dossier-1.2.0`, puis `1.3.0` en C03 : la base sélectionnée se dit pont partiel), section d'export propre. Rien n'entre dans `MisstatementSummary` ni dans les effets C05.
    - Une lignée IFRS non rattachée est signalée, sans devenir un bloqueur de cohérence des cycles.
 6. **Tests figés à mettre à jour, sans assouplir leur intention :**
    - `registry.test.ts` (version `1.4.1`, et un nouveau test sur l'axe « référentiel ») ;

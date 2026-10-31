@@ -42,6 +42,8 @@ describe("L16-05 travaux IFRS du dossier de clôture", () => {
       citation: { fileName: expect.any(String), sha256: expect.stringMatching(/^[a-f0-9]{64}$/) } } } });
     const after = journal([decision]), works = projectIfrsWorks(sheets, after);
     expect(works.lineages[0]).toMatchObject({ selection: { status: "selectionne", reasons: [] }, posting: { status: "non_documentee" }, toDecide: false, bundle: { status: "reviewed", taxStatus: "not_computed" } });
+    // C03: a PCG base plus the IFRS 16 adjustment alone stays a partial bridge, said on the selection; never an IFRS-qualified base.
+    expect(works.lineages[0].selection.base).toMatchObject({ baseKind: "PCG", bridge: { kind: "partial_bridge", text: expect.stringContaining("les autres retraitements nécessaires à une base IFRS restent indéterminés") } });
     expect(works.denominators).toEqual({ lineages: 1, reviewed: 1, selected: 1, toReexamine: 0, postingsDocumented: 0 });
     const withIfrs = evaluateClosing(after, [], undefined, sheets), without = evaluateClosing(journal([]), [], undefined, []);
     expect(withIfrs.misstatements).toEqual(without.misstatements);
