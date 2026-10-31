@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useId, useState } from "react";
+import { useId, useState } from "react";
 import type { WorkpaperRun, EvidenceLink } from "@/lib/workpapers/model";
 import type { ClientsSalesDraft, ClientsSalesFacts, ClientsSalesResult } from "@/lib/workpapers/clients-sales";
 import { amountLabel, locatorLabel } from "@/lib/workpapers/client-mission";
@@ -26,7 +26,10 @@ export function ClientReceivablesPanel({ run, draft, facts, editable, busy, onCo
   const [form, setForm] = useState<ClientsSalesDraft>(() => draft ?? initialDraft(run));
   const [tab, setTab] = useState<Tab>("allocations"), [selected, setSelected] = useState("");
   const [paymentId, setPaymentId] = useState(""), [allocationAmount, setAllocationAmount] = useState(""), [allocationProofs, setAllocationProofs] = useState<EvidenceRef[]>([]);
-  useEffect(() => { setForm(draft ?? initialDraft(run)); }, [draft, run]); // New server snapshot, never an optimistic calculation.
+  // New server snapshot, never an optimistic calculation. Adopted during render, not in an effect: a passive
+  // effect still pending at mount would run after a fast first edit and silently replace it with the snapshot.
+  const [snapshot, setSnapshot] = useState({ draft, run });
+  if (snapshot.draft !== draft || snapshot.run !== run) { setSnapshot({ draft, run }); setForm(draft ?? initialDraft(run)); }
   const result = run.result?.execution === "completed" ? run.result.result as ClientsSalesResult : null;
   const options = facts?.sourceOptions ?? [], invoices = facts?.invoices ?? [], payments = facts?.payments ?? [];
   const selectedId = invoices.some(i => i.id === selected) ? selected : invoices[0]?.id ?? "";
