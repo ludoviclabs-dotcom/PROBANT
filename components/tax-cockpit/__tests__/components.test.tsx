@@ -1,10 +1,12 @@
 // @vitest-environment jsdom
 /**
- * Tests des composants du cockpit fiscalité — refonte « cabinet d'audit ».
+ * Tests des composants du cockpit fiscalité — charte « instruments ».
  *
  * Même discipline que la Synthèse : les datasets viennent du VRAI pipeline
  * (moteurs TAX-05/06/07 exécutés sur le dossier de démonstration), et les
  * assertions comparent le rendu au dataset — jamais à des valeurs recopiées.
+ * Les libellés des moteurs passent par la projection d'affichage (accents) :
+ * le rendu est comparé à cette projection, le dataset garde le texte du moteur.
  */
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
@@ -13,15 +15,20 @@ import axe from "axe-core";
 // `next/font/google` est résolu à la compilation par Next : on le neutralise en test.
 vi.mock("next/font/google", () => {
   const font = () => ({ variable: "", className: "", style: { fontFamily: "" } });
-  return { Instrument_Serif: font, IBM_Plex_Sans: font, IBM_Plex_Mono: font };
+  return { Instrument_Serif: font, IBM_Plex_Sans: font, IBM_Plex_Mono: font, Geist: font, Newsreader: font };
 });
 
 import { buildDemoTaxCockpitSource, getDemoTaxCockpitSource } from "@/lib/tax/demo";
 import {
+  buildOutcomeFilters,
   buildRibbon,
   buildTaxCockpitDatasets,
   buildVerdictHeadline,
+  displayControlTitle,
+  displayReconciliationLineLabel,
+  displayWaterfallStepLabel,
   TAX_COCKPIT_SCOPES,
+  TAX_OUTCOME_LABEL,
   type TaxCockpitDatasets,
   type TaxCockpitScope,
 } from "@/lib/tax/cockpit";
@@ -64,6 +71,8 @@ function rowById(id: string): HTMLElement {
   return document.querySelector<HTMLElement>(`[data-row-id="${id}"]`)!;
 }
 
+const explorationRows = (container: HTMLElement) => container.querySelectorAll('[role="row"][data-row-id]');
+
 const controlRowId = (controlId: string) =>
   Object.entries(datasets.findings.details).find(([, detail]) => detail.controlId === controlId)![0];
 const accountedChargeRowId = datasets.findings.rows.find((row) =>
@@ -75,6 +84,7 @@ describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
     const { container } = renderWorkspace();
     const text = container.textContent ?? "";
     expect(text).toContain(buildVerdictHeadline(datasets));
+    expect(screen.getByRole("heading", { level: 2, name: buildVerdictHeadline(datasets) })).toBeTruthy();
     for (const metric of buildRibbon(datasets)) {
       expect(text).toContain(metric.label);
       expect(text).toContain(metric.value);
@@ -84,7 +94,7 @@ describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
   it("le waterfall affiche chaque étape du moteur avec son montant", () => {
     const { container } = renderWorkspace();
     const text = container.textContent ?? "";
-    for (const step of datasets.waterfall.steps) expect(text).toContain(step.label);
+    for (const step of datasets.waterfall.steps) expect(text).toContain(displayWaterfallStepLabel(step.id, step.label));
     const base = datasets.waterfall.steps.find((step) => step.id === "accounting_result")!;
     expect(text).toContain(formatCents(base.runningTotalCents));
     expect(text).toContain(formatCents(datasets.waterfall.confirmedTaxResultCents!));
@@ -99,16 +109,67 @@ describe("rendu : les chiffres affichés sont ceux du snapshot", () => {
 
   it("l'exploration rend une ligne par entrée du dataset (filtre « tous »)", () => {
     const { container } = renderWorkspace();
-    const rows = container.querySelectorAll('[role="row"].fx-find-row');
-    expect(rows.length).toBe(Math.min(100, datasets.findings.rows.length));
+    expect(explorationRows(container).length).toBe(Math.min(100, datasets.findings.rows.length));
   });
 
   it("l'état de statut d'attention n'apparaît qu'une fois dans la barre de contexte", () => {
     const { container } = renderWorkspace();
     const occurrences = (container.textContent ?? "").split(datasets.summary.headlineLabel).length - 1;
-    // Une fois dans le badge ; les autres occurrences viennent des libellés de sortie par ligne/cellule.
-    expect(container.querySelectorAll(".fx-ctx-inner").length).toBe(1);
+    // Une fois dans la barre ; les autres occurrences viennent des strates et des libellés de sortie par ligne/cellule.
+    const bars = container.querySelectorAll("[data-tax-context]");
+    expect(bars.length).toBe(1);
+    expect(bars[0].textContent).toContain(datasets.summary.headlineLabel);
     expect(occurrences).toBeGreaterThan(0);
+  });
+
+  it("le fil d'avancement est rendu une seule fois, quelle que soit la largeur", () => {
+    renderWorkspace();
+    const steppers = screen.getAllByRole("list", { name: "Étapes de la revue fiscale" });
+    expect(steppers).toHaveLength(1);
+    expect(within(steppers[0]).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      "Données — franchie",
+      "Contrôles — franchie",
+      "Analyse — en cours",
+      "Décision — à venir",
+    ]);
+  });
+
+  it("la chaîne de preuve est une liste de trois strates, statut d'attention dit en mots", () => {
+    renderWorkspace();
+    const figure = screen.getByRole("figure", { name: "La chaîne de preuve" });
+    const strata = within(figure).getAllByRole("listitem");
+    expect(strata).toHaveLength(3);
+    expect(strata[0].textContent).toContain("Déclarations");
+    expect(strata[0].textContent).toContain("2065, CA3, avis de CFE");
+    expect(strata[1].textContent).toContain("Liasse fiscale 2050-2059");
+    expect(strata[1].textContent).toContain("dont 2058-A");
+    expect(strata[2].textContent).toContain("FEC & grand-livre");
+    expect(strata[0].textContent).toContain(datasets.summary.headlineLabel);
+    // Plus aucune scène 3D : ni perspective ni plaques animées.
+    expect(figure.querySelector("[style*='perspective']")).toBeNull();
+  });
+
+  it("les libellés des moteurs s'affichent accentués ; la méthode garde le texte du moteur", () => {
+    const { container } = renderWorkspace();
+    const charge = datasets.corporateReconciliation.bars.find((bar) => bar.lineKey === "accounted_tax_charge")!;
+    const shown = displayReconciliationLineLabel(charge.lineKey, charge.label);
+    expect(shown).not.toBe(charge.label);
+    expect(container.textContent).toContain(shown);
+    const accounting = datasets.waterfall.steps.find((step) => step.id === "accounting_result")!;
+    expect(screen.queryByText(accounting.label, { exact: true })).toBeNull();
+    // Le tableau de données de la méthode rend le dataset tel quel (texte du moteur, traçable à l'export).
+    fireEvent.click(screen.getByRole("button", { name: `Sources et méthodologie : ${datasets.waterfall.title}` }));
+    expect(screen.getAllByText(accounting.label, { exact: true }).length).toBeGreaterThan(0);
+  });
+
+  it("une donnée attendue montre la phrase humaine d'abord, le code en petit", () => {
+    renderWorkspace();
+    const callouts = screen.getAllByRole("list", { name: datasets.requiredDocuments.title });
+    const text = callouts.map((list) => list.textContent ?? "").join(" ");
+    expect(text).toContain("Documenter et confirmer le taux et la nature de la détention du capital");
+    expect(text).toContain("profile:ownershipStatus");
+    expect(text).not.toContain("ownershipStatus (profile)");
+    expect(text).toContain("Une condition du taux réduit n'est pas renseignée");
   });
 });
 
@@ -133,6 +194,7 @@ describe("clavier et interactions", () => {
     fireEvent.click(vat);
     expect(vat.getAttribute("aria-pressed")).toBe("true");
     expect(container.textContent).toContain(datasets.vatReconciliation.title);
+    expect(screen.getByRole("heading", { name: "Écarts relevés" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "CFE" }));
     expect(container.textContent).toContain("CFE : avis reçu, charge comptabilisée");
   });
@@ -161,14 +223,38 @@ describe("clavier et interactions", () => {
     const expected = Object.values(datasets.findings.outcomeByRowId).filter(
       (outcome) => outcome === "reconciliation_difference",
     ).length;
-    expect(container.querySelectorAll('[role="row"].fx-find-row').length).toBe(expected);
+    expect(explorationRows(container).length).toBe(expected);
   });
 
-  it("les cellules de la matrice sont focalisables et décrivent leurs sorties", () => {
+  it("chaque filtre affiche le dénombrement de la projection et le dit en description", () => {
     const { container } = renderWorkspace();
-    const cells = container.querySelectorAll('[role="group"][tabindex="0"].fx-cell');
-    expect(cells.length).toBe(datasets.riskMatrix.cells.length);
-    expect(cells[0].getAttribute("aria-label")).toMatch(/contrôle/u);
+    const filters = buildOutcomeFilters(datasets.findings);
+    const all = screen.getByRole("button", { name: "Toutes" });
+    expect(all.getAttribute("aria-pressed")).toBe("true");
+    expect(document.getElementById(all.getAttribute("aria-describedby")!)?.textContent).toBe(`${filters.total} lignes`);
+    for (const option of filters.options) {
+      const button = screen.getByRole("button", { name: option.label });
+      expect(button.textContent).toContain(`${option.label}${option.count}`);
+      const description = document.getElementById(button.getAttribute("aria-describedby")!);
+      expect(description?.textContent).toBe(`${option.count} ligne${option.count > 1 ? "s" : ""}`);
+      fireEvent.click(button);
+      expect(explorationRows(container).length).toBe(Math.min(100, option.count));
+    }
+    expect(container.textContent).toContain(`${filters.reconciliationLines} réconciliations`);
+  });
+
+  it("le registre impôt × cycle rend une ligne par croisement avec sa sortie prioritaire et sa décomposition", () => {
+    const { container } = renderWorkspace();
+    const rows = container.querySelectorAll("[data-matrix-cell]");
+    expect(rows.length).toBe(datasets.riskMatrix.cells.length);
+    datasets.riskMatrix.cells.forEach((cell, index) => {
+      const text = rows[index].textContent ?? "";
+      expect(text).toContain(cell.cycle);
+      expect(text).toContain(String(cell.controlCount));
+      if (cell.worstOutcomeLabel) expect(text).toContain(cell.worstOutcomeLabel);
+      for (const entry of cell.outcomeBreakdown) expect(text).toContain(`${entry.count} ${entry.label.toLowerCase()}`);
+    });
+    expect(container.textContent).toContain("Tous cycles");
   });
 
   it("une ligne ouvre le tiroir de détail (formule, preuve), Échap le referme", () => {
@@ -178,8 +264,20 @@ describe("clavier et interactions", () => {
     const dialog = screen.getByRole("dialog");
     expect(within(dialog).getByText("Formule / normalisations")).toBeTruthy();
     expect(within(dialog).getByText("Historique de revue")).toBeTruthy();
+    expect(document.activeElement).toBe(within(dialog).getByRole("button", { name: "Fermer le détail" }));
     fireEvent.keyDown(document, { key: "Escape" });
     expect(screen.queryByRole("dialog")).toBeNull();
+  });
+
+  it("le tiroir titre la ligne avec le libellé accentué et dit la sortie en mot", () => {
+    renderWorkspace();
+    fireEvent.click(rowById(controlRowId("VAT.PIECE.MISSING")));
+    const dialog = screen.getByRole("dialog");
+    const title = displayControlTitle("VAT.PIECE.MISSING", "Piece absente");
+    expect(title).toBe("Pièce absente");
+    expect(within(dialog).getByRole("heading", { name: title })).toBeTruthy();
+    expect(dialog.textContent).toContain(TAX_OUTCOME_LABEL.inconclusive);
+    expect(dialog.getAttribute("aria-label")).toBe(`Détail du contrôle : ${title}`);
   });
 
   it("le tiroir d'une ligne de rapprochement désactive les décisions et le dit", () => {
@@ -219,11 +317,12 @@ describe("clavier et interactions", () => {
   it("le menu Exporter propose tous les exports du dossier de preuve", () => {
     renderWorkspace();
     const exports = screen.getByRole("region", { name: "Exports du dossier de preuve fiscal" });
-    fireEvent.click(within(exports).getByRole("button", { name: /Exporter/u }));
+    fireEvent.click(within(exports).getByRole("button", { name: "Exporter" }));
     for (const name of ["Exporter JSON fiscaux", "Exporter CSV fiscaux", "Note HTML", "Note PDF", "Manifeste", "Vérifier"]) {
       expect(within(exports).getByRole("button", { name })).toBeTruthy();
     }
     expect(exports.textContent).toContain("Aucun avis juridique");
+    expect(exports.textContent).toContain("PDF/A non validé");
   });
 
   it("sans dossier de preuve, la barre de décision n'est pas rendue", () => {

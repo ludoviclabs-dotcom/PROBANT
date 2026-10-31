@@ -1,6 +1,7 @@
 import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
+import { OnboardingCta } from "@/components/probant/OnboardingCta";
 /**
- * /dashboard/fiscalite — cockpit fiscalité (TAX-08).
+ * /dashboard/fiscalite — cockpit fiscalité (TAX-08), charte « instruments ».
  *
  * Server component : le dossier fiscal de démonstration exécute réellement les
  * moteurs TAX-05/06/07 et le planner TAX-04 côté serveur, puis les datasets
@@ -10,7 +11,10 @@ import { DossierContextAnchor } from "@/components/probant/DossierContextLink";
  * Filtres portés par l'URL : `?impot=corporate_income_tax|vat|cfe` et
  * `?statut=<outcome>` (Next 15 : `searchParams` asynchrone).
  */
+import { InstrumentPage, PageIntro } from "@/components/charte/InstrumentPage";
+import p from "@/components/charte/page.module.css";
 import { TaxCockpitWorkspace } from "@/components/tax-cockpit/TaxCockpitWorkspace";
+import x from "@/components/tax-cockpit/fiscalite.module.css";
 import {
   buildTaxCockpitDatasets,
   TAX_COCKPIT_SCOPES,
@@ -41,10 +45,25 @@ export default async function FiscalitePage({
   ) as Record<TaxCockpitScope, TaxCockpitDatasets>;
 
   return (
-    <>
-      {/* The cockpit stays a demonstration surface; the real-dossier VAT sheets live in the mission procedures (Mission 13). */}
-      <nav aria-label="Feuilles de travail fiscales" style={{ background: "#0b1220", color: "#e6edf6", padding: "10px 24px", fontSize: 13, borderBottom: "1px solid #243044" }}>
-        Cockpit de démonstration (dossier synthétique). Pour un dossier réel en recette : <DossierContextAnchor href="/fiscal" style={{ color: "#9cbcff", textDecoration: "underline" }}>feuilles de travail TVA par période</DossierContextAnchor> · <DossierContextAnchor href="/fiscal/synthese" style={{ color: "#9cbcff", textDecoration: "underline" }}>Synthèse fiscale</DossierContextAnchor>.
+    <InstrumentPage>
+      <PageIntro
+        index="05"
+        title="Fiscalité"
+        lead="Contrôles et réconciliations IS, TVA, CFE."
+        aside={<OnboardingCta className={`${p.btnSecondary} ${x.introCta}`} />}
+      />
+      {/* Le cockpit reste une surface de démonstration ; les feuilles TVA d'un dossier réel vivent dans les procédures de mission (Mission 13). */}
+      <nav aria-label="Feuilles de travail fiscales" className={x.synthetic}>
+        <span className={p.key}>Dossier synthétique</span>
+        <span className={p.soft}>
+          Cockpit de démonstration : il lit un jeu fiscal synthétique (exercice {source.fiscalYear}), distinct du dossier
+          affiché dans le ruban.
+        </span>
+        <span className={x.syntheticLinks}>
+          Dossier réel en recette :{" "}
+          <DossierContextAnchor href="/fiscal">feuilles de travail TVA par période</DossierContextAnchor> ·{" "}
+          <DossierContextAnchor href="/fiscal/synthese">Synthèse fiscale</DossierContextAnchor>
+        </span>
       </nav>
       <TaxCockpitWorkspace
         bundles={bundles}
@@ -52,6 +71,6 @@ export default async function FiscalitePage({
         initialOutcome={params.statut ?? "tous"}
         evidenceSource={source}
       />
-    </>
+    </InstrumentPage>
   );
 }

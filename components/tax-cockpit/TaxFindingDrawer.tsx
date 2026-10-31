@@ -1,29 +1,21 @@
 "use client";
 
 /**
- * Tiroir de détail d'une ligne (420 px, coulissant à droite) : formule,
- * données, limites, preuve, sources et historique de revue. Les décisions
- * s'enregistrent via la même session append-only que la barre du bas ; une
- * ligne de rapprochement n'a pas de constat de revue rattaché, ses boutons
- * restent donc désactivés (et le disent).
+ * Panneau de détail d'une ligne (plan 2, à droite) : montant, formule, données, limites, preuve, sources et
+ * historique de revue. Les décisions s'enregistrent via la même session append-only que la barre du bas ; une
+ * ligne de rapprochement n'a pas de constat de revue rattaché, ses boutons restent donc désactivés (et le disent).
+ * Dialogue non modal : le focus entre sur « Fermer », Échap referme, le focus revient à la ligne ouverte.
  */
 
 import { useEffect, useRef, useState } from "react";
-import { X } from "lucide-react";
+import p from "@/components/charte/page.module.css";
 import type { VisualizationRow } from "@/lib/visualization/types";
-import type { TaxFindingRowDetail } from "@/lib/tax/cockpit";
-import { TAX_OUTCOME_LABEL } from "@/lib/tax/cockpit";
+import { displayControlDetail, TAX_OUTCOME_LABEL, type TaxFindingRowDetail } from "@/lib/tax/cockpit";
 import type { TaxControlOutcome } from "@/lib/canonical-model";
-import { BODY, C, MONO, OUTCOME_COLOR, OUTCOME_MARK, SANS } from "./fiscal-style";
+import { asOutcome, OutcomeMark } from "./OutcomeMark";
+import { findingReading, findingTitle } from "./finding-text";
 import { REVIEW_ACTIONS, type TaxReviewSession } from "./useTaxReviewSession";
-
-const dt: React.CSSProperties = {
-  fontSize: 11,
-  textTransform: "uppercase",
-  letterSpacing: ".12em",
-  color: C.faint,
-};
-const dd: React.CSSProperties = { margin: "6px 0 0", lineHeight: 1.6, color: C.textSoft };
+import x from "./fiscalite.module.css";
 
 const QUICK_ACTIONS = ["confirm", "dismiss", "request_evidence", "attach_evidence"] as const;
 
@@ -45,12 +37,9 @@ export function TaxFindingDrawer({
   const [comment, setComment] = useState("");
   const findingId = session?.findingIdForControl(detail.controlId);
   const history = findingId ? (session?.events.filter((event) => event.findingId === findingId) ?? []) : [];
-  const color = OUTCOME_COLOR[outcome] ?? C.accent;
-  const rawLabel = String(row.cells.label ?? row.id);
-  const title =
-    detail.controlId && rawLabel.startsWith(`${detail.controlId} — `)
-      ? rawLabel.slice(detail.controlId.length + 3)
-      : rawLabel;
+  const title = findingTitle(row, detail);
+  // La formule d'un contrôle est la phrase du moteur (même texte que la lecture) : même projection d'accents.
+  const formula = detail.controlId ? displayControlDetail(detail.controlId, detail.formula) : detail.formula;
 
   useEffect(() => {
     closeRef.current?.focus();
@@ -68,121 +57,71 @@ export function TaxFindingDrawer({
   }
 
   const canDecide = Boolean(session && findingId) && !session?.busy;
-  const labelOf = (value: string | undefined) =>
-    REVIEW_ACTIONS.find((item) => item.value === value)?.label ?? value ?? "—";
+  const labelOf = (value: string | undefined) => REVIEW_ACTIONS.find((item) => item.value === value)?.label ?? value ?? "—";
 
   return (
-    <div
-      role="dialog"
-      aria-modal="false"
-      aria-label={`Détail du contrôle : ${title}`}
-      className="fx-drawer"
-      style={{
-        position: "fixed",
-        top: 0,
-        right: 0,
-        bottom: 0,
-        width: 420,
-        maxWidth: "92%",
-        zIndex: 60,
-        background: C.drawer,
-        borderLeft: `1px solid ${C.lineStrong}`,
-        boxShadow: "-28px 0 60px rgba(0,0,0,.5)",
-        display: "flex",
-        flexDirection: "column",
-        animation: "fxSlideIn .28s cubic-bezier(.2,.7,.3,1) both",
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          gap: 12,
-          padding: "20px 22px 16px",
-          borderBottom: `1px solid ${C.line}`,
-        }}
-      >
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ ...dt, letterSpacing: ".14em" }}>{detail.taxLabel}</div>
-          <h2
-            style={{
-              margin: "6px 0 0",
-              fontFamily: SANS,
-              fontSize: 17,
-              fontWeight: 600,
-              lineHeight: 1.3,
-              color: C.text,
-              overflowWrap: "anywhere",
-            }}
-          >
-            {title}
-          </h2>
-          <div style={{ marginTop: 8, fontSize: 12.5, fontWeight: 600, color }}>
-            <span aria-hidden="true">{OUTCOME_MARK[outcome]} </span>
-            {TAX_OUTCOME_LABEL[outcome as TaxControlOutcome] ?? String(row.cells.status)}
-          </div>
+    <div role="dialog" aria-modal="false" aria-label={`Détail du contrôle : ${title}`} className={x.drawer}>
+      <div className={x.drawerHead}>
+        <div>
+          <p className={p.key}>{detail.taxLabel}</p>
+          <h2 className={x.drawerTitle}>{title}</h2>
+          <p className={x.drawerOutcome}>
+            <OutcomeMark
+              outcome={asOutcome(outcome)}
+              label={TAX_OUTCOME_LABEL[outcome as TaxControlOutcome] ?? String(row.cells.status)}
+            />
+          </p>
         </div>
-        <button
-          ref={closeRef}
-          type="button"
-          className="fx-icon-btn"
-          aria-label="Fermer le détail"
-          onClick={onClose}
-          style={{
-            border: 0,
-            borderRadius: 8,
-            background: "rgba(255,255,255,.05)",
-            padding: 6,
-            color: C.muted,
-            cursor: "pointer",
-            lineHeight: 0,
-          }}
-        >
-          <X size={15} aria-hidden="true" />
+        <button ref={closeRef} type="button" className={x.drawerClose} aria-label="Fermer le détail" onClick={onClose}>
+          ×
         </button>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "20px 22px" }}>
-        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 12 }}>
-          <span style={{ fontSize: 12, color: C.faint }}>Montant</span>
-          <span style={{ fontFamily: MONO, fontVariantNumeric: "tabular-nums", fontSize: 24, color: C.text }}>
-            {detail.amountDisplay}
-          </span>
+      <div className={x.drawerBody}>
+        <div className={x.drawerAmount}>
+          <span className={p.key}>Montant</span>
+          <span className={x.drawerAmountValue}>{detail.amountDisplay}</span>
         </div>
-        <dl style={{ margin: "22px 0 0", display: "flex", flexDirection: "column", gap: 16, fontSize: 12.5 }}>
+        <dl className={x.drawerList}>
           <div>
-            <dt style={dt}>Formule / normalisations</dt>
-            <dd style={dd}>{detail.formula}</dd>
+            <dt className={p.key}>Formule / normalisations</dt>
+            <dd>{formula}</dd>
+          </div>
+          {!detail.controlId && (
+            <div>
+              <dt className={p.key}>Lecture</dt>
+              <dd>{findingReading(detail)}</dd>
+            </div>
+          )}
+          <div>
+            <dt className={p.key}>Données utilisées</dt>
+            <dd className={x.monoSmall}>{detail.usedData.length > 0 ? detail.usedData.join(" · ") : "—"}</dd>
           </div>
           <div>
-            <dt style={dt}>Données utilisées</dt>
-            <dd style={{ ...dd, fontFamily: MONO, fontSize: 11.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
-              {detail.usedData.length > 0 ? detail.usedData.join(" · ") : "—"}
-            </dd>
+            <dt className={p.key}>Limites</dt>
+            <dd>{detail.limits.length > 0 ? detail.limits.join(" ") : "Aucune limite spécifique documentée sur cette ligne."}</dd>
           </div>
           <div>
-            <dt style={dt}>Limites</dt>
-            <dd style={dd}>
-              {detail.limits.length > 0 ? detail.limits.join(" ") : "Aucune limite spécifique documentée sur cette ligne."}
-            </dd>
+            <dt className={p.key}>Preuve</dt>
+            <dd className={detail.controlId ? undefined : x.monoSmall}>{detail.evidence}</dd>
           </div>
           <div>
-            <dt style={dt}>Preuve</dt>
-            <dd style={dd}>{detail.evidence}</dd>
+            <dt className={p.key}>Sources</dt>
+            <dd className={x.monoSmall}>{detail.sources.length > 0 ? detail.sources.join(" · ") : "—"}</dd>
           </div>
+          {detail.controlId && (
+            <div>
+              <dt className={p.key}>Contrôle</dt>
+              <dd className={x.monoSmall}>{detail.controlId}</dd>
+            </div>
+          )}
           <div>
-            <dt style={dt}>Sources</dt>
-            <dd style={{ ...dd, fontFamily: MONO, fontSize: 11.5, lineHeight: 1.7, overflowWrap: "anywhere" }}>
-              {detail.sources.length > 0 ? detail.sources.join(" · ") : "—"}
-            </dd>
-          </div>
-          <div>
-            <dt style={dt}>Historique de revue</dt>
-            <dd style={{ ...dd, color: C.muted }}>
+            <dt className={p.key}>Historique de revue</dt>
+            <dd>
               {history.length === 0
                 ? detail.review
                 : history.map((event) => (
-                    <span key={event.id} style={{ display: "block" }}>
+                    <span key={event.id} className={x.block}>
                       {labelOf(event.action)}
                       {event.comment ? ` — ${event.comment}` : ""}
                     </span>
@@ -191,28 +130,14 @@ export function TaxFindingDrawer({
           </div>
         </dl>
 
-        <label style={{ ...dt, marginTop: 22, display: "block" }}>
-          Commentaire de revue
+        <label className={x.drawerComment}>
+          <span className={p.key}>Commentaire de revue</span>
           <textarea
             rows={3}
             value={comment}
             onChange={(event) => setComment(event.target.value)}
             placeholder="Documenter la décision…"
-            style={{
-              marginTop: 8,
-              display: "block",
-              width: "100%",
-              resize: "vertical",
-              border: `1px solid ${C.lineStrong}`,
-              borderRadius: 10,
-              background: C.fill,
-              padding: "10px 12px",
-              fontFamily: BODY,
-              fontSize: 12.5,
-              textTransform: "none",
-              letterSpacing: 0,
-              color: C.text,
-            }}
+            className={`${p.input} ${x.textarea}`}
           />
         </label>
         <input
@@ -227,46 +152,20 @@ export function TaxFindingDrawer({
             if (file) void decide("attach_evidence", file);
           }}
         />
-        <div style={{ marginTop: 14, display: "flex", gap: 8, flexWrap: "wrap" }}>
+        <div className={x.drawerActions}>
           {QUICK_ACTIONS.map((action, index) => (
             <button
               key={action}
               type="button"
               disabled={!canDecide}
-              className={index === 0 ? "fx-btn-primary" : "fx-btn-ghost"}
+              className={index === 0 ? p.btnPrimary : p.btnSecondary}
               onClick={() => (action === "attach_evidence" ? fileRef.current?.click() : void decide(action))}
-              style={
-                index === 0
-                  ? {
-                      border: 0,
-                      borderRadius: 9,
-                      background: C.accent,
-                      padding: "9px 14px",
-                      fontFamily: BODY,
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      color: "#061019",
-                      cursor: canDecide ? "pointer" : "not-allowed",
-                      opacity: canDecide ? 1 : 0.45,
-                    }
-                  : {
-                      border: "1px solid rgba(255,255,255,.12)",
-                      borderRadius: 9,
-                      background: "transparent",
-                      padding: "9px 14px",
-                      fontFamily: BODY,
-                      fontSize: 12.5,
-                      color: C.textSoft,
-                      cursor: canDecide ? "pointer" : "not-allowed",
-                      opacity: canDecide ? 1 : 0.45,
-                    }
-              }
             >
               {labelOf(action)}
             </button>
           ))}
         </div>
-        <p role="status" aria-live="polite" style={{ margin: "12px 0 0", minHeight: 17, fontSize: 11.5, lineHeight: 1.5, color: C.muted }}>
+        <p role="status" aria-live="polite" className={x.drawerStatus}>
           {!session
             ? "La revue n'est pas disponible sur ce dossier."
             : !findingId

@@ -1,16 +1,16 @@
 "use client";
 
-
-
 import { useEffect, useMemo, useState } from "react";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
-import { CheckCircle2, Info, LayoutGrid, FileText } from "lucide-react";
 import type { CloisonId, FecEntry, Finding } from "@/lib/canonical-model";
-import { CLOISONS, buildFecDocument, siloById } from "@/lib/canonical-model";
-import { SeverityBadge } from "./Badges";
+import { CLOISONS, SEVERITY_LABEL, buildFecDocument, siloById } from "@/lib/canonical-model";
+import { SeverityGlyph } from "@/components/charte/SeverityMark";
+import { FamilyRule } from "@/components/charte/FamilyRule";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
+import { FAMILY_TEXT, plural } from "@/lib/synthese-view/common";
 import { useActiveDossier } from "@/lib/dossier/client";
-import { cn } from "@/lib/utils";
+import p from "@/components/charte/page.module.css";
+import c from "./cloisons.module.css";
 
 interface LiveMeta {
   societe: string;
@@ -39,6 +39,16 @@ function groupByCloison(findings: Finding[]): Map<CloisonId, Finding[]> {
   return map;
 }
 
+/** Le grand livre paginé n'a pas pu être lu : l'aperçu document est indisponible, les constats restent lisibles. */
+function LedgerError() {
+  return (
+    <p role="alert" className={c.liveNotice} data-tone="error">
+      <strong>Grand livre indisponible.</strong>
+      <span>La lecture paginée du FEC a échoué : la vue document n&apos;est pas proposée. Les constats du snapshot restent affichés.</span>
+    </p>
+  );
+}
+
 /* ── composant interne (reçoit des findings valides) ── */
 function LiveInner({
   findings,
@@ -47,6 +57,7 @@ function LiveInner({
   admissibilite,
   storageLabel,
   ledgerTotal,
+  ledgerError,
 }: {
   findings: Finding[];
   entries: FecEntry[];
@@ -54,9 +65,10 @@ function LiveInner({
   admissibilite: Finding[];
   storageLabel: string;
   ledgerTotal: number;
+  ledgerError: boolean;
 }) {
   const byCloison = groupByCloison(findings);
-  const cloisonsPresentes = CLOISONS.filter((c) => byCloison.has(c.id));
+  const cloisonsPresentes = CLOISONS.filter((cl) => byCloison.has(cl.id));
   const [active, setActive] = useState<CloisonId>(
     cloisonsPresentes[0]?.id ?? "bilan-actif",
   );
@@ -79,155 +91,98 @@ function LiveInner({
   }, [documentDisponible, entries, findings, meta, admissibilite]);
 
   return (
-    <div className="space-y-4">
+    <div>
       {/* Bandeau FEC réel */}
-      <div className="flex items-center gap-3 rounded-xl border border-[#3b82f6]/30 bg-[#0a1628] px-4 py-3">
-        <Info className="h-4 w-4 shrink-0 text-[#3b82f6]" />
-        <div className="min-w-0 text-[12px]">
-          <span className="font-semibold text-[#3b82f6]">Analyse de votre FEC réel</span>
-          <span className="text-[var(--pb-text-muted)]">
-            {" "}— {findings.length} constat(s) détecté(s).{" "}
-          </span>
-          <Link href="/dashboard/depot" className="text-[var(--pb-accent)] hover:underline">
-            Déposer un autre fichier
-          </Link>
-        </div>
-      </div>
+      <p className={c.liveNotice}>
+        <strong>Analyse de votre FEC réel</strong>
+        <span>
+          {findings.length} {plural(findings.length, "constat détecté", "constats détectés")}.{" "}
+          <Link href="/dashboard/depot">Déposer un autre fichier</Link>
+        </span>
+      </p>
+      {ledgerError && <LedgerError />}
 
       {/* Bascule de vue */}
       {documentDisponible && (
-        <div className="inline-flex rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-0.5 text-[12px]">
-          <button
-            onClick={() => setVue("cloison")}
-            aria-pressed={vue === "cloison"}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
-              vue === "cloison"
-                ? "bg-[var(--pb-accent)]/15 text-[var(--pb-text)]"
-                : "text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]",
-            )}
-          >
-            <LayoutGrid className="h-3.5 w-3.5" /> Vue par cloison
+        <div className={`${p.toggleGroup} ${c.viewSwitch} ${c.liveSwitch}`} role="group" aria-label="Vue">
+          <span className={p.key}>Vue</span>
+          <button type="button" onClick={() => setVue("cloison")} aria-pressed={vue === "cloison"} className={`${p.toggle} ${c.viewToggle}`}>
+            Vue par cloison
           </button>
-          <button
-            onClick={() => setVue("document")}
-            aria-pressed={vue === "document"}
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 font-medium transition-colors",
-              vue === "document"
-                ? "bg-[var(--pb-accent)]/15 text-[var(--pb-text)]"
-                : "text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]",
-            )}
-          >
-            <FileText className="h-3.5 w-3.5" /> Vue document (FEC)
+          <button type="button" onClick={() => setVue("document")} aria-pressed={vue === "document"} className={`${p.toggle} ${c.viewToggle}`}>
+            Vue document (FEC)
           </button>
         </div>
       )}
 
       {vue === "document" && documentDisponible ? (
-        <FinancialDocumentViewer docs={docs} />
+        <div className={`${c.documentFrame} ${c.liveSwitch}`}>
+          <FinancialDocumentViewer docs={docs} />
+        </div>
       ) : (
         <>
           {/* Onglets cloisons */}
-          <div className="flex flex-wrap gap-1.5">
-            {cloisonsPresentes.map((c) => {
-              const n = (byCloison.get(c.id) ?? []).length;
-              const isActive = c.id === active;
+          <div className={c.liveTabs} role="group" aria-label="Cloison">
+            <span className={p.key}>Cloison</span>
+            {cloisonsPresentes.map((cl) => {
+              const n = (byCloison.get(cl.id) ?? []).length;
               return (
                 <button
-                  key={c.id}
-                  onClick={() => setActive(c.id)}
-                  className={cn(
-                    "flex items-center gap-2 rounded-lg border px-3 py-2 text-[13px] transition-colors",
-                    isActive
-                      ? "border-[var(--pb-accent)] bg-[var(--pb-accent)]/12 font-semibold text-[var(--pb-text)]"
-                      : "border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:border-[var(--pb-border-strong)] hover:text-[var(--pb-text)]",
-                  )}
+                  key={cl.id}
+                  type="button"
+                  onClick={() => setActive(cl.id)}
+                  aria-pressed={cl.id === active}
+                  className={`${p.toggle} ${c.viewToggle}`}
                 >
-                  {c.label}
-                  {n > 0 && (
-                    <span
-                      className={cn(
-                        "tnum rounded-md px-1.5 py-0.5 text-[10px] font-semibold",
-                        isActive
-                          ? "bg-[var(--pb-accent)]/20 text-[var(--pb-accent)]"
-                          : "bg-[var(--pb-surface-3)] text-[var(--pb-text-muted)]",
-                      )}
-                    >
-                      {n}
-                    </span>
-                  )}
+                  {cl.label}
+                  {n > 0 && <span className={c.mono}> · {n}</span>}
                 </button>
               );
             })}
           </div>
 
           {/* Constats de la cloison active */}
-          <div className="space-y-3">
+          <ul className={c.liveList}>
             {activeFindings.map((f) => {
               const silo = siloById(f.siloId);
-              const isCritique = f.severity === "bloquant" || f.severity === "majeur";
               return (
-                <div
-                  key={f.id}
-                  className={cn(
-                    "rounded-xl border p-4",
-                    isCritique
-                      ? "border-[#ef4444]/30 bg-[#1a0c0c]"
-                      : "border-[var(--pb-border)] bg-[var(--pb-surface)]",
-                  )}
-                >
-                  <div className="flex items-start gap-3">
-                    <SeverityBadge severity={f.severity} />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-[13px] font-semibold text-[var(--pb-text)]">
-                          {f.titre}
-                        </span>
-                        {silo && (
-                          <span className="shrink-0 rounded border border-[var(--pb-border)] px-1.5 py-0.5 text-[10px] text-[var(--pb-text-faint)]">
-                            {silo.label}
-                          </span>
-                        )}
-                      </div>
-                      <p className="mt-1 text-[12px] text-[var(--pb-text-muted)]">{f.constat}</p>
-                      <div className="mt-2 font-mono text-[11px] text-[var(--pb-accent)]">
-                        {f.source.ref}
-                      </div>
-                      {f.faisceau.length > 0 && (
-                        <ul className="mt-2 space-y-0.5">
-                          {f.faisceau.map((s, i) => (
-                            <li
-                              key={i}
-                              className="flex items-start gap-1.5 text-[11px] text-[var(--pb-text-faint)]"
-                            >
-                              <span className="mt-0.5 shrink-0">·</span>
-                              {s}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
+                <li key={f.id} className={c.liveItem}>
+                  <div className={c.liveItemHead}>
+                    <span className={c.cardMeta}>
+                      <span>
+                        <SeverityGlyph severity={f.severity} />
+                        {SEVERITY_LABEL[f.severity]}
+                      </span>
+                      <span>
+                        <FamilyRule family={f.family} />
+                        {FAMILY_TEXT[f.family].label}
+                      </span>
+                    </span>
+                    {silo && <span className={c.liveSilo}>{silo.label}</span>}
                   </div>
-                </div>
+                  <p className={c.liveItemTitle}>{f.titre}</p>
+                  <p className={c.constat}>{f.constat}</p>
+                  <p className={c.liveRef}>{f.source.ref}</p>
+                  {f.faisceau.length > 0 && (
+                    <ul className={`${c.faisceau} ${c.liveFaisceau}`}>
+                      {f.faisceau.map((s, i) => <li key={i}>{s}</li>)}
+                    </ul>
+                  )}
+                </li>
               );
             })}
 
-            {activeFindings.length === 0 && (
-              <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
-                Aucun constat dans cette cloison.
-              </div>
-            )}
-          </div>
+            {activeFindings.length === 0 && <li className={c.cardsEmpty}>Aucun constat dans cette cloison.</li>}
+          </ul>
         </>
       )}
 
-      <div className="text-[11px] text-[var(--pb-text-faint)]">
+      <p className={c.liveFoot}>
         Source de vérité : snapshot actif ({storageLabel}).
         {ledgerTotal > entries.length
           ? ` Aperçu borné à ${entries.length.toLocaleString("fr-FR")} ligne(s) sur ${ledgerTotal.toLocaleString("fr-FR")}; le grand livre complet reste paginé.`
           : ""}
-      </div>
+      </p>
     </div>
   );
 }
@@ -311,47 +266,37 @@ export function CloisonsViewLive() {
   const ledgerTotal = snapshot.sourceKind === "persistent"
     ? persistentLedger.total
     : entries.length;
+  const ledgerError = snapshot.sourceKind === "persistent" && persistentLedger.error;
 
   if (snapshot.dossier.demoMode) {
     return (
-      <div className="space-y-4">
-        <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
-          Aucun dépôt réel n'est actif. Sélectionnez un snapshot de session ou
-          déposez un FEC.
-        </div>
-        <Link href="/dashboard/depot" className="text-[12px] text-[var(--pb-accent)] hover:underline">
-          ← Retour au dépôt
-        </Link>
+      <div className={c.liveState}>
+        <p className={c.liveStateTitle}>Aucun dépôt réel n&apos;est actif</p>
+        <p className={c.liveStateText}>Sélectionnez un snapshot de session ou déposez un FEC.</p>
+        <Link href="/dashboard/depot" className={c.backLink}>← Retour au dépôt</Link>
       </div>
     );
   }
 
   if (snapshot.sourceKind === "persistent" && persistentLedger.loading) {
     return (
-      <div className="rounded-xl border border-dashed border-[var(--pb-border)] p-8 text-center text-sm text-[var(--pb-text-faint)]">
-        Chargement paginé du grand livre…
+      <div className={c.liveState} role="status">
+        <p className={c.liveStateText}>Chargement paginé du grand livre…</p>
       </div>
     );
   }
 
   if (findings.length === 0 && entries.length === 0) {
     return (
-      <div className="space-y-4">
-        <div className="flex items-center gap-3 rounded-xl border border-[#22c55e]/30 bg-[#0a2214] p-4">
-          <CheckCircle2 className="h-5 w-5 shrink-0 text-[#22c55e]" />
-          <div>
-            <div className="text-sm font-semibold text-[#22c55e]">
-              Aucun constat analytique
-            </div>
-            <div className="text-[12px] text-[var(--pb-text-muted)]">
-              Le moteur de règles n'a détecté aucune anomalie significative sur ce FEC.
-            </div>
-          </div>
-        </div>
-        <div className="text-[12px] text-[var(--pb-text-faint)]">
-          <Link href="/dashboard/depot" className="text-[var(--pb-accent)] hover:underline">
-            ← Retour au dépôt
-          </Link>
+      <div>
+        {ledgerError && <LedgerError />}
+        <div className={c.liveState}>
+          <p className={c.liveStateTitle}>Aucun constat analytique</p>
+          <p className={c.liveStateText}>
+            Le moteur de règles n&apos;a détecté aucune anomalie significative sur ce FEC.
+            {ledgerError ? " Le grand livre n'a toutefois pas pu être relu : cette absence porte sur les constats du snapshot." : ""}
+          </p>
+          <Link href="/dashboard/depot" className={c.backLink}>← Retour au dépôt</Link>
         </div>
       </div>
     );
@@ -365,6 +310,7 @@ export function CloisonsViewLive() {
       admissibilite={snapshot.admissibilityFindings}
       storageLabel={snapshot.sourceKind}
       ledgerTotal={ledgerTotal}
+      ledgerError={ledgerError}
     />
   );
 }

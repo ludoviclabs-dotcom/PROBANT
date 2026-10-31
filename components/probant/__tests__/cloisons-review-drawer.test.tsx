@@ -6,7 +6,13 @@
  * vérifiée aux largeurs réelles par e2e/cloisons-mise-en-page.spec.ts).
  */
 import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
+
+// `next/font/google` est résolu à la compilation par Next (police de la charte, InstrumentPage) : neutralisé en test.
+vi.mock("next/font/google", () => {
+  const font = () => ({ variable: "", className: "", style: { fontFamily: "" } });
+  return { Newsreader: font, Geist: font, IBM_Plex_Mono: font };
+});
 import { buildDemoDossierSnapshot } from "@/lib/dossier/snapshot-builder";
 import { projectSnapshotExposure } from "@/lib/synthesis/exposure";
 import { CloisonsWorkspace } from "../CloisonsWorkspace";

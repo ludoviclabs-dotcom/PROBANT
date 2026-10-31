@@ -88,6 +88,8 @@ export interface TaxCockpitWaterfallStep {
 /** Barre de comparaison à deux ou trois opérandes (IS et TVA). */
 export interface TaxComparisonBarRow {
   readonly id: string;
+  /** Clé stable de la ligne de rapprochement du moteur (`lineKey`), `null` hors rapprochement : sert au libellé d'affichage. */
+  readonly lineKey: string | null;
   readonly label: string;
   readonly values: readonly {
     readonly key: string;
@@ -127,6 +129,8 @@ export interface TaxRiskMatrixCell {
 export interface TaxFindingRowDetail {
   /** Identifiant de contrôle du moteur (`null` pour une ligne de rapprochement). */
   readonly controlId: string | null;
+  /** Clé stable de la ligne de rapprochement du moteur (`null` pour un contrôle) : sert au libellé d'affichage. */
+  readonly lineKey: string | null;
   /** Libellé long de l'impôt (« Impôt sur les sociétés »). */
   readonly taxLabel: string;
   /** Lecture factuelle : wording imposé de la taxonomie ou détail du moteur. */

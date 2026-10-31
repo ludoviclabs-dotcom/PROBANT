@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ChevronDown, ChevronUp, FlaskConical, RotateCcw } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import p from "@/components/charte/page.module.css";
+import s from "./risk.module.css";
 
 /**
  * Simulateur de seuil ISA 320 (Bloc 4). Permet de rejouer le scoring avec un
@@ -11,16 +11,22 @@ import { cn } from "@/lib/utils";
  * différente sur la hiérarchisation des cycles. Purement local à l'UI : ne
  * modifie AUCUNE donnée persistée, n'écrit rien côté serveur. Tant qu'une
  * valeur simulée est active, un libellé permanent le rappelle.
+ *
+ * Charte « instruments » : une ligne sous filet, repliable ; le bouton d'en-tête porte `aria-expanded` (la visite
+ * guidée le déplie), le curseur, « Simuler » et « Réinitialiser » gardent leurs ancres `data-tour-action`.
+ * `children` (l'impact sur les bandes) s'affiche dans le même bloc, sous la ligne.
  */
 
 interface ThresholdSimulatorProps {
   actualThreshold: number;
   onSimulate: (value: number | null) => void;
+  children?: ReactNode;
 }
 
 const RANGE_RATIO = 0.3;
 
-export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSimulatorProps) {
+export function ThresholdSimulator({ actualThreshold, onSimulate, children }: ThresholdSimulatorProps) {
+  const id = useId();
   const min = Math.max(0, Math.round(actualThreshold * (1 - RANGE_RATIO)));
   const max = Math.round(actualThreshold * (1 + RANGE_RATIO));
 
@@ -53,54 +59,30 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
     }
   }
 
+  const eur = (v: number) => `${Math.round(v).toLocaleString("fr-FR")} €`;
+
   return (
-    <div
-      data-tour="seuil-simulator"
-      className="overflow-hidden rounded-[14px] border border-[var(--pb-border)] bg-[var(--pb-surface)]"
-    >
-      <button
-        type="button"
-        onClick={() => setExpanded((v) => !v)}
-        aria-expanded={expanded}
-        className="flex w-full items-center justify-between gap-2 px-4 py-[13px] text-left"
-      >
-        <span className="flex flex-wrap items-center gap-2.5">
-          <FlaskConical className="h-[15px] w-[15px] shrink-0 text-[var(--pb-accent)]" />
-          <span className="text-[13px] font-semibold text-[var(--pb-text)]">
-            Simulateur de seuil ISA 320
-          </span>
-          {active && (
-            <span
-              className="rounded-full border px-2.5 py-0.5 text-[10px] font-bold text-[var(--pb-warn-bright)]"
-              style={{
-                borderColor: "color-mix(in srgb, var(--pb-warn) 40%, transparent)",
-                backgroundColor: "color-mix(in srgb, var(--pb-warn) 12%, transparent)",
-                animation: "pbGlow 2.4s ease-in-out infinite",
-              }}
-            >
-              SIMULATION active — non sauvegardée
-            </span>
-          )}
-        </span>
-        {expanded ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-[var(--pb-text-faint)]" />
-        ) : (
-          <ChevronDown className="h-4 w-4 shrink-0 text-[var(--pb-text-faint)]" />
-        )}
-      </button>
+    <div data-tour="seuil-simulator" className={s.sim}>
+      <div className={s.simHead}>
+        <button type="button" className={s.simToggle} onClick={() => setExpanded((v) => !v)} aria-expanded={expanded} aria-controls={`${id}-body`}>
+          <span aria-hidden="true" className={s.simSign}>{expanded ? "−" : "+"}</span>
+          Simulateur de seuil ISA 320
+        </button>
+        {active && <span className={s.simBadge}>SIMULATION active — non sauvegardée</span>}
+        <span className={s.simState}>± 30 % du seuil réel · rien n&apos;est sauvegardé</span>
+      </div>
 
-      {expanded && (
-        <div className="px-4 pb-4 pt-0.5" style={{ animation: "pbFadeUp .25s ease both" }}>
-          <p className="mb-3 text-[11px] leading-relaxed text-[var(--pb-text-muted)]">
-            Rejoue le scoring des cycles avec un seuil de signification
-            hypothétique, borné à ± 30 % du seuil réellement calculé (
-            {actualThreshold.toLocaleString("fr-FR")} €). N'affecte aucune
-            donnée persistée : purement local à cette session d'affichage.
-          </p>
+      <div id={`${id}-body`} hidden={!expanded}>
+        {expanded && (
+          <div className={s.simBody}>
+            <p className={s.simText}>
+              Rejoue le scoring des cycles avec un seuil de signification hypothétique, borné à ± 30 % du seuil réellement
+              calculé ({eur(actualThreshold)}). N&apos;affecte aucune donnée persistée : purement local à cette session
+              d&apos;affichage.
+            </p>
 
-          <div className="flex flex-wrap items-center gap-3.5">
-            <label className="flex flex-col gap-1 text-[10px] font-medium text-[var(--pb-text-faint)]">
-              Seuil simulé (€)
+            <label className={s.simField}>
+              <span className={p.key}>Seuil simulé (€)</span>
               <input
                 type="number"
                 min={min}
@@ -108,13 +90,13 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
                 step={100}
                 value={Math.round(draftValue)}
                 onChange={(e) => handleNumberChange(e.target.value)}
-                className="w-[110px] rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1.5 font-mono text-[12px] tabular-nums text-[var(--pb-text)] outline-none focus:border-[var(--pb-accent)]"
+                className={`${p.input} ${s.simNumber}`}
               />
             </label>
 
-            <div className="flex min-w-[220px] flex-1 flex-col gap-1 text-[10px] font-medium text-[var(--pb-text-faint)]">
-              <span id="threshold-simulator-range-bounds" className="tabular-nums">
-                {min.toLocaleString("fr-FR")} € — {max.toLocaleString("fr-FR")} €
+            <div className={s.rangeField}>
+              <span id={`${id}-bounds`} className={s.rangeBounds}>
+                {eur(min)} — {eur(max)}
               </span>
               <input
                 type="range"
@@ -124,46 +106,31 @@ export function ThresholdSimulator({ actualThreshold, onSimulate }: ThresholdSim
                 value={Math.round(draftValue)}
                 onChange={(e) => handleNumberChange(e.target.value)}
                 aria-label="Seuil simulé, en euros"
-                aria-describedby="threshold-simulator-range-bounds"
+                aria-describedby={`${id}-bounds`}
                 aria-valuetext={`${Math.round(draftValue).toLocaleString("fr-FR")} euros`}
-                className="w-full cursor-pointer accent-[var(--pb-accent)]"
+                className={s.range}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                data-tour-action="simulate"
-                onClick={handleSimulate}
-                className="rounded-[9px] bg-[var(--pb-accent)] px-4 py-[7px] text-[11.5px] font-bold text-white transition-opacity hover:opacity-90"
-              >
+            <div className={s.simButtons}>
+              <button type="button" data-tour-action="simulate" onClick={handleSimulate} className={p.btnPrimary}>
                 Simuler
               </button>
-              <button
-                type="button"
-                data-tour-action="reset"
-                onClick={handleReset}
-                disabled={!active}
-                className="inline-flex items-center gap-1 rounded-[9px] border border-[var(--pb-border)] px-3 py-[7px] text-[11.5px] font-medium text-[var(--pb-text-muted)] transition-colors hover:bg-[var(--pb-surface-3)] hover:text-[var(--pb-text)] disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <RotateCcw className="h-3 w-3" />
+              <button type="button" data-tour-action="reset" onClick={handleReset} disabled={!active} className={p.btnSecondary}>
                 Réinitialiser
               </button>
             </div>
-          </div>
 
-          <p
-            className={cn(
-              "mt-3 text-[10.5px] font-medium leading-relaxed transition-colors",
-              active ? "text-[var(--pb-warn-bright)]" : "text-[var(--pb-text-faint)]",
-            )}
-          >
-            {active
-              ? `SIMULATION non sauvegardée — seuil actif : ${Math.round(draftValue).toLocaleString("fr-FR")} € (vs ${actualThreshold.toLocaleString("fr-FR")} € réel).`
-              : "Aucune simulation active — les scores affichés utilisent le seuil réel."}
-          </p>
-        </div>
-      )}
+            <p className={s.simStatus} data-active={active ? "" : undefined} aria-live="polite">
+              {active
+                ? `SIMULATION non sauvegardée — seuil actif : ${eur(draftValue)} (vs ${eur(actualThreshold)} réel).`
+                : "Aucune simulation active — les scores affichés utilisent le seuil réel."}
+            </p>
+          </div>
+        )}
+      </div>
+
+      {children}
     </div>
   );
 }

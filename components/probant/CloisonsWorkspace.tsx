@@ -1,32 +1,37 @@
 "use client";
 
-import { useState, useMemo, useRef, useLayoutEffect, useCallback, useEffect, type ReactNode } from "react";
+import { useState, useMemo, useRef, useLayoutEffect, useCallback, useEffect, useId, type ReactNode, type MouseEvent as ReactMouseEvent } from "react";
 import { createPortal } from "react-dom";
-import { ChevronDown, Search, X, FileText, LayoutGrid } from "lucide-react";
-import type {
-  SiloView,
-  Finding,
-  Severity,
-  FindingFamily,
-  FauxPositifRisk,
-  DossierSourceKind,
-} from "@/lib/canonical-model";
-import {
-  buildStatementDocuments,
-  CLOISONS,
-  siloById,
-  SEVERITY_ORDER,
-} from "@/lib/canonical-model";
+import type { SiloView, Finding, FindingFamily, FauxPositifRisk, DossierSourceKind, Severity } from "@/lib/canonical-model";
+import { buildStatementDocuments, siloById, SEVERITY_LABEL } from "@/lib/canonical-model";
 import { FinancialDocumentViewer } from "@/components/viewer/FinancialDocumentViewer";
-import { isEurSignalWithoutEffect, restrictExposure } from "@/lib/synthesis/exposure";
-import { EFFECT_TARGET_LABEL, scopedEffectItems, type ScopedEffectItem } from "@/lib/synthesis/effect-labels";
+import { InstrumentPage, PageIntro, SectionHead } from "@/components/charte/InstrumentPage";
+import { SeverityGlyph } from "@/components/charte/SeverityMark";
+import { FamilyRule } from "@/components/charte/FamilyRule";
+import { prefersReducedMotion } from "@/components/charte/motion";
+import { charteFonts } from "@/app/fonts";
+import { FAMILY_ORDER, FAMILY_TEXT, SEVERITIES, plural } from "@/lib/synthese-view/common";
 import type { ExposureDimension } from "@/lib/synthesis/types";
 import { decrireReferentiel } from "@/lib/referentiel/edition";
 import { libelleSiren } from "@/lib/dossier/siren";
+import {
+  STATUT_WORD,
+  buildCloisonsPlan,
+  eurRow,
+  exposureMeasure,
+  formatEcart,
+  formatMesure,
+  formatSeuil,
+  severityCounts,
+  siloEffects,
+  type EffectNote,
+  type PlanCell,
+  type UserDecision,
+} from "@/lib/cloisons-view/plan";
+import p from "@/components/charte/page.module.css";
+import c from "./cloisons.module.css";
 
 /* ── types ──────────────────────────────────────────────────────────────────── */
-
-type UserDecision = "valide" | "ecarte" | "accepte";
 
 export interface ScenarioInfo {
   label: string;
@@ -35,7 +40,7 @@ export interface ScenarioInfo {
   exercice: string;
 }
 
-/** Origine du dossier dans l'en-tête : données fictives (démo, simulation) en ambre, données déposées en accent. */
+/** Origine du dossier dans l'en-tête : données fictives (démo, simulation) en accent « signal », données déposées en bleu de vérification. */
 const SOURCE_BADGE: Record<DossierSourceKind | "scenario", { label: string; fictif: boolean }> = {
   demo:       { label: "Démo",       fictif: true  },
   scenario:   { label: "Simulation", fictif: true  },
@@ -43,34 +48,18 @@ const SOURCE_BADGE: Record<DossierSourceKind | "scenario", { label: string; fict
   persistent: { label: "Persistant", fictif: false },
 };
 
-/* ── design constants ───────────────────────────────────────────────────────── */
-
-const SEV: Record<Severity, { hex: string; bg: string; line: string; label: string }> = {
-  bloquant:   { hex: "#ef4d5a", bg: "rgba(239,77,90,.13)",    line: "rgba(239,77,90,.4)",   label: "Bloquant"   },
-  majeur:     { hex: "#f0923f", bg: "rgba(240,146,63,.13)",   line: "rgba(240,146,63,.36)", label: "Majeur"     },
-  mineur:     { hex: "#e3bd4d", bg: "rgba(227,189,77,.12)",   line: "rgba(227,189,77,.34)", label: "Mineur"     },
-  informatif: { hex: "#8a96a6", bg: "rgba(138,150,166,.12)",  line: "rgba(138,150,166,.32)", label: "Informatif" },
-};
-
-const FAM: Record<FindingFamily, { mark: string; hex: string; label: string; desc: string }> = {
-  hardLaw:     { mark: "§",  hex: "#ef4d5a", label: "Obligatoire",        desc: "Nature : norme à application obligatoire (LPF, PCG). Non négociable." },
-  methodology: { mark: "≈",  hex: "#a78bfa", label: "Présomption d'audit", desc: "Nature : diligence et jugement professionnel (ISA, ISRE)." },
-  internal:    { mark: "±",  hex: "#38bdf8", label: "Paramètre interne",   desc: "Nature : seuil interne paramétrable propre à PROBANT." },
-};
-
-const ACCENT  = "#5b9dff";
-const TEXT    = "#e8edf4";
-const MUTED   = "#7b8798";
-const FAINT   = "var(--pb-text-faint)";
-const BORDER  = "#1c2430";
-const SURFACE = "#0b0e13";
-const SEP     = "#1a2029";
+const STATUT_ITEMS = [
+  { value: "en_attente", label: "En attente" },
+  { value: "valide",     label: "Validé" },
+  { value: "accepte",    label: "Accepté" },
+  { value: "ecarte",     label: "Écarté" },
+];
 
 /**
- * Fenêtre à partir de laquelle le panneau de revue (406 px + 18 px d'écart) se range à droite de
- * la liste : avec la navigation latérale (240 px) et les marges, la liste garde alors ≥ 684 px,
- * soit un silo ouvert ≥ 620 px (seuil des connecteurs de SiloBody). En dessous, le panneau
- * s'ouvre en tiroir. Doit rester égal aux variantes `min-[1400px]:` du corps de la page.
+ * Fenêtre à partir de laquelle le panneau de revue (360 px + 40 px d'écart) se range à droite de
+ * la liste : avec la navigation latérale (216 px) et les marges, la liste garde alors ≥ 660 px,
+ * soit un silo ouvert ≥ 620 px (seuil de la liaison ligne → constat de SiloBody). En dessous, le
+ * panneau s'ouvre en tiroir. Doit rester égal à la requête `min-width: 1400px` de cloisons.module.css.
  */
 const RAIL_DOCK_QUERY = "(min-width: 1400px)";
 
@@ -90,122 +79,22 @@ function useRailDocked(): boolean {
 
 /* ── utilities ──────────────────────────────────────────────────────────────── */
 
-/** Euros pleins, valeur absolue : "85 000 €" (jamais compacté en k€). */
-function formatEur(n: number): string {
-  const v = Math.round(Math.abs(n));
-  return `${v.toLocaleString("fr-FR").replace(/ /g, " ")} €`;
-}
-
-/** Ligne d'état : négatif entre parenthèses "(55 000 €)", zéro "—". */
-function eurRow(n: number): string {
-  if (Math.round(n) === 0) return "—";
-  return n < 0 ? `(${formatEur(n)})` : formatEur(n);
-}
-
-/** Montant compact : "2,50 M€" au-delà du million, sinon euros pleins. */
-function compactEur(n: number): string {
-  const abs = Math.abs(n);
-  if (abs === 0) return "—";
-  if (abs >= 1_000_000) return `${(abs / 1_000_000).toFixed(2).replace(".", ",")} M€`;
-  return formatEur(n);
-}
-
-function formatMesure(f: Finding): string {
-  const { constate, unite } = f.mesure;
-  if (unite === "EUR")   return formatEur(constate);
-  if (unite === "%")     return `${(constate * 100).toFixed(1)} %`;
-  if (unite === "jours") return `${constate} j`;
-  return String(constate);
-}
-
-function formatSeuil(f: Finding): string {
-  const { seuil, unite } = f.mesure;
-  if (unite === "EUR")   return formatEur(seuil);
-  if (unite === "%")     return `${(seuil * 100).toFixed(1)} %`;
-  if (unite === "jours") return `${seuil} j`;
-  return String(seuil);
-}
-
-function formatEcart(f: Finding): string {
-  const { constate, seuil, unite } = f.mesure;
-  const e = constate - seuil;
-  const sign = e > 0 ? "+" : e < 0 ? "−" : "";
-  if (unite === "EUR") return `${sign}${formatEur(e)}`;
-  if (unite === "%")   return `${e > 0 ? "+" : ""}${(e * 100).toFixed(1)} pp`;
-  return `${e > 0 ? "+" : ""}${e.toFixed(2)}`;
-}
-
-function worstSev(findings: Finding[]): Severity | null {
-  if (!findings.length) return null;
-  return findings.reduce((a, b) =>
-    SEVERITY_ORDER[a.severity] < SEVERITY_ORDER[b.severity] ? a : b
-  ).severity;
-}
-
-/** Score d'exposition fixe selon la gravité dominante du silo (design Claude). */
-function computeScore(findings: Finding[]): number {
-  const worst = worstSev(findings);
-  if (!worst) return 0;
-  return ({ bloquant: 96, majeur: 72, mineur: 44, informatif: 20 } as Record<Severity, number>)[worst];
-}
-
-/**
- * Effets d'un périmètre lus dans la projection PARTAGÉE avec la Synthèse (C05) : exposition
- * initiale par poste et sens, groupes indéterminés, signaux EUR sans effet. Aucun montant n'est
- * inféré d'un écart au seuil, aucun poste n'est additionné à un autre.
- */
-interface EffectsView {
-  items: ScopedEffectItem[];
-  indeterminate: number;
-  eurSignals: number;
-}
-
-function effectsOf(exposure: Pick<ExposureDimension, "clusters">, findings: Finding[]): EffectsView {
-  const scoped = restrictExposure(exposure, findings.map((f) => f.id));
-  return {
-    items: scopedEffectItems(scoped),
-    indeterminate: scoped.indeterminateClusters.length,
-    eurSignals: findings.filter(isEurSignalWithoutEffect).length,
-  };
-}
-
-/** « Résultat − 312 000 € » : le poste, le sens, le montant — jamais une somme de postes. */
-function effectItemLabel(it: ScopedEffectItem, short = false): string {
-  const target = short && it.target !== "resultat" ? EFFECT_TARGET_LABEL[it.target].replace("Bilan — ", "") : EFFECT_TARGET_LABEL[it.target];
-  return `${target} ${it.sign} ${compactEur(it.initialCents / 100)}`;
-}
-
 /** 5 segments ; n remplis selon le risque de faux positif (faible 4, moyen 3, élevé 2). */
-function confBarSegs(risk?: FauxPositifRisk): string[] {
+function confSegments(risk?: FauxPositifRisk): boolean[] {
   const n = !risk || risk === "faible" ? 4 : risk === "moyen" ? 3 : 2;
-  return [1, 2, 3, 4, 5].map((i) => (i <= n ? "#aeb8c6" : "#2a3340"));
+  return [1, 2, 3, 4, 5].map((i) => i <= n);
 }
 
-function confBarLabel(risk?: FauxPositifRisk): string {
+function confLabel(risk?: FauxPositifRisk): string {
   if (!risk || risk === "faible") return "Confiance élevée";
   if (risk === "moyen")           return "Confiance modérée";
   return "Confiance à conforter";
 }
 
-function confBarProb(risk?: FauxPositifRisk): string {
+function confProb(risk?: FauxPositifRisk): string {
   if (!risk || risk === "faible") return "faible";
   if (risk === "moyen")           return "possible";
   return "à confirmer";
-}
-
-function groupByCloison(silos: SiloView[]) {
-  const order = CLOISONS.map((c) => c.id);
-  const map = new Map<string, { cloisonLabel: string; silos: SiloView[] }>();
-  for (const s of silos) {
-    const siloMeta = siloById(s.siloId);
-    if (!siloMeta) continue;
-    const cloison = CLOISONS.find((c) => c.id === siloMeta.cloison);
-    if (!cloison) continue;
-    const entry = map.get(cloison.id) ?? { cloisonLabel: cloison.label, silos: [] };
-    entry.silos.push(s);
-    map.set(cloison.id, entry);
-  }
-  return order.filter((id) => map.has(id)).map((id) => ({ cloisonId: id, ...map.get(id)! }));
 }
 
 function matchQuery(f: Finding, q: string): boolean {
@@ -223,10 +112,99 @@ function effectiveStatut(f: Finding, decisions: Record<string, UserDecision>): s
   return decisions[f.id] ?? f.statutRevue;
 }
 
+function familyTitle(family: FindingFamily): string {
+  return `${FAMILY_TEXT[family].long} · ${FAMILY_TEXT[family].sub}`;
+}
+
+/* ── petits glyphes (traits de 1,5 px, sans arrondi décoratif) ──────────────── */
+
+function Chevron({ size = 12, className }: { size?: number; className?: string }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true" focusable="false" className={className}>
+      <path d="M2.5 4.5 6 8l3.5-3.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function CheckGlyph({ size = 12 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 12 12" aria-hidden="true" focusable="false">
+      <path d="M2 6.2 4.8 9 10 3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function CrossGlyph({ size = 14 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 14 14" aria-hidden="true" focusable="false">
+      <path d="M3 3l8 8M11 3l-8 8" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function SearchGlyph() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" focusable="false" className={c.searchGlyph}>
+      <circle cx="6" cy="6" r="4.25" fill="none" stroke="currentColor" strokeWidth="1.5" />
+      <path d="M9.2 9.2 12.5 12.5" fill="none" stroke="currentColor" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+/* ── Effet d'un silo (ligne et plan) ─────────────────────────────────────────── */
+
+/** Texte d'effet d'une ligne de silo : montants par poste et sens, indéterminé, non chiffré, ou rien. */
+function EffectText({ note }: { note: EffectNote }) {
+  if (note.kind === "quantified") {
+    // Chaque poste reste insécable ; la liste des postes passe à la ligne entre deux postes.
+    return (
+      <span className={c.effect} data-kind="quantified" title="Exposition initiale par poste et sens (projection partagée avec la Synthèse)">
+        {note.items.map((it, i) => (
+          <span key={it.key} data-emphasis={it.emphasis ? "" : undefined}>{i > 0 ? "· " : ""}{it.text}</span>
+        ))}
+        {note.more > 0 && <span>{`· +${note.more}`}</span>}
+        {note.indeterminate && <span>· indéterminé</span>}
+      </span>
+    );
+  }
+  if (note.kind === "indeterminate") return <span className={c.effect}>montant indéterminé</span>;
+  if (note.kind === "unquantified") {
+    return (
+      <span className={c.effect} title="Écart mesuré en euros sans effet financier explicite : l'effet comptable reste inconnu">
+        effet non chiffré
+      </span>
+    );
+  }
+  return <span className={c.effect} aria-hidden="true" />;
+}
+
+/** Effet d'une case du plan : le même texte, abrégé (« non chiffré »). */
+function PlanEffect({ note }: { note: EffectNote }) {
+  if (note.kind === "quantified") {
+    return (
+      <>
+        {" · "}
+        {note.items.map((it, i) => (
+          <span key={it.key} className={c.q} data-emphasis={it.emphasis ? "" : undefined}>{i > 0 ? " · " : ""}{it.text}</span>
+        ))}
+        {note.more > 0 && ` · +${note.more}`}
+        {note.indeterminate && " · indéterminé"}
+      </>
+    );
+  }
+  if (note.kind === "indeterminate") return <> · indéterminé</>;
+  if (note.kind === "unquantified") return <> · non chiffré</>;
+  return null;
+}
+
 /* ── FilterDropdown ─────────────────────────────────────────────────────────── */
 
-interface FDItem { value: string; label: string; dot?: string }
+interface FDItem { value: string; label: string; mark?: ReactNode }
 
+/**
+ * Filtre à choix multiple : un champ libellé (« Gravité · Tous ») qui ouvre une liste de bascules.
+ * Se referme au clic hors du filtre ou sur Échap (le focus revient alors au champ).
+ */
 function FilterDropdown({
   label,
   items,
@@ -244,6 +222,9 @@ function FilterDropdown({
   onOpen: () => void;
   onClose: () => void;
 }) {
+  const menuId = useId();
+  const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const hasActive = selected.length > 0;
   const valueLabel = hasActive
     ? (selected.length === 1 ? items.find((i) => i.value === selected[0])?.label : `${selected.length} sél.`)
@@ -260,63 +241,53 @@ function FilterDropdown({
     if (m.right > document.documentElement.clientWidth && anchor.right - m.width >= 0) setAlignRight(true);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    function onPointer(e: PointerEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) onClose();
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      onClose();
+      triggerRef.current?.focus();
+    }
+    document.addEventListener("pointerdown", onPointer);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointer);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open, onClose]);
+
   return (
-    <div style={{ position: "relative" }}>
+    <div ref={rootRef} className={c.dd}>
       <button
+        ref={triggerRef}
+        type="button"
+        className={c.ddTrigger}
+        data-active={hasActive ? "" : undefined}
+        aria-expanded={open}
+        aria-controls={open ? menuId : undefined}
         onClick={() => (open ? onClose() : onOpen())}
-        style={{
-          display: "inline-flex", alignItems: "center", gap: 8, padding: "7px 11px",
-          borderRadius: 9, cursor: "pointer",
-          border: `1px solid ${hasActive ? "rgba(91,157,255,0.4)" : "#222a36"}`,
-          background: hasActive ? "rgba(91,157,255,0.08)" : "transparent",
-        }}
       >
-        <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".06em", textTransform: "uppercase" as const, color: FAINT }}>{label}</span>
-        <span style={{ fontSize: 12, fontWeight: 500, color: hasActive ? ACCENT : MUTED }}>{valueLabel}</span>
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.4"
-          style={{ transition: "transform .18s", transform: open ? "rotate(180deg)" : "rotate(0deg)" }}>
-          <path d="m6 9 6 6 6-6" />
-        </svg>
+        <span className={p.key}>{label}</span>{" "}
+        <span className={c.ddValue}>{valueLabel}</span>
+        <Chevron className={c.ddChevron} />
       </button>
       {open && (
-        <div
-          ref={menuRef}
-          onMouseDown={(e) => e.stopPropagation()}
-          style={{
-            position: "absolute", top: "calc(100% + 6px)", ...(alignRight ? { right: 0 } : { left: 0 }), zIndex: 60,
-            minWidth: 200, padding: 6, background: "#11151c",
-            border: "1px solid #232b38", borderRadius: 11,
-            boxShadow: "0 18px 44px -14px rgba(0,0,0,.7)",
-          }}
-        >
+        <div ref={menuRef} id={menuId} role="group" aria-label={`Filtre ${label.toLowerCase()}`} className={c.ddMenu} data-align={alignRight ? "right" : undefined}>
           {hasActive && (
-            <button
-              onClick={() => selected.forEach((v) => onToggle(v))}
-              style={{ width: "100%", textAlign: "left" as const, padding: "6px 9px", border: "none", background: "none", cursor: "pointer", fontSize: 11, color: ACCENT }}
-            >
+            <button type="button" className={c.ddReset} onClick={() => selected.forEach((v) => onToggle(v))}>
               Réinitialiser
             </button>
           )}
           {items.map((it) => {
             const active = selected.includes(it.value);
             return (
-              <button
-                key={it.value}
-                onClick={() => onToggle(it.value)}
-                style={{
-                  display: "flex", width: "100%", alignItems: "center", gap: 9,
-                  padding: "8px 9px", border: "none",
-                  background: active ? "rgba(91,157,255,0.08)" : "transparent",
-                  borderRadius: 7, cursor: "pointer", textAlign: "left" as const,
-                }}
-              >
-                {it.dot && <span style={{ width: 9, height: 9, borderRadius: "50%", background: it.dot, flexShrink: 0 }} />}
-                <span style={{ flex: 1, fontSize: 12, color: TEXT }}>{it.label}</span>
-                {active && (
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2.5">
-                    <path d="M20 6 9 17l-5-5" />
-                  </svg>
-                )}
+              <button key={it.value} type="button" className={c.ddItem} aria-pressed={active} onClick={() => onToggle(it.value)}>
+                {it.mark}
+                <span>{it.label}</span>
+                {active && <span className={c.ddCheck}><CheckGlyph /></span>}
               </button>
             );
           })}
@@ -326,7 +297,7 @@ function FilterDropdown({
   );
 }
 
-/* ── RailPanel ──────────────────────────────────────────────────────────────── */
+/* ── RailPanel (contenu du panneau de revue : comprendre, justifier, agir) ───── */
 
 function RailPanel({
   finding,
@@ -341,268 +312,165 @@ function RailPanel({
   const [showJustifier, setShowJustifier] = useState(true);
   const [showAgir, setShowAgir] = useState(true);
   const [showSource, setShowSource] = useState(false);
+  const ids = useId();
 
-  const sev = SEV[finding.severity];
-  const fam = FAM[finding.family];
   const siloMeta = siloById(finding.siloId);
   const decision = decisions[finding.id];
+  const statut = decision ?? finding.statutRevue;
 
   const constate = formatMesure(finding);
   const attendu = formatSeuil(finding);
   const ecart = formatEcart(finding);
-  const ecartHex = finding.mesure.constate <= finding.mesure.seuil ? "#22c55e" : sev.hex;
+  const depasse = finding.mesure.constate > finding.mesure.seuil;
 
-  const segs = confBarSegs(finding.fauxPositifRisk);
-  const riskLabel = confBarLabel(finding.fauxPositifRisk);
-  const riskProb = confBarProb(finding.fauxPositifRisk);
+  const segments = confSegments(finding.fauxPositifRisk);
   const contextCaption = `${finding.mesure.libelle ? finding.mesure.libelle.charAt(0).toUpperCase() + finding.mesure.libelle.slice(1) : "Mesure"} · réf. ${finding.source.ref}`;
 
-  function decStyle(d: UserDecision) {
-    const active = decision === d;
-    const hex = d === "valide" ? "#22c55e" : d === "accepte" ? ACCENT : "#8a96a6";
-    const dashed = d === "ecarte";
-    return {
-      border: `1px ${dashed ? "dashed" : "solid"} ${active ? `${hex}60` : "#232b38"}`,
-      background: active ? `${hex}18` : "transparent",
-      color: active ? hex : MUTED,
-    };
-  }
+  const decisionButton = (d: UserDecision, label: string) => (
+    <button type="button" className={p.btnSecondary} aria-pressed={decision === d} onClick={() => onDecision(finding.id, d)}>
+      {label}
+    </button>
+  );
 
   return (
-    <div style={{ fontSize: 13, color: TEXT }}>
+    <div>
       {/* COMPRENDRE */}
-      <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 9, marginBottom: 12 }}>
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: ACCENT }}>Comprendre</span>
-          <span style={{ fontSize: 9, letterSpacing: ".04em", color: FAINT }}>Niveau 3 · Analyse</span>
-          <span style={{ height: 1, flex: 1, background: BORDER }} />
-        </div>
-
-        <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap" as const }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 10, fontWeight: 700, letterSpacing: ".03em", textTransform: "uppercase" as const, padding: "4px 9px", borderRadius: 6, color: sev.hex, background: sev.bg }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: sev.hex }} />
-            {sev.label}
+      <div className={p.panelSection}>
+        <p className={c.eyebrowRow}>
+          <span>Comprendre</span>
+          <span className={`${c.faint} ${c.mono}`}>{finding.id}</span>
+        </p>
+        <h3 className={p.panelTitle}>{finding.titre}</h3>
+        <p className={c.metaLine}>
+          <span>
+            <SeverityGlyph severity={finding.severity} />
+            {SEVERITY_LABEL[finding.severity]}
           </span>
-          <span title={fam.desc} style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: 10, fontWeight: 500, padding: "4px 9px", borderRadius: 6, color: "#aeb8c6", border: "1px solid #2a3340" }}>
-            <span style={{ fontFamily: "monospace", fontSize: 12, lineHeight: 1 }}>{fam.mark}</span>
-            {fam.label}
+          <span title={familyTitle(finding.family)}>
+            <FamilyRule family={finding.family} />
+            {FAMILY_TEXT[finding.family].label}
           </span>
-          {siloMeta && (
-            <span style={{ marginLeft: "auto", fontSize: 10, color: MUTED, border: "1px solid #232b38", padding: "3px 8px", borderRadius: 6 }}>
-              {siloMeta.label}
-            </span>
-          )}
-        </div>
+          {siloMeta && <span className={c.faint}>{siloMeta.label}</span>}
+        </p>
 
-        <h3 style={{ margin: "13px 0 0", fontSize: 15, fontWeight: 600, lineHeight: 1.35, color: TEXT }}>
-          {finding.titre}
-        </h3>
-
-        <div style={{ marginTop: 12, display: "inline-flex", padding: 3, border: "1px solid #232b38", background: SURFACE, borderRadius: 9 }}>
+        <div className={c.readSwitch} role="group" aria-label="Lecture du constat">
           {(["analyse", "narration"] as const).map((m) => (
-            <button
-              key={m}
-              onClick={() => setMode(m)}
-              style={{ padding: "5px 13px", fontSize: 11, fontWeight: 600, border: "none", borderRadius: 6, cursor: "pointer", background: mode === m ? "#1a2435" : "transparent", color: mode === m ? TEXT : MUTED }}
-            >
-              {m === "analyse" ? "Analyse" : "Narration"}
+            <button key={m} type="button" className={`${p.toggle} ${c.viewToggle}`} aria-pressed={mode === m} onClick={() => setMode(m)}>
+              {m}
             </button>
           ))}
         </div>
 
         {mode === "analyse" ? (
           <div>
-            <p style={{ margin: "13px 0 0", fontSize: 12.5, lineHeight: 1.55, color: "#9aa6b6" }}>{finding.constat}</p>
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 1, background: BORDER, border: `1px solid ${BORDER}`, borderRadius: 10, overflow: "hidden" }}>
-              {[
-                { label: "Constaté", value: constate, color: sev.hex },
-                { label: "Attendu",  value: attendu,  color: "#cdd6e2" },
-                { label: "Écart",    value: ecart,    color: ecartHex },
-              ].map((cell) => (
-                <div key={cell.label} style={{ background: SURFACE, padding: "11px 12px" }}>
-                  <div style={{ fontSize: 9, letterSpacing: ".05em", textTransform: "uppercase" as const, color: FAINT }}>{cell.label}</div>
-                  <div style={{ marginTop: 4, fontSize: 15, fontWeight: 600, color: cell.color, fontVariantNumeric: "tabular-nums" }}>{cell.value}</div>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop: 8, fontSize: 10.5, color: FAINT }}>{contextCaption}</div>
+            <p className={c.constat}>{finding.constat}</p>
+            <dl className={c.figures}>
+              <div>
+                <dt>Constaté</dt>
+                <dd>{constate}</dd>
+              </div>
+              <div>
+                <dt>Attendu</dt>
+                <dd>{attendu}</dd>
+              </div>
+              <div>
+                <dt>Écart</dt>
+                <dd data-over={depasse ? "" : undefined}>{ecart}</dd>
+              </div>
+            </dl>
+            <p className={c.caption}>{contextCaption}</p>
           </div>
         ) : (
-          <div style={{ marginTop: 13 }}>
-            {finding.preuve.map((p, i) => (
-              <div key={i}>
-                <div style={{ padding: "10px 12px", border: `1px solid ${BORDER}`, borderLeft: `2px solid ${ACCENT}`, background: SURFACE, borderRadius: 8, fontSize: 12, lineHeight: 1.5, color: "#9aa6b6" }}>
-                  <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 3 }}>{p.etape}</div>
-                  {p.detail}
-                </div>
-                {i < finding.preuve.length - 1 && (
-                  <div style={{ display: "flex", justifyContent: "center", padding: "3px 0" }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2">
-                      <path d="M12 5v14M19 12l-7 7-7-7" />
-                    </svg>
-                  </div>
-                )}
-              </div>
+          <ol className={c.narration}>
+            {finding.preuve.map((step, i) => (
+              <li key={i}>
+                <span className={c.narrationStep}>{step.etape}</span>
+                {step.detail}
+              </li>
             ))}
-          </div>
+          </ol>
         )}
 
-        {/* Confidence bar */}
-        <div style={{ marginTop: 13, display: "flex", alignItems: "center", gap: 11, padding: "10px 12px", border: `1px solid ${BORDER}`, borderRadius: 9, background: SURFACE }}>
-          <div style={{ display: "flex", gap: 3 }}>
-            {segs.map((color, i) => (
-              <span key={i} style={{ width: 15, height: 6, borderRadius: 2, background: color }} />
-            ))}
-          </div>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "#cdd6e2" }}>{riskLabel}</div>
-            <div style={{ fontSize: 10, color: FAINT }}>Probabilité de faux positif : {riskProb}</div>
-          </div>
+        <div className={c.confidence}>
+          <span className={c.segs} aria-hidden="true">
+            {segments.map((on, i) => <span key={i} data-on={on ? "" : undefined} />)}
+          </span>
+          <span>{confLabel(finding.fauxPositifRisk)}</span>
+          <span className={c.faint}>· Probabilité de faux positif : {confProb(finding.fauxPositifRisk)}</span>
         </div>
       </div>
 
       {/* JUSTIFIER */}
-      <div style={{ marginTop: 14, borderTop: `1px solid ${SEP}`, paddingTop: 14 }}>
-        <button
-          onClick={() => setShowJustifier((v) => !v)}
-          style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, border: "none", background: "none", cursor: "pointer", padding: 0 }}
-        >
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: ACCENT }}>Justifier</span>
-          <span style={{ fontSize: 9, letterSpacing: ".04em", color: FAINT }}>Niveau 3 · Preuve</span>
-          <span style={{ height: 1, flex: 1, background: BORDER }} />
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.4"
-            style={{ transition: "transform .2s", transform: showJustifier ? "rotate(180deg)" : "rotate(0deg)" }}>
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+      <div className={p.panelSection}>
+        <button type="button" className={c.sectionToggle} aria-expanded={showJustifier} aria-controls={`${ids}-justifier`} onClick={() => setShowJustifier((v) => !v)}>
+          Justifier
+          <Chevron />
         </button>
 
         {showJustifier && (
-          <div style={{ marginTop: 12 }}>
-            <button
-              onClick={() => setShowSource((v) => !v)}
-              style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, padding: "10px 11px", border: "1px solid #232b38", background: SURFACE, borderRadius: 9, cursor: "pointer", textAlign: "left" as const }}
-            >
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2">
-                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
-              </svg>
-              <span style={{ fontFamily: "monospace", fontSize: 11.5, fontWeight: 600, color: ACCENT }}>{finding.source.ref}</span>
-              {finding.source.effectiveDate && <span style={{ fontFamily: "monospace", fontSize: 9.5, color: FAINT }}>v.{finding.source.effectiveDate}</span>}
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.2"
-                style={{ marginLeft: "auto", transition: "transform .2s", transform: showSource ? "rotate(90deg)" : "rotate(0deg)" }}>
-                <path d="m9 18 6-6-6-6" />
-              </svg>
-            </button>
-            {showSource && (
-              <blockquote style={{ margin: "8px 0 0", padding: "10px 13px", borderLeft: `2px solid ${ACCENT}`, background: SURFACE, borderRadius: "0 8px 8px 0", fontSize: 11.5, fontStyle: "italic", lineHeight: 1.55, color: "#9aa6b6" }}>
-                « {finding.source.citation} »
-              </blockquote>
-            )}
+          <div id={`${ids}-justifier`}>
+            <p className={c.sourceLine}>
+              <span className={c.faint}>Source</span>
+              <button type="button" className={c.sourceButton} aria-expanded={showSource} onClick={() => setShowSource((v) => !v)}>
+                {finding.source.ref}
+                {finding.source.effectiveDate && <span className={c.faint}> · v.{finding.source.effectiveDate}</span>}
+              </button>
+            </p>
+            {showSource && <blockquote className={c.citation}>« {finding.source.citation} »</blockquote>}
 
-            <div style={{ marginTop: 13 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 6 }}>Explication métier</div>
-              <p style={{ margin: 0, fontSize: 12, lineHeight: 1.6, color: "#aeb8c6" }}>{finding.explication}</p>
-            </div>
+            <p className={c.blockKey}>Explication métier</p>
+            <p className={c.prose}>{finding.explication}</p>
 
             {finding.faisceau.length > 0 && (
-              <div style={{ marginTop: 13 }}>
-                <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 7 }}>Faisceau d'indices</div>
-                <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6 }}>
-                  {finding.faisceau.map((s, i) => (
-                    <span key={i} style={{ fontSize: 11, color: "#aeb8c6", background: SURFACE, border: "1px solid #2a3340", padding: "4px 9px", borderRadius: 7 }}>{s}</span>
-                  ))}
-                </div>
-              </div>
+              <>
+                <p className={c.blockKey}>Faisceau d&apos;indices</p>
+                <ul className={c.faisceau}>
+                  {finding.faisceau.map((s, i) => <li key={i}>{s}</li>)}
+                </ul>
+              </>
             )}
 
             {finding.preuve.length > 0 && (
-              <div style={{ marginTop: 15 }}>
-                <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 10 }}>Chaîne de preuve</div>
-                <div style={{ display: "flex", flexDirection: "column" as const }}>
-                  {finding.preuve.map((p, i) => (
-                    <div key={i} style={{ display: "flex", gap: 11 }}>
-                      <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center" }}>
-                        <span style={{ display: "flex", width: 20, height: 20, alignItems: "center", justifyContent: "center", borderRadius: "50%", border: "1px solid #2e3947", background: SURFACE, fontFamily: "monospace", fontSize: 10, fontWeight: 600, color: "#aeb8c6" }}>
-                          {i + 1}
-                        </span>
-                        {i < finding.preuve.length - 1 && (
-                          <span style={{ width: 1, flex: 1, minHeight: 13, background: "#232b38", margin: "2px 0" }} />
-                        )}
-                      </div>
-                      <div style={{ paddingBottom: 13 }}>
-                        <div style={{ fontFamily: "monospace", fontSize: 9, fontWeight: 600, letterSpacing: ".08em", textTransform: "uppercase" as const, color: FAINT }}>{p.etape}</div>
-                        <div style={{ marginTop: 3, fontSize: 11.5, lineHeight: 1.45, color: "#aeb8c6" }}>{p.detail}</div>
-                      </div>
-                    </div>
+              <>
+                <p className={c.blockKey}>Chaîne de preuve</p>
+                <ol className={c.chain}>
+                  {finding.preuve.map((step, i) => (
+                    <li key={i}>
+                      <span className={c.chainStep}>{step.etape}</span>
+                      {step.detail}
+                    </li>
                   ))}
-                </div>
-              </div>
+                </ol>
+              </>
             )}
           </div>
         )}
       </div>
 
-      {/* AGIR */}
-      <div style={{ marginTop: 14, borderTop: `1px solid ${SEP}`, paddingTop: 14 }}>
-        <button
-          onClick={() => setShowAgir((v) => !v)}
-          style={{ display: "flex", width: "100%", alignItems: "center", gap: 9, border: "none", background: "none", cursor: "pointer", padding: 0 }}
-        >
-          <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: ".15em", textTransform: "uppercase" as const, color: ACCENT }}>Agir</span>
-          <span style={{ fontSize: 9, letterSpacing: ".04em", color: "#46505f" }}>Niveau 4 · Décision</span>
-          <span style={{ height: 1, flex: 1, background: BORDER }} />
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.4"
-            style={{ transition: "transform .2s", transform: showAgir ? "rotate(180deg)" : "rotate(0deg)" }}>
-            <path d="m6 9 6 6 6-6" />
-          </svg>
+      {/* AGIR — la recommandation reprenait mot pour mot l'explication métier : elle n'est plus répétée ici
+          (le modèle n'a pas de champ de recommandation distinct). */}
+      <div className={p.panelSection}>
+        <button type="button" className={c.sectionToggle} aria-expanded={showAgir} aria-controls={`${ids}-agir`} onClick={() => setShowAgir((v) => !v)}>
+          Agir
+          <Chevron />
         </button>
 
         {showAgir && (
-          <div style={{ marginTop: 12 }}>
-            <div style={{ padding: "12px 13px", border: "1px solid #243247", background: "linear-gradient(180deg,rgba(91,157,255,.06),transparent)", borderRadius: 10 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 6 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2">
-                  <path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V18h6v-1.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2z" />
-                </svg>
-                <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".06em", textTransform: "uppercase" as const, color: ACCENT }}>Recommandation</span>
-              </div>
-              <p style={{ margin: 0, fontSize: 12, lineHeight: 1.55, color: "#cdd6e2" }}>{finding.explication}</p>
+          <div id={`${ids}-agir`}>
+            <p className={c.statusLine}>Statut actuel : {STATUT_WORD[statut]}.</p>
+            <p className={c.blockKey}>Décision de revue</p>
+            <div className={c.decisions}>
+              {decisionButton("valide", "Valider")}
+              {decisionButton("accepte", "Accepter")}
+              {decisionButton("ecarte", "Écarter")}
             </div>
-
-            <div style={{ marginTop: 14 }}>
-              <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: FAINT, marginBottom: 8 }}>Décision de revue</div>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 7 }}>
-                <button
-                  onClick={() => onDecision(finding.id, "valide")}
-                  style={{ display: "inline-flex", flexDirection: "column" as const, alignItems: "center", gap: 5, padding: "11px 6px", fontSize: 11.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", ...decStyle("valide") }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4"><path d="M20 6 9 17l-5-5" /></svg>
-                  Valider
-                </button>
-                <button
-                  onClick={() => onDecision(finding.id, "accepte")}
-                  style={{ display: "inline-flex", flexDirection: "column" as const, alignItems: "center", gap: 5, padding: "11px 6px", fontSize: 11.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", ...decStyle("accepte") }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                    <path d="M5 12h14" /><path d="M5 18h14" opacity=".5" />
-                  </svg>
-                  Accepter
-                </button>
-                <button
-                  onClick={() => onDecision(finding.id, "ecarte")}
-                  style={{ display: "inline-flex", flexDirection: "column" as const, alignItems: "center", gap: 5, padding: "11px 6px", fontSize: 11.5, fontWeight: 600, borderRadius: 9, cursor: "pointer", ...decStyle("ecarte") }}
-                >
-                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M18 6 6 18M6 6l12 12" /></svg>
-                  Écarter
-                </button>
-              </div>
-              <button style={{ marginTop: 9, width: "100%", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 7, padding: 9, fontSize: 11.5, fontWeight: 500, borderRadius: 8, cursor: "pointer", border: "1px solid #232b38", background: "none", color: "#aeb8c6" }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
-                </svg>
-                Joindre un justificatif
-              </button>
-            </div>
+            {/* Aucun dépôt de pièce n'est branché sur cette vue : le bouton reste visible, désactivé et expliqué. */}
+            <button type="button" className={`${p.btnSecondary} ${c.attach}`} aria-disabled="true" aria-describedby={`${ids}-joindre`}>
+              Joindre un justificatif
+            </button>
+            <p id={`${ids}-joindre`} className={c.attachNote}>
+              Indisponible ici : la revue par cloison ne joint pas encore de pièce au constat.
+            </p>
           </div>
         )}
       </div>
@@ -619,7 +487,8 @@ const FOCUSABLE = "button:not([disabled]), [href], input:not([disabled]), select
  * Échap, focus sur « Fermer » à l'ouverture ; Tab reste dans le tiroir. À la fermeture, le focus
  * revient au bouton « Analyser » du constat (`data-finding-trigger`), quel que soit l'ouvreur :
  * ligne signalée de la reconstruction (non focalisable) ou rail ancré retiré par un redimensionnement.
- * Rendu dans document.body pour ne dépendre d'aucun ancêtre de la page.
+ * Rendu dans document.body pour ne dépendre d'aucun ancêtre de la page : la racine du portail repose
+ * donc l'ambiance « instruments » et ses polices.
  */
 function ReviewDrawer({ findingId, title, onClose, children }: { findingId: string; title: string; onClose: () => void; children: ReactNode }) {
   const panelRef = useRef<HTMLDivElement>(null);
@@ -653,39 +522,32 @@ function ReviewDrawer({ findingId, title, onClose, children }: { findingId: stri
   }, [onClose]);
 
   return createPortal(
-    <div role="presentation" style={{ position: "fixed", inset: 0, zIndex: 50, fontFamily: "'Inter', system-ui, sans-serif" }}>
-      <div data-review-backdrop aria-hidden onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,.55)" }} />
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Constat : ${title}`}
-        style={{ position: "absolute", top: 0, right: 0, height: "100%", width: 440, maxWidth: "100%", overflowY: "auto", background: "#0c1220", borderLeft: "1px solid #253045", boxShadow: "-24px 0 48px -24px rgba(0,0,0,.7)", animation: "pb-drawer-in 0.22s ease-out" }}
-      >
-        <div style={{ position: "sticky", top: 0, zIndex: 1, display: "flex", alignItems: "center", gap: 12, padding: "11px 14px 11px 18px", background: "#0c1220", borderBottom: `1px solid ${SEP}` }}>
-          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT }}>Panneau de revue</span>
-          <button
-            ref={closeRef}
-            type="button"
-            onClick={onClose}
-            aria-label="Fermer le panneau de revue"
-            style={{ marginLeft: "auto", display: "inline-flex", alignItems: "center", justifyContent: "center", width: 30, height: 30, borderRadius: 7, border: "1px solid #232b38", background: "none", color: MUTED, cursor: "pointer" }}
-          >
-            <X size={15} />
+    <div role="presentation" data-ambiance="instruments" className={`${charteFonts} ${c.drawerRoot}`}>
+      <div data-review-backdrop aria-hidden onClick={onClose} className={c.drawerVeil} />
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={`Constat : ${title}`} className={c.drawer}>
+        <div className={c.drawerHead}>
+          <span className={c.drawerKey}>Panneau de revue</span>
+          <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer le panneau de revue" className={c.drawerClose}>
+            <CrossGlyph />
           </button>
         </div>
-        <div style={{ padding: 18 }}>{children}</div>
+        {children}
       </div>
     </div>,
     document.body,
   );
 }
 
-/* ── SiloBody (Zone A | Zone B + connecteur flaggé→constat) ──────────────────── */
+/* ── SiloBody (reconstruction | constats, liaison ligne signalée → constat) ─── */
 
-interface ArrowPath { id: string; sx: number; sy: number; ex: number; ey: number; hex: string; label?: string }
+interface LinkPath { id: string; d: string }
+
+function sameLinks(a: LinkPath[], b: LinkPath[]): boolean {
+  return a.length === b.length && a.every((x, i) => x.id === b[i].id && x.d === b[i].d);
+}
 
 function SiloBody({
+  bodyId,
   siloView,
   findings,
   filtered,
@@ -694,6 +556,7 @@ function SiloBody({
   setSelId,
   decisions,
 }: {
+  bodyId: string;
   siloView: SiloView;
   findings: Finding[];
   filtered: Finding[];
@@ -703,241 +566,213 @@ function SiloBody({
   decisions: Record<string, UserDecision>;
 }) {
   const findingsToShow = hasFilters ? filtered : findings;
+  const rows = siloView.statement.rows;
+  const rowById = new Map(rows.map((r) => [r.id, r] as const));
+  const isShowcase = siloView.siloId === "rapprochement-clients";
 
   const containerRef = useRef<HTMLDivElement>(null);
   const rowRefs = useRef<Map<string, HTMLElement>>(new Map());
   const cardRefs = useRef<Map<string, HTMLElement>>(new Map());
-  const [arrows, setArrows] = useState<ArrowPath[]>([]);
-  const [dims, setDims] = useState({ w: 0, h: 0 });
+  const [links, setLinks] = useState<LinkPath[]>([]);
   // Une colonne tant que la largeur réelle n'est pas mesurée (jamais deux colonnes trop étroites).
   const [wide, setWide] = useState(false);
+
+  // Clé stable des liaisons à tracer : les constats filtrés changent d'identité à chaque rendu.
+  const targetKey = findingsToShow
+    .filter((f) => f.cibleRowId && rowById.has(f.cibleRowId))
+    .map((f) => `${f.id}>${f.cibleRowId}`)
+    .join("|");
 
   const compute = useCallback(() => {
     const cont = containerRef.current;
     if (!cont) return;
     const cr = cont.getBoundingClientRect();
-    setDims({ w: cr.width, h: cr.height });
-    // Seuil d'affichage des connecteurs et des deux colonnes : sous ~620px les
-    // étiquettes d'annotation deviennent illisibles et chaque colonne passe sous
-    // ~300px. 620 (et non 680) pour que la courbe reste visible avec le rail droit.
+    // Deux colonnes et liaisons seulement si le silo mesure ≥ 620 px ; sinon la reconstruction
+    // puis les constats, la note de chaque constat portant seule le lien vers la ligne.
     const isWide = cr.width >= 620;
     setWide(isWide);
-    if (!isWide) { setArrows([]); return; }
-    const next: ArrowPath[] = [];
-    for (const f of findingsToShow) {
-      if (!f.cibleRowId) continue;
-      const rowEl = rowRefs.current.get(f.cibleRowId);
-      const cardEl = cardRefs.current.get(f.id);
-      if (!rowEl || !cardEl) continue;
-      const rr = rowEl.getBoundingClientRect();
-      const pr = cardEl.getBoundingClientRect();
-      next.push({
-        id: f.id,
-        sx: rr.right - cr.left,
-        sy: rr.top - cr.top + rr.height / 2,
-        ex: pr.left - cr.left,
-        ey: pr.top - cr.top + 22,
-        hex: SEV[f.severity].hex,
-        label: f.annotation,
-      });
+    const next: LinkPath[] = [];
+    if (isWide) {
+      for (const pair of targetKey ? targetKey.split("|") : []) {
+        const [id, rowId] = pair.split(">");
+        const rowEl = rowRefs.current.get(rowId);
+        const cardEl = cardRefs.current.get(id);
+        if (!rowEl || !cardEl) continue;
+        const rr = rowEl.getBoundingClientRect();
+        const pr = cardEl.getBoundingClientRect();
+        const sx = Math.round(rr.right - cr.left + 4);
+        const ex = Math.round(pr.left - cr.left - 4);
+        // Le coude ne vit que dans la gouttière entre les deux colonnes : jamais par-dessus un montant.
+        if (ex - sx < 12) continue;
+        const sy = Math.round(rr.top - cr.top + rr.height / 2);
+        const ey = Math.round(pr.top - cr.top + Math.min(pr.height / 2, 26));
+        const mx = Math.round((sx + ex) / 2);
+        next.push({ id, d: `M ${sx} ${sy - 3} v 6 M ${sx} ${sy} H ${mx} V ${ey} H ${ex} M ${ex} ${ey - 4} v 8` });
+      }
     }
-    setArrows(next);
-  }, [findingsToShow]);
+    setLinks((prev) => (sameLinks(prev, next) ? prev : next));
+  }, [targetKey]);
 
   useLayoutEffect(() => {
     compute();
     const cont = containerRef.current;
-    const ro = new ResizeObserver(() => compute());
-    if (cont) ro.observe(cont);
+    const ro = typeof ResizeObserver === "function" ? new ResizeObserver(() => compute()) : null;
+    if (cont) ro?.observe(cont);
     window.addEventListener("resize", compute);
     const raf = requestAnimationFrame(compute);
     return () => {
-      ro.disconnect();
+      ro?.disconnect();
       window.removeEventListener("resize", compute);
       cancelAnimationFrame(raf);
     };
   }, [compute]);
 
+  // Le passage à deux colonnes déplace la ligne et les constats : on retrace.
+  useLayoutEffect(() => {
+    if (wide) compute();
+  }, [wide, compute]);
+
   return (
-    <div className="px-3.5 sm:pl-[38px] sm:pr-[18px]" style={{ paddingTop: 2, paddingBottom: 20 }}>
-      {/* Le silo vitrine du rapprochement Clients porte l'ancre `bezier-link`
-          de la visite guidée sur le CONTENEUR (toujours rendu quand le silo est
-          ouvert, même quand les connecteurs sont masqués sous 620px) : le
-          spotlight couvre la chaîne complète ligne flaggée → courbe → constat,
-          teinté par la gravité du premier constat via data-tour-flag. */}
-      <div
-        ref={containerRef}
-        data-tour={siloView.siloId === "rapprochement-clients" ? "bezier-link" : undefined}
-        data-tour-flag={
-          siloView.siloId === "rapprochement-clients" ? findingsToShow[0]?.severity : undefined
-        }
-        // Deux colonnes seulement si le silo mesure ≥ 620 px (avec la navigation à 768 px, il en
-        // fait ~420) ; sinon la reconstruction puis les constats.
-        style={{ position: "relative", display: "grid", gridTemplateColumns: wide ? "minmax(0,1.04fr) minmax(0,1fr)" : "minmax(0,1fr)", gap: wide ? 26 : 18, alignItems: "start" }}
-      >
+    // Le silo vitrine du rapprochement Clients porte l'ancre `bezier-link` de la visite guidée sur le
+    // CONTENEUR (toujours rendu quand le silo est ouvert) : le spotlight couvre la chaîne complète
+    // ligne signalée → liaison → constat et sa note, teinté par la gravité du premier constat.
+    <div
+      id={bodyId}
+      ref={containerRef}
+      className={c.siloBody}
+      data-wide={wide ? "" : undefined}
+      data-tour={isShowcase ? "bezier-link" : undefined}
+      data-tour-flag={isShowcase ? findingsToShow[0]?.severity : undefined}
+    >
+      {wide && links.length > 0 && (
+        <svg className={c.links} width="100%" height="100%" aria-hidden="true" focusable="false">
+          {links.map((l) => (
+            <path key={l.id} d={l.d} data-linked={l.id === selId ? "" : undefined} />
+          ))}
+        </svg>
+      )}
 
-        {/* Connecteurs SVG (overlay, derrière le contenu) */}
-        {wide && arrows.length > 0 && (
-          <svg style={{ position: "absolute", inset: 0, zIndex: 1, pointerEvents: "none", overflow: "visible" }} width={dims.w} height={dims.h}>
-            <defs>
-              {arrows.map((a) => (
-                <marker key={`m-${a.id}`} id={`clo-arrow-${a.id}`} viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill={a.hex} />
-                </marker>
-              ))}
-            </defs>
-            {arrows.map((a) => {
-              const cp = Math.max(40, Math.abs(a.ex - a.sx) * 0.5);
-              return (
-                <path
-                  key={a.id}
-                  d={`M ${a.sx} ${a.sy} C ${a.sx + cp} ${a.sy}, ${a.ex - cp} ${a.ey}, ${a.ex} ${a.ey}`}
-                  fill="none" stroke={a.hex} strokeWidth={1.75} strokeDasharray="5 4"
-                  markerEnd={`url(#clo-arrow-${a.id})`}
-                  style={{ animation: "pb-dash 0.8s linear infinite" }}
-                  opacity={0.9}
-                />
-              );
-            })}
-          </svg>
+      {/* Reconstruction comptable */}
+      <div className={c.zone}>
+        <p className={c.zoneKey}>Reconstruction comptable</p>
+        <p className={c.reconTitle}>{siloView.statement.titre}</p>
+        {siloView.statement.documents && (
+          <ul className={c.docs} aria-label="Documents rapprochés">
+            {siloView.statement.documents.map((doc) => (
+              <li key={doc.label}>
+                <CheckGlyph />
+                {doc.label}
+              </li>
+            ))}
+          </ul>
         )}
-
-        {/* Étiquettes d'annotation le long des connecteurs (pulse léger pendant
-            la visite guidée, via body[data-pb-guide] + data-tour-anno). */}
-        {wide && arrows.map((a) => a.label ? (
-          <div
-            key={`lbl-${a.id}`}
-            data-tour-anno={siloView.siloId === "rapprochement-clients" ? "" : undefined}
-            style={{ position: "absolute", zIndex: 3, left: a.sx + (a.ex - a.sx) * 0.5, top: a.sy + (a.ey - a.sy) * 0.5, transform: "translate(-50%,-50%)", maxWidth: 168, pointerEvents: "none", borderRadius: 6, border: `1px solid ${a.hex}66`, background: SURFACE, padding: "3px 7px", fontSize: 9.5, fontWeight: 500, lineHeight: 1.25, textAlign: "center" as const, color: a.hex, boxShadow: "0 6px 16px -6px rgba(0,0,0,.7)" }}
-          >
-            {a.label}
-          </div>
-        ) : null)}
-
-        {/* Zone A: reconstruction comptable */}
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 3 }}>
-            <span style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT, fontFamily: "monospace" }}>
-              Reconstruction comptable
-            </span>
-          </div>
-          <div style={{ fontSize: 11, color: FAINT, marginBottom: siloView.statement.documents ? 6 : 9 }}>{siloView.statement.titre}</div>
-          {siloView.statement.documents && (
-            <div style={{ display: "flex", flexWrap: "wrap" as const, gap: 6, marginBottom: 9 }}>
-              {siloView.statement.documents.map((doc) => (
-                <span
-                  key={doc.label}
-                  style={{
-                    display: "inline-flex", alignItems: "center", gap: 4,
-                    borderRadius: 999, border: "1px solid rgba(34,197,94,0.35)",
-                    background: "rgba(34,197,94,0.1)", color: "#4ade80",
-                    fontSize: 10, fontWeight: 600, padding: "2px 8px",
-                  }}
-                >
-                  ✓ {doc.label}
-                </span>
-              ))}
-            </div>
-          )}
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12.5 }}>
-            <tbody>
-              {siloView.statement.rows.map((row) => {
-                const isFlagged = !!row.flaggedBy;
-                const rowSev = row.severity ? SEV[row.severity] : null;
-                const isLinked = isFlagged && row.flaggedBy === selId;
-                return (
-                  <tr
-                    key={row.id}
-                    ref={isFlagged ? (el) => { if (el) rowRefs.current.set(row.id, el); else rowRefs.current.delete(row.id); } : undefined}
-                    onClick={() => isFlagged && setSelId(row.flaggedBy ?? null)}
-                    style={{
-                      cursor: isFlagged ? "pointer" : "default",
-                      background: isLinked ? `${rowSev?.hex ?? "#ef4444"}14` : isFlagged ? "rgba(255,255,255,0.02)" : "transparent",
-                      borderLeft: `2px solid ${rowSev ? rowSev.hex : "transparent"}`,
-                      transition: "background .15s",
-                    }}
-                  >
-                    <td style={{ padding: "8px 11px", verticalAlign: "baseline" }}>
-                      <span style={{
-                        color: row.kind === "total" ? TEXT : row.kind === "sous-total" ? "#cdd6e2" : isFlagged && rowSev ? rowSev.hex : "#9aa6b6",
-                        fontWeight: row.kind === "total" ? 700 : row.kind === "sous-total" ? 600 : 400,
-                      }}>
-                        {row.label}
-                      </span>
-                      {row.compte && (
-                        <code style={{ marginLeft: 7, fontSize: 10, color: FAINT, fontFamily: "monospace" }}>{row.compte}</code>
-                      )}
-                    </td>
-                    <td style={{ padding: "8px 11px", textAlign: "right" as const, fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap", color: row.kind === "total" ? TEXT : "#9aa6b6", fontWeight: row.kind === "total" ? 700 : 400 }}>
-                      {eurRow(row.valeur)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Zone B: constat cards */}
-        <div style={{ position: "relative", zIndex: 2 }}>
-          <div style={{ fontSize: 9.5, fontWeight: 600, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT, fontFamily: "monospace", marginBottom: 9 }}>
-            Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" as const, gap: 6 }}>
-            {findingsToShow.map((f, fi) => {
-              const fSev = SEV[f.severity];
-              const fFam = FAM[f.family];
-              const isSelected = f.id === selId;
-              const dec = decisions[f.id];
+        <table className={c.recon}>
+          <tbody>
+            {rows.map((row) => {
+              const isFlagged = !!row.flaggedBy;
+              const isLinked = isFlagged && row.flaggedBy === selId;
               return (
-                <div
-                  key={f.id}
-                  data-tour={fi === 0 ? (siloView.siloId === "rapprochement-clients" ? "cloison-rappro" : "cloison-constat") : undefined}
-                  data-tour-flag={fi === 0 ? f.severity : undefined}
-                  ref={(el) => { if (el) cardRefs.current.set(f.id, el); else cardRefs.current.delete(f.id); }}
-                  style={{
-                    padding: "10px 13px", borderRadius: 9,
-                    border: `1px solid ${isSelected ? fSev.hex + "50" : BORDER}`,
-                    background: isSelected ? fSev.bg : "rgba(13,18,28,0.7)",
-                    transition: "border-color .15s, background .15s",
-                  }}
+                <tr
+                  key={row.id}
+                  ref={isFlagged ? (el) => { if (el) rowRefs.current.set(row.id, el); else rowRefs.current.delete(row.id); } : undefined}
+                  onClick={() => isFlagged && setSelId(row.flaggedBy ?? null)}
+                  data-kind={row.kind}
+                  data-flagged={isFlagged ? "" : undefined}
+                  data-linked={isLinked ? "" : undefined}
                 >
-                  <div style={{ display: "flex", alignItems: "flex-start", gap: 9 }}>
-                    <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", gap: 3, paddingTop: 2 }}>
-                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: fSev.hex, flexShrink: 0 }} />
-                      <span style={{ fontFamily: "monospace", fontSize: 11, color: fFam.hex, lineHeight: 1 }}>{fFam.mark}</span>
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: TEXT, lineHeight: 1.35 }}>{f.titre}</div>
-                      {dec && (
-                        <span style={{ display: "inline-block", marginTop: 4, fontSize: 9.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: dec === "valide" ? "#22c55e" : dec === "accepte" ? ACCENT : MUTED, border: `1px solid ${dec === "valide" ? "rgba(34,197,94,0.3)" : dec === "accepte" ? "rgba(91,157,255,0.3)" : "#333"}`, padding: "2px 7px", borderRadius: 5 }}>
-                          {dec === "valide" ? "Validé" : dec === "accepte" ? "Accepté" : "Écarté"}
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      data-finding-trigger={f.id}
-                      onClick={() => setSelId(isSelected ? null : f.id)}
-                      style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: isSelected ? fSev.hex : ACCENT, background: "none", border: "none", cursor: "pointer", padding: "2px 0", whiteSpace: "nowrap", flexShrink: 0 }}
-                    >
-                      {isSelected ? "Fermer" : "Analyser"}
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2">
-                        <path d={isSelected ? "M18 6 6 18M6 6l12 12" : "m9 18 6-6-6-6"} />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
+                  <td>
+                    {isFlagged && row.severity ? (
+                      <span className={c.rowMark}>
+                        <SeverityGlyph severity={row.severity} />
+                        <span>{row.label}</span>
+                      </span>
+                    ) : (
+                      row.label
+                    )}
+                    {row.compte && <span className={c.compte}>{row.compte}</span>}
+                  </td>
+                  <td>{eurRow(row.valeur)}</td>
+                </tr>
               );
             })}
-            {findingsToShow.length === 0 && (
-              <div style={{ padding: "20px 0", textAlign: "center" as const, fontSize: 12, color: FAINT }}>
-                Aucun constat correspondant aux filtres.
-              </div>
-            )}
-          </div>
-        </div>
+          </tbody>
+        </table>
+        {siloView.statement.note && <p className={c.reconNote}>{siloView.statement.note}</p>}
+      </div>
+
+      {/* Constats */}
+      <div className={c.zone}>
+        <p className={c.zoneKey}>
+          Constats ({hasFilters ? `${filtered.length}/` : ""}{findings.length})
+        </p>
+        <ul className={c.cards}>
+          {findingsToShow.map((f, fi) => {
+            const isSelected = f.id === selId;
+            const dec = decisions[f.id];
+            const target = f.cibleRowId ? rowById.get(f.cibleRowId) : undefined;
+            const note = f.annotation && target ? `${target.compte ? `Ligne ${target.compte}` : target.label} · ${f.annotation}` : null;
+            return (
+              <li
+                key={f.id}
+                className={c.card}
+                data-selected={isSelected ? "" : undefined}
+                data-tour={fi === 0 ? (isShowcase ? "cloison-rappro" : "cloison-constat") : undefined}
+                data-tour-flag={fi === 0 ? f.severity : undefined}
+                ref={(el) => { if (el) cardRefs.current.set(f.id, el); else cardRefs.current.delete(f.id); }}
+              >
+                <div className={c.cardMain}>
+                  <div className={c.cardText}>
+                    <span className={c.cardMeta}>
+                      <span>
+                        <SeverityGlyph severity={f.severity} />
+                        {SEVERITY_LABEL[f.severity]}
+                      </span>
+                      <span title={familyTitle(f.family)}>
+                        <FamilyRule family={f.family} />
+                        {FAMILY_TEXT[f.family].label}
+                      </span>
+                    </span>
+                    <span className={c.cardTitle}>{f.titre}</span>
+                    {dec && <span className={c.decision} data-decision={dec}>{STATUT_WORD[dec]}</span>}
+                  </div>
+                  <button type="button" data-finding-trigger={f.id} className={c.analyse} onClick={() => setSelId(isSelected ? null : f.id)}>
+                    {isSelected ? "Fermer" : "Analyser"}
+                  </button>
+                </div>
+                {note && <p className={c.annotation}>{note}</p>}
+              </li>
+            );
+          })}
+          {findingsToShow.length === 0 && <li className={c.cardsEmpty}>Aucun constat correspondant aux filtres.</li>}
+        </ul>
       </div>
     </div>
+  );
+}
+
+/* ── Plan des cloisons ──────────────────────────────────────────────────────── */
+
+function PlanCellLink({ cell, onGo }: { cell: PlanCell; onGo: (id: string) => void }) {
+  return (
+    <a
+      href={`#silo-${cell.siloId}`}
+      className={c.planCell}
+      data-worst={cell.worst ?? undefined}
+      onClick={(e: ReactMouseEvent<HTMLAnchorElement>) => {
+        e.preventDefault();
+        onGo(cell.siloId);
+      }}
+    >
+      <span className={c.planCellName}>
+        {cell.worst ? <SeverityGlyph severity={cell.worst} /> : null}
+        <span className={c.planCellLabel}>{cell.label}</span>
+      </span>
+      <span className={c.planCellMeta}>
+        {cell.worst ? `${SEVERITY_LABEL[cell.worst].toLowerCase()} · ` : ""}
+        <span className={c.mono}>{cell.count}</span> {plural(cell.count, "constat")}
+        <PlanEffect note={cell.note} />
+      </span>
+    </a>
   );
 }
 
@@ -948,6 +783,7 @@ export function CloisonsWorkspace({
   meta,
   scenario = null,
   exposure,
+  horsCloison = 0,
 }: {
   silos: SiloView[];
   /** `referentiel` : identifiant d'édition porté par le dossier (`referentielVersion`) ;
@@ -956,6 +792,8 @@ export function CloisonsWorkspace({
   scenario?: ScenarioInfo | null;
   /** Projection des effets partagée avec la Synthèse (lib/synthesis/exposure). */
   exposure: Pick<ExposureDimension, "clusters">;
+  /** Constats d'admissibilité du FEC, rattachés à aucune cloison (dossier.admissibilite). */
+  horsCloison?: number;
 }) {
   const docs = useMemo(() => buildStatementDocuments(silos, meta), [silos, meta]);
   const documentDisponible = docs.length > 0;
@@ -973,24 +811,21 @@ export function CloisonsWorkspace({
   const [decisions, setDecisions] = useState<Record<string, UserDecision>>({});
   const railDocked = useRailDocked();
   const closeReview = useCallback(() => setSelId(null), []);
+  const siloRefs = useRef<Map<string, HTMLElement>>(new Map());
 
   const [query, setQuery] = useState("");
   const [sevFilter, setSevFilter] = useState<string[]>([]);
   const [statutFilter, setStatutFilter] = useState<string[]>([]);
   const [natureFilter, setNatureFilter] = useState<string[]>([]);
   const [ddOpen, setDdOpen] = useState<"sev" | "statut" | "nature" | null>(null);
+  const closeDropdown = useCallback(() => setDdOpen(null), []);
 
   const allFindings = useMemo(() => silos.flatMap((s) => s.findings), [silos]);
-
-  const sevCounts = useMemo(() => {
-    const counts = { bloquant: 0, majeur: 0, mineur: 0, informatif: 0 } as Record<Severity, number>;
-    for (const f of allFindings) counts[f.severity]++;
-    return counts;
-  }, [allFindings]);
-
-  const totalEffects = useMemo(() => effectsOf(exposure, allFindings), [exposure, allFindings]);
-
-  const groups = useMemo(() => groupByCloison(silos), [silos]);
+  const sevCounts = useMemo(() => severityCounts(allFindings), [allFindings]);
+  const plan = useMemo(() => buildCloisonsPlan(silos, exposure), [silos, exposure]);
+  const totalEffects = useMemo(() => siloEffects(exposure, allFindings), [exposure, allFindings]);
+  const measure = useMemo(() => exposureMeasure(plan, totalEffects), [plan, totalEffects]);
+  const viewById = useMemo(() => new Map(silos.map((s) => [s.siloId, s] as const)), [silos]);
 
   const selectedFinding = useMemo(
     () => allFindings.find((f) => f.id === selId) ?? null,
@@ -1024,6 +859,18 @@ export function CloisonsWorkspace({
     });
   }
 
+  /** Depuis le plan : ouvre le silo, le fait défiler en tête (sans animation si le mouvement est réduit) et y place le focus. */
+  const goToSilo = useCallback((id: string) => {
+    setVue("silo");
+    setOpenSilos((prev) => (prev.has(id) ? prev : new Set(prev).add(id)));
+    requestAnimationFrame(() => {
+      const el = siloRefs.current.get(id);
+      if (!el) return;
+      if (typeof el.scrollIntoView === "function") el.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "start" });
+      el.querySelector<HTMLButtonElement>("[data-silo-row]")?.focus({ preventScroll: true });
+    });
+  }, []);
+
   function handleDecision(id: string, d: UserDecision) {
     setDecisions((prev) => {
       if (prev[id] === d) { const n = { ...prev }; delete n[id]; return n; }
@@ -1031,304 +878,329 @@ export function CloisonsWorkspace({
     });
   }
 
-  return (
-    <div
-      onClick={() => ddOpen && setDdOpen(null)}
-      className="px-4 sm:px-[26px]"
-      style={{ minHeight: "100%", background: "radial-gradient(1100px 560px at 84% -10%, #131a28 0%, #0a0d12 56%)", paddingTop: 22, paddingBottom: 70, fontFamily: "'Inter', system-ui, sans-serif" }}
-    >
-      <div style={{ maxWidth: 1680, margin: "0 auto" }}>
+  const showEffects = measure.lines.length > 0 || measure.indeterminate > 0 || measure.eurSignals > 0;
+  const [firstLine, ...otherLines] = measure.lines;
 
-        {/* ── HEADER ── */}
-        <div style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 24, flexWrap: "wrap" as const }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <span style={{ display: "inline-flex", width: 27, height: 27, borderRadius: 7, alignItems: "center", justifyContent: "center", background: "#141b27", border: "1px solid #2a3a55" }}>
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke={ACCENT} strokeWidth="2">
-                    <rect x="3" y="3" width="7" height="7" rx="1" />
-                    <rect x="14" y="3" width="7" height="7" rx="1" />
-                    <rect x="3" y="14" width="7" height="7" rx="1" />
-                    <rect x="14" y="14" width="7" height="7" rx="1" />
-                  </svg>
-                </span>
-                <h1 style={{ margin: 0, fontSize: 17, fontWeight: 600, letterSpacing: "-.01em", color: TEXT }}>Revue par cloison</h1>
-              </div>
-              <p style={{ margin: "8px 0 0", maxWidth: 610, fontSize: 12, lineHeight: 1.55, color: MUTED }}>
-                Une cloison isole une catégorie comptable. Le parcours se révèle à la demande :{" "}
-                <span style={{ color: "#aeb8c6" }}>explorer</span> le risque,{" "}
-                <span style={{ color: "#aeb8c6" }}>comprendre</span> l'anomalie, puis{" "}
-                <span style={{ color: "#aeb8c6" }}>décider</span> — un niveau à la fois.
-              </p>
-            </div>
-            <div style={{ textAlign: "right" as const }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 8 }}>
-                <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#46c08a" }} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: TEXT }}>{meta.label}</span>
-                <span data-dossier-source style={{ fontSize: 8.5, fontWeight: 600, letterSpacing: ".05em", textTransform: "uppercase" as const, color: sourceBadge.fictif ? "#e3bd4d" : ACCENT, border: `1px solid ${sourceBadge.fictif ? "rgba(227,189,77,.4)" : "rgba(91,157,255,.4)"}`, padding: "2px 6px", borderRadius: 5 }}>
+  return (
+    <>
+      <InstrumentPage>
+        <PageIntro
+          index="04"
+          title="Revue par cloison"
+          lead={
+            <>
+              Une cloison isole une catégorie comptable. Le parcours se révèle à la demande : <strong>explorer</strong> le risque,{" "}
+              <strong>comprendre</strong> l&apos;anomalie, puis <strong>décider</strong> — un niveau à la fois.
+            </>
+          }
+          aside={
+            <div className={c.identity}>
+              <p className={c.identityName}>
+                <span className={c.liveMark} aria-hidden="true" />
+                <span>{meta.label}</span>
+                <span data-dossier-source className={c.source} data-fictif={sourceBadge.fictif ? "" : undefined}>
                   {sourceBadge.label}
                 </span>
-              </div>
-              <div style={{ marginTop: 5, fontSize: 9.5, color: FAINT, fontVariantNumeric: "tabular-nums" }}>
+              </p>
+              <p className={c.identityMeta}>
                 {scenario ? `${scenario.secteur} · ${scenario.forme} · ` : `${libelleSiren(meta.siren)} · `}
                 Exercice {meta.exercice} · Réf. {decrireReferentiel(meta.referentiel).libelle}
-              </div>
+              </p>
             </div>
-          </div>
+          }
+        />
 
-          {/* Stats bar */}
-          <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" as const, padding: "11px 2px", borderTop: `1px solid ${SEP}`, borderBottom: `1px solid ${SEP}` }}>
-            <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-              <span style={{ fontSize: 16, fontWeight: 600, color: TEXT, fontVariantNumeric: "tabular-nums" }}>{allFindings.length}</span>
-              <span style={{ fontSize: 11, color: MUTED }}>constats</span>
+        {/* ── Mesures ── */}
+        <div className={c.measures}>
+          <div className={`${p.measure} ${c.measureLead}`}>
+            <div className={p.measureHead}>
+              <span>Constats rattachés à une cloison</span>
+              <span className={c.measureRef}>par gravité</span>
             </div>
-            <span style={{ width: 1, height: 14, background: "#222a36" }} />
-            {(["bloquant", "majeur", "mineur", "informatif"] as Severity[]).filter((s) => sevCounts[s] > 0).map((s) => (
-              <div key={s} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ width: 7, height: 7, borderRadius: "50%", background: SEV[s].hex }} />
-                <span style={{ fontSize: 12.5, fontWeight: 600, color: SEV[s].hex, fontVariantNumeric: "tabular-nums" }}>{sevCounts[s]}</span>
-                <span style={{ fontSize: 11, color: MUTED }}>{SEV[s].label}</span>
-              </div>
-            ))}
-            {(totalEffects.items.length > 0 || totalEffects.indeterminate > 0 || totalEffects.eurSignals > 0) && (
-              <>
-                <span style={{ width: 1, height: 14, background: "#222a36" }} />
-                <div data-effects-summary style={{ display: "flex", alignItems: "baseline", gap: 7, flexWrap: "wrap" as const }}>
-                  <span style={{ fontSize: 11, color: MUTED }}>Exposition initiale par poste et sens</span>
-                  {totalEffects.items.map((it) => (
-                    <span key={it.key} style={{ fontSize: 13, fontWeight: 600, color: "#cdd6e2", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}>{effectItemLabel(it)}</span>
-                  ))}
-                  {totalEffects.items.length === 0 && <span style={{ fontSize: 12, color: MUTED }}>aucun effet chiffré</span>}
-                  {totalEffects.indeterminate > 0 && (
-                    <span style={{ fontSize: 11, color: "#e3bd4d" }}>{totalEffects.indeterminate} groupe{totalEffects.indeterminate > 1 ? "s" : ""} indéterminé{totalEffects.indeterminate > 1 ? "s" : ""}</span>
-                  )}
-                  {totalEffects.eurSignals > 0 && (
-                    <span style={{ fontSize: 11, color: MUTED }}>· {totalEffects.eurSignals} {totalEffects.eurSignals > 1 ? "signaux" : "signal"} EUR sans effet chiffré</span>
-                  )}
-                </div>
-              </>
-            )}
-          </div>
-
-          {/* Toolbar */}
-          <div style={{ marginTop: 13, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" as const }}>
-            <div style={{ position: "relative", flex: 1, minWidth: 230, maxWidth: 340 }}>
-              <Search size={14} color={FAINT} style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)" }} />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Rechercher compte, libellé, norme…"
-                onClick={(e) => e.stopPropagation()}
-                style={{ width: "100%", padding: "9px 34px 9px 34px", fontSize: 12.5, color: TEXT, background: "#0c1016", border: "1px solid #222a36", borderRadius: 9, outline: "none", boxSizing: "border-box" as const }}
-              />
-              {query && (
-                <button
-                  onClick={() => setQuery("")}
-                  style={{ position: "absolute", right: 10, top: "50%", transform: "translateY(-50%)", background: "none", border: "none", cursor: "pointer", color: FAINT, padding: 2, lineHeight: 0 }}
-                >
-                  <X size={13} />
-                </button>
+            <p className={p.measureValue}>
+              {allFindings.length}
+              {horsCloison > 0 && (
+                <span className={c.measureAside}>
+                  {" "}· + {horsCloison} {plural(horsCloison, "constat")} d&apos;admissibilité du FEC, hors cloison
+                </span>
               )}
+            </p>
+            <div className={c.sevBar} aria-hidden="true">
+              {SEVERITIES.filter((s) => sevCounts[s] > 0).map((s) => (
+                <span key={s} data-sev={s} style={{ flexGrow: sevCounts[s] }} />
+              ))}
             </div>
-
-            {(["sev", "statut", "nature"] as const).map((dd) => (
-              <div key={dd} onClick={(e) => e.stopPropagation()}>
-                <FilterDropdown
-                  label={dd === "sev" ? "Sévérité" : dd === "statut" ? "Statut" : "Nature"}
-                  items={
-                    dd === "sev"
-                      ? (["bloquant", "majeur", "mineur", "informatif"] as Severity[]).map((s) => ({ value: s, label: SEV[s].label, dot: SEV[s].hex }))
-                      : dd === "statut"
-                      ? [
-                          { value: "en_attente", label: "En attente" },
-                          { value: "valide",     label: "Validé" },
-                          { value: "accepte",    label: "Accepté" },
-                          { value: "ecarte",     label: "Écarté" },
-                        ]
-                      : (["hardLaw", "methodology", "internal"] as FindingFamily[]).map((f) => ({ value: f, label: FAM[f].label, dot: FAM[f].hex }))
-                  }
-                  selected={dd === "sev" ? sevFilter : dd === "statut" ? statutFilter : natureFilter}
-                  onToggle={(v) => {
-                    const setter = dd === "sev" ? setSevFilter : dd === "statut" ? setStatutFilter : setNatureFilter;
-                    setter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
-                  }}
-                  open={ddOpen === dd}
-                  onOpen={() => setDdOpen(dd)}
-                  onClose={() => setDdOpen(null)}
-                />
-              </div>
-            ))}
-
-            <div style={{ marginLeft: "auto", display: "inline-flex", padding: 3, border: "1px solid #232b38", background: SURFACE, borderRadius: 9 }}>
-              <button
-                onClick={() => setVue("silo")}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, border: "none", borderRadius: 6, cursor: "pointer", background: vue === "silo" ? "#1a2435" : "transparent", color: vue === "silo" ? TEXT : MUTED }}
-              >
-                <LayoutGrid size={13} /> Par cloison
-              </button>
-              <button
-                onClick={() => documentDisponible && setVue("document")}
-                disabled={!documentDisponible}
-                title={documentDisponible ? undefined : "Aucun état reconstruit disponible"}
-                style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "5px 12px", fontSize: 11.5, fontWeight: 600, border: "none", borderRadius: 6, cursor: documentDisponible ? "pointer" : "not-allowed", opacity: documentDisponible ? 1 : 0.4, background: vue === "document" ? "#1a2435" : "transparent", color: vue === "document" ? TEXT : MUTED }}
-              >
-                <FileText size={13} /> Document annoté
-              </button>
-            </div>
-
-            {hasFilters && (
-              <span style={{ fontSize: 11.5, color: MUTED, fontVariantNumeric: "tabular-nums" }}>
-                <span style={{ fontWeight: 600, color: TEXT }}>{filteredTotal}</span> / {allFindings.length}
-              </span>
-            )}
+            <ul className={c.sevCounts}>
+              {SEVERITIES.filter((s) => sevCounts[s] > 0).map((s: Severity) => (
+                <li key={s}>
+                  <SeverityGlyph severity={s} />
+                  <span className={c.mono}>{sevCounts[s]}</span> {plural(sevCounts[s], SEVERITY_LABEL[s].toLowerCase())}
+                </li>
+              ))}
+            </ul>
           </div>
+
+          {showEffects && (
+            <div data-effects-summary className={c.measureGroup}>
+              <div className={p.measure}>
+                <div className={p.measureHead}>
+                  <span>Exposition initiale par poste et sens</span>
+                  <span className={c.measureRef}>sans compensation</span>
+                </div>
+                {firstLine ? (
+                  <>
+                    <p className={p.measureValue}>
+                      <span className={c.measureTarget}>{firstLine.target}</span>{" "}
+                      <span className={`${c.measureAmount}${firstLine.emphasis ? ` ${c.signal}` : ""}`}>{firstLine.amount}</span>
+                    </p>
+                    {firstLine.contributors.length > 0 && (
+                      <p className={c.contributors}>
+                        {firstLine.contributors.length === 1 ? firstLine.contributors[0].label : firstLine.contributors.map((x) => `${x.label} ${x.amount}`).join(" · ")}
+                      </p>
+                    )}
+                    {otherLines.map((line) => (
+                      <div key={line.key}>
+                        <p className={c.measureSecond}>
+                          <span className={c.measureTarget}>{line.target}</span>{" "}
+                          <span className={`${c.measureAmount}${line.emphasis ? ` ${c.signal}` : ""}`}>{line.amount}</span>
+                        </p>
+                        {line.contributors.length > 0 && (
+                          <p className={c.contributors}>
+                            {line.contributors.length === 1 ? line.contributors[0].label : line.contributors.map((x) => `${x.label} ${x.amount}`).join(" · ")}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </>
+                ) : (
+                  <p className={p.measureValue}><span className={c.measureWord}>aucun effet chiffré</span></p>
+                )}
+                {measure.indeterminate > 0 && (
+                  <p className={p.measureText}>
+                    {measure.indeterminate} {plural(measure.indeterminate, "groupe indéterminé", "groupes indéterminés")} : bornes dans la Synthèse, aucun montant retenu ici.
+                  </p>
+                )}
+              </div>
+              <div className={p.measure}>
+                <div className={p.measureHead}>
+                  <span>Sans effet chiffré</span>
+                  <span className={c.measureRef}>signaux EUR</span>
+                </div>
+                <p className={p.measureValue}>{measure.eurSignals}</p>
+                <p className={p.measureText}>
+                  {plural(measure.eurSignals, "signal EUR", "signaux EUR")} sans effet chiffré : montant inconnu, laissé inconnu, jamais compté comme zéro.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* ── BODY ── liste pleine largeur ; panneau de revue rangé à droite dès RAIL_DOCK_QUERY. */}
-        <div className="flex flex-col gap-[18px] min-[1400px]:flex-row">
-
-          {/* Accordion / Document view */}
-          <div className="min-w-0 min-[1400px]:flex-1">
-            {vue === "document" && documentDisponible ? (
-              <FinancialDocumentViewer docs={docs} />
-            ) : (
-              <div>
-                {groups.map(({ cloisonId, cloisonLabel, silos: groupSilos }) => (
-                  <div key={cloisonId} style={{ marginBottom: 8 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 0", marginBottom: 4 }}>
-                      <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: ".1em", textTransform: "uppercase" as const, color: FAINT }}>{cloisonLabel}</span>
-                      <span style={{ height: 1, flex: 1, background: "#16202e" }} />
+        {/* ── Plan des cloisons ── */}
+        {plan.boards.length > 0 && (
+          <section className={c.planSection} aria-labelledby="cloisons-plan">
+            <SectionHead
+              id="cloisons-plan"
+              title="Plan des cloisons"
+              note={`${plan.siloCount} ${plural(plan.siloCount, "silo")} dans l'ordre des états · gravité la plus haute, constats, effet`}
+            />
+            {plan.boards.map((board) => (
+              <div key={board.key} className={c.planBoard}>
+                {board.columns.map((col) => {
+                  const headId = `plan-${board.key}-${col.key}`;
+                  return (
+                    <div key={col.key}>
+                      <p id={headId} className={c.planColHead}>
+                        <span>{col.title}</span>
+                        <span className={c.planColCount}>
+                          {col.siloCount} {plural(col.siloCount, "silo")} · {col.findingCount} {plural(col.findingCount, "constat")}
+                        </span>
+                      </p>
+                      <ul className={c.planCells} aria-labelledby={headId}>
+                        {col.groups.flatMap((g) => g.cells).map((cell) => (
+                          <li key={cell.siloId}>
+                            <PlanCellLink cell={cell} onGo={goToSilo} />
+                          </li>
+                        ))}
+                      </ul>
                     </div>
+                  );
+                })}
+              </div>
+            ))}
+          </section>
+        )}
 
-                    <div style={{ display: "flex", flexDirection: "column" as const, gap: 3 }}>
-                      {groupSilos.map((siloView) => {
-                        const siloMeta = siloById(siloView.siloId);
-                        const isOpen = openSilos.has(siloView.siloId);
+        {/* ── Barre d'outils ── */}
+        <div className={`${p.toolbar} ${c.toolbar}`}>
+          <div className={c.search}>
+            <SearchGlyph />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Rechercher compte, libellé, norme…"
+              aria-label="Rechercher un constat"
+              className={c.searchInput}
+            />
+            {query && (
+              <button type="button" className={c.searchClear} aria-label="Effacer la recherche" onClick={() => setQuery("")}>
+                <CrossGlyph size={12} />
+              </button>
+            )}
+          </div>
+
+          {(["sev", "statut", "nature"] as const).map((dd) => (
+            <FilterDropdown
+              key={dd}
+              label={dd === "sev" ? "Gravité" : dd === "statut" ? "Statut" : "Nature"}
+              items={
+                dd === "sev"
+                  ? SEVERITIES.map((s) => ({ value: s, label: SEVERITY_LABEL[s], mark: <SeverityGlyph severity={s} /> }))
+                  : dd === "statut"
+                  ? STATUT_ITEMS
+                  : FAMILY_ORDER.map((f) => ({ value: f, label: FAMILY_TEXT[f].label, mark: <FamilyRule family={f} /> }))
+              }
+              selected={dd === "sev" ? sevFilter : dd === "statut" ? statutFilter : natureFilter}
+              onToggle={(v) => {
+                const setter = dd === "sev" ? setSevFilter : dd === "statut" ? setStatutFilter : setNatureFilter;
+                setter((prev) => prev.includes(v) ? prev.filter((x) => x !== v) : [...prev, v]);
+              }}
+              open={ddOpen === dd}
+              onOpen={() => setDdOpen(dd)}
+              onClose={closeDropdown}
+            />
+          ))}
+
+          <span role="status" className={c.counter}>
+            {hasFilters && (
+              <>
+                <span className={c.mono}>{filteredTotal}</span> / {allFindings.length}
+              </>
+            )}
+          </span>
+
+          <span className={`${p.toggleGroup} ${p.toolbarEnd} ${c.viewSwitch}`} role="group" aria-label="Vue">
+            <span className={p.key}>Vue</span>
+            <button type="button" className={`${p.toggle} ${c.viewToggle}`} aria-pressed={vue === "silo"} onClick={() => setVue("silo")}>
+              Par cloison
+            </button>
+            <button
+              type="button"
+              className={`${p.toggle} ${c.viewToggle}`}
+              aria-pressed={vue === "document"}
+              onClick={() => documentDisponible && setVue("document")}
+              disabled={!documentDisponible}
+              title={documentDisponible ? undefined : "Aucun état reconstruit disponible"}
+            >
+              Document annoté
+            </button>
+          </span>
+        </div>
+
+        {/* ── Corps : liste pleine largeur ; panneau de revue rangé à droite dès RAIL_DOCK_QUERY ── */}
+        <div className={c.body}>
+          <div className={c.list}>
+            {vue === "document" && documentDisponible ? (
+              <div className={c.documentFrame}>
+                <FinancialDocumentViewer docs={docs} />
+              </div>
+            ) : (
+              <>
+                {plan.groups.map((group) => (
+                  <section key={group.cloisonId} aria-labelledby={`cloison-${group.cloisonId}`}>
+                    <h2 id={`cloison-${group.cloisonId}`} className={p.groupHead}>{group.label}</h2>
+                    <ul className={c.siloList}>
+                      {group.cells.map((cell) => {
+                        const siloView = viewById.get(cell.siloId);
+                        if (!siloView) return null;
+                        const isOpen = openSilos.has(cell.siloId);
                         const findings = siloView.findings;
-                        const filtered = filterFindings(findings);
-                        const worst = worstSev(findings);
-                        const score = computeScore(findings);
-                        const effects = effectsOf(exposure, findings);
-                        const sevStyle = worst ? SEV[worst] : null;
-
+                        const bodyId = `silo-corps-${cell.siloId}`;
                         return (
-                          <div
-                            key={siloView.siloId}
-                            style={{ borderRadius: 11, border: `1px solid ${isOpen ? "#253045" : "#1a2029"}`, background: isOpen ? "#0d1320" : "rgba(13,19,32,0.5)", overflow: "hidden", transition: "border-color .2s" }}
+                          <li
+                            key={cell.siloId}
+                            id={`silo-${cell.siloId}`}
+                            className={c.silo}
+                            ref={(el) => { if (el) siloRefs.current.set(cell.siloId, el); else siloRefs.current.delete(cell.siloId); }}
                           >
                             <button
                               type="button"
-                              data-silo-row={siloView.siloId}
+                              data-silo-row={cell.siloId}
                               aria-expanded={isOpen}
-                              onClick={() => toggleSilo(siloView.siloId)}
-                              style={{ display: "flex", width: "100%", alignItems: "flex-start", gap: 14, padding: "13px 16px", background: "none", border: "none", cursor: "pointer", textAlign: "left" as const }}
+                              aria-controls={isOpen ? bodyId : undefined}
+                              onClick={() => toggleSilo(cell.siloId)}
+                              className={c.siloRow}
                             >
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="2.2"
-                                style={{ flexShrink: 0, marginTop: 3, transition: "transform .2s", transform: isOpen ? "rotate(90deg)" : "rotate(0deg)" }}>
-                                <path d="m9 18 6-6-6-6" />
-                              </svg>
-                              {/* Libellé, puis gravité et effet : sur la même ligne quand la place le permet, à la ligne sinon. */}
-                              <div style={{ flex: 1, minWidth: 0, display: "flex", flexWrap: "wrap" as const, alignItems: "center", justifyContent: "space-between", columnGap: 14, rowGap: 8 }}>
-                                <div style={{ flex: "1 1 13rem", minWidth: 0 }}>
-                                  <div style={{ fontSize: 13.5, fontWeight: 600, color: TEXT, overflowWrap: "anywhere" as const }}>
-                                    {siloMeta?.label ?? siloView.siloId}
-                                  </div>
-                                  <div style={{ marginTop: 2, fontSize: 10.5, letterSpacing: ".02em", color: FAINT, fontFamily: "monospace", overflowWrap: "anywhere" as const }}>
-                                    {siloMeta?.comptes.join(" · ") ?? ""}
-                                  </div>
-                                </div>
-                                <div style={{ display: "flex", flexWrap: "wrap" as const, alignItems: "center", gap: "8px 14px" }}>
-                                  {sevStyle && findings.length > 0 && (
-                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "5px 11px", borderRadius: 8, background: sevStyle.bg, whiteSpace: "nowrap" }}>
-                                      <span style={{ width: 8, height: 8, borderRadius: "50%", background: sevStyle.hex }} />
-                                      <span style={{ fontSize: 11.5, fontWeight: 600, color: sevStyle.hex }}>{sevStyle.label}</span>
-                                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
-                                      <span style={{ fontSize: 10.5, color: "#8a96a6", fontVariantNumeric: "tabular-nums" }}>{score}/100</span>
-                                      <span style={{ width: 3, height: 3, borderRadius: "50%", background: "#46505f" }} />
-                                      <span style={{ fontSize: 10.5, color: "#8a96a6" }}>{findings.length} constat{findings.length > 1 ? "s" : ""}</span>
+                              {/* Signe dessiné en CSS (« + » replié, « − » ouvert) : l'état est porté par aria-expanded. */}
+                              <span className={c.twisty} aria-hidden="true" />
+                              <span className={c.siloName}>
+                                <span className={c.siloLabel}>{cell.label}</span>
+                                <span className={c.accounts}>{cell.comptes.join(" · ")}</span>
+                              </span>
+                              <span className={c.facts}>
+                                {cell.worst && findings.length > 0 ? (
+                                  <>
+                                    <span className={c.sevMark} data-sev={cell.worst}>
+                                      <SeverityGlyph severity={cell.worst} />
+                                      {SEVERITY_LABEL[cell.worst]}
                                     </span>
-                                  )}
-                                  {effects.items.length > 0 ? (
-                                    // Chaque poste reste insécable ; la liste des postes passe à la ligne entre deux postes.
-                                    <span title="Exposition initiale par poste et sens (projection partagée avec la Synthèse)" style={{ display: "inline-flex", flexWrap: "wrap" as const, justifyContent: "flex-end", columnGap: 6, minWidth: 94, fontSize: 12.5, fontWeight: 500, color: "#cdd6e2", fontVariantNumeric: "tabular-nums" }}>
-                                      {effects.items.slice(0, 2).map((it, i) => (
-                                        <span key={it.key} style={{ whiteSpace: "nowrap" }}>{i > 0 ? " · " : ""}{effectItemLabel(it, true)}</span>
-                                      ))}
-                                      {effects.items.length > 2 && <span style={{ whiteSpace: "nowrap" }}>{` · +${effects.items.length - 2}`}</span>}
-                                      {effects.indeterminate > 0 && <span style={{ whiteSpace: "nowrap" }}> · indéterminé</span>}
-                                    </span>
-                                  ) : effects.indeterminate > 0 ? (
-                                    <span style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: "#e3bd4d", whiteSpace: "nowrap" }}>montant indéterminé</span>
-                                  ) : effects.eurSignals > 0 ? (
-                                    <span title="Écart mesuré en euros sans effet financier explicite : l'effet comptable reste inconnu" style={{ minWidth: 94, textAlign: "right" as const, fontSize: 11.5, color: MUTED, whiteSpace: "nowrap" }}>effet non chiffré</span>
-                                  ) : null}
-                                </div>
-                              </div>
+                                    <span className={c.score}>{cell.score}/100</span>
+                                    <span className={c.count}>{findings.length} {plural(findings.length, "constat")}</span>
+                                  </>
+                                ) : (
+                                  <span className={c.count}>aucun constat</span>
+                                )}
+                                <EffectText note={cell.note} />
+                              </span>
                             </button>
 
                             {isOpen && (
                               <SiloBody
+                                bodyId={bodyId}
                                 siloView={siloView}
                                 findings={findings}
-                                filtered={filtered}
+                                filtered={filterFindings(findings)}
                                 hasFilters={hasFilters}
                                 selId={selId}
                                 setSelId={setSelId}
                                 decisions={decisions}
                               />
                             )}
-                          </div>
+                          </li>
                         );
                       })}
-                    </div>
-                  </div>
+                    </ul>
+                  </section>
                 ))}
 
-                {groups.length === 0 && (
-                  <div style={{ padding: "48px 0", textAlign: "center" as const, fontSize: 13, color: FAINT }}>
-                    Aucun silo à afficher.
-                  </div>
-                )}
-              </div>
+                {plan.groups.length === 0 && <p className={c.listEmpty}>Aucun silo à afficher.</p>}
+              </>
             )}
           </div>
 
-          {/* Sticky rail — affiché seulement quand la place le permet ; sinon tiroir (ReviewDrawer). */}
-          <aside
-            data-review-rail
-            aria-label="Panneau de revue"
-            className="hidden min-[1400px]:block"
-            style={{ position: "sticky", top: 16, width: 406, maxHeight: "calc(100vh - 90px)", overflowY: "auto", flexShrink: 0, alignSelf: "flex-start" }}
-          >
+          {/* Rail ancré — affiché seulement quand la place le permet ; sinon tiroir (ReviewDrawer). */}
+          <aside data-review-rail aria-label="Panneau de revue" className={c.rail}>
             {selectedFinding && railDocked ? (
-              <div
-                key={selectedFinding.id}
-                style={{ padding: 18, borderRadius: 14, border: "1px solid #253045", background: "#0c1220" }}
-              >
+              <div key={selectedFinding.id} className={p.panel}>
                 <RailPanel finding={selectedFinding} decisions={decisions} onDecision={handleDecision} />
               </div>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column" as const, alignItems: "center", justifyContent: "center", minHeight: 280, padding: 24, borderRadius: 14, border: `1px dashed ${BORDER}`, textAlign: "center" as const }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke={FAINT} strokeWidth="1.5" style={{ marginBottom: 12 }}>
-                  <circle cx="11" cy="11" r="8" />
-                  <path d="m21 21-4.3-4.3" />
-                  <path d="M11 8v3M11 14h.01" />
-                </svg>
-                <div style={{ fontSize: 13, fontWeight: 600, color: "#4a566a", marginBottom: 6 }}>Aucun constat sélectionné</div>
-                <div style={{ fontSize: 11.5, lineHeight: 1.5, color: FAINT }}>
-                  Cliquez sur <em style={{ color: "#7b8798" }}>Analyser</em> dans un constat<br />pour ouvrir le panneau de revue.
-                </div>
+              <div className={c.railEmpty}>
+                <p className={c.railEmptyTitle}>Aucun constat sélectionné</p>
+                <p className={c.railEmptyText}>
+                  Cliquez sur <em>Analyser</em> dans un constat pour ouvrir le panneau de revue.
+                </p>
               </div>
             )}
           </aside>
         </div>
-      </div>
+      </InstrumentPage>
 
       {selectedFinding && !railDocked && (
         <ReviewDrawer key={selectedFinding.id} findingId={selectedFinding.id} title={selectedFinding.titre} onClose={closeReview}>
           <RailPanel key={selectedFinding.id} finding={selectedFinding} decisions={decisions} onDecision={handleDecision} />
         </ReviewDrawer>
       )}
-    </div>
+    </>
   );
 }
