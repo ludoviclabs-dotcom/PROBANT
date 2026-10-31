@@ -34,6 +34,7 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 | [`handoffs/L16-03.md`](./handoffs/L16-03.md) | cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
 | [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |
+| [`FICHE_RELECTURE_UTILISATEUR.md`](./FICHE_RELECTURE_UTILISATEUR.md) | **À remplir par l'utilisateur** : relecture de la règle point par point, texte UE, cible de capacité, décision IFRS 18, modèle de réponse |
 | [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : relecture nommée de la règle, texte UE |
 | [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | **À faire par l'utilisateur** : relecture nommée de la règle, qui ouvre l'exécution réelle |
 | [`DICTIONNAIRE_L16.md`](./DICTIONNAIRE_L16.md) · [`modeles/`](./modeles/) | Dictionnaire des sources, modèles CSV et modèle d'export du journal de retraitement, produits depuis le code |
