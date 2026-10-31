@@ -18,6 +18,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowRight, CheckCircle2, FileUp, Settings2, Sparkles } from "lucide-react";
+import { charteFonts } from "@/app/fonts";
 import { DepotView } from "@/components/probant/DepotView";
 import {
   ActiveDossierProvider,
@@ -77,7 +78,10 @@ function OnboardingContent() {
       <div className="mt-6">
         {step === 1 && (
           <div className="space-y-4">
-            <DepotView />
+            {/* DepotView suit la charte « instruments » : ses jetons et ses polices exigent l'ambiance sur un ancêtre. */}
+            <div data-ambiance="instruments" className={charteFonts}>
+              <DepotView />
+            </div>
             <div className="flex items-center justify-between rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
               <p className="text-[12px] text-[var(--pb-text-muted)]">
                 {fecPret ? (
