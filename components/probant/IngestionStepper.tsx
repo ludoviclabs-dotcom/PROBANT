@@ -1,8 +1,7 @@
-import { CheckCircle2, Loader2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import x from "./depot.module.css";
 
 type StepStatus = "idle" | "processing" | "done" | "error";
-type NodeState = "done" | "current" | "pending";
+type StepState = "done" | "current" | "failed" | "pending";
 
 interface IngestionStepperProps {
   labels: string[];
@@ -10,71 +9,56 @@ interface IngestionStepperProps {
   status: StepStatus;
 }
 
-export function IngestionStepper({ labels, activeIndex, status }: IngestionStepperProps) {
-  if (status === "idle") {
-    return null;
-  }
+const STATE_WORD: Record<StepState, string> = {
+  done: "effectuée",
+  current: "en cours",
+  failed: "interrompue",
+  pending: "en attente",
+};
 
-  const getNodeState = (index: number): NodeState => {
-    if (index <= activeIndex || status === "done") return "done";
-    if (index === activeIndex && status === "processing") return "current";
+/**
+ * Fil des étapes RÉELLES du traitement (FEC : état du job serveur ; balance et liasse : lecture locale). L'étape
+ * active est « en cours », jamais cochée d'avance ; après une erreur, l'étape atteinte est « interrompue » et les
+ * suivantes restent « en attente ». L'état est dit en mots et par le trait, sans animation.
+ *
+ * Un refus survenu avant toute étape effectuée (format non pris en charge, dossier non persistant, job en échec dès
+ * l'empreinte) n'affiche pas le fil : il ne montrerait qu'une étape qui n'a pas eu lieu. Le message d'erreur suffit.
+ */
+export function IngestionStepper({ labels, activeIndex, status }: IngestionStepperProps) {
+  if (status === "idle" || labels.length === 0) return null;
+  if (status === "error" && activeIndex === 0) return null;
+
+  const stateOf = (index: number): StepState => {
+    if (status === "done" || index < activeIndex) return "done";
+    if (index === activeIndex) return status === "error" ? "failed" : "current";
     return "pending";
   };
 
-  return (
-    <div className="rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4">
-      <div className="flex items-center">
-        {labels.map((label, index) => {
-          const state = getNodeState(index);
-          const isLast = index === labels.length - 1;
+  const current = labels[activeIndex];
+  const summary =
+    status === "done"
+      ? `Traitement terminé : ${labels.length} étapes sur ${labels.length}.`
+      : status === "error"
+        ? `Traitement interrompu à l’étape ${activeIndex + 1} sur ${labels.length}${current ? ` : ${current}` : ""}.`
+        : `Étape ${activeIndex + 1} sur ${labels.length}${current ? ` : ${current}` : ""} — en cours.`;
 
+  return (
+    <div>
+      <ol className={x.steps} aria-label="Étapes du traitement">
+        {labels.map((label, index) => {
+          const state = stateOf(index);
           return (
-            <div key={label} className={cn("flex items-center", !isLast && "flex-1")}>
-              <div className="flex w-14 shrink-0 flex-col items-center gap-1.5">
-                <div
-                  className={cn(
-                    "flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full border transition-colors duration-300",
-                    state === "pending" && "border-[var(--pb-border-strong)]",
-                    state === "current" && "border-[var(--pb-accent)]",
-                    state === "done" && "border-transparent",
-                  )}
-                  style={
-                    state === "done"
-                      ? { backgroundColor: "color-mix(in srgb, var(--pb-ok) 15%, transparent)" }
-                      : undefined
-                  }
-                >
-                  {state === "pending" && (
-                    <span className="text-[10px] text-[var(--pb-text-faint)] tnum">{index + 1}</span>
-                  )}
-                  {state === "current" && (
-                    <Loader2 className="h-3 w-3 animate-spin text-[var(--pb-accent)]" />
-                  )}
-                  {state === "done" && (
-                    <CheckCircle2 className="h-3 w-3 text-[var(--pb-ok)]" />
-                  )}
-                </div>
-                <span
-                  className={cn(
-                    "w-full text-center text-[10px] leading-tight",
-                    state === "pending" ? "text-[var(--pb-text-muted)]" : "text-[var(--pb-text)]",
-                  )}
-                >
-                  {label}
-                </span>
-              </div>
-              {!isLast && (
-                <div
-                  className={cn(
-                    "h-0.5 flex-1 transition-colors duration-300",
-                    state === "done" ? "bg-[var(--pb-accent)]" : "bg-[var(--pb-border)]",
-                  )}
-                />
-              )}
-            </div>
+            <li key={label} className={x.step} data-state={state} aria-current={state === "current" ? "step" : undefined}>
+              <span className={x.stepIndex}>{String(index + 1).padStart(2, "0")}</span>
+              <span className={x.stepLabel}>{label}</span>
+              <span className={x.stepState}>{STATE_WORD[state]}</span>
+            </li>
           );
         })}
-      </div>
+      </ol>
+      <p role="status" aria-live="polite" className={x.stepStatus}>
+        {summary}
+      </p>
     </div>
   );
 }

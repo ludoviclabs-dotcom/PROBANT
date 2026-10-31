@@ -21,7 +21,7 @@ async function readDownload(download: import("@playwright/test").Download): Prom
 
 test.describe("TAX-10 — release gate E2E synthétique", () => {
   test("crée l'intention de dossier, dépose une balance synthétique et renseigne le profil d'onboarding", async ({ page }) => {
-    const depotHeading = page.getByRole("heading", { name: "Dépôt & ingestion", level: 2 });
+    const depotHeading = page.getByRole("heading", { name: "Dépôt & ingestion", level: 1 });
     await page.goto("/dashboard/depot");
     await expect(depotHeading).toBeVisible();
     await page.getByRole("link", { name: "Nouveau dossier" }).click();

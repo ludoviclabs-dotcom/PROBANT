@@ -1,23 +1,40 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { FamilyRule } from "@/components/charte/FamilyRule";
+import { InstrumentPage, PageIntro, SectionHead } from "@/components/charte/InstrumentPage";
+import p from "@/components/charte/page.module.css";
 import type { SourceNormative, SourceTheme } from "@/lib/canonical-model";
-import { computeScope, countRegistry } from "@/lib/referentiel/view-model";
-import { DD, ME, MONO, plexMono } from "./fonts";
+import { plural } from "@/lib/synthese-view/common";
+import {
+  SEUILS_FAMILY,
+  SEUILS_FAMILY_LABEL,
+  computeScope,
+  countRegistry,
+  registryLabel,
+  selectRegistry,
+} from "@/lib/referentiel/view-model";
 import { LibrarySection, type LibraryVariant } from "./LibrarySection";
-import { StrataScene } from "./StrataScene";
 import type { Registry } from "./themes";
-import "./referentiel.css";
+import { YearFrieze } from "./YearFrieze";
+import x from "./referentiel.module.css";
 
 export interface SeuilParam {
   label: string;
   value: string;
+  /** Ce que règle le paramètre (repris des commentaires de `SEUILS_INTERNES`). */
+  detail?: string;
 }
 
+const VARIANTS: readonly { key: LibraryVariant; label: string }[] = [
+  { key: "recueil", label: "liste" },
+  { key: "marginalia", label: "par texte" },
+];
+
 /**
- * Page Référentiel : bibliothèque normative (et non tableau de bord de KPI).
- * Orchestrateur client — possède l'état de filtre unique (recherche, thème,
- * registre, millésime) partagé par l'omnibox, les strates, l'index et la liste.
+ * Page « Seuils & référentiel » (écran 08) : les seuils internes PROBANT, puis la bibliothèque des sources normatives
+ * versionnées. Orchestrateur client — possède l'état de filtre unique (recherche, famille, thème, millésime) partagé
+ * par la frise, l'index et la liste. Toutes les valeurs affichées viennent du registre et du modèle de vue.
  */
 export function ReferentielWorkspace({
   sources,
@@ -26,7 +43,6 @@ export function ReferentielWorkspace({
   versionDetail,
   libraryVariant = "recueil",
   clampCitations = true,
-  showStrata = true,
 }: {
   sources: SourceNormative[];
   seuils: SeuilParam[];
@@ -35,14 +51,13 @@ export function ReferentielWorkspace({
   versionDetail: string;
   libraryVariant?: LibraryVariant;
   clampCitations?: boolean;
-  showStrata?: boolean;
 }) {
   const [query, setQuery] = useState("");
   const [theme, setTheme] = useState<SourceTheme | "all">("all");
   const [year, setYear] = useState<string | null>(null);
   const [registry, setRegistry] = useState<Registry | "all">("all");
-  const [hoverYear, setHoverYear] = useState<string | null>(null);
-  const [variant, setVariant] = useState<LibraryVariant | null>(null);
+  const [peekYear, setPeekYear] = useState<string | null>(null);
+  const [variant, setVariant] = useState<LibraryVariant>(libraryVariant);
   const [noteOpen, setNoteOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -51,8 +66,6 @@ export function ReferentielWorkspace({
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         searchRef.current?.focus();
-      } else if (e.key === "Escape") {
-        setQuery((q) => (q ? "" : q));
       }
     };
     window.addEventListener("keydown", onKey);
@@ -65,8 +78,9 @@ export function ReferentielWorkspace({
   const total = sources.length;
   const droitDur = countRegistry(sources, "droit-dur");
   const methode = countRegistry(sources, "methode");
-  const hasQuery = query.length > 0;
-  const activeVariant = variant ?? libraryVariant;
+  const q = query.trim();
+  const filtered = scope.filtered.length;
+  const isFiltered = q !== "" || theme !== "all" || year !== null || registry !== "all";
 
   const reset = () => {
     setQuery("");
@@ -75,291 +89,180 @@ export function ReferentielWorkspace({
     setRegistry("all");
   };
 
+  const chooseRegistry = (r: Registry | "all") => {
+    // Recliquer la famille active revient à « toutes ». Les règles de `selectRegistry` sont aussi celles des comptes.
+    const next = selectRegistry(theme, registry === r ? "all" : r);
+    setRegistry(next.registry);
+    setTheme(next.theme);
+  };
+
+  const status = q
+    ? `${filtered} ${plural(filtered, "résultat")} pour « ${q} »`
+    : `${filtered} ${plural(filtered, "entrée")}${isFiltered ? ` sur ${total}` : ""}`;
+
   return (
-    <div
-      className={`rf-root ${plexMono.variable}`}
-      style={{ fontFamily: "var(--font-sans), Inter, sans-serif", minHeight: "100%" }}
-    >
-      <div className="rf-wrap" style={{ maxWidth: 1200, margin: "0 auto", padding: "40px 32px 64px" }}>
-        <section style={{ animation: "rfRise .45s ease-out both" }}>
-          <div style={{ display: "flex", alignItems: "baseline", flexWrap: "wrap", gap: 14 }}>
-            <h2
-              className="rf-h2"
-              style={{
-                margin: 0,
-                fontSize: 34,
-                fontWeight: 700,
-                lineHeight: 1.1,
-                letterSpacing: "-.025em",
-                color: "#e6edf6",
-              }}
-            >
-              Référentiel normatif
-            </h2>
-            <span
-              title={versionDetail}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 7,
-                borderRadius: 999,
-                border: "1px solid #324563",
-                background: "#161d2b",
-                padding: "5px 11px",
-                fontFamily: MONO,
-                fontSize: 12,
-                letterSpacing: ".02em",
-                color: "#c7d3e4",
-                cursor: "help",
-              }}
-            >
-              <span style={{ height: 6, width: 6, borderRadius: 999, background: DD }} />{version}
-            </span>
-          </div>
-          <p
-            style={{
-              margin: "14px 0 0",
-              maxWidth: "66ch",
-              fontSize: 16,
-              lineHeight: 1.62,
-              color: "#a9b6c9",
-              textWrap: "pretty",
-              animation: "rfRise .45s ease-out .07s both",
-            }}
-          >
-            <span
-              title={`Sources normatives du référentiel ${version}`}
-              style={{ fontFamily: MONO, fontSize: 16, fontWeight: 600, color: "#e6edf6", cursor: "help" }}
-            >
-              {total}
-            </span>{" "}
-            sources versionnées fondent les contrôles PROBANT :{" "}
-            <span
-              title="Textes opposables en mission — LPF, PCG, Code de commerce, CGI"
-              style={{ fontFamily: MONO, fontSize: 16, fontWeight: 600, color: DD, cursor: "help" }}
-            >
-              {droitDur}
-            </span>{" "}
-            textes de droit dur opposables en mission,{" "}
-            <span
-              title="Normes d'exercice professionnel et méthode interne — non opposables"
-              style={{ fontFamily: MONO, fontSize: 16, fontWeight: 600, color: ME, cursor: "help" }}
-            >
-              {methode}
-            </span>{" "}
-            règles de méthode interne.
-          </p>
-          <div style={{ marginTop: 18, maxWidth: "76ch", animation: "rfRise .45s ease-out .14s both" }}>
-            <p style={{ margin: 0, fontSize: 12.5, lineHeight: 1.6, color: "#6d7d94" }}>
-              Les citations sont des paraphrases destinées à l&apos;affichage et ne se substituent pas au texte
-              officiel opposable.
-              <button
-                type="button"
-                className="rf-note-btn"
-                aria-expanded={noteOpen}
-                onClick={() => setNoteOpen((o) => !o)}
-                style={{
-                  marginLeft: 4,
-                  padding: 0,
-                  border: 0,
-                  background: "none",
-                  fontFamily: "inherit",
-                  fontSize: 12.5,
-                  color: "#8a99af",
-                  textDecoration: "underline",
-                  textDecorationColor: "#3a4759",
-                  textUnderlineOffset: 3,
-                  cursor: "pointer",
-                }}
-              >
-                {noteOpen ? "Réduire ↑" : "En savoir plus ↓"}
-              </button>
-            </p>
-            {noteOpen && (
-              <p
-                style={{
-                  margin: "8px 0 0",
-                  borderLeft: "2px solid #2c3a50",
-                  paddingLeft: 12,
-                  fontSize: 12.5,
-                  lineHeight: 1.65,
-                  color: "#6d7d94",
-                  animation: "rfFade .2s ease both",
-                }}
-              >
-                Les seuils chiffrés externes (catégories d&apos;entreprises, nomination CAC…) doivent être
-                confrontés au Code de commerce et à ses décrets avant mise en production.
-                <span style={{ display: "block", marginTop: 8 }}>{versionDetail}</span>
-              </p>
-            )}
-          </div>
-        </section>
-
-        <section style={{ marginTop: 36, animation: "rfRise .45s ease-out .21s both" }}>
-          <div
-            className="rf-search"
-            style={{
-              position: "relative",
-              display: "flex",
-              alignItems: "center",
-              gap: 14,
-              height: 56,
-              borderRadius: 14,
-              border: "1px solid #243044",
-              background: "#161d2b",
-              padding: "0 16px",
-              transition: "border-color .15s ease, box-shadow .15s ease",
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              style={{ flexShrink: 0, color: "#6d7d94" }}
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              aria-hidden="true"
-            >
-              <circle cx="11" cy="11" r="8" />
-              <path d="m21 21-4.3-4.3" />
-            </svg>
-            <input
-              ref={searchRef}
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Rechercher un article, un thème, un mot-clé…"
-              aria-label="Rechercher dans le référentiel"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                height: "100%",
-                border: 0,
-                background: "none",
-                outline: "none",
-                fontFamily: "var(--font-sans), Inter, sans-serif",
-                fontSize: 15,
-                color: "#e6edf6",
-              }}
-            />
-            {hasQuery && (
-              <button
-                type="button"
-                className="rf-clear"
-                onClick={() => setQuery("")}
-                style={{
-                  flexShrink: 0,
-                  border: 0,
-                  background: "none",
-                  padding: 4,
-                  fontFamily: "inherit",
-                  fontSize: 11,
-                  color: "#8a99af",
-                  cursor: "pointer",
-                }}
-              >
-                effacer ×
-              </button>
-            )}
-            <span
-              className="rf-kbd"
-              style={{
-                flexShrink: 0,
-                borderRadius: 6,
-                border: "1px solid #2c3a50",
-                background: "#1d2738",
-                padding: "3px 7px",
-                fontFamily: MONO,
-                fontSize: 11,
-                color: "#8a99af",
-              }}
-            >
-              ⌘K
-            </span>
-          </div>
-
-          {hasQuery && (
-            <div
-              role="status"
-              style={{
-                marginTop: 14,
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                animation: "rfFade .2s ease both",
-              }}
-            >
-              <span style={{ fontFamily: MONO, fontSize: 13, fontWeight: 600, color: "#e6edf6" }}>
-                {scope.searched.length}
-              </span>
-              <span style={{ fontSize: 13, color: "#8a99af" }}>
-                {`${scope.searched.length > 1 ? "résultats pour « " : "résultat pour « "}${query.trim()} »`}
-              </span>
+    <InstrumentPage>
+      <PageIntro
+        index="08"
+        title="Seuils & référentiel"
+        lead={
+          <>
+            <strong>{total}</strong> {plural(total, "source versionnée", "sources versionnées")} fondent les contrôles
+            PROBANT, dont <strong>{droitDur}</strong>{" "}
+            {plural(droitDur, "texte de droit dur opposable", "textes de droit dur opposables")} et{" "}
+            <strong>{methode}</strong> {plural(methode, "norme de méthode d’audit", "normes de méthode d’audit")}.{" "}
+            <strong>{seuils.length}</strong> {plural(seuils.length, "seuil interne", "seuils internes")}, non
+            opposables, hiérarchisent la vigilance.
+          </>
+        }
+        aside={
+          <dl className={`${p.readouts} ${x.edition}`}>
+            <div>
+              <dt>Édition du registre</dt>
+              <dd>{version}</dd>
+              <dd>{versionDetail}</dd>
             </div>
-          )}
-        </section>
+          </dl>
+        }
+      />
 
-        {showStrata && !query && (
-          <StrataScene
-            sources={sources}
-            year={year}
-            hoverYear={hoverYear}
-            onHover={setHoverYear}
-            onToggleYear={(y) => setYear((prev) => (prev === y ? null : y))}
-          />
-        )}
+      <div className={x.caveat}>
+        <p className={x.caveatText}>
+          Les citations sont des paraphrases destinées à l’affichage et ne se substituent pas au texte officiel
+          opposable.
+        </p>
+        <button
+          type="button"
+          className={x.disclosure}
+          aria-expanded={noteOpen}
+          aria-controls="rf-caveat-more"
+          onClick={() => setNoteOpen((o) => !o)}
+        >
+          {noteOpen ? "Réduire" : "En savoir plus"}
+        </button>
+      </div>
+      <p id="rf-caveat-more" className={x.caveatMore} hidden={!noteOpen}>
+        Les seuils chiffrés externes (catégories d’entreprises, nomination CAC…) doivent être confrontés au Code de
+        commerce et à ses décrets avant mise en production.
+      </p>
 
-        <LibrarySection
-          sources={sources}
-          filters={filters}
-          scope={scope}
-          variant={activeVariant}
-          clampDefault={clampCitations}
-          version={version}
-          onTheme={setTheme}
-          onRegistry={(r) => {
-            setRegistry((prev) => (prev === r ? "all" : r));
-            setTheme("all");
-          }}
-          onClearYear={() => setYear(null)}
-          onVariant={setVariant}
-          onReset={reset}
+      <section aria-labelledby="rf-seuils" className={p.section}>
+        <SectionHead
+          id="rf-seuils"
+          numeral="I"
+          title="Seuils internes"
+          note={
+            <span className={x.familyNote}>
+              <FamilyRule family={SEUILS_FAMILY} />
+              {SEUILS_FAMILY_LABEL}
+            </span>
+          }
+        />
+        <p className={x.sectionLead}>
+          Paramètres propres à PROBANT, versionnés avec le registre ({version}) : ils hiérarchisent la vigilance, ne
+          fondent aucun constat. Ce ne sont pas des seuils réglementaires.
+        </p>
+        <table className={`${p.register} ${x.seuils}`}>
+          <thead>
+            <tr>
+              <th scope="col">Paramètre</th>
+              <th scope="col" className={p.num}>
+                Valeur
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {seuils.map((s) => (
+              <tr key={s.label}>
+                <th scope="row">
+                  <span className={x.seuilLabel}>{s.label}</span>
+                  {s.detail && <span className={x.seuilDetail}>{s.detail}</span>}
+                </th>
+                <td className={p.num}>{s.value}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </section>
+
+      <section aria-labelledby="rf-sources" className={p.section}>
+        <SectionHead
+          id="rf-sources"
+          numeral="II"
+          title="Sources normatives"
+          note={`${droitDur} ${registryLabel("droit-dur").toLowerCase()} · ${methode} ${registryLabel("methode").toLowerCase()}`}
         />
 
-        <section
-          style={{ marginTop: 56, borderTop: "1px solid rgba(230,237,246,.08)", paddingTop: 20 }}
-        >
-          <div style={{ display: "flex", alignItems: "baseline", gap: 10 }}>
-            <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 600, color: "#a9b6c9" }}>
-              Paramètres internes PROBANT
-            </h3>
-            <span style={{ fontSize: 11, color: "#6d7d94" }}>
-              non opposables — hiérarchisent la vigilance, ne fondent aucun constat
+        <YearFrieze
+          sources={sources}
+          year={year}
+          peekYear={peekYear}
+          onPeek={setPeekYear}
+          onToggleYear={(y) => setYear((prev) => (prev === y ? null : y))}
+          onClearYear={() => setYear(null)}
+        />
+
+        <div className={`${p.toolbar} ${x.toolbar}`}>
+          <label className={`${p.field} ${x.search}`}>
+            <span className={p.key}>Rechercher</span>
+            <input
+              ref={searchRef}
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape" && query) {
+                  e.preventDefault();
+                  setQuery("");
+                }
+              }}
+              placeholder="article, thème, mot-clé, date"
+              aria-keyshortcuts="Control+K Meta+K"
+              aria-describedby="rf-search-hint"
+            />
+          </label>
+          <kbd id="rf-search-hint" className={x.kbd}>
+            <span aria-hidden="true">Ctrl K · ⌘K</span>
+            <span className={x.srOnly}>Ctrl+K ou Cmd+K place le curseur dans la recherche ; Échap l’efface.</span>
+          </kbd>
+          <span className={p.toggleGroup} role="group" aria-label="Lecture">
+            <span className={p.key} aria-hidden="true">
+              Lecture
             </span>
-          </div>
-          <div style={{ marginTop: 14, display: "flex", flexWrap: "wrap", gap: "10px 32px" }}>
-            {seuils.map((p) => (
-              <div key={p.label} style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-                <span style={{ fontSize: 11.5, color: "#6d7d94" }}>{p.label}</span>
-                <span
-                  style={{
-                    fontFamily: MONO,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    color: "#c7d3e4",
-                    fontVariantNumeric: "tabular-nums",
-                  }}
-                >
-                  {p.value}
-                </span>
-              </div>
+            {VARIANTS.map((v) => (
+              <button
+                key={v.key}
+                type="button"
+                className={`${p.toggle} ${x.toggle}`}
+                aria-pressed={variant === v.key}
+                onClick={() => setVariant(v.key)}
+              >
+                {v.label}
+              </button>
             ))}
-          </div>
-        </section>
-      </div>
-    </div>
+          </span>
+          <span className={`${p.toolbarEnd} ${x.count}`} role="status" aria-live="polite">
+            {status}
+          </span>
+          {isFiltered && (
+            <button type="button" className={p.btnQuiet} onClick={reset}>
+              Réinitialiser
+            </button>
+          )}
+        </div>
+
+        <LibrarySection
+          filters={filters}
+          scope={scope}
+          total={total}
+          version={version}
+          variant={variant}
+          clampDefault={clampCitations}
+          onTheme={setTheme}
+          onRegistry={chooseRegistry}
+          onReset={reset}
+        />
+      </section>
+    </InstrumentPage>
   );
 }

@@ -2,7 +2,8 @@ import path from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * Uniformisation à la charte — Cartographie, Revue par cloison, Fiscalité, Dossier & preuve, Tests complémentaires.
+ * Uniformisation à la charte — Dépôt & ingestion, Cartographie, Revue par cloison, Fiscalité, Dossier & preuve,
+ * Tests complémentaires, Seuils & référentiel.
  *
  * Recette sur le build de production, dossier DEMO SA, aux trois largeurs de référence : le titre de page est rendu
  * dans l'ambiance « instruments » (attribut `data-ambiance` et police Newsreader), aucune carte n'introduit de
@@ -12,11 +13,13 @@ import { expect, test, type Page } from "@playwright/test";
 const WIDTHS = [1440, 1024, 390] as const;
 
 const PAGES = [
+  { name: "depot", path: "/dashboard/depot", title: "Dépôt & ingestion" },
   { name: "risques", path: "/dashboard/risques", title: "Cartographie des risques" },
   { name: "cloisons", path: "/dashboard/cloisons", title: "Revue par cloison" },
   { name: "fiscalite", path: "/dashboard/fiscalite", title: "Fiscalité" },
   { name: "dossier", path: "/dashboard/dossier", title: "Dossier & preuve" },
   { name: "tests", path: "/dashboard/tests", title: "Tests complémentaires" },
+  { name: "referentiel", path: "/dashboard/referentiel", title: "Seuils & référentiel" },
 ] as const;
 
 async function open(page: Page, route: string, title: string) {
