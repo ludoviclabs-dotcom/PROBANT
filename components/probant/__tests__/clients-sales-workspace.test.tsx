@@ -5,6 +5,10 @@ import { ClientFramingWorkspace } from "../ClientFramingWorkspace";
 import { receivablesPresentationFixture } from "./client-receivables-fixture";
 import type { WorkpaperRun } from "@/lib/workpapers/model";
 import type { ClientsSalesDraft, ClientsSalesResult } from "@/lib/workpapers/clients-sales";
+// Hôte chargé rendu déterministe (échec CI du 31/10/2026) : le Scheduler de React (setImmediate sous Node) attend
+// 30 ms, plus que la requête de findBy avant son drain setTimeout(0). Les effets passifs du rendu asynchrone sont donc
+// encore en attente au premier clic : une resynchronisation du brouillon par effet écraserait ce clic.
+vi.hoisted(() => { globalThis.setImmediate = ((callback: (...args: unknown[]) => void, ...args: unknown[]) => setTimeout(callback, 30, ...args)) as unknown as typeof setImmediate; });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 function concurrent(seed: WorkpaperRun): WorkpaperRun { const amount = { amount: "200.00", currency: "EUR" as const }, value = seed.result!.result as ClientsSalesResult; return { ...seed, version: 7, clientsWork: { ...seed.clientsWork!, allocations: seed.clientsWork!.allocations.map(a => ({ ...a, amount })) }, result: { ...seed.result!, result: { ...value, allocations: value.allocations.map(a => ({ ...a, amount })), rows: value.rows.map(r => ({ ...r, subsequentPayments: amount, dueAtReview: { amount: "800.00", currency: "EUR" } })) } }, events: [{ id: "server-event-7", actorId: "actual-preparer", action: "configured_and_executed", at: "2025-03-01T12:10:00Z", version: 7 }] }; }
 function mount() {

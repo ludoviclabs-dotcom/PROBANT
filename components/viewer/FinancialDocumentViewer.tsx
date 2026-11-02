@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import type {
   AnnotatedDocument,
   Severity,
@@ -109,11 +110,8 @@ export function FinancialDocumentViewer({
   }
 
   return (
-    <div
-      data-pb-print
-      className="overflow-hidden rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)]"
-      style={{ animation: "pb-fade-in 0.3s ease-out" }}
-    >
+    // Le cadre (plan, filet) est posé par la page hôte : la revue par cloison l'entoure de son propre conteneur.
+    <div data-pb-print className="min-w-0">
       <DocumentToolbar
         docs={docs}
         activeId={doc.id}
@@ -150,14 +148,21 @@ export function FinancialDocumentViewer({
         )}
       </div>
 
-      <FindingDrawer
-        finding={selected}
-        statut={selected ? decisions[selected.id] : undefined}
-        onClose={() => setSelectedId(null)}
-        onDecision={(id, statut) =>
-          setDecisions((prev) => ({ ...prev, [id]: statut }))
-        }
-      />
+      {/* Tiroir rendu dans document.body : la page hôte pose `container-type` (confinement de mise en page),
+          qui ferait d'elle le bloc conteneur d'un élément `position: fixed`. */}
+      {selected && typeof document !== "undefined"
+        ? createPortal(
+            <FindingDrawer
+              finding={selected}
+              statut={decisions[selected.id]}
+              onClose={() => setSelectedId(null)}
+              onDecision={(id, statut) =>
+                setDecisions((prev) => ({ ...prev, [id]: statut }))
+              }
+            />,
+            document.body,
+          )
+        : null}
     </div>
   );
 }

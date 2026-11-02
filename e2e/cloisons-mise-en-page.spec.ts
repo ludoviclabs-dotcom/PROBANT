@@ -177,9 +177,10 @@ for (const width of [1440, 1024, 768, 390] as const) {
     test("filtres ouverts : le menu reste dans la fenêtre", async ({ page }) => {
       test.skip(PHASE === "avant", "relevé avant le lot : sonde ponctuelle, voir le handoff");
       await openCloisons(page);
-      for (const label of ["Sévérité", "Statut", "Nature"]) {
+      for (const label of ["Gravité", "Statut", "Nature"]) {
         await page.getByRole("button", { name: new RegExp(`^${label}`) }).click();
-        const firstItem = { Sévérité: "Bloquant", Statut: "En attente", Nature: "Obligatoire" }[label]!;
+        // Libellés de famille du modèle (charte) : « Droit dur » remplace « Obligatoire » ; le filtre s'appelle « Gravité ».
+        const firstItem = { Gravité: "Bloquant", Statut: "En attente", Nature: "Droit dur" }[label]!;
         await expect(page.getByRole("button", { name: firstItem, exact: true })).toBeVisible();
         const layout = await measure(page);
         expect(layout.document.scrollWidth, `${label} ouvert : débordement du document`).toBeLessThanOrEqual(layout.document.clientWidth);

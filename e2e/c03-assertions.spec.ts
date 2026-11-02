@@ -80,6 +80,8 @@ for (const width of [1440, 1024, 390] as const) {
       await page.goto("/dashboard/tests");
       await expect(page.getByRole("heading", { name: "Régime de la mission et période" })).toBeVisible();
       await expect(page.getByText(/Exercice 2024/).first()).toBeVisible();
+      // Lecture par défaut : un constat à la fois. « tout dérouler » met toutes les réponses dans la page.
+      await page.getByRole("button", { name: "tout dérouler" }).click();
       const litigieuse = page.getByRole("article").filter({ hasText: "Créance litigieuse échue non dépréciée" });
       await expect(litigieuse).toContainText("Revue de recouvrabilité documentée");
       await expect(litigieuse).toContainText("Évaluation et imputation");

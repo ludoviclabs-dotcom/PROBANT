@@ -1,0 +1,1637 @@
+/*
+  Cockpit fiscalité — ambiance « instruments » (charte v1). Complète le socle commun
+  `components/charte/page.module.css` sans le modifier : filets de 1 px (2 px pour une rupture), rayons 0 / 2 px,
+  aucune ombre portée, aucun lavis dégradé, aucun halo. Les statuts sont dits par une forme ET un mot ; la teinte
+  n'est qu'un renfort (signal). Chiffres en IBM Plex Mono, titres en Newsreader, interface en Geist.
+  Mise en page : requêtes de conteneur sur `.page` (InstrumentPage) — 390 / 1024 / 1440 px.
+*/
+
+/* ── Atomes ──────────────────────────────────────────────────────────────── */
+
+.mono {
+  font-family: var(--pb-font-mono);
+}
+
+.monoSmall {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.block {
+  display: block;
+}
+
+.breakAll {
+  word-break: break-all;
+}
+
+.right {
+  text-align: right;
+}
+
+.glyph {
+  flex-shrink: 0;
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.empty {
+  margin: 20px 0 0;
+  font-size: 14px;
+  color: var(--pb-ink-2);
+}
+
+.workspace {
+  position: relative;
+}
+
+/* ── Note « dossier synthétique » (sous l'en-tête) ───────────────────────── */
+
+.synthetic {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+  padding: 10px 0;
+  border-top: 1px dashed var(--pb-rule-strong);
+  border-bottom: 1px dashed var(--pb-rule-strong);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.syntheticLinks {
+  margin-left: auto;
+  color: var(--pb-ink-2);
+}
+
+/* ── Barre de contexte ───────────────────────────────────────────────────── */
+
+.context {
+  position: relative;
+  z-index: 20;
+  background: var(--pb-bg);
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+@media (min-width: 760px) {
+  .context {
+    position: sticky;
+    top: 0;
+  }
+}
+
+.contextRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 20px;
+  min-height: 64px;
+  padding: 10px 0;
+}
+
+.contextPeriod {
+  margin: 0;
+}
+
+.contextYear {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+}
+
+.contextDates {
+  display: block;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+}
+
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.stepper > li {
+  /* Les libellés « sr-only » (position absolue) restent contenus par l'étape. */
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  color: var(--pb-ink-3);
+}
+
+.stepper > li + li::before {
+  content: "";
+  width: 16px;
+  height: 1px;
+  margin: 0 8px;
+  background: var(--pb-rule-strong);
+}
+
+.stepper > li[data-state="done"] {
+  color: var(--pb-ink-2);
+}
+
+.stepper > li[data-state="current"] {
+  color: var(--pb-ink);
+  font-weight: 500;
+}
+
+/* Statut et empreinte forment le groupe de droite de la barre. */
+.headline {
+  position: relative;
+  display: inline-flex;
+  margin-left: auto;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink);
+}
+
+.headlineGlyph {
+  position: relative;
+  display: inline-flex;
+}
+
+/* Statut à traiter : un anneau qui s'élargit trois fois puis s'arrête (animation finie, neutralisée sur demande). */
+.headline[data-attention] .headlineGlyph::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border: 1px solid var(--pb-ink-2);
+  border-radius: 50%;
+  opacity: 0;
+  animation: fxRing 1.6s var(--pb-ease) 0.4s 3 both;
+}
+
+@keyframes fxRing {
+  from {
+    transform: scale(0.6);
+    opacity: 0.9;
+  }
+  to {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.hashButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: none;
+  color: var(--pb-ink-2);
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.hashButton:hover,
+.hashButton[aria-expanded="true"] {
+  border-color: var(--pb-ink);
+  color: var(--pb-ink);
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + 1px);
+  right: 0;
+  z-index: 30;
+  width: min(420px, 100%);
+  box-sizing: border-box;
+  padding: 16px 18px;
+  background: var(--pb-plane-3);
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  animation: fxFade var(--pb-dur-fast) var(--pb-ease) both;
+}
+
+/* Plan 3 : ink-3 y descend sous 4,5:1 ; les libellés du volet passent en ink-2. */
+.popover > p:first-child {
+  color: var(--pb-ink-2);
+}
+
+.popList {
+  display: grid;
+  gap: 10px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.popList dt {
+  color: var(--pb-ink-2);
+}
+
+.popList dd {
+  margin: 2px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink);
+}
+
+.popDetail {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--pb-font-sans);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+}
+
+.popFoot {
+  margin: 12px 0 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+}
+
+.inlineAction {
+  min-height: 32px;
+  margin-left: 10px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font-family: var(--pb-font-sans);
+  font-size: 12px;
+  color: var(--pb-verif);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.inlineAction:hover {
+  color: var(--pb-ink);
+}
+
+/* ── Actes ───────────────────────────────────────────────────────────────── */
+
+.act {
+  padding-top: 64px;
+}
+
+.actLine {
+  margin: 0;
+}
+
+.actLine .actName {
+  font-size: 22px;
+  line-height: 28px;
+  color: var(--pb-ink-2);
+}
+
+.actTitle {
+  margin: 20px 0 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: clamp(24px, 2.4cqw, 30px);
+  line-height: 1.2;
+  text-wrap: balance;
+}
+
+.lede {
+  margin: 8px 0 0;
+  max-width: 80ch;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.lede strong {
+  font-weight: 500;
+  color: var(--pb-ink-2);
+}
+
+/* ── Acte I : verdict, strates, mesures, prochaine action ───────────────── */
+
+.verdictGrid {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 40px 72px;
+  margin-top: 28px;
+}
+
+.verdictMain {
+  flex: 1 1 520px;
+  min-width: 0;
+}
+
+.verdict {
+  margin: 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 380;
+  font-size: clamp(28px, 3.6cqw, 44px);
+  line-height: 1.14;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+.figure {
+  font-family: var(--pb-font-mono);
+  font-weight: 400;
+  font-size: 0.84em;
+  letter-spacing: 0;
+}
+
+.support {
+  margin: 24px 0 0;
+  max-width: 62ch;
+  font-size: 16px;
+  line-height: 26px;
+  color: var(--pb-ink-2);
+  text-wrap: pretty;
+}
+
+.strata {
+  flex: 1 1 300px;
+  max-width: 440px;
+  min-width: 0;
+  margin: 0;
+}
+
+.strataCaption {
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--pb-rule-strong);
+}
+
+.strataList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.strataList > li {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+/* La strate source (FEC) porte l'ensemble : filet fort. */
+.strataList > li[data-base] {
+  border-bottom: 2px solid var(--pb-rule-strong);
+}
+
+.strataLevel {
+  width: 18px;
+  flex-shrink: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-3);
+}
+
+.strataBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.strataDetail {
+  display: block;
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+.strataStatus {
+  display: flex;
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--pb-ink);
+}
+
+.act .ribbon {
+  gap: 0 32px;
+  margin: 48px 0 0;
+}
+
+.act .ribbon > div {
+  flex-basis: 170px;
+}
+
+.ribbon dd {
+  margin: 0;
+}
+
+.metricValue {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  margin: 8px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 30px;
+  line-height: 36px;
+  color: var(--pb-ink);
+}
+
+/* Renfort de teinte : le libellé « Incohérence » dit déjà le statut. */
+.metricValue[data-tone="critical"] {
+  color: var(--pb-signal);
+}
+
+.metricSuffix {
+  font-size: 16px;
+  color: var(--pb-ink-3);
+}
+
+.metricBar {
+  display: flex;
+  flex-basis: 100%;
+  gap: 2px;
+  height: 6px;
+  margin-top: 8px;
+}
+
+.metricBar > [data-part="done"] {
+  background: var(--pb-ink);
+}
+
+.metricBar > [data-part="rest"] {
+  border: 1px solid var(--pb-rule-strong);
+}
+
+.next {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 32px;
+  margin-top: 40px;
+  padding: 24px 0;
+  border-top: 2px solid var(--pb-ink);
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.nextText {
+  flex: 1 1 420px;
+  min-width: 0;
+}
+
+.nextTitle {
+  margin: 8px 0 0;
+  font-family: var(--pb-font-serif);
+  font-size: 26px;
+  line-height: 32px;
+}
+
+.nextSentence {
+  margin: 6px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--pb-ink-2);
+}
+
+/* ── Acte II : pont du résultat ──────────────────────────────────────────── */
+
+.wfBlock {
+  margin-top: 20px;
+}
+
+.blockedNote {
+  margin: 0 0 16px;
+  padding: 12px 16px;
+  max-width: 90ch;
+  border: 1px dashed var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--pb-ink-2);
+}
+
+.wf {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pb-rule-strong);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.wfRow {
+  display: grid;
+  grid-template-columns: minmax(180px, 30%) minmax(80px, 1fr) minmax(120px, auto) minmax(150px, 190px);
+  align-items: center;
+  gap: 0 16px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.wfRow[data-kind="subtotal"],
+.wfRow[data-kind="total"] {
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.wfRow[data-kind="subtotal"] .wfName,
+.wfRow[data-kind="total"] .wfName,
+.wfRow[data-kind="subtotal"] .wfAmount,
+.wfRow[data-kind="total"] .wfAmount {
+  font-weight: 500;
+}
+
+.wfLabel {
+  min-width: 0;
+}
+
+.wfName {
+  display: block;
+}
+
+.wfRow[data-status="unavailable"] .wfName,
+.wfRow[data-empty] .wfName {
+  color: var(--pb-ink-3);
+}
+
+.wfTag {
+  margin-left: 8px;
+  font-size: 12px;
+  color: var(--pb-ink-3);
+}
+
+.wfCaption {
+  display: block;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+}
+
+.wfTrack {
+  position: relative;
+  height: 14px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.wfBar {
+  position: absolute;
+  top: 2px;
+  height: 10px;
+  box-sizing: border-box;
+  transform-origin: left center;
+  animation: fxGrow var(--pb-dur-flow) var(--pb-ease) both;
+}
+
+.wfBar[data-bar="total"] {
+  background: var(--pb-ink);
+}
+
+.wfBar[data-bar="add"] {
+  background: var(--pb-ink-2);
+}
+
+.wfBar[data-bar="subtract"] {
+  border: 1px solid var(--pb-ink-2);
+  transform-origin: right center;
+}
+
+/* Candidat de revue : hachure (motif, pas un lavis), hors cumul. */
+.wfBar[data-bar="candidate"] {
+  border: 1px solid var(--pb-ink-2);
+  background: repeating-linear-gradient(135deg, var(--pb-ink-2) 0 1.5px, transparent 1.5px 4px);
+  animation-name: fxFade;
+}
+
+@keyframes fxGrow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes fxFade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.wfAmount {
+  font-family: var(--pb-font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.wfAmount[data-muted] {
+  color: var(--pb-ink-3);
+}
+
+.wfCumul {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  text-align: right;
+  white-space: nowrap;
+  color: var(--pb-ink-3);
+}
+
+.wfTotals {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 40px;
+  margin-top: 20px;
+}
+
+.totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 40px;
+  margin: 0;
+  flex: 1 1 auto;
+}
+
+.totals > div {
+  flex: 0 1 260px;
+  min-width: 200px;
+  padding: 12px 0;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.totals > div[data-candidate] {
+  border-top-style: dashed;
+}
+
+.totals dd {
+  margin: 4px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 24px;
+  line-height: 30px;
+}
+
+.totals > div[data-candidate] dd {
+  color: var(--pb-ink-2);
+}
+
+/* ── Acte II : bascule d'impôt et détail ─────────────────────────────────── */
+
+.taxSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 48px;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.taxSwitch .taxToggle {
+  min-height: 44px;
+  font-size: 15px;
+}
+
+.panel {
+  margin-top: 24px;
+  animation: fxFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.panelTitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.asideTitle {
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.aside {
+  max-width: 460px;
+}
+
+.reading {
+  margin: 4px 0 0;
+  max-width: 72ch;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.diffReading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-signal);
+}
+
+.tableRegion {
+  margin-top: 16px;
+}
+
+.compareTable {
+  min-width: 560px;
+}
+
+.compareTable tbody tr[data-flag] {
+  background: var(--pb-plane-2);
+}
+
+.compareTable tbody tr[data-flag] > :first-child {
+  padding-left: 10px;
+}
+
+.compareTable tbody tr[data-flag] > :last-child {
+  padding-right: 10px;
+}
+
+.compareTable td[data-muted] {
+  color: var(--pb-ink-3);
+}
+
+.operands {
+  display: block;
+  font-size: 12px;
+  color: var(--pb-ink-3);
+}
+
+.rowDifference {
+  display: block;
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+  white-space: nowrap;
+  color: var(--pb-ink-2);
+}
+
+.rowDifference[data-signal] {
+  color: var(--pb-signal);
+}
+
+.docList {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.docList > li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.callouts {
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.callout {
+  padding: 14px 16px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+}
+
+.callout + .callout {
+  margin-top: 12px;
+}
+
+/* Donnée attendue ou fait à confirmer : tirets, comme le glyphe « donnée manquante ». */
+.callout[data-kind="Fait à confirmer"],
+.callout[data-kind="Donnée attendue"],
+.callout[data-kind="Pièce à fournir"] {
+  border-style: dashed;
+  border-color: var(--pb-ink-2);
+}
+
+.calloutText {
+  margin: 8px 0 0;
+  font-size: 14px;
+  line-height: 22px;
+}
+
+.calloutCode {
+  margin: 6px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.diffList {
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diffList > li {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  font-size: 14px;
+}
+
+.diffStatus {
+  display: block;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.diffAmount {
+  font-family: var(--pb-font-mono);
+  font-size: 20px;
+  line-height: 28px;
+  white-space: nowrap;
+}
+
+.aside2 {
+  margin-top: 20px;
+  padding: 4px 0 4px 16px;
+  border-left: 2px solid var(--pb-rule-strong);
+}
+
+.factList {
+  margin: 16px 0 0;
+  border-top: 1px solid var(--pb-rule-strong);
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.factList > div {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 4px 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.factList dd {
+  margin: 0;
+  white-space: nowrap;
+}
+
+/* ── Sources et méthodologie ─────────────────────────────────────────────── */
+
+.sourcesBlock {
+  margin-top: 12px;
+}
+
+.sourcesPanel {
+  margin-top: 4px;
+  animation: fxFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.methodText {
+  margin: 0;
+  max-width: 90ch;
+  font-size: 13px;
+  line-height: 21px;
+  color: var(--pb-ink-2);
+}
+
+.dataDetails {
+  margin-top: 8px;
+  font-size: 13px;
+}
+
+.dataDetails > summary {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--pb-ink-2);
+  cursor: pointer;
+}
+
+.dataDetails .dataTable {
+  min-width: 480px;
+  font-size: 13px;
+}
+
+.dataTable tbody tr[data-emphasis="critical"] {
+  font-weight: 500;
+}
+
+.dataCaption {
+  padding-bottom: 8px;
+  caption-side: top;
+  text-align: left;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+}
+
+/* ── Acte III : registre impôt × cycle ───────────────────────────────────── */
+
+.matrixTable {
+  min-width: 720px;
+}
+
+.matrixTax {
+  border-right: 0;
+}
+
+.matrixTax abbr {
+  text-decoration: none;
+}
+
+.matrixCycle {
+  white-space: nowrap;
+}
+
+.matrixTotal > th,
+.matrixTotal > td {
+  border-top: 1px solid var(--pb-rule-strong);
+  font-weight: 500;
+}
+
+.matrixTotal > td:last-child {
+  font-weight: 400;
+}
+
+.microbar {
+  display: flex;
+  gap: 1px;
+  width: 120px;
+  height: 6px;
+  margin-top: 7px;
+}
+
+.microbar > span {
+  display: block;
+  box-sizing: border-box;
+  min-width: 2px;
+}
+
+.microbar > [data-outcome="passed"] {
+  background: color-mix(in srgb, var(--pb-ink) 32%, transparent);
+}
+
+.microbar > [data-outcome="reconciliation_difference"],
+.microbar > [data-outcome="confirmed_non_compliance"] {
+  background: var(--pb-signal);
+}
+
+.microbar > [data-outcome="potential_tax_risk"] {
+  border: 1px solid var(--pb-ink);
+  background: repeating-linear-gradient(135deg, var(--pb-ink) 0 1px, transparent 1px 3px);
+}
+
+.microbar > [data-outcome="missing_information"] {
+  border: 1px dashed var(--pb-ink);
+}
+
+.microbar > [data-outcome="inconclusive"],
+.microbar > [data-outcome="review_recommendation"] {
+  background: var(--pb-ink-2);
+}
+
+.breakdown {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--pb-ink-2);
+}
+
+.legend > li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Acte III : lignes à traiter ─────────────────────────────────────────── */
+
+.linesTitle {
+  margin: 48px 0 0;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.filterBar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  min-height: 48px;
+  margin-top: 8px;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.filterBar > :first-child {
+  margin-right: 8px;
+}
+
+.filterBar .filterToggle {
+  min-height: 44px;
+}
+
+.filterCount {
+  margin-left: 6px;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-3);
+}
+
+.filterNote {
+  margin-left: auto;
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+.lines {
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.linesHead,
+.lineRow {
+  display: grid;
+  grid-template-columns: minmax(40px, 56px) minmax(0, 2.2fr) minmax(0, 1.3fr) minmax(0, 2fr) minmax(96px, 140px);
+  gap: 0 16px;
+}
+
+.linesHead {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: var(--pb-ink-3);
+}
+
+.lineRow {
+  align-items: start;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  cursor: pointer;
+}
+
+.lineRow:hover,
+.lineRow[data-active] {
+  background: var(--pb-plane-2);
+}
+
+.lineRow:focus-visible {
+  outline-offset: -2px;
+}
+
+.linesEmpty {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  color: var(--pb-ink-2);
+}
+
+.cTax {
+  color: var(--pb-ink-2);
+}
+
+.cCtrl {
+  min-width: 0;
+}
+
+.controlId {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pb-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.cOut {
+  min-width: 0;
+}
+
+.cRead {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+}
+
+.cAmt {
+  font-family: var(--pb-font-mono);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.cAmt[data-muted] {
+  color: var(--pb-ink-3);
+}
+
+.linesNote {
+  margin: 8px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+/* ── Panneau de détail ───────────────────────────────────────────────────── */
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  width: min(440px, 100%);
+  box-sizing: border-box;
+  background: var(--pb-plane-2);
+  border-left: 1px solid var(--pb-rule-strong);
+  color: var(--pb-ink);
+  font-family: var(--pb-font-sans);
+  font-size: 14px;
+  line-height: 22px;
+  animation: fxSlide 220ms var(--pb-ease) both;
+}
+
+@keyframes fxSlide {
+  from {
+    transform: translateX(32px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+
+.drawerHead {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 24px 24px 16px;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.drawerHead > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.drawerTitle {
+  margin: 6px 0 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: 24px;
+  line-height: 30px;
+  overflow-wrap: anywhere;
+}
+
+.drawerOutcome {
+  margin: 8px 0 0;
+  font-size: 13px;
+}
+
+.drawerClose {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: transparent;
+  color: var(--pb-ink);
+  font-family: var(--pb-font-mono);
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.drawerClose:hover {
+  border-color: var(--pb-ink);
+}
+
+.drawerBody {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+
+.drawerAmount {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.drawerAmountValue {
+  font-family: var(--pb-font-mono);
+  font-size: 24px;
+  line-height: 30px;
+}
+
+.drawerList {
+  margin: 16px 0 0;
+}
+
+.drawerList > div {
+  padding: 12px 0;
+  border-top: 1px solid var(--pb-rule);
+}
+
+.drawerList dd {
+  margin: 4px 0 0;
+  color: var(--pb-ink-2);
+}
+
+.drawerComment {
+  display: block;
+  margin-top: 16px;
+}
+
+.drawerComment .textarea {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 88px;
+  margin-top: 8px;
+  resize: vertical;
+}
+
+.drawerActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.drawerStatus {
+  min-height: 20px;
+  margin: 12px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+/* ── Barre de décision ───────────────────────────────────────────────────── */
+
+.bar {
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  /* Pleine largeur : annule la gouttière de `.content` (InstrumentPage) et le blanc de fin de page. */
+  margin: 64px calc(-1 * clamp(16px, 4.5cqw, 64px)) -96px;
+  padding: 10px clamp(16px, 4.5cqw, 64px);
+  background: var(--pb-plane-2);
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.barReview {
+  display: flex;
+  flex: 1 1 560px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 16px;
+  min-width: 0;
+}
+
+.barSummary {
+  flex: 0 1 150px;
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 16px;
+  color: var(--pb-ink-3);
+  overflow-wrap: anywhere;
+}
+
+.barFields {
+  display: flex;
+  flex: 1 1 420px;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 8px 12px;
+  min-width: 0;
+}
+
+/* Libellé visible au-dessus du champ (capitales mono) : une seule rangée sur grand écran. */
+.barField {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.barComment {
+  flex: 1 1 100px;
+}
+
+.control {
+  min-width: 0;
+  max-width: 220px;
+  min-height: 44px;
+  box-sizing: border-box;
+  padding: 0 10px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-bg);
+  color: var(--pb-ink);
+  font: inherit;
+  font-size: 13px;
+}
+
+.barComment .control {
+  flex: 1;
+  max-width: none;
+}
+
+.fileControl {
+  max-width: 220px;
+  padding: 8px 10px;
+  font-size: 12px;
+}
+
+.barActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.barActions .barToggle {
+  display: none;
+}
+
+.exportRoot {
+  position: relative;
+}
+
+.exportMenu {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 8px);
+  z-index: 30;
+  width: 248px;
+  box-sizing: border-box;
+  padding: 6px;
+  background: var(--pb-plane-3);
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  animation: fxFade var(--pb-dur-fast) var(--pb-ease) both;
+}
+
+.exportItem {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--pb-radius-1);
+  background: transparent;
+  color: var(--pb-ink);
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.exportItem:hover {
+  background: var(--pb-plane-2);
+}
+
+.exportItem:disabled {
+  cursor: progress;
+  color: var(--pb-ink-3);
+}
+
+.exportStatus {
+  min-height: 18px;
+  margin: 6px 10px 4px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-2);
+}
+
+.exportStatus[data-message] {
+  font-family: var(--pb-font-mono);
+  overflow-wrap: anywhere;
+}
+
+/* ── Largeurs étroites (conteneur `.page` < 640 px, soit ~390 px d'écran) ──── */
+
+@container (max-width: 639px) {
+  .stepper > li + li::before {
+    width: 12px;
+    margin: 0 6px;
+  }
+
+  .syntheticLinks {
+    margin-left: 0;
+  }
+
+  .verdictGrid {
+    gap: 32px;
+  }
+
+  .act .ribbon {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+
+  .metricValue {
+    font-size: 26px;
+    line-height: 32px;
+  }
+
+  .next {
+    gap: 16px;
+  }
+
+  .wfRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "label amount"
+      "track track"
+      "cumul cumul";
+    gap: 6px 12px;
+  }
+
+  .wfLabel {
+    grid-area: label;
+  }
+
+  .wfTrack {
+    grid-area: track;
+  }
+
+  .wfAmount {
+    grid-area: amount;
+  }
+
+  .wfCumul {
+    grid-area: cumul;
+    text-align: left;
+  }
+
+  .totals > div {
+    flex-basis: 100%;
+  }
+
+  .totals dd {
+    font-size: 22px;
+  }
+
+  .filterNote {
+    margin-left: 0;
+    flex-basis: 100%;
+    padding-bottom: 8px;
+  }
+
+  .linesHead {
+    display: none;
+  }
+
+  .lineRow {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "ctrl ctrl"
+      "tax out"
+      "read read"
+      "amt amt";
+    gap: 6px 12px;
+  }
+
+  .cTax {
+    grid-area: tax;
+  }
+
+  .cCtrl {
+    grid-area: ctrl;
+  }
+
+  .cOut {
+    grid-area: out;
+    justify-self: end;
+  }
+
+  .cRead {
+    grid-area: read;
+  }
+
+  .cAmt {
+    grid-area: amt;
+    text-align: left;
+  }
+
+  .bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+
+  .barReview {
+    flex-basis: auto;
+  }
+
+  .barFields {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .barField {
+    display: flex;
+  }
+
+  .control {
+    max-width: none;
+    width: 100%;
+  }
+
+  .barActions {
+    margin-left: 0;
+  }
+
+  .barSave {
+    flex: 1;
+  }
+}
+
+/* Libellé court du bouton principal tant que la barre ne tient pas sur une rangée (nom accessible complet). */
+@container (max-width: 1199px) {
+  .barSave .hideNarrow {
+    display: none;
+  }
+}
+
+/* Jusqu'à ≈ 1024 px d'écran, la barre reste sur une rangée : « Revue » déplie les champs (la prochaine action les
+   déplie aussi) et le résumé au repos s'efface ; il revient dès qu'un enregistrement ou un message l'alimente. */
+@container (max-width: 999px) {
+  .barSummary[data-idle="true"] {
+    display: none;
+  }
+
+  .barFields {
+    display: none;
+  }
+
+  .bar[data-open="true"] .barFields {
+    display: flex;
+  }
+
+  .barActions .barToggle {
+    display: inline-flex;
+  }
+}
+
+/* ── En-tête de page : action principale à droite ────────────────────────── */
+
+/* Calée à droite seulement quand l'en-tête tient sur une rangée (sinon elle passe sous le chapeau, à gauche). */
+@container (min-width: 1180px) {
+  .introCta {
+    float: right;
+  }
+}

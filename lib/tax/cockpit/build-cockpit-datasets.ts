@@ -619,6 +619,7 @@ function reconciliationBars(rows: readonly UnifiedReconciliationRow[]): TaxCompa
     ];
     return {
       id: row.id,
+      lineKey: row.lineKey,
       label: row.label,
       values: [
         { key: "left", label: leftLabel, amountCents: row.leftCents },
@@ -697,6 +698,7 @@ function buildVatReconciliation(
           row.theoreticalCents === null || row.accountedCents === null || row.declaredCents === null;
         return {
           id: row.key,
+          lineKey: null,
           label: row.label,
           values: [
             { key: "theoretical", label: "Théorique", amountCents: row.theoreticalCents },
@@ -1165,6 +1167,7 @@ function buildFindings(
     outcomeByRowId[line.id] = outcome;
     details[line.id] = {
       controlId: null,
+      lineKey: line.lineKey,
       taxLabel: TAX_TYPE_LABEL[line.taxType],
       reading: TAX_OUTCOME_WORDING[outcome],
       amountDisplay:
@@ -1211,6 +1214,7 @@ function buildFindings(
     outcomeByRowId[control.id] = control.outcome;
     details[control.id] = {
       controlId: control.controlId,
+      lineKey: null,
       taxLabel: TAX_TYPE_LABEL[control.taxType],
       reading: control.detail,
       amountDisplay: control.differenceCents === null ? "—" : formatCents(control.differenceCents),

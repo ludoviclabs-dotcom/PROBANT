@@ -1,15 +1,12 @@
 "use client";
 
 /**
- * Orchestrateur client du cockpit fiscalité — refonte « cabinet d'audit »
- * (maquette Claude Design `Fiscalite Refonte`).
+ * Orchestrateur client du cockpit fiscalité — charte « instruments ».
  *
- * Récit en trois actes + décision : barre de contexte sticky, Acte I (le
- * verdict), Acte II (le calcul, waterfall pleine largeur + sélecteur d'impôt),
- * Acte III (couverture et lignes à traiter, tiroir de détail), barre de
- * décision sticky en bas. Les datasets sont pré-construits côté serveur pour
- * chaque périmètre ; ce composant ne fait que choisir, afficher et synchroniser
- * les filtres à l'URL (`?impot=`, `?statut=`) — aucun calcul métier ici.
+ * Barre de contexte (collante dès 760 px), trois actes (le verdict, le calcul, l'exposition), panneau de détail
+ * et barre de décision collante en bas. Les datasets sont pré-construits côté serveur pour chaque périmètre ; ce
+ * composant ne fait que choisir, afficher et synchroniser les filtres à l'URL (`?impot=`, `?statut=`) — aucun
+ * calcul métier ici. La racine `data-ambiance` et les polices sont posées par la page (`InstrumentPage`).
  */
 
 import { useCallback, useRef, useState } from "react";
@@ -19,7 +16,6 @@ import {
   type TaxCockpitScope,
   type TaxCockpitSource,
 } from "@/lib/tax/cockpit";
-import { BODY, C, FONT_CLASSES } from "./fiscal-style";
 import { TaxCalculation, type CalculationScope } from "./TaxCalculation";
 import { TaxContextBar } from "./TaxContextBar";
 import { TaxDecisionBar } from "./TaxDecisionBar";
@@ -27,7 +23,7 @@ import { TaxExposure } from "./TaxExposure";
 import { TaxFindingDrawer } from "./TaxFindingDrawer";
 import { TaxVerdict } from "./TaxVerdict";
 import { useTaxReviewSession } from "./useTaxReviewSession";
-import "./fiscalite.css";
+import x from "./fiscalite.module.css";
 
 function writeUrl(scope: CalculationScope | null, outcome: string) {
   if (typeof window === "undefined") return;
@@ -44,13 +40,11 @@ export function TaxCockpitWorkspace({
   initialScope,
   initialOutcome,
   evidenceSource,
-  show3d = true,
 }: {
   bundles: Readonly<Record<TaxCockpitScope, TaxCockpitDatasets>>;
   initialScope: TaxCockpitScope;
   initialOutcome: string;
   evidenceSource?: TaxCockpitSource;
-  show3d?: boolean;
 }) {
   const all = bundles.all;
   const [scope, setScope] = useState<CalculationScope>(
@@ -107,18 +101,10 @@ export function TaxCockpitWorkspace({
   const drawerDetail = drawerRowId ? all.findings.details[drawerRowId] : undefined;
 
   return (
-    <div
-      className={`fx-root ${FONT_CLASSES}`}
-      style={{ fontFamily: BODY, background: C.bg, color: C.text, minHeight: "100%" }}
-    >
+    <div className={x.workspace}>
       <TaxContextBar summary={all.summary} steps={steps} />
 
-      <TaxVerdict
-        datasets={all}
-        steps={steps}
-        show3d={show3d}
-        onTreatNextAction={evidenceSource ? treatNextAction : undefined}
-      />
+      <TaxVerdict datasets={all} onTreatNextAction={evidenceSource ? treatNextAction : undefined} />
 
       <TaxCalculation bundles={bundles} scope={scope} onScopeChange={changeScope} />
 

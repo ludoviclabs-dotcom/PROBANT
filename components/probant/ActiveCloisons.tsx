@@ -26,6 +26,7 @@ export function ActiveCloisons() {
       meta={meta}
       scenario={snapshot.calculationContext.scenarioMeta ?? null}
       exposure={exposure}
+      horsCloison={activeDossier.admissibilite.length}
     />
   );
 }

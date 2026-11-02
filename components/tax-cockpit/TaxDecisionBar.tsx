@@ -1,21 +1,20 @@
 "use client";
 
 /**
- * Acte IV — la décision : barre sticky en bas de page. À gauche le résumé de
- * la chaîne append-only, au centre le constat + l'action + le commentaire, à
- * droite le menu « Exporter » (tous les exports du dossier de preuve) et le
- * bouton primaire « Enregistrer la revue fiscale ». Comportement identique à
- * l'ancien panneau de revue et à l'ancienne barre d'export.
+ * La décision : barre collante en bas de page (plan 2, filet fort). À gauche le résumé de la chaîne append-only,
+ * au centre le constat, l'action et le commentaire, à droite le menu « Exporter » (tous les exports du dossier de
+ * preuve) et le bouton primaire « Enregistrer la revue fiscale ». Logique inchangée : seul l'habillage suit la
+ * charte (filets, rayons 2 px, aucune ombre, cibles de 44 px). Sous 760 px, « Revue » déplie les champs.
  */
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
-import { ChevronUp } from "lucide-react";
 import type { ReviewEventAction } from "@/lib/canonical-model";
 import { buildTaxEvidenceExportPackage, verifyTaxEvidenceExportPackage } from "@/lib/evidence/tax-package";
 import type { TaxEvidenceExportPackage } from "@/lib/evidence/tax-types";
 import type { TaxCockpitSource } from "@/lib/tax/cockpit";
-import { BODY, C, MONO } from "./fiscal-style";
+import p from "@/components/charte/page.module.css";
 import { REVIEW_ACTIONS, type TaxReviewSession } from "./useTaxReviewSession";
+import x from "./fiscalite.module.css";
 
 const APPLICATION_VERSION = process.env.NEXT_PUBLIC_APP_VERSION ?? "0.1.0";
 
@@ -31,15 +30,6 @@ function download(content: string | Uint8Array, mediaType: string, fileName: str
   URL.revokeObjectURL(url);
 }
 
-const field: React.CSSProperties = {
-  border: "1px solid rgba(255,255,255,.1)",
-  borderRadius: 9,
-  background: "rgba(255,255,255,.03)",
-  padding: "9px 11px",
-  fontFamily: BODY,
-  fontSize: 12.5,
-  color: C.text,
-};
 
 export function TaxDecisionBar({
   source,
@@ -84,126 +74,85 @@ export function TaxDecisionBar({
       `${session.events.length} événement(s) · ${session.evidence.length} pièce(s) · snapshot ${session.projectedHash.slice(0, 12)}`;
 
   return (
-    <div
-      className="fx-bar"
-      data-open={open}
-      style={{
-        position: "sticky",
-        bottom: 0,
-        zIndex: 50,
-        minHeight: 72,
-        display: "flex",
-        alignItems: "center",
-        gap: 18,
-        padding: "0 24px",
-        backdropFilter: "blur(14px)",
-        background: "rgba(12,14,19,.9)",
-        borderTop: "1px solid rgba(255,255,255,.08)",
-      }}
-    >
-      <section
-        aria-label="Revue append-only des constats fiscaux"
-        style={{ display: "flex", flex: 1, minWidth: 0, alignItems: "center", gap: 18, flexWrap: "wrap" }}
-      >
-        <p
-          role="status"
-          aria-live="polite"
-          className="fx-bar-summary"
-          data-idle={!session.busy && !session.message}
-          style={{ margin: 0, maxWidth: 280, fontSize: 11.5, lineHeight: 1.5, color: C.faint }}
-        >
+    <div className={x.bar} data-open={open}>
+      <section aria-label="Revue append-only des constats fiscaux" className={x.barReview}>
+        <p role="status" aria-live="polite" className={x.barSummary} data-idle={!session.busy && !session.message}>
           {summary}
         </p>
-        <div className="fx-bar-fields" style={{ display: "flex", flex: 1, minWidth: 0, alignItems: "center", gap: 10 }}>
-          <select
-            aria-label="Constat fiscal à revoir"
-            value={findingId}
-            onChange={(event) => onFindingChange(event.target.value)}
-            style={{ ...field, minWidth: 190, maxWidth: 280 }}
-          >
-            {session.findings.map((finding) => (
-              <option key={finding.id} value={finding.id}>
-                {finding.title}
-              </option>
-            ))}
-          </select>
-          <select
-            aria-label="Action de revue fiscale"
-            value={action}
-            onChange={(event) => setAction(event.target.value as ReviewEventAction)}
-            style={field}
-          >
-            {REVIEW_ACTIONS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-          <input
-            ref={commentRef}
-            aria-label="Commentaire de revue fiscale"
-            placeholder="Commentaire…"
-            value={comment}
-            onChange={(event) => setComment(event.target.value)}
-            style={{ ...field, flex: 1, minWidth: 100 }}
-          />
-          {action === "attach_evidence" && (
+        <div className={x.barFields}>
+          <label className={x.barField}>
+            <span className={p.key}>Constat</span>
+            <select
+              aria-label="Constat fiscal à revoir"
+              value={findingId}
+              onChange={(event) => onFindingChange(event.target.value)}
+              className={x.control}
+            >
+              {session.findings.map((finding) => (
+                <option key={finding.id} value={finding.id}>
+                  {finding.title}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={x.barField}>
+            <span className={p.key}>Action</span>
+            <select
+              aria-label="Action de revue fiscale"
+              value={action}
+              onChange={(event) => setAction(event.target.value as ReviewEventAction)}
+              className={x.control}
+            >
+              {REVIEW_ACTIONS.map((item) => (
+                <option key={item.value} value={item.value}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={`${x.barField} ${x.barComment}`}>
+            <span className={p.key}>Commentaire</span>
             <input
-              ref={fileRef}
-              aria-label="Justificatif fiscal"
-              type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.txt,.csv,.xlsx"
-              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-              style={{ ...field, maxWidth: 220, fontSize: 11.5 }}
+              ref={commentRef}
+              aria-label="Commentaire de revue fiscale"
+              placeholder="Commentaire…"
+              value={comment}
+              onChange={(event) => setComment(event.target.value)}
+              className={x.control}
             />
+          </label>
+          {action === "attach_evidence" && (
+            <label className={x.barField}>
+              <span className={p.key}>Justificatif</span>
+              <input
+                ref={fileRef}
+                aria-label="Justificatif fiscal"
+                type="file"
+                accept=".pdf,.png,.jpg,.jpeg,.txt,.csv,.xlsx"
+                onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+                className={`${x.control} ${x.fileControl}`}
+              />
+            </label>
           )}
         </div>
       </section>
 
-      <div
-        className="fx-bar-actions"
-        style={{ position: "relative", display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-      >
-        <button
-          type="button"
-          className="fx-bar-toggle fx-btn-ghost"
-          aria-expanded={open}
-          onClick={() => setOpen((o) => !o)}
-          style={{
-            alignItems: "center",
-            gap: 6,
-            border: "1px solid rgba(255,255,255,.12)",
-            borderRadius: 9,
-            background: "transparent",
-            padding: "10px 14px",
-            fontFamily: BODY,
-            fontSize: 12.5,
-            color: C.textSoft,
-            cursor: "pointer",
-          }}
-        >
+      <div className={x.barActions}>
+        <button type="button" className={`${p.btnSecondary} ${x.barToggle}`} aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           Revue
         </button>
         <ExportMenu source={source} session={session} />
         <button
           type="button"
-          className="fx-btn-primary"
+          className={`${p.btnPrimary} ${x.barSave}`}
+          aria-label="Enregistrer la revue fiscale"
           disabled={session.busy || session.findings.length === 0}
           onClick={() => void save()}
-          style={{
-            border: 0,
-            borderRadius: 9,
-            background: C.accent,
-            padding: "10px 16px",
-            fontFamily: BODY,
-            fontSize: 12.5,
-            fontWeight: 600,
-            color: "#061019",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
         >
-          Enregistrer <span className="fx-hide-m">la revue fiscale</span>
+          {/* Un seul nœud de texte : le `gap` du bouton ne doit pas s'insérer entre les deux morceaux du libellé. */}
+          <span>
+            Enregistrer<span className={x.hideNarrow}> la revue fiscale</span>
+          </span>
         </button>
       </div>
     </div>
@@ -320,79 +269,27 @@ function ExportMenu({ source, session }: { source: TaxCockpitSource; session: Ta
   ];
 
   return (
-    <section ref={rootRef} aria-label="Exports du dossier de preuve fiscal" style={{ position: "relative" }}>
+    <section ref={rootRef} aria-label="Exports du dossier de preuve fiscal" className={x.exportRoot}>
       {open && (
-        <div
-          id={menuId}
-          style={{
-            position: "absolute",
-            bottom: "calc(100% + 10px)",
-            right: 0,
-            width: 226,
-            border: `1px solid ${C.lineStrong}`,
-            borderRadius: 12,
-            background: C.drawer,
-            padding: 6,
-            boxShadow: "0 24px 60px rgba(0,0,0,.6)",
-            animation: "fxFadeIn .16s ease-out both",
-          }}
-        >
+        <div id={menuId} className={x.exportMenu}>
           {items.map((item) => (
-            <button
-              key={item.label}
-              type="button"
-              disabled={busy}
-              className="fx-menu-item"
-              onClick={item.onClick}
-              style={{
-                display: "block",
-                width: "100%",
-                border: 0,
-                borderRadius: 8,
-                background: "transparent",
-                padding: "9px 11px",
-                textAlign: "left",
-                fontFamily: BODY,
-                fontSize: 12.5,
-                color: C.textSoft,
-                cursor: "pointer",
-              }}
-            >
+            <button key={item.label} type="button" disabled={busy} className={x.exportItem} onClick={item.onClick}>
               {item.label}
             </button>
           ))}
-          <p
-            role="status"
-            aria-live="polite"
-            style={{ margin: "6px 11px 4px", minHeight: 15, fontSize: 10.5, lineHeight: 1.5, color: C.muted, fontFamily: message ? MONO : BODY }}
-          >
+          <p role="status" aria-live="polite" className={x.exportStatus} data-message={message ? "" : undefined}>
             {busy ? "Génération du paquet fiscal…" : message || "PDF standard ; PDF/A non validé. Aucun avis juridique."}
           </p>
         </div>
       )}
       <button
         type="button"
-        className="fx-btn-ghost"
+        className={p.btnSecondary}
         aria-expanded={open}
         aria-controls={open ? menuId : undefined}
         onClick={() => setOpen((o) => !o)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 7,
-          border: "1px solid rgba(255,255,255,.12)",
-          borderRadius: 9,
-          background: "transparent",
-          padding: "10px 14px",
-          fontFamily: BODY,
-          fontSize: 12.5,
-          color: C.textSoft,
-          cursor: "pointer",
-          whiteSpace: "nowrap",
-        }}
       >
         Exporter
-        <ChevronUp size={13} aria-hidden="true" />
       </button>
     </section>
   );

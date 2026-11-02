@@ -7,6 +7,12 @@
  */
 import { cleanup, render } from "@testing-library/react";
 import { afterEach, beforeAll, expect, it, vi } from "vitest";
+
+// `next/font/google` est résolu à la compilation par Next (police de la charte, InstrumentPage) : neutralisé en test.
+vi.mock("next/font/google", () => {
+  const font = () => ({ variable: "", className: "", style: { fontFamily: "" } });
+  return { Newsreader: font, Geist: font, IBM_Plex_Mono: font };
+});
 import type { DossierSnapshot } from "@/lib/dossier/types";
 import { buildDemoDossierSnapshot, buildSnapshotFromFecDepot } from "@/lib/dossier/snapshot-builder";
 import { ActiveCloisons } from "../ActiveCloisons";

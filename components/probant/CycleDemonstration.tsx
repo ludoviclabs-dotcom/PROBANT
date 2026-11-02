@@ -1,8 +1,8 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
-import { Copy, FlaskConical, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
+import p from "@/components/charte/page.module.css";
+import l from "@/components/tests-complementaires/tests.module.css";
 import { useActiveDossier } from "@/lib/dossier/client";
 import { buildWorkpaperPackage } from "@/lib/workpapers/package";
 import { appendDemoEvent, createDemoRecord, DEMO_STORAGE_PREFIX, latestDemoParameters, replayDemo, syntheticBaseline, verifyDemoRecord, type DemoEvent, type DemoRecord } from "@/lib/workpapers/browser-demo";
@@ -11,10 +11,10 @@ import { periodId, type WorkpaperRun } from "@/lib/workpapers/model";
 import { WorkpaperPanel } from "./WorkpaperPanel";
 
 /**
- * Laboratoire de scénarios (ex-« Atelier des dix cycles »). Lanceur compact dans le thème du
- * site : état du dossier, Nouveau / Reprendre, volet « Mode et sauvegarde » avec l'identifiant
- * complet copiable. La mécanique (journal local vérifié, rejeu, exports) est inchangée.
- * L'ambre n'habille que les blocages qui demandent une action.
+ * Laboratoire de scénarios (ex-« Atelier des dix cycles »). Bandeau compact dans la charte « instruments » : état du
+ * dossier, Nouveau / Reprendre, volet « Mode et sauvegarde » avec l'identifiant complet copiable ; une fois le scénario
+ * ouvert, cycle, paramètres, feuille de travail, note et étapes de revue simulée. La mécanique (journal local vérifié,
+ * rejeu, exports) est inchangée. L'ambre n'habille que les blocages qui demandent une action.
  */
 const labels: Record<DemoCycle, string> = { cash: "Cash", cutoff: "Cut-off", fournisseurs: "Fournisseurs / RPNE", clients: "Clients", immobilisations: "Immobilisations", capitaux: "Capitaux propres", achats: "Achats", conges: "Congés payés", participations: "Participations", is: "IS" };
 function download(name: string, body: string, type: string) {
@@ -23,11 +23,6 @@ function download(name: string, body: string, type: string) {
 }
 /** Identifiant court pour les libellés ordinaires ; le complet reste dans le volet. */
 export const shortScenarioId = (id: string) => (id.length > 14 ? `${id.slice(0, 12)}…` : id);
-
-const control = "rounded-md border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2.5 py-1.5 text-[13px] text-[var(--pb-text)] disabled:opacity-50";
-const primary = "pbz-focusable inline-flex items-center justify-center rounded-md bg-[var(--pb-accent)] px-3 py-1.5 text-[13px] font-semibold text-[#06122a] transition-colors hover:brightness-110 disabled:opacity-50";
-const secondary = "pbz-focusable inline-flex items-center justify-center rounded-md border border-[var(--pb-border-strong)] bg-transparent px-3 py-1.5 text-[13px] font-medium text-[var(--pb-text)] transition-colors hover:bg-[var(--pb-surface-2)] disabled:opacity-50";
-const link = "pbz-focusable text-[13px] text-[var(--pb-accent)] underline-offset-2 hover:underline disabled:opacity-50";
 
 export function CycleDemonstration() {
   const dossier = useActiveDossier();
@@ -134,56 +129,53 @@ export function CycleDemonstration() {
     catch { setCopied("failed"); }
   }
   const blockedMessage = current?.result?.execution === "blocked";
-  return <section aria-labelledby="cycle-demo-title" data-tour="scenario-lab" className="my-5 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] text-[var(--pb-text)]">
-    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3">
-      <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--pb-accent)]/15 text-[var(--pb-accent)]"><FlaskConical className="h-4 w-4" /></span>
-      <div className="min-w-0 flex-1 basis-[220px]">
-        <h2 id="cycle-demo-title" className="text-[15px] font-semibold leading-tight">Laboratoire de scénarios</h2>
-        <p className="tnum mt-0.5 truncate text-[12.5px] text-[var(--pb-text-muted)]" title={active ? dossier.context.dossierId : undefined}>
-          {active ? <>Scénario <span className="text-[var(--pb-text)]">{shortScenarioId(dossier.context.dossierId)}</span> · {executed}/10 cycles exécutés · {blocked} bloqués.</> : <>Aucun scénario ouvert · fixtures synthétiques, rôles simulés.</>}
+  return <section aria-labelledby="cycle-demo-title" data-tour="scenario-lab" className={l.lab}>
+    <div className={l.labHead}>
+      <div className={l.labMain}>
+        <h2 id="cycle-demo-title" className={l.labTitle}>Laboratoire de scénarios</h2>
+        <p className={l.labState} title={active ? dossier.context.dossierId : undefined}>
+          {active ? <>Scénario <strong>{shortScenarioId(dossier.context.dossierId)}</strong> · {executed}/10 cycles exécutés · {blocked} bloqués.</> : <>Aucun scénario ouvert · fixtures synthétiques, rôles simulés.</>}
         </p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        {!active && <button type="button" className={primary} aria-label="Nouveau scénario synthétique" disabled={busy} onClick={() => void openNew()}>Nouveau</button>}
-        {!active && resumeId && <button type="button" className={secondary} aria-label={`Reprendre le scénario ${resumeId}`} title={resumeId} disabled={busy} onClick={() => void resume()}>Reprendre</button>}
-        {active && <button type="button" className={secondary} disabled={busy} onClick={() => void reset()}>Remise à zéro explicite</button>}
-        <button ref={infoButton} type="button" className={cn(secondary, "gap-1.5", infoOpen && "bg-[var(--pb-surface-2)]")} aria-expanded={infoOpen} aria-controls="cycle-demo-info" onClick={() => setInfoOpen(o => !o)}>
-          <Info aria-hidden="true" className="h-3.5 w-3.5 text-[var(--pb-text-muted)]" />Mode et sauvegarde
-        </button>
+      <div className={l.labActions}>
+        {!active && <button type="button" className={p.btnSecondary} aria-label="Nouveau scénario synthétique" disabled={busy} onClick={() => void openNew()}>Nouveau</button>}
+        {!active && resumeId && <button type="button" className={p.btnSecondary} aria-label={`Reprendre le scénario ${resumeId}`} title={resumeId} disabled={busy} onClick={() => void resume()}>Reprendre</button>}
+        {active && <button type="button" className={p.btnSecondary} disabled={busy} onClick={() => void reset()}>Remise à zéro explicite</button>}
+        <button ref={infoButton} type="button" className={l.disclosure} aria-expanded={infoOpen} aria-controls="cycle-demo-info" onClick={() => setInfoOpen(o => !o)}>Mode et sauvegarde</button>
       </div>
     </div>
-    <div id="cycle-demo-info" ref={infoPanel} tabIndex={-1} role="region" aria-label="Mode et sauvegarde" hidden={!infoOpen} className={cn("border-t border-[var(--pb-border)] px-4 py-3 text-[13px] outline-none", infoOpen && "pb-panel-in")}>
-      <dl className="grid gap-x-6 gap-y-2 md:grid-cols-[auto_minmax(0,1fr)]">
-        <dt className="font-semibold">Mode</dt><dd className="min-w-0 text-[var(--pb-text-muted)]">Fixtures exclusivement synthétiques. Rôles simulés. Aucune donnée réelle.</dd>
-        <dt className="font-semibold">Sauvegarde</dt><dd className="min-w-0 text-[var(--pb-text-muted)]">Dans ce navigateur pendant sept jours : contrôle d’intégrité, ni preuve inviolable ni persistance de production.</dd>
-        <dt className="font-semibold">Dossier actif</dt>
-        <dd className="min-w-0 text-[var(--pb-text-muted)]">
-          <span className="text-[var(--pb-text)]">{dossier.snapshot.dossier.societe.raisonSociale}</span>
-          <span className="mt-1 flex flex-wrap items-center gap-2">
-            <code className="tnum min-w-0 break-all rounded bg-[var(--pb-surface-2)] px-2 py-1 text-[12px] text-[var(--pb-text)]">{dossier.context.dossierId}</code>
-            <button type="button" className={cn(secondary, "gap-1.5 px-2.5 py-1")} onClick={() => void copyId()}><Copy aria-hidden="true" className="h-3.5 w-3.5" />Copier l’identifiant</button>
-            {copied !== "idle" && <span role="status" className="text-[12px]">{copied === "done" ? "Identifiant copié." : "Copie refusée par le navigateur : sélectionnez l’identifiant."}</span>}
+    <div id="cycle-demo-info" ref={infoPanel} tabIndex={-1} role="region" aria-label="Mode et sauvegarde" hidden={!infoOpen} className={`${l.labInfo}${infoOpen ? " pb-panel-in" : ""}`}>
+      <dl className={l.labFacts}>
+        <dt>Mode</dt><dd>Fixtures exclusivement synthétiques. Rôles simulés. Aucune donnée réelle.</dd>
+        <dt>Sauvegarde</dt><dd>Dans ce navigateur pendant sept jours : contrôle d’intégrité, ni preuve inviolable ni persistance de production.</dd>
+        <dt>Dossier actif</dt>
+        <dd>
+          <span>{dossier.snapshot.dossier.societe.raisonSociale}</span>
+          <span className={l.idRow}>
+            <code className={l.idCode}>{dossier.context.dossierId}</code>
+            <button type="button" className={p.btnSecondary} onClick={() => void copyId()}>Copier l’identifiant</button>
+            {copied !== "idle" && <span role="status">{copied === "done" ? "Identifiant copié." : "Copie refusée par le navigateur : sélectionnez l’identifiant."}</span>}
           </span>
         </dd>
-        {active && <><dt className="font-semibold">Période</dt><dd className="tnum min-w-0 text-[var(--pb-text-muted)]">01/07/2023–30/06/2024 · revue : 31/07/2024.</dd></>}
+        {active && <><dt>Période</dt><dd className={p.mono}>01/07/2023–30/06/2024 · revue : 31/07/2024.</dd></>}
       </dl>
     </div>
-    {active && <div className="border-t border-[var(--pb-border)] px-4 py-3">
-      <div className="flex flex-wrap items-end gap-x-4 gap-y-3">
-        <label className="text-[13px]">Cycle<select className={cn(control, "ml-2")} value={cycle} onChange={(e) => setCycle(demoCycleSchema.parse(e.target.value))} disabled={busy}>{demoCycleSchema.options.map((id) => <option key={id} value={id}>{labels[id]}</option>)}</select></label>
-        <label className="text-[13px]">Scénario<select className={cn(control, "ml-2")} value={scenario} onChange={(e) => setScenario(e.target.value as typeof scenario)} disabled={busy}><option value="nominal">Nominal</option><option value="exception">Exception</option><option value="invalid">Donnée invalide</option></select></label>
-        <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={missingEvidence} onChange={(e) => setMissing(e.target.checked)} disabled={busy} /> Pièce manquante</label>
-        <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" checked={methodAvailable} onChange={(e) => setMethod(e.target.checked)} disabled={busy} /> Méthode synthétique documentée</label>
-        {!current ? <button type="button" className={primary} disabled={busy || !record} onClick={() => void act({ action: "create", parameters })}>Exécuter ce cycle</button> : ["locked", "blocked", "failed"].includes(current.state) ? <button type="button" className={secondary} disabled={busy} onClick={() => void act({ action: "edit", parameters })}>{current.state === "locked" ? "Modifier : invalider la revue de ce cycle" : "Corriger les paramètres et réexécuter"}</button> : null}
+    {active && <div className={l.labWork}>
+      <div className={l.labControls}>
+        <label className={l.labField}>Cycle<select value={cycle} onChange={(e) => setCycle(demoCycleSchema.parse(e.target.value))} disabled={busy}>{demoCycleSchema.options.map((id) => <option key={id} value={id}>{labels[id]}</option>)}</select></label>
+        <label className={l.labField}>Scénario<select value={scenario} onChange={(e) => setScenario(e.target.value as typeof scenario)} disabled={busy}><option value="nominal">Nominal</option><option value="exception">Exception</option><option value="invalid">Donnée invalide</option></select></label>
+        <label className={l.check}><input type="checkbox" checked={missingEvidence} onChange={(e) => setMissing(e.target.checked)} disabled={busy} /> Pièce manquante</label>
+        <label className={l.check}><input type="checkbox" checked={methodAvailable} onChange={(e) => setMethod(e.target.checked)} disabled={busy} /> Méthode synthétique documentée</label>
+        {!current ? <button type="button" className={p.btnPrimary} disabled={busy || !record} onClick={() => void act({ action: "create", parameters })}>Exécuter ce cycle</button> : ["locked", "blocked", "failed"].includes(current.state) ? <button type="button" className={p.btnSecondary} disabled={busy} onClick={() => void act({ action: "edit", parameters })}>{current.state === "locked" ? "Modifier : invalider la revue de ce cycle" : "Corriger les paramètres et réexécuter"}</button> : null}
       </div>
-      {blockedMessage && <p role="status" data-tone="blocked" className="my-3 rounded-md border border-l-[3px] border-[var(--pb-warn)]/50 border-l-[color:var(--pb-warn)] bg-[var(--pb-mineur-bg)] px-3 py-2 text-[13px]">{current!.result!.blockedControls.join(" ; ")} La soumission, l’approbation et le verrouillage sont indisponibles. <Link className="underline" href={cycle === "is" ? "/dashboard/fiscalite" : "/dashboard/depot"}>Voir la source requise</Link>. Le diagnostic peut être exporté.</p>}
-      {current?.state === "locked" && <p className="my-2 text-[13px] text-[var(--pb-text-muted)]">Toute modification remplace le résultat courant et périme la revue ; une nouvelle revue sera nécessaire avant export.</p>}
-      {current && <><WorkpaperPanel runs={[current]} /><label className="block text-[13px]">Note de préparation ou revue simulée<textarea className={cn(control, "my-2 block w-full")} value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} /></label><div className="flex flex-wrap gap-2">
-        {([ ["submit", "Soumettre", "executed"], ["approve", "Approuver", "awaiting_review"], ["changes", "Demander correction", "awaiting_review"], ["revise", "Réviser", "changes_requested"], ["lock", "Verrouiller", "approved"] ] as const).map(([action, label, state]) => <button key={action} type="button" className={secondary} disabled={busy || current.state !== state || !note.trim()} onClick={() => void act({ action, cycle, note })}>{label}</button>)}
+      {blockedMessage && <p role="status" data-tone="blocked" className={l.blocked}>{current!.result!.blockedControls.join(" ; ")} La soumission, l’approbation et le verrouillage sont indisponibles. <Link href={cycle === "is" ? "/dashboard/fiscalite" : "/dashboard/depot"}>Voir la source requise</Link>. Le diagnostic peut être exporté.</p>}
+      {current?.state === "locked" && <p className={l.lockedNote}>Toute modification remplace le résultat courant et périme la revue ; une nouvelle revue sera nécessaire avant export.</p>}
+      {current && <><div className={l.workpaper}><WorkpaperPanel runs={[current]} /></div><label className={l.noteField}>Note de préparation ou revue simulée<textarea value={note} maxLength={1000} onChange={(e) => setNote(e.target.value)} /></label><div className={l.workflow}>
+        {([ ["submit", "Soumettre", "executed"], ["approve", "Approuver", "awaiting_review"], ["changes", "Demander correction", "awaiting_review"], ["revise", "Réviser", "changes_requested"], ["lock", "Verrouiller", "approved"] ] as const).map(([action, label, state]) => <button key={action} type="button" className={p.btnSecondary} disabled={busy || current.state !== state || !note.trim()} onClick={() => void act({ action, cycle, note })}>{label}</button>)}
       </div></>}
-      <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2"><Link className={link} href="/dashboard/synthese">Voir la synthèse du même dossier →</Link><button type="button" className={link} disabled={busy || ![...runs.values()].some((r) => r.state === "locked" || r.state === "blocked")} onClick={exportPackage}>Préparer l’export</button></div>
-      {packageReady && packageReady.manifest.sourceSnapshotHash === dossier.snapshot.snapshotHash && <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2"><button type="button" className={link} onClick={() => download("workpapers.json", packageReady.json, "application/json")}>Snapshot JSON</button><button type="button" className={link} onClick={() => download("workpapers.md", packageReady.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className={link} onClick={() => download("manifest.json", JSON.stringify(packageReady.manifest, null, 2), "application/json")}>Manifeste</button></div>}
+      <div className={l.labLinks}><Link href="/dashboard/synthese">Voir la synthèse du même dossier →</Link><button type="button" className={p.btnQuiet} disabled={busy || ![...runs.values()].some((r) => r.state === "locked" || r.state === "blocked")} onClick={exportPackage}>Préparer l’export</button></div>
+      {packageReady && packageReady.manifest.sourceSnapshotHash === dossier.snapshot.snapshotHash && <div className={l.labLinks}><button type="button" className={p.btnQuiet} onClick={() => download("workpapers.json", packageReady.json, "application/json")}>Snapshot JSON</button><button type="button" className={p.btnQuiet} onClick={() => download("workpapers.md", packageReady.markdown, "text/markdown")}>Synthèse Markdown</button><button type="button" className={p.btnQuiet} onClick={() => download("manifest.json", JSON.stringify(packageReady.manifest, null, 2), "application/json")}>Manifeste</button></div>}
     </div>}
-    <p role="status" aria-live="polite" data-tone={message.tone} className={cn("border-t border-[var(--pb-border)] px-4 py-2 text-[12.5px]", message.tone === "error" ? "border-l-[3px] border-l-[color:var(--pb-warn)] text-[var(--pb-text)]" : "text-[var(--pb-text-muted)]")}>{message.tone === "error" && <span className="font-semibold text-[var(--pb-warn-bright)]">Blocage · </span>}{message.text}</p>
+    <p role="status" aria-live="polite" data-tone={message.tone} className={l.labMessage}>{message.tone === "error" && <span className={l.blockedWord}>Blocage · </span>}{message.text}</p>
   </section>;
 }

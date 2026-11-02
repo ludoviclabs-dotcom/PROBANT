@@ -6,7 +6,13 @@
  * résultat, tous en attente — 145 000 € et 312 000 € en diminution, 18 000 € en augmentation.
  */
 import { cleanup, render } from "@testing-library/react";
-import { afterEach, beforeAll, expect, it } from "vitest";
+import { afterEach, beforeAll, expect, it, vi } from "vitest";
+
+// `next/font/google` est résolu à la compilation par Next (police de la charte, InstrumentPage) : neutralisé en test.
+vi.mock("next/font/google", () => {
+  const font = () => ({ variable: "", className: "", style: { fontFamily: "" } });
+  return { Newsreader: font, Geist: font, IBM_Plex_Mono: font };
+});
 import { buildDemoDossierSnapshot } from "@/lib/dossier/snapshot-builder";
 import { projectSnapshotExposure } from "@/lib/synthesis/exposure";
 import { CloisonsWorkspace } from "../CloisonsWorkspace";

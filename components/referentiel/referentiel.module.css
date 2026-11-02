@@ -1,0 +1,662 @@
+/*
+  Seuils & référentiel — ambiance « instruments ». Complète `components/charte/page.module.css` : seuils internes en
+  registre, frise statique des millésimes (filtre), index de filtres soulignés et bibliothèque en lignes séparées par
+  des filets. Aucune carte, aucune ombre, aucune animation ; rayons 0 / 2 px ; cibles d'au moins 44 px. La famille se
+  lit au trait (plein, tirets, pointillé), jamais à la teinte. Les couleurs lisent les jetons de `app/tokens.css`.
+
+  Mises en page décidées par requête de conteneur (la page porte `container-type: inline-size`) : dès 760 px de page,
+  frise + panneau et index + liste côte à côte (1024 px : 840 px moins le rail de 184 px et la barre de défilement) ;
+  en dessous (390 px), empilés, l'index au-dessus de la liste.
+*/
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── En-tête ─────────────────────────────────────────────────────────────── */
+
+.edition dd + dd {
+  margin-top: 6px;
+  font-family: var(--pb-font-sans);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+  overflow-wrap: break-word;
+}
+
+.caveat {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 12px;
+  max-width: 90ch;
+  padding-top: 12px;
+  border-top: 1px solid var(--pb-rule);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.caveatText {
+  margin: 0;
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.disclosure {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: var(--pb-rule-strong);
+}
+
+.disclosure:hover,
+.disclosure[aria-expanded="true"] {
+  color: var(--pb-ink);
+  text-decoration-color: var(--pb-verif);
+}
+
+.caveatMore {
+  max-width: 90ch;
+  margin: 4px 0 0;
+  padding-left: 12px;
+  border-left: 1px solid var(--pb-rule-strong);
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+/* ── I. Seuils internes ──────────────────────────────────────────────────── */
+
+.familyNote {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+}
+
+.sectionLead {
+  margin: 0;
+  max-width: 76ch;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--pb-ink-2);
+}
+
+.seuils {
+  max-width: 880px;
+  margin-top: 20px;
+}
+
+.seuils tbody th {
+  width: 100%;
+}
+
+.seuilLabel {
+  display: block;
+  color: var(--pb-ink);
+}
+
+.seuilDetail {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+/* La colonne des valeurs s'aligne à droite, en-tête compris (`register` aligne à gauche par défaut). */
+.seuils thead th:last-child,
+.seuils tbody td {
+  text-align: right;
+}
+
+.seuils tbody td {
+  font-size: 16px;
+  line-height: 20px;
+  color: var(--pb-ink);
+}
+
+/* ── II. Sources normatives : frise des millésimes ───────────────────────── */
+
+.friezeBlock {
+  margin-top: 4px;
+}
+
+.clearYear {
+  margin-left: auto;
+}
+
+.subhead {
+  margin: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink);
+}
+
+.subheadRow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 16px;
+  min-height: 44px;
+}
+
+.subheadNote {
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+.friezeWrap {
+  display: grid;
+  gap: 24px 40px;
+  margin-top: 8px;
+}
+
+.frieze {
+  min-width: 0;
+}
+
+.years {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.year {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 32px;
+  align-items: center;
+  gap: 0 14px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 4px 0 0;
+  border: 0;
+  border-bottom: 1px solid var(--pb-rule);
+  border-left: 3px solid transparent;
+  background: none;
+  color: var(--pb-ink-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.year:hover {
+  background: var(--pb-plane-2);
+  color: var(--pb-ink);
+}
+
+.year[aria-pressed="true"] {
+  border-left-color: var(--pb-ink);
+  background: var(--pb-plane-2);
+  color: var(--pb-ink);
+}
+
+.yearLabel {
+  padding-left: 9px;
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+}
+
+.year[aria-pressed="true"] .yearLabel {
+  text-decoration: underline;
+  text-decoration-color: var(--pb-verif);
+  text-underline-offset: 5px;
+}
+
+.track {
+  display: flex;
+  gap: 2px;
+  height: 10px;
+}
+
+/* Droit dur : barre pleine (trait plein) ; méthode d'audit : barre en tirets. */
+.segHard {
+  display: block;
+  height: 100%;
+  background: var(--pb-ink-2);
+}
+
+.segMethod {
+  display: block;
+  height: 100%;
+  border: 1px dashed var(--pb-ink-2);
+}
+
+.year[aria-pressed="true"] .segHard {
+  background: var(--pb-ink);
+}
+
+.year[aria-pressed="true"] .segMethod {
+  border-color: var(--pb-ink);
+}
+
+/* Un millésime choisi : les autres barres passent en retrait, le filtre se lit sur la frise. */
+.years[data-filtered] .year:not([aria-pressed="true"]) .track {
+  opacity: 0.4;
+}
+
+.yearCount {
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+  text-align: right;
+  color: var(--pb-ink);
+}
+
+.friezeLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 24px;
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+}
+
+.friezeLegend li {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.swatchHard,
+.swatchMethod {
+  display: inline-block;
+  width: 18px;
+  height: 10px;
+  flex-shrink: 0;
+}
+
+.swatchHard {
+  background: var(--pb-ink-2);
+}
+
+.swatchMethod {
+  border: 1px dashed var(--pb-ink-2);
+}
+
+.yearPanel {
+  align-self: start;
+}
+
+.yearPanelBody {
+  padding: 16px 20px;
+}
+
+.yearPanelHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.yearPanelText {
+  margin: 10px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.yearRefs {
+  margin: 10px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.yearRefs li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+  line-height: 20px;
+  overflow-wrap: anywhere;
+}
+
+.yearRefs li:last-child {
+  border-bottom: 0;
+}
+
+/* ── Barre d'outils de la bibliothèque ───────────────────────────────────── */
+
+.toolbar {
+  margin-top: 32px;
+  gap: 8px 24px;
+}
+
+.toolbar .toggle,
+.toolbar .search input {
+  min-height: 44px;
+}
+
+.search {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.toolbar .search input {
+  width: min(300px, 62vw);
+  min-width: 0;
+}
+
+.kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--pb-ink-3);
+  white-space: nowrap;
+}
+
+.count {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  color: var(--pb-ink-2);
+  overflow-wrap: anywhere;
+}
+
+/* ── Index des filtres + bibliothèque ────────────────────────────────────── */
+
+.libSplit {
+  display: grid;
+  gap: 24px 40px;
+  margin-top: 24px;
+}
+
+.index {
+  min-width: 0;
+}
+
+.indexGroup + .indexGroup {
+  margin-top: 20px;
+}
+
+.indexList {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+/* Bascule de la charte (`toggle`) mise en ligne d'index : seul l'intitulé est souligné, le compte reste lisible. */
+.index .filter {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 0 4px 0 0;
+  border-bottom: 1px solid var(--pb-rule);
+  font-size: 14px;
+  color: var(--pb-ink-2);
+  text-align: left;
+}
+
+.index .filter:hover,
+.index .filter[aria-pressed="true"] {
+  color: var(--pb-ink);
+  text-decoration: none;
+}
+
+.filterLabel {
+  flex: 1;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.filter[aria-pressed="true"] .filterLabel {
+  text-decoration: underline;
+  text-decoration-color: var(--pb-verif);
+  text-underline-offset: 5px;
+}
+
+.filterRule {
+  display: inline-flex;
+  width: 16px;
+  flex-shrink: 0;
+}
+
+.filterCount {
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+  color: var(--pb-ink-2);
+}
+
+.filter[aria-pressed="true"] .filterCount {
+  color: var(--pb-ink);
+}
+
+.libMain {
+  min-width: 0;
+  container-type: inline-size;
+  container-name: rf-list;
+}
+
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.rowsGrouped {
+  border-top: 0;
+}
+
+.groupCount {
+  margin-left: 4px;
+  color: var(--pb-ink-3);
+}
+
+.row {
+  display: grid;
+  gap: 8px 32px;
+  padding: 18px 0 8px;
+  border-bottom: 1px solid var(--pb-rule);
+}
+
+.rowMeta {
+  min-width: 0;
+}
+
+.ref {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 14px;
+  margin: 0;
+}
+
+.refText {
+  font-family: var(--pb-font-mono);
+  font-size: 14px;
+  line-height: 20px;
+  color: var(--pb-ink);
+  overflow-wrap: anywhere;
+}
+
+.version {
+  font-family: var(--pb-font-mono);
+  font-size: 12px;
+  line-height: 20px;
+  color: var(--pb-ink-3);
+  white-space: nowrap;
+}
+
+.family {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px 10px;
+  margin: 6px 0 0;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--pb-ink-2);
+}
+
+.familyMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--pb-ink);
+}
+
+.theme {
+  color: var(--pb-ink-3);
+}
+
+.rowBody {
+  min-width: 0;
+}
+
+.citation {
+  margin: 0;
+  max-width: 72ch;
+  font-size: 14px;
+  line-height: 22px;
+  color: var(--pb-ink-2);
+  text-wrap: pretty;
+}
+
+.clamped {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 20px;
+  margin: 2px 0 0;
+}
+
+.action {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 13px;
+  color: var(--pb-ink-2);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-color: var(--pb-rule-strong);
+  text-underline-offset: 4px;
+}
+
+.action:hover {
+  color: var(--pb-ink);
+  text-decoration-color: var(--pb-ink);
+}
+
+a.action {
+  color: var(--pb-verif);
+  text-decoration-color: currentColor;
+}
+
+a.action:hover {
+  color: var(--pb-ink);
+}
+
+.empty {
+  margin: 0;
+  padding: 20px 0;
+  border-top: 1px dashed var(--pb-rule-strong);
+  border-bottom: 1px dashed var(--pb-rule-strong);
+  font-size: 14px;
+  color: var(--pb-ink-2);
+}
+
+/* ── Largeurs ────────────────────────────────────────────────────────────── */
+
+@container (min-width: 760px) {
+  .friezeWrap {
+    grid-template-columns: minmax(0, 1fr) minmax(240px, 340px);
+  }
+
+  .libSplit {
+    grid-template-columns: minmax(200px, 250px) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  /* L'index (≈ 700 px) ne reste en vue que si la fenêtre le contient entier. */
+  @media (min-height: 860px) {
+    .index {
+      position: sticky;
+      top: 24px;
+    }
+  }
+}
+
+/* Index au-dessus de la liste : chaque groupe passe en filtres soulignés en ligne. */
+@container (max-width: 759px) {
+  .indexList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 18px;
+    border-top: 0;
+  }
+
+  .index .filter {
+    width: auto;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  .filterLabel {
+    flex: none;
+  }
+
+  .kbd {
+    display: none;
+  }
+}
+
+@container rf-list (min-width: 640px) {
+  .row {
+    grid-template-columns: 220px minmax(0, 1fr);
+  }
+
+  .rowBody {
+    padding-top: 0;
+  }
+
+  .ref {
+    display: block;
+  }
+
+  .version {
+    display: block;
+  }
+}

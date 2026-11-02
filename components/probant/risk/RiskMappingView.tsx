@@ -1,8 +1,6 @@
-
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { AlertTriangle, Network } from "lucide-react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { AuditCycle, CycleFamily } from "@/lib/audit-cycles/types";
 import { CYCLE_FAMILIES, CYCLE_FAMILY_LABEL } from "@/lib/audit-cycles/types";
 import { computeMateriality, type MaterialityThresholds } from "@/lib/audit/materiality";
@@ -20,24 +18,30 @@ import {
   simulateHistoricalComposite,
   type HistoricalExercise,
 } from "@/lib/risk-mapping";
+import { BAND_LABEL, buildDistribution } from "@/lib/risk-mapping/view";
 import { track } from "@/lib/analytics/track";
 import { projectSnapshotExposure } from "@/lib/synthesis/exposure";
-import { cn } from "@/lib/utils";
+import { InstrumentPage, PageIntro, SectionHead } from "@/components/charte/InstrumentPage";
+import { FamilyRule } from "@/components/charte/FamilyRule";
+import { prefersReducedMotion } from "@/components/charte/motion";
+import p from "@/components/charte/page.module.css";
 import { RiskMatrixHeatmap } from "./RiskMatrixHeatmap";
 import { RiskFlowGraph } from "./RiskFlowGraph";
 import { RiskBubbleChart } from "./RiskBubbleChart";
 import { RiskTemporalChart } from "./RiskTemporalChart";
 import { ThresholdSimulator } from "./ThresholdSimulator";
 import { CycleRiskPanel } from "./CycleRiskPanel";
+import { BandSwatch } from "./BandMark";
 import { useRiskAdjustments } from "./useRiskAdjustments";
 import { useDepositCoverage } from "./useDepositCoverage";
 import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
+import s from "./risk.module.css";
 
 /**
  * Shell client de la cartographie des risques. Il assemble le moteur pur
- * `lib/risk-mapping` (scoring, agrégats, graphe, layout) et les vues (matrice,
- * graphe de flux, nuage, panneau détail), détient l'état d'interface et le hook
- * d'ajustements de jugement.
+ * `lib/risk-mapping` (scoring, agrégats, graphe, layout) et les vues (registre,
+ * graphe de flux, nuage, vue temporelle, panneau détail), détient l'état
+ * d'interface et le hook d'ajustements de jugement.
  *
  * Les constats proviennent exclusivement du `DossierSnapshot` actif.
  * La matérialité est dérivée de la base passée en props.
@@ -47,6 +51,10 @@ import { AUDIT_CYCLES } from "@/lib/rapprochement/catalog";
  * graphe ne viennent que de `relatedCycles` et des comptes PCG réellement
  * partagés. `GENERATED_AT` est une constante : aucun `Date.now()` au rendu, pour
  * exclure tout écart d'hydratation serveur/client.
+ *
+ * Charte « instruments » (comme la Synthèse) : en-tête éditorial et relevés, barre d'outils à bascules soulignées,
+ * répartition par niveau, registre à filets continus et panneau de détail sur le plan 2 (Échap le ferme et rend le
+ * focus à la ligne qui l'a ouvert). La mise en forme des chiffres vient de `lib/risk-mapping/view`.
  */
 
 /**
@@ -61,28 +69,28 @@ const VIEW_H = 520;
 
 type ViewMode = "matrix" | "flow" | "bubble" | "temporal";
 
-/** Ordre des onglets du contrôle segmenté — pilote la position de la pastille. */
 const VIEW_ORDER: ViewMode[] = ["matrix", "flow", "bubble", "temporal"];
 
 const VIEW_LABELS: Record<ViewMode, string> = {
-  matrix: "Matrice",
-  flow: "Flux",
-  bubble: "Bulles",
-  temporal: "Temporel",
+  matrix: "matrice",
+  flow: "flux",
+  bubble: "bulles",
+  temporal: "temporel",
 };
 
-/**
- * Cartes de distribution cliquables : bandes de criticité « scorables » (hors
- * non évalué), dans l'ordre décroissant de gravité. Le libellé est celui de la
- * bande ; `hex` sert au point de couleur et à la mini-barre (mêmes teintes de
- * sévérité que la matrice/panneau, jamais un hex recopié en dur ailleurs).
- */
-const STAT_BANDS: { band: CriticityBand; label: string; hex: string }[] = [
-  { band: "critique", label: "Critique", hex: "#ef4444" },
-  { band: "élevé", label: "Élevé", hex: "#f97316" },
-  { band: "modéré", label: "Modéré", hex: "#eab308" },
-  { band: "faible", label: "Faible", hex: "#3b82f6" },
-];
+const VIEW_TITLES: Record<ViewMode, string> = {
+  matrix: "Registre des cycles",
+  flow: "Flux entre cycles",
+  bubble: "Probabilité × gravité",
+  temporal: "Évolution du composite",
+};
+
+const VIEW_NOTES: Record<ViewMode, string> = {
+  matrix: "tri par en-tête · une ligne ouvre le détail",
+  flow: "trait plein : relation déclarée · pointillé : comptes partagés",
+  bubble: "rayon : exposition · cycles non évalués exclus",
+  temporal: "2022 et 2023 simulés · 2024 réel",
+};
 
 /** Options du sélecteur d'exercice — 2024 réel, 2022/2023 explicitement simulés. */
 const EXERCISE_OPTIONS: { value: HistoricalExercise; label: string }[] = [
@@ -91,16 +99,18 @@ const EXERCISE_OPTIONS: { value: HistoricalExercise; label: string }[] = [
   { value: CURRENT_EXERCISE, label: "2024 réel" },
 ];
 
+type Trigger = HTMLElement | SVGElement;
+
 export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
+  const uid = useId();
   const [selected, setSelected] = useState<string | null>(null);
   const [hovered, setHovered] = useState<string | null>(null);
   const [view, setView] = useState<ViewMode>("matrix");
   const [familyFilter, setFamilyFilter] = useState<CycleFamily | null>(null);
   const [selectedExercise, setSelectedExercise] = useState<HistoricalExercise>(CURRENT_EXERCISE);
   const [simulatedThreshold, setSimulatedThreshold] = useState<number | null>(null);
-  // Filtre de bande piloté par les cartes de distribution : un clic restreint la
-  // matrice à cette bande ; recliquer la même carte annule le filtre. Passé à
-  // `RiskMatrixHeatmap` via `activeBand`. Local au shell, jamais persisté.
+  // Filtre de bande piloté par la répartition : un clic restreint le registre à
+  // cette bande ; recliquer le même niveau annule le filtre. Local, jamais persisté.
   const [activeBand, setActiveBand] = useState<CriticityBand | null>(null);
 
   // Tracking : une seule fois au montage, garde par ref pour ignorer le
@@ -112,17 +122,23 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
     track("demo_viewed", { source: "risques" });
   }, []);
 
-  // Tween d'entrée : même patron que la Synthèse (cubic ease-out ~950 ms).
+  // Tween d'entrée des vues graphiques (~950 ms, fini) ; état final immédiat sous mouvement réduit.
   const [t, setT] = useState(0);
   const rafRef = useRef<number | null>(null);
   useEffect(() => {
+    if (prefersReducedMotion()) {
+      rafRef.current = requestAnimationFrame(() => setT(1));
+      return () => {
+        if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      };
+    }
     const dur = 950;
     const start = performance.now();
-    const ease = (p: number) => 1 - Math.pow(1 - p, 3);
+    const ease = (q: number) => 1 - Math.pow(1 - q, 3);
     const tick = (now: number) => {
-      const p = Math.min(1, (now - start) / dur);
-      setT(ease(p));
-      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      const q = Math.min(1, (now - start) / dur);
+      setT(ease(q));
+      if (q < 1) rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
     return () => {
@@ -131,55 +147,34 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   }, []);
 
   const activeSnapshot = useActiveDossierSnapshot();
-  const { adjustments, setAdjustment, resetCycle, resetAll, saveStatus } = useRiskAdjustments(
-    activeSnapshot.dossier.id,
-  );
+  const { adjustments, setAdjustment, resetCycle, resetAll, saveStatus } = useRiskAdjustments(activeSnapshot.dossier.id);
   const coverage = useDepositCoverage();
 
-  // Cycles de dépôt éligibles pour la matrice : slug (base normative) → id de
-  // dépôt, pour le lien "Fichier manquant" et pour distinguer les cycles liés
+  // Cycles de dépôt éligibles pour le registre : slug (base normative) → id de
+  // dépôt, pour le lien « fichier manquant » et pour distinguer les cycles liés
   // à un dépôt de ceux qui ne le sont pas (la majorité des 35 fiches YAML).
-  const depositCycleSlugs = useMemo(
-    () => AUDIT_CYCLES.map((c) => c.config.cycleSlug),
-    [],
-  );
-  const depositIdByCycleSlug = useMemo(
-    () => new Map(AUDIT_CYCLES.map((c) => [c.config.cycleSlug, c.id])),
-    [],
-  );
+  const depositCycleSlugs = useMemo(() => AUDIT_CYCLES.map((c) => c.config.cycleSlug), []);
+  const depositIdByCycleSlug = useMemo(() => new Map(AUDIT_CYCLES.map((c) => [c.config.cycleSlug, c.id])), []);
 
-  const findings = useMemo(
-    () => activeSnapshot.findings,
-    [activeSnapshot.findings],
-  );
+  const findings = useMemo(() => activeSnapshot.findings, [activeSnapshot.findings]);
 
   // Projection des effets PARTAGÉE avec la Synthèse (mêmes constats, mêmes événements de revue,
   // même document source) : la gravité lit les mêmes groupes et les mêmes montants par poste et sens.
-  const exposure = useMemo(
-    () => projectSnapshotExposure(activeSnapshot).exposure,
-    [activeSnapshot],
-  );
+  const exposure = useMemo(() => projectSnapshotExposure(activeSnapshot).exposure, [activeSnapshot]);
 
   const materiality = useMemo(
-    () => computeMateriality(
-      activeSnapshot.calculationContext.materialityBasis ?? { chiffreAffaires: 0 },
-    ),
+    () => computeMateriality(activeSnapshot.calculationContext.materialityBasis ?? { chiffreAffaires: 0 }),
     [activeSnapshot.calculationContext.materialityBasis],
   );
 
   // Seuil de matérialité alternatif du simulateur ISA 320 (Bloc 4) : substitue
   // `significativite` par la valeur simulée et dérive performance/trivialité
   // proportionnellement aux ratios réels de `materiality`. Reste `null` si
-  // aucune simulation n'est active, ou si aucun seuil réel n'existe (rien à
-  // simuler sans base de matérialité).
+  // aucune simulation n'est active, ou si aucun seuil réel n'existe.
   const simulatedMateriality = useMemo<MaterialityThresholds | null>(() => {
     if (simulatedThreshold === null || !materiality) return null;
-    const ratioPerf = materiality.significativite > 0
-      ? materiality.performance / materiality.significativite
-      : 0.75;
-    const ratioTriv = materiality.significativite > 0
-      ? materiality.trivialite / materiality.significativite
-      : 0.05;
+    const ratioPerf = materiality.significativite > 0 ? materiality.performance / materiality.significativite : 0.75;
+    const ratioTriv = materiality.significativite > 0 ? materiality.trivialite / materiality.significativite : 0.05;
     return {
       ...materiality,
       significativite: Math.round(simulatedThreshold),
@@ -191,48 +186,35 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
   const activeMateriality = simulatedMateriality ?? materiality;
 
   // Scores « réels » (seuil réel) — TOUJOURS utilisés pour le panneau détail :
-  // celui-ci ne doit jamais montrer de drivers/constats calculés sur un seuil
-  // simulé.
+  // celui-ci ne doit jamais montrer de drivers/constats calculés sur un seuil simulé.
   const realScores = useMemo(
     () => buildCycleScores(cycles, findings, materiality, adjustments, exposure),
     [cycles, findings, materiality, adjustments, exposure],
   );
 
-  // Scores affichés dans la matrice/les vues agrégées : recalculés avec le
-  // seuil simulé quand la simulation est active, sinon identiques aux scores
-  // réels.
+  // Scores affichés dans le registre/les vues agrégées : recalculés avec le
+  // seuil simulé quand la simulation est active, sinon identiques aux scores réels.
   const scores = useMemo(
-    () =>
-      simulatedMateriality
-        ? buildCycleScores(cycles, findings, activeMateriality, adjustments, exposure)
-        : realScores,
+    () => (simulatedMateriality ? buildCycleScores(cycles, findings, activeMateriality, adjustments, exposure) : realScores),
     [simulatedMateriality, cycles, findings, activeMateriality, adjustments, realScores, exposure],
   );
 
-  // Cycles dont la bande de criticité change entre seuil réel et seuil simulé
-  // — alimente le badge + la liste repliable du simulateur de seuil.
+  // Cycles dont la bande de criticité change entre seuil réel et seuil simulé.
   const thresholdImpact = useMemo(() => {
     if (!simulatedMateriality) return [];
-    const realBySlug = new Map(realScores.map((s) => [s.cycleSlug, s]));
+    const realBySlug = new Map(realScores.map((sc) => [sc.cycleSlug, sc]));
     const changes: { cycleSlug: string; before: CriticityBand; after: CriticityBand }[] = [];
-    for (const s of scores) {
-      const before = realBySlug.get(s.cycleSlug)?.criticityBand;
-      if (before && before !== s.criticityBand) {
-        changes.push({ cycleSlug: s.cycleSlug, before, after: s.criticityBand });
-      }
+    for (const sc of scores) {
+      const before = realBySlug.get(sc.cycleSlug)?.criticityBand;
+      if (before && before !== sc.criticityBand) changes.push({ cycleSlug: sc.cycleSlug, before, after: sc.criticityBand });
     }
     return changes;
   }, [simulatedMateriality, realScores, scores]);
 
-  const aggregates = useMemo(
-    () => buildPageAggregates(cycles, scores, findings, undefined, exposure),
-    [cycles, scores, findings, exposure],
-  );
+  const aggregates = useMemo(() => buildPageAggregates(cycles, scores, findings, undefined, exposure), [cycles, scores, findings, exposure]);
 
   const graph = useMemo(() => {
-    const scoreMap = new Map<string, CycleRiskScore>(
-      scores.map((s) => [s.cycleSlug, s]),
-    );
+    const scoreMap = new Map<string, CycleRiskScore>(scores.map((sc) => [sc.cycleSlug, sc]));
     const raw = buildRiskGraph(cycles, scoreMap, GENERATED_AT);
     return layoutRadialByFamily(raw, { width: VIEW_W, height: VIEW_H });
   }, [cycles, scores]);
@@ -249,367 +231,320 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
     return CYCLE_FAMILIES.filter((f) => present.has(f.id));
   }, [cycles]);
 
-  // Exercice de comparaison passé à la matrice pour la colonne delta : `null`
+  // Exercice de comparaison passé au registre pour la colonne Δ : `null`
   // quand l'exercice sélectionné est l'exercice réel courant (rien à comparer).
   const comparisonExercise = isSimulatedExercise(selectedExercise) ? selectedExercise : null;
 
+  // Composite de l'exercice réel par cycle : second terme de l'écart Δ (jamais la valeur déjà simulée).
+  const currentComposites = useMemo(() => new Map(scores.map((sc) => [sc.cycleSlug, sc.composite])), [scores]);
+
   // Sous un exercice simulé sélectionné, substitue le composite affiché par la
-  // valeur simulée de `simulateHistoricalComposite` (valeur pédagogique : la
-  // matrice reflète alors « à quoi ressemblerait ce cycle en {exercice} »).
-  // La bande de criticité est recalculée à partir de ce composite simulé.
-  // Ne touche JAMAIS aux axes/drivers sous-jacents : seul `composite` (et la
-  // bande qui en dérive) est substitué, jamais utilisé par le panneau détail.
+  // valeur simulée de `simulateHistoricalComposite` (valeur pédagogique). La bande
+  // est recalculée par `criticityBand` (source unique des bornes). Ne touche JAMAIS
+  // aux axes/drivers sous-jacents ni au panneau détail.
   const exerciseScores = useMemo(() => {
     if (!isSimulatedExercise(selectedExercise)) return scores;
-    return scores.map((s) => {
-      const simulatedComposite = simulateHistoricalComposite(
-        s.cycleSlug,
-        s.composite,
-        selectedExercise,
-      );
-      if (simulatedComposite === s.composite) return s;
-      // Réutilise `criticityBand` (source unique des bornes) plutôt qu'une
-      // logique inline : garantit la cohérence avec le reste des vues si les
-      // seuils de bande évoluent.
-      return {
-        ...s,
-        composite: simulatedComposite,
-        criticityBand: criticityBand(simulatedComposite),
-      };
+    return scores.map((sc) => {
+      const simulatedComposite = simulateHistoricalComposite(sc.cycleSlug, sc.composite, selectedExercise);
+      if (simulatedComposite === sc.composite) return sc;
+      return { ...sc, composite: simulatedComposite, criticityBand: criticityBand(simulatedComposite) };
     });
   }, [scores, selectedExercise]);
 
-  // Scores filtrés par famille pour la matrice et le nuage.
+  // Scores filtrés par famille pour le registre et le nuage.
   const filteredScores = useMemo(
-    () =>
-      familyFilter === null
-        ? exerciseScores
-        : exerciseScores.filter((s) => s.family === familyFilter),
+    () => (familyFilter === null ? exerciseScores : exerciseScores.filter((sc) => sc.family === familyFilter)),
     [exerciseScores, familyFilter],
   );
 
   // Graphe filtré par famille : le renderer ne trace un arc que si ses deux
   // extrémités sont positionnées, donc restreindre les nœuds suffit.
   const filteredGraph = useMemo(
-    () =>
-      familyFilter === null
-        ? graph
-        : { ...graph, nodes: graph.nodes.filter((n) => n.family === familyFilter) },
+    () => (familyFilter === null ? graph : { ...graph, nodes: graph.nodes.filter((n) => n.family === familyFilter) }),
     [graph, familyFilter],
   );
 
-  // Panneau détail : TOUJOURS les vrais scores (seuil réel, exercice réel),
-  // jamais la version substituée par le simulateur de seuil ou l'exercice
-  // simulé sélectionné — drivers et constats doivent rester opposables.
+  // Panneau détail : TOUJOURS les vrais scores (seuil réel, exercice réel).
   const selectedCycle = selected ? cycles.find((c) => c.slug === selected) : null;
-  const selectedScore = selected ? realScores.find((s) => s.cycleSlug === selected) : null;
+  const selectedScore = selected ? realScores.find((sc) => sc.cycleSlug === selected) : null;
   const selectedAdjustment = selected ? adjustments[selected] : undefined;
   const hasAdjustments = Object.keys(adjustments).length > 0;
+  const panelOpen = Boolean(selectedCycle && selectedScore);
 
-  // Nombre total de cycles scorés — dénominateur du pourcentage des cartes de
-  // distribution. Toujours dérivé de `scores.length` (jamais codé en dur).
+  // Total des cycles scorés — dénominateur des parts de la répartition.
   const totalCycles = scores.length;
+  const distribution = useMemo(() => buildDistribution(aggregates.distribution, totalCycles), [aggregates.distribution, totalCycles]);
 
-  // Clic sur une carte de distribution : bascule le filtre de bande (toggle sur
-  // reclic) ET force la vue Matrice — le filtre ne s'applique qu'à la matrice.
-  function handleBandCardClick(band: CriticityBand) {
-    setActiveBand((prev) => (prev === band ? null : band));
-    setView("matrix");
+  // ── Panneau : ouverture (focus sur le titre), fermeture (Échap, ✕) et retour du focus ──
+  const triggerRef = useRef<Trigger | null>(null);
+  const panelTitleRef = useRef<HTMLHeadingElement>(null);
+  const [focusRequest, setFocusRequest] = useState(0);
+
+  const openCycle = useCallback((slug: string, trigger?: Trigger | null) => {
+    triggerRef.current = trigger ?? null;
+    setSelected(slug);
+    setFocusRequest((n) => n + 1);
+  }, []);
+
+  useEffect(() => {
+    if (focusRequest > 0) panelTitleRef.current?.focus();
+  }, [focusRequest]);
+
+  const closePanel = useCallback(() => {
+    const slug = selected;
+    const trigger = triggerRef.current;
+    triggerRef.current = null;
+    setSelected(null);
+    // Retour à l'élément qui a ouvert le panneau ; à défaut (vue changée entre-temps), à la ligne du registre.
+    const fallback = slug ? document.querySelector<HTMLElement>(`button[data-cycle="${slug}"]`) : null;
+    const target = trigger && trigger.isConnected ? trigger : fallback;
+    target?.focus();
+  }, [selected]);
+
+  function onPanelKey(event: KeyboardEvent<HTMLElement>) {
+    if (event.key === "Escape") {
+      event.stopPropagation();
+      closePanel();
+    }
   }
 
+  // Changer de vue efface le survol du graphe (un nœud démonté ne reçoit pas son mouseleave).
+  function changeView(mode: ViewMode) {
+    setView(mode);
+    setHovered(null);
+  }
+
+  // Bascule d'onglets : flèches gauche/droite, Début/Fin (tabindex itinérant).
+  function onTabKey(event: KeyboardEvent<HTMLButtonElement>) {
+    const i = VIEW_ORDER.indexOf(view);
+    const next =
+      event.key === "ArrowRight"
+        ? VIEW_ORDER[(i + 1) % VIEW_ORDER.length]
+        : event.key === "ArrowLeft"
+          ? VIEW_ORDER[(i - 1 + VIEW_ORDER.length) % VIEW_ORDER.length]
+          : event.key === "Home"
+            ? VIEW_ORDER[0]
+            : event.key === "End"
+              ? VIEW_ORDER[VIEW_ORDER.length - 1]
+              : null;
+    if (!next) return;
+    event.preventDefault();
+    changeView(next);
+    document.getElementById(`${uid}-tab-${next}`)?.focus();
+  }
+
+  // Clic sur un niveau de la répartition : bascule le filtre de bande (annulé au
+  // reclic) ET force la vue Matrice — le filtre ne s'applique qu'au registre.
+  function handleBandClick(band: CriticityBand) {
+    setActiveBand((prev) => (prev === band ? null : band));
+    changeView("matrix");
+  }
+
+  const unattached = aggregates.unattachedFindings.length;
+  const coveredCount = coverage?.coveredCycleSlugs.length ?? 0;
+
   return (
-    <div className="flex min-h-0 flex-1 overflow-hidden">
-      {/* Zone principale */}
-      <div className="flex flex-1 flex-col overflow-y-auto">
-        <div className="px-[26px] pb-[30px] pt-[22px]">
-          {/* En-tête */}
-          <div className="mb-4">
-            <div className="flex flex-wrap items-center gap-2.5">
-              <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[var(--pb-accent)]/15 text-[var(--pb-accent)]">
-                <Network className="h-[18px] w-[18px]" />
-              </span>
-              <h1 className="text-[20px] font-bold text-[var(--pb-text)]">
-                Cartographie des risques
-              </h1>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--pb-accent)]/40 bg-[var(--pb-accent)]/10 px-2.5 py-1 text-[10px] font-semibold text-[var(--pb-accent)]">
-                cockpit intérim du CAC
-              </span>
+    <InstrumentPage>
+      <PageIntro
+        index="03"
+        eyebrowNote="cockpit intérim du CAC"
+        title="Cartographie des risques"
+        lead={
+          <>
+            Chaque cycle est noté sur quatre axes — gravité, probabilité, détectabilité, exposition — à partir des constats et des
+            fiches cycles. Le composite est une <strong>heuristique interne d&apos;aide à la décision, jamais opposable</strong> :
+            seuls les constats sourcés et les risques déclarés font foi.
+          </>
+        }
+        aside={
+          <dl className={`${p.readouts} ${s.readouts}`}>
+            <div>
+              <dt>Cycles évalués</dt>
+              <dd>
+                {aggregates.evaluatedCycleCount}
+                <span className={p.readoutNote}>
+                  {" "}
+                  · {aggregates.unevaluatedCycleCount} non évalué{aggregates.unevaluatedCycleCount > 1 ? "s" : ""}
+                </span>
+              </dd>
             </div>
-            <p className="mt-1.5 max-w-3xl text-[12.5px] leading-relaxed text-[var(--pb-text-muted)]">
-              Croisement des constats et des fiches cycles pour scorer chaque
-              cycle sur quatre axes (gravité, probabilité, détectabilité,
-              exposition) et hiérarchiser l'attention. Le composite est une{" "}
-              <strong className="text-[var(--pb-text)]">
-                heuristique interne d'aide à la décision, jamais opposable
-              </strong>{" "}
-              — seuls les constats sourcés et les risques déclarés font foi.
-            </p>
-            <div className="tnum mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-[var(--pb-text-faint)]">
-              <span>
-                {aggregates.evaluatedCycleCount} cycle(s) évalué(s) ·{" "}
-                {aggregates.unevaluatedCycleCount} non évalué(s)
-              </span>
-              <span>·</span>
-              <span>
-                {findings.length} constat(s) —{" "}
-                {activeSnapshot.dossier.demoMode
-                  ? "données fictives DEMO SA"
-                  : "dossier actif"}
-              </span>
-              {aggregates.unattachedFindings.length > 0 && (
-                <>
-                  <span>·</span>
-                  <span>{aggregates.unattachedFindings.length} non rattaché(s)</span>
-                </>
-              )}
-              {materiality && (
-                <>
-                  <span>·</span>
-                  <span>
-                    seuil ISA 320 :{" "}
-                    {materiality.significativite.toLocaleString("fr-FR")} €
-                  </span>
-                </>
-              )}
-              {coverage && (
-                <>
-                  <span>·</span>
-                  <span
-                    className="flex items-center gap-1.5"
-                    title="Comparaisons enregistrées sur les documents fournis ; aucune couverture de cycle démontrée"
-                  >
-                    {coverage.coveredCycleSlugs.length}/{coverage.total} cycles
-                    comparés (dépôt limité)
-                    <span
-                      aria-hidden
-                      className="inline-block h-1 w-[60px] overflow-hidden rounded-full bg-[var(--pb-surface-3)]"
-                    >
-                      <span
-                        className="block h-full rounded-full bg-[var(--pb-accent)]"
-                        style={{
-                          width: `${
-                            coverage.total > 0
-                              ? (coverage.coveredCycleSlugs.length / coverage.total) * 100
-                              : 0
-                          }%`,
-                        }}
-                      />
-                    </span>
-                  </span>
-                </>
-              )}
+            <div>
+              <dt>Constats</dt>
+              <dd>
+                {findings.length}
+                <span className={p.readoutNote}>
+                  {" "}
+                  · {activeSnapshot.dossier.demoMode ? `données fictives ${activeSnapshot.dossier.societe.raisonSociale}` : "dossier actif"}
+                  {unattached > 0 && ` · ${unattached} non rattaché${unattached > 1 ? "s" : ""}`}
+                </span>
+              </dd>
             </div>
-          </div>
-
-          {/* Barre d'outils : bascule de vue + filtre famille */}
-          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-wrap items-center gap-1.5">
-              <button
-                type="button"
-                onClick={() => setFamilyFilter(null)}
-                className={cn(
-                  "rounded-lg border px-2.5 py-1 text-[11.5px] transition-colors",
-                  familyFilter === null
-                    ? "border-[var(--pb-accent)] bg-[var(--pb-accent)]/12 font-semibold text-[var(--pb-text)]"
-                    : "border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:bg-[var(--pb-surface-2)] hover:text-[var(--pb-text)]",
-                )}
-              >
-                Toutes familles
-              </button>
-              {presentFamilies.map((f) => {
-                const active = familyFilter === f.id;
-                return (
-                  <button
-                    key={f.id}
-                    type="button"
-                    onClick={() => setFamilyFilter(active ? null : f.id)}
-                    title={CYCLE_FAMILY_LABEL[f.id]}
-                    className={cn(
-                      "rounded-lg border px-2.5 py-1 text-[11.5px] transition-colors",
-                      active
-                        ? "border-[var(--pb-accent)] bg-[var(--pb-accent)]/12 font-semibold text-[var(--pb-text)]"
-                        : "border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:bg-[var(--pb-surface-2)] hover:text-[var(--pb-text)]",
-                    )}
-                  >
-                    {f.short}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2.5">
-              <label className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--pb-text-faint)]">
-                Exercice
-                <select
-                  value={selectedExercise}
-                  onChange={(e) =>
-                    setSelectedExercise(Number(e.target.value) as HistoricalExercise)
-                  }
-                  className="rounded-lg border border-[var(--pb-border)] bg-[var(--pb-surface-2)] px-2 py-1.5 text-[12px] font-medium text-[var(--pb-text)] outline-none focus:border-[var(--pb-accent)]"
-                >
-                  {EXERCISE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
-              {/* Contrôle segmenté avec pastille glissante (transform animé) */}
-              <div
-                role="tablist"
-                aria-label="Vue de la cartographie"
-                className="relative grid grid-cols-4 rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface-2)] p-1"
-              >
-                <span
-                  aria-hidden
-                  className="pointer-events-none absolute bottom-1 top-1 left-1 rounded-lg bg-[var(--pb-accent)]/15 ring-1 ring-inset ring-[var(--pb-accent)]/30"
-                  style={{
-                    width: "calc((100% - 8px) / 4)",
-                    transform: `translateX(${VIEW_ORDER.indexOf(view) * 100}%)`,
-                    transition: "transform .28s cubic-bezier(.16,1,.3,1)",
-                  }}
-                />
-                {VIEW_ORDER.map((mode) => (
-                  <button
-                    key={mode}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === mode}
-                    data-tour-tab={mode}
-                    onClick={() => setView(mode)}
-                    className={cn(
-                      "relative z-[1] rounded-lg px-3 py-1.5 text-[12px] font-medium transition-colors",
-                      view === mode
-                        ? "text-[var(--pb-text)]"
-                        : "text-[var(--pb-text-muted)] hover:text-[var(--pb-text)]",
-                    )}
-                  >
-                    {VIEW_LABELS[mode]}
-                  </button>
-                ))}
+            {materiality && (
+              <div>
+                <dt>Seuil ISA 320</dt>
+                <dd>{materiality.significativite.toLocaleString("fr-FR")} €</dd>
               </div>
-            </div>
-          </div>
-
-          {/* Bandeau d'avertissement : exercice simulé sélectionné */}
-          {isSimulatedExercise(selectedExercise) && (
-            <div className="mb-4 flex items-start gap-2.5 rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3">
-              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-400" aria-hidden />
-              <p className="text-[12px] font-medium leading-relaxed text-amber-300">
-                Données {selectedExercise} SIMULÉES à des fins de démonstration —
-                aucun dossier réel ne les a produites. Les composites et bandes de
-                criticité affichés ci-dessous sont recalculés par une variation
-                déterministe autour de l'exercice réel {CURRENT_EXERCISE}, jamais
-                un vrai chiffre d'audit.
-              </p>
-            </div>
-          )}
-
-          {/* Simulateur de seuil ISA 320 */}
-          {materiality && (
-            <div className="mb-4">
-              <ThresholdSimulator
-                actualThreshold={materiality.significativite}
-                onSimulate={setSimulatedThreshold}
-              />
-              {simulatedMateriality && (
-                <div className="mt-2 flex flex-wrap items-center gap-2 rounded-lg border border-amber-500/40 bg-amber-500/5 px-3 py-2">
-                  <span className="rounded-full border border-amber-500/50 bg-amber-500/15 px-2 py-0.5 text-[10.5px] font-semibold text-amber-400">
-                    {thresholdImpact.length} cycle(s) changeraient de bande
+            )}
+            {coverage && (
+              <div title="Comparaisons enregistrées sur les documents fournis ; aucune couverture de cycle démontrée">
+                <dt>Dépôt documentaire</dt>
+                <dd>
+                  {coveredCount}/{coverage.total}
+                  <span className={p.readoutNote}> cycles comparés (dépôt limité)</span>
+                  <span aria-hidden="true" className={s.coverageBar}>
+                    <span style={{ width: `${coverage.total > 0 ? (coveredCount / coverage.total) * 100 : 0}%` }} />
                   </span>
-                  {thresholdImpact.length > 0 && (
-                    <details className="text-[11px] text-[var(--pb-text-muted)]">
-                      <summary className="cursor-pointer select-none font-medium text-[var(--pb-text)]">
-                        Voir le détail
-                      </summary>
-                      <ul className="mt-1.5 space-y-0.5">
-                        {thresholdImpact.map((change) => (
-                          <li key={change.cycleSlug} className="tnum">
-                            {change.cycleSlug} : {change.before} → {change.after}
-                          </li>
-                        ))}
-                      </ul>
-                    </details>
-                  )}
-                </div>
+                </dd>
+              </div>
+            )}
+          </dl>
+        }
+      />
+
+      {/* Barre d'outils : familles, exercice, vue. */}
+      <div className={`${p.toolbar} ${s.toolbar}`}>
+        <span className={p.toggleGroup} role="group" aria-label="Famille de cycles">
+          <span className={p.key} aria-hidden="true">
+            Famille
+          </span>
+          <button type="button" className={p.toggle} aria-pressed={familyFilter === null} onClick={() => setFamilyFilter(null)}>
+            toutes
+          </button>
+          {presentFamilies.map((f) => {
+            const active = familyFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                className={p.toggle}
+                aria-pressed={active}
+                title={CYCLE_FAMILY_LABEL[f.id]}
+                onClick={() => setFamilyFilter(active ? null : f.id)}
+              >
+                {f.short.toLowerCase()}
+              </button>
+            );
+          })}
+        </span>
+
+        <label className={p.field}>
+          <span className={p.key}>Exercice</span>
+          <select value={selectedExercise} onChange={(e) => setSelectedExercise(Number(e.target.value) as HistoricalExercise)}>
+            {EXERCISE_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <span role="tablist" aria-label="Vue de la cartographie" className={s.tabs}>
+          {VIEW_ORDER.map((mode) => (
+            <button
+              key={mode}
+              id={`${uid}-tab-${mode}`}
+              type="button"
+              role="tab"
+              aria-selected={view === mode}
+              aria-controls={`${uid}-tabpanel`}
+              tabIndex={view === mode ? 0 : -1}
+              data-tour-tab={mode}
+              className={p.toggle}
+              onClick={() => changeView(mode)}
+              onKeyDown={onTabKey}
+            >
+              {VIEW_LABELS[mode]}
+            </button>
+          ))}
+        </span>
+      </div>
+
+      {/* Exercice simulé sélectionné : avis à filet tireté (présomption, jamais un vrai chiffre). */}
+      {isSimulatedExercise(selectedExercise) && (
+        <p className={s.notice}>
+          <span className={s.noticeKey}>Données {selectedExercise} SIMULÉES</span>
+          <span className={s.noticeText}>
+            à des fins de démonstration — aucun dossier réel ne les a produites. Les composites et bandes de criticité affichés
+            ci-dessous sont recalculés par une variation déterministe autour de l&apos;exercice réel {CURRENT_EXERCISE}, jamais un vrai
+            chiffre d&apos;audit.
+          </span>
+        </p>
+      )}
+
+      {/* Simulateur de seuil ISA 320 et, quand il est actif, son impact sur les bandes. */}
+      {materiality && (
+        <ThresholdSimulator actualThreshold={materiality.significativite} onSimulate={setSimulatedThreshold}>
+          {simulatedMateriality && (
+            <div className={s.impact} aria-live="polite">
+              <span>
+                <span className={s.impactCount}>{thresholdImpact.length}</span> cycle(s) changeraient de bande
+              </span>
+              {thresholdImpact.length > 0 && (
+                <details>
+                  <summary>Voir le détail</summary>
+                  <ul className={s.impactList}>
+                    {thresholdImpact.map((change) => (
+                      <li key={change.cycleSlug}>
+                        {change.cycleSlug} : {BAND_LABEL[change.before].toLowerCase()} → {BAND_LABEL[change.after].toLowerCase()}
+                      </li>
+                    ))}
+                  </ul>
+                </details>
               )}
             </div>
           )}
+        </ThresholdSimulator>
+      )}
 
-          {/* Cartes de distribution cliquables (filtre de bande → matrice) */}
-          <div className="mb-[18px] grid grid-cols-2 gap-3 sm:grid-cols-4">
-            {STAT_BANDS.map(({ band, label, hex }) => {
-              const count = aggregates.distribution[band];
-              const pct = totalCycles > 0 ? (count / totalCycles) * 100 : 0;
-              const isActive = activeBand === band;
-              return (
-                <button
-                  key={band}
-                  type="button"
-                  onClick={() => handleBandCardClick(band)}
-                  aria-pressed={isActive}
-                  title={
-                    isActive
-                      ? `Filtre actif : ${label} — cliquer pour tout réafficher`
-                      : `Filtrer la matrice sur la bande ${label}`
-                  }
-                  className="group flex flex-col rounded-xl border bg-[var(--pb-surface)] px-4 py-3 text-left transition-all hover:-translate-y-px"
-                  style={{
-                    borderColor: isActive
-                      ? `color-mix(in srgb, ${hex} 60%, transparent)`
-                      : "var(--pb-border)",
-                    background: isActive
-                      ? `color-mix(in srgb, ${hex} 8%, var(--pb-surface))`
-                      : undefined,
-                  }}
-                >
-                  <span className="flex items-center gap-[7px] text-[11px] font-semibold text-[var(--pb-text-muted)]">
-                    <span
-                      aria-hidden
-                      className="h-2 w-2 shrink-0 rounded-full"
-                      style={{ background: hex }}
-                    />
-                    {label}
-                  </span>
-                  <span className="mt-1.5 flex items-baseline gap-2">
-                    <span className="font-mono text-[24px] font-bold leading-none tabular-nums text-[var(--pb-text)]">
-                      {count}
-                    </span>
-                    <span className="text-[10px] tabular-nums text-[var(--pb-text-faint)]">
-                      {pct.toFixed(0)} %
-                    </span>
-                  </span>
-                  <span
-                    aria-hidden
-                    className="mt-2.5 block h-[3px] w-full overflow-hidden rounded-full bg-[var(--pb-track)]"
-                  >
-                    <span
-                      className="block h-full rounded-full"
-                      style={{
-                        width: `${pct}%`,
-                        background: hex,
-                        animation: "pbGrowX .5s cubic-bezier(.16,1,.3,1) both",
-                      }}
-                    />
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+      {/* Répartition par niveau : un clic filtre le registre (et y ramène). */}
+      <section aria-labelledby={`${uid}-dist`} className={s.section}>
+        <SectionHead id={`${uid}-dist`} title={`Répartition des ${totalCycles} cycles`} note="cliquer un niveau filtre le registre" />
+        <div className={s.distBar} aria-hidden="true">
+          {distribution
+            .filter((entry) => entry.count > 0)
+            .map((entry) => (
+              <span key={entry.band} className={s.distSeg} data-band={entry.band} style={{ flex: `${entry.count} 1 0` }} />
+            ))}
+        </div>
+        <div className={s.levels}>
+          {distribution.map((entry) => {
+            const isActive = activeBand === entry.band;
+            return (
+              <button
+                key={entry.band}
+                type="button"
+                className={s.levelBtn}
+                aria-pressed={isActive}
+                onClick={() => handleBandClick(entry.band)}
+                title={isActive ? `Filtre actif : ${entry.label} — cliquer pour tout réafficher` : `Filtrer le registre sur le niveau ${entry.label}`}
+              >
+                <span className={s.levelHead}>
+                  <BandSwatch band={entry.band} />
+                  <span className={s.levelName}>{entry.label}</span>
+                  {entry.range && <span className={s.levelRange}>{entry.range}</span>}
+                </span>
+                <span className={s.levelCount}>
+                  {entry.count}
+                  <span className={s.levelPct}> · {entry.percent} %</span>
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
 
-          {/* Vue principale — ré-anime à chaque changement d'onglet (key=view) */}
-          <div
-            key={view}
-            className="rounded-2xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4"
-            style={{ animation: "pbFadeUp .35s cubic-bezier(.16,1,.3,1) both" }}
-          >
+      {/* Vue active + panneau de détail du cycle. */}
+      <section aria-labelledby={`${uid}-view`} className={s.section}>
+        <SectionHead id={`${uid}-view`} title={VIEW_TITLES[view]} note={VIEW_NOTES[view]} />
+        <div className={s.workspace} data-panel={panelOpen ? "" : undefined}>
+          <div key={view} id={`${uid}-tabpanel`} role="tabpanel" aria-labelledby={`${uid}-tab-${view}`} className={s.view}>
             {view === "matrix" && (
               <RiskMatrixHeatmap
                 scores={filteredScores}
                 selected={selected}
-                onSelect={setSelected}
+                onSelect={openCycle}
                 comparisonExercise={comparisonExercise}
+                currentComposites={currentComposites}
                 depositCycleSlugs={depositCycleSlugs}
                 coveredCycleSlugs={coverage?.coveredCycleSlugs ?? []}
                 depositIdByCycleSlug={depositIdByCycleSlug}
@@ -617,80 +552,63 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
               />
             )}
             {view === "flow" && (
-              <div style={{ opacity: 0.4 + 0.6 * t, transition: "opacity .2s" }}>
-                <RiskFlowGraph
-                  graph={filteredGraph}
-                  t={t}
-                  selected={selected}
-                  hovered={hovered}
-                  onSelect={setSelected}
-                  onHover={setHovered}
-                />
-                <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
-                  Trait plein = relation déclarée entre cycles ; trait pointillé =
-                  comptes PCG partagés. Le survol d'un nœud surligne ses voisins
-                  directs (fait de relation, aucune propagation chiffrée).
+              <>
+                <RiskFlowGraph graph={filteredGraph} t={t} selected={selected} hovered={hovered} onSelect={openCycle} onHover={setHovered} />
+                <p className={p.note}>
+                  Trait plein = relation déclarée entre cycles ; trait pointillé = comptes PCG partagés. Le survol ou le focus
+                  d&apos;un nœud surligne ses voisins directs (fait de relation, aucune propagation chiffrée). Tab parcourt les
+                  nœuds, Entrée ouvre le détail.
                 </p>
-              </div>
+              </>
             )}
             {view === "bubble" && (
-              <div style={{ opacity: 0.4 + 0.6 * t, transition: "opacity .2s" }}>
-                <RiskBubbleChart scores={filteredScores} onSelect={setSelected} />
-                <p className="mt-1 text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
-                  Abscisse = probabilité (ISA 315), ordonnée = gravité (ISA 320,
-                  axe inversé — fort en haut), rayon = exposition normative. Les
-                  cycles non évalués sont exclus : les placer à l'origine
-                  suggérerait à tort un risque nul.
+              <>
+                <RiskBubbleChart scores={filteredScores} onSelect={openCycle} selected={selected} />
+                <p className={p.note}>
+                  Abscisse = probabilité (ISA 315), ordonnée = gravité (ISA 320, axe inversé — fort en haut), rayon = exposition
+                  normative. Les cycles non évalués sont exclus : les placer à l&apos;origine suggérerait à tort un risque nul.
                 </p>
-              </div>
+              </>
             )}
-            {view === "temporal" && (
-              <div style={{ opacity: 0.4 + 0.6 * t, transition: "opacity .2s" }}>
-                <RiskTemporalChart
-                  scores={realScores}
-                  cycles={cycles.map((c) => c.slug)}
-                />
-              </div>
-            )}
+            {view === "temporal" && <RiskTemporalChart scores={realScores} cycles={cycles.map((c) => c.slug)} />}
           </div>
 
-          {/* Disclaimer + reset global */}
-          <p className="mt-3 text-[10.5px] leading-relaxed text-[var(--pb-text-faint)]">
-            Heuristique interne d'aide à la hiérarchisation — non opposable. Basée
-            sur les constats du dossier actif · ajustements de jugement
-            sauvegardés côté serveur (persistance simulée, non durable au
-            redémarrage — pas une vraie base de données).
-            {hasAdjustments && (
-              <button
-                type="button"
-                onClick={resetAll}
-                className="ml-2 underline hover:text-[var(--pb-text-muted)]"
-              >
-                Réinitialiser tous les ajustements
-              </button>
-            )}
-          </p>
+          {panelOpen && selectedCycle && selectedScore && (
+            <aside className={s.aside} aria-labelledby={`${uid}-panel-title`} onKeyDown={onPanelKey}>
+              <CycleRiskPanel
+                key={selectedCycle.slug}
+                cycle={selectedCycle}
+                score={selectedScore}
+                findingsById={findingsById}
+                adjustment={selectedAdjustment}
+                onAdjust={(patch) => setAdjustment(selectedCycle.slug, patch)}
+                onReset={() => resetCycle(selectedCycle.slug)}
+                onClose={closePanel}
+                saveStatus={saveStatus}
+                titleRef={panelTitleRef}
+                titleId={`${uid}-panel-title`}
+              />
+            </aside>
+          )}
         </div>
+      </section>
+
+      {/* Avertissement de méthode + réinitialisation globale. */}
+      <div className={s.section}>
+        <p className={p.note}>
+          <FamilyRule family="internal" />
+          <span>
+            Heuristique interne d&apos;aide à la hiérarchisation — non opposable. Basée sur les constats du dossier actif ; les
+            ajustements de jugement sont sauvegardés côté serveur en persistance simulée, non durable au redémarrage — pas une
+            vraie base de données.
+          </span>
+        </p>
+        {hasAdjustments && (
+          <button type="button" className={p.btnQuiet} onClick={resetAll}>
+            Réinitialiser tous les ajustements
+          </button>
+        )}
       </div>
-
-      {/* Panneau détail (cycle sélectionné) */}
-      {selectedCycle && selectedScore && (
-        <div className="w-[352px] shrink-0 overflow-y-auto border-l border-[var(--pb-border)] bg-[var(--pb-surface)]">
-          <div className="px-[18px] pb-[26px] pt-[18px]">
-            <CycleRiskPanel
-              key={selectedCycle.slug}
-              cycle={selectedCycle}
-              score={selectedScore}
-              findingsById={findingsById}
-              adjustment={selectedAdjustment}
-              onAdjust={(patch) => setAdjustment(selectedCycle.slug, patch)}
-              onReset={() => resetCycle(selectedCycle.slug)}
-              onClose={() => setSelected(null)}
-              saveStatus={saveStatus}
-            />
-          </div>
-        </div>
-      )}
-    </div>
+    </InstrumentPage>
   );
 }
