@@ -67,6 +67,8 @@ Chaque `true` est une déclaration de ta part :
 
 Si une confirmation ne peut pas être `true`, laisse la valeur à `null` et décris-moi le point.
 
+Un garde refuse le bloc s'il garde le nom ou l'heure d'exemple, si l'heure n'est pas au format UTC ci-dessus, si elle précède la création de cette fiche ou si elle est dans le futur (`lib/ifrs/shared/review-record.ts`). Une consignation refusée compte comme absente : l'écran Locations affiche alors « Consignation de relecture refusée » avec le motif.
+
 ## 5. Ce qui se passe ensuite
 
 - **Ce qui s'ouvre.** L'éditeur des politiques propose « Référentiel de la feuille » avec les IFRS adoptées dans l'UE. Une feuille UE déclare l'édition et l'empreinte de ce PDF, et seule cette édition s'exécute en réel.

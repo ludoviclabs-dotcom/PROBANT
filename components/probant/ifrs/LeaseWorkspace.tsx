@@ -18,6 +18,7 @@ import { LeaseChartsPanel } from "./LeaseCharts";
 import { PolicyEditor } from "./PolicyEditor";
 import { ComparisonPanel, PortfolioTable, SummaryLine } from "./Portfolio";
 import { ActionBar, ContextBand, StateNotice, StepRail } from "./Primitives";
+import { ReviewRefusals } from "./ReviewRefusals";
 import { ReviewPanel, type ExportFormat } from "./ReviewPanel";
 import { SourcesPanel } from "./SourcesPanel";
 import { useLeaseSelection, type LeaseSelectionState } from "./useLeaseSelection";
@@ -178,6 +179,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
       <div className={s.work} data-inspector={selected && docked ? "open" : "closed"}>
         <div style={{ minWidth: 0 }}>
           {view.capability.realExecution !== "allowed" && !demo && <StateNotice title="Calcul réel bloqué : règle à revoir">La relecture personnelle nommée de la règle n'est pas consignée (docs/ifrs/REVUE_REGLE_IFRS16.md). Les sources, la qualification et le gel restent possibles ; aucun montant n'est publié pour ce dossier.</StateNotice>}
+          {!demo && <ReviewRefusals refusals={view.capability.reviewRefusals}/>}
           {workspace.freshness === "source_replaced" && <StateNotice tone="danger" role="alert" title="Source remplacée — à réexaminer">Une source a été remplacée ou ajoutée après le gel : les résultats affichés portent sur les versions figées, conservées avec leurs preuves. Créez une révision.</StateNotice>}
           {workspace.freshness === "rule_replaced" && <StateNotice tone="danger" role="alert" title="Règle remplacée — à réexaminer">La feuille a été créée sous une autre version de la règle : créez une révision sur le gabarit courant.</StateNotice>}
           {!demo && <ActionBar actions={workspace.actions} labels={ACTION_LABELS} busy={saving} onAction={onAction}/>}

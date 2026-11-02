@@ -1,7 +1,7 @@
 import { sql } from "drizzle-orm";
 import { ApiError } from "@/lib/api/errors";
 import type { AccountingPeriod } from "@/lib/canonical-model/period";
-import { LEASE_JURISDICTIONS, LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
+import { LEASE_JURISDICTIONS, LEASE_REVIEW_REFUSALS, LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
 import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
 import { frameLeases, type LeaseFraming } from "@/lib/ifrs/leases/framing";
@@ -98,7 +98,7 @@ export class LeaseRuntime extends ClientsRuntime {
       return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, portfolio, review, contentHashes, workspace, emptyWorkspace };
     });
     const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
-      rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES, jurisdictions: LEASE_JURISDICTIONS } };
+      rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES, jurisdictions: LEASE_JURISDICTIONS, reviewRefusals: LEASE_REVIEW_REFUSALS } };
     if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024) throw new ApiError("L16_LIMIT_EXCEEDED", "État trop volumineux.", 413);
     return response;
   }

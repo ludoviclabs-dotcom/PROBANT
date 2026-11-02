@@ -16,13 +16,13 @@ import { approvedLeaseBatches, LEASE_PERIOD } from "./lease-fixture";
  */
 const IASB_REVIEW: LeaseRuleReview = { reviewedBy: "Relecture de recette", reviewedAt: "2026-10-31T10:00:00.000Z", jurisdiction: "IASB",
   confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } };
-const EU_REVIEW: LeaseRuleReviewEu = { reviewedBy: "Relecture de recette", reviewedAt: "2026-11-02T10:00:00.000Z", jurisdiction: "EU_adopted",
+const EU_REVIEW: LeaseRuleReviewEu = { reviewedBy: "Relecture de recette", reviewedAt: "2026-11-02T12:00:00.000Z", jurisdiction: "EU_adopted",
   text: { regulation: "(UE) 2023/1803", sha256: "06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951" },
   confirmations: { frenchParagraphsWordByWord: true, sameMeaningAsIasbReview: true, laterAmendmentsOutsideV1Accepted: true } };
 vi.mock("@/lib/ifrs/leases/rule-review", () => ({
   LEASE_RULE_REVIEW: { reviewedBy: "Relecture de recette", reviewedAt: "2026-10-31T10:00:00.000Z", jurisdiction: "IASB",
     confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } },
-  LEASE_RULE_REVIEW_EU: { reviewedBy: "Relecture de recette", reviewedAt: "2026-11-02T10:00:00.000Z", jurisdiction: "EU_adopted",
+  LEASE_RULE_REVIEW_EU: { reviewedBy: "Relecture de recette", reviewedAt: "2026-11-02T12:00:00.000Z", jurisdiction: "EU_adopted",
     text: { regulation: "(UE) 2023/1803", sha256: "06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951" },
     confirmations: { frenchParagraphsWordByWord: true, sameMeaningAsIasbReview: true, laterAmendmentsOutsideV1Accepted: true } },
 }));

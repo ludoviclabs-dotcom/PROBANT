@@ -6,6 +6,7 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { LeaseWork } from "@/lib/workpapers/lease-work";
+import { ReviewRefusals } from "../ReviewRefusals";
 import { PolicyEditor } from "../PolicyEditor";
 
 afterEach(cleanup);
@@ -30,5 +31,15 @@ describe("Juridiction de la feuille", () => {
     expect(save.disabled).toBe(false);
     fireEvent.click(save);
     expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ framework: { standard: "IFRS 16", jurisdiction: "EU_adopted", edition: EU.edition, editionFingerprint: EU.editionFingerprint } }));
+  });
+
+  it("consignation refusée par le garde : l'écran dit le motif et comment corriger ; rien quand tout est retenu", () => {
+    const { container } = render(<ReviewRefusals refusals={[]}/>);
+    expect(container.textContent).toBe("");
+    render(<ReviewRefusals refusals={["Relecture UE consignée refusée (docs/ifrs/FICHE_RELECTURE_UE.md) : nom d'exemple de la fiche (« Prénom Nom ») au lieu du nom de la personne qui relit"]}/>);
+    const alert = screen.getByRole("alert");
+    expect(alert.textContent).toContain("Consignation de relecture refusée");
+    expect(alert.textContent).toContain("nom d'exemple de la fiche (« Prénom Nom »)");
+    expect(alert.textContent).toContain("l'heure réelle de la relecture, en UTC");
   });
 });

@@ -2,6 +2,7 @@ import type { RuleReference } from "@/lib/workpapers/model";
 import { leaseRuleBasisSchema, type LeaseRuleBasis } from "@/lib/ifrs/shared/rule-basis";
 import { LEASE_ENGINE_VERSION } from "./engine";
 import type { IfrsJurisdiction } from "@/lib/ifrs/shared/context";
+import { reviewRecordIssues } from "@/lib/ifrs/shared/review-record";
 import { LEASE_RULE_REVIEW, LEASE_RULE_REVIEW_EU, type LeaseRuleReview, type LeaseRuleReviewEu } from "./rule-review";
 
 /**
@@ -22,7 +23,25 @@ export function leaseJurisdictions(review: LeaseRuleReview | null, euReview: Lea
   return euReview && euReview.text.sha256 === LEASE_EU_TEXT.sha256
     ? [iasb, { jurisdiction: "EU_adopted", label: "IFRS adoptées dans l'Union européenne (règlement 2023/1803)", edition: LEASE_EU_TEXT.edition, editionFingerprint: LEASE_EU_TEXT.sha256 }] : [iasb];
 }
-export const LEASE_JURISDICTIONS = leaseJurisdictions(LEASE_RULE_REVIEW, LEASE_RULE_REVIEW_EU);
+/** Création de la fiche qui définit chaque relecture (commits e9101a4 et 76b95e6) : une consignation ne peut pas la précéder. */
+export const LEASE_REVIEW_FICHES = {
+  iasb: { file: "docs/ifrs/REVUE_REGLE_IFRS16.md", notBefore: "2026-10-29T22:50:54.000Z" },
+  eu: { file: "docs/ifrs/FICHE_RELECTURE_UE.md", notBefore: "2026-11-02T10:10:41.000Z" },
+} as const;
+/** Consignations retenues : une consignation refusée par le garde (nom ou heure d'exemple, heure impossible) compte comme absente, avec son motif. */
+export function consignedLeaseReviews(review: LeaseRuleReview | null, euReview: LeaseRuleReviewEu | null, now?: Date) {
+  const iasbIssues = review ? reviewRecordIssues(review, { notBefore: LEASE_REVIEW_FICHES.iasb.notBefore, now }) : [];
+  const euIssues = euReview ? reviewRecordIssues(euReview, { notBefore: LEASE_REVIEW_FICHES.eu.notBefore, now }) : [];
+  return { review: review && !iasbIssues.length ? review : null, euReview: euReview && !euIssues.length ? euReview : null,
+    refusals: [...iasbIssues.map(i => "Relecture IASB consignée refusée (" + LEASE_REVIEW_FICHES.iasb.file + ") : " + i),
+      ...euIssues.map(i => "Relecture UE consignée refusée (" + LEASE_REVIEW_FICHES.eu.file + ") : " + i)] };
+}
+const CONSIGNED = consignedLeaseReviews(LEASE_RULE_REVIEW, LEASE_RULE_REVIEW_EU);
+/** Motifs de refus des consignations de `rule-review.ts`, servis à l'écran ; vide quand chaque consignation présente est retenue. */
+export const LEASE_REVIEW_REFUSALS: readonly string[] = CONSIGNED.refusals;
+/** Relecture IASB retenue : elle seule ouvre l'exécution réelle. */
+export const LEASE_RULE_REVIEWED = CONSIGNED.review !== null;
+export const LEASE_JURISDICTIONS = leaseJurisdictions(CONSIGNED.review, CONSIGNED.euReview);
 /** Texte UE relu, pour le verrou X33 : null tant que sa relecture nommée manque. */
 export const LEASE_EU_REVIEWED_TEXT = LEASE_JURISDICTIONS.some(j => j.jurisdiction === "EU_adopted") ? { sha256: LEASE_EU_TEXT.sha256 } : null;
 export function leaseRuleBasis(review: LeaseRuleReview | null): LeaseRuleBasis {
@@ -47,6 +66,6 @@ export function leaseRuleBasis(review: LeaseRuleReview | null): LeaseRuleBasis {
     referenceCases: ["L16-F01", "L16-F02", "L16-F03", "L16-F04", "L16-F05", "L16-F06", "L16-F07", "L16-F08", "L16-F09", "L16-F10"], exclusions: EXCLUSIONS,
   });
 }
-export const LEASE_RULE_BASIS: LeaseRuleBasis = leaseRuleBasis(LEASE_RULE_REVIEW);
+export const LEASE_RULE_BASIS: LeaseRuleBasis = leaseRuleBasis(CONSIGNED.review);
 export const IFRS16_RULE: RuleReference = { id: "ifrs16.leases", version: LEASE_RULE_VERSION, authority: "internal", source: "docs/ifrs/CONTRAT_COMMUN.md", effectiveFrom: "2019-01-01",
   validation: LEASE_RULE_BASIS.status === "validated" ? "validated" : "provisional" };

@@ -29,7 +29,7 @@ import { leaseFiles, LEASE_PERIOD } from "./lease-fixture";
  * cette recette ne dépende ni du nom ni de la date consignés par l'utilisateur dans `lib/ifrs/leases/rule-review.ts` (relecture réelle du
  * 31/10/2026) ; elle vérifie le branchement du moteur (exécution réelle, preuves, points de revue, conclusion, relecture personnelle, verrouillage).
  */
-vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: { reviewedBy: "Relecture simulée de recette", reviewedAt: "2026-10-29T12:00:00.000Z", jurisdiction: "IASB",
+vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: { reviewedBy: "Relecture simulée de recette", reviewedAt: "2026-10-31T12:00:00.000Z", jurisdiction: "IASB",
   confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } }, LEASE_RULE_REVIEW_EU: null }));
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par simulation, moteur réel, relecture personnelle nommée", () => {
