@@ -41,4 +41,10 @@ export interface LeaseRuleReviewEu {
   text: { regulation: "(UE) 2023/1803"; sha256: "06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951" };
   confirmations: { frenchParagraphsWordByWord: true; sameMeaningAsIasbReview: true; laterAmendmentsOutsideV1Accepted: true };
 }
-export const LEASE_RULE_REVIEW_EU: LeaseRuleReviewEu | null = null;
+export const LEASE_RULE_REVIEW_EU: LeaseRuleReviewEu | null = {
+  reviewedBy: "Ludo Labs",
+  reviewedAt: "2026-11-02T16:45:00.000Z",
+  jurisdiction: "EU_adopted",
+  text: { regulation: "(UE) 2023/1803", sha256: "06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951" },
+  confirmations: { frenchParagraphsWordByWord: true, sameMeaningAsIasbReview: true, laterAmendmentsOutsideV1Accepted: true },
+};

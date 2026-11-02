@@ -95,6 +95,7 @@ tr{break-inside:avoid}code{font-size:11px;word-break:break-all}.emission{margin-
 <p class="statement">${esc(b.statement)}</p>
 <section><h2>Manifeste</h2>${table(head, ["Élément", "Valeur"], [["Version d'export", b.exportVersion], ["Empreinte métier", hash], ["Feuille", sheet.runId + " · lignée " + sheet.rootId + " · état " + sheet.state],
     ["Gabarit et règle", ctx.template.id + " " + ctx.template.version + (ctx.rule ? " · règle " + ctx.rule.id + " " + ctx.rule.version + ("basisStatus" in ctx.rule ? " (" + (ctx.rule.basisStatus === "validated" ? "validée" : "à revoir") + ")" : "") : "")],
+    ["Référentiel", b.hypotheses ? b.hypotheses.framework.standard + " · " + b.hypotheses.framework.jurisdiction + " · " + b.hypotheses.framework.edition + (b.hypotheses.framework.editionFingerprint ? " · empreinte du texte " + b.hypotheses.framework.editionFingerprint : "") : "non déclaré"],
     ["Moteur", ctx.engineVersion ?? "non exécuté"], ["Population figée", b.population ? b.population.size + " contrat(s) · " + b.population.hash : "non figée"],
     ["Sélection", b.selection ? b.selection.method + " · " + b.selection.criteria + " · " + b.selection.size + " contrat(s)" : "—"],
     ["Fraîcheur", (ctx.standing.latestRevision ? "dernière révision" : "révision remplacée") + " · sources " + (ctx.standing.sourcesCurrent ? "à jour" : "remplacées") + " · règle " + (ctx.standing.ruleCurrent ? "à jour" : "remplacée")],

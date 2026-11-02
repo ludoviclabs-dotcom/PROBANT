@@ -87,6 +87,14 @@ describe("L16-05 exports de la feuille", () => {
     expect(contracts.every(c => c.debt_closing === "" && c.result === "non calculé")).toBe(true);
     expect(() => buildLeaseExport({ ...input, format: "journal_csv" })).toThrow("L16_EXPORT_NO_ADJUSTMENT");
   });
+
+  it("le manifeste HTML nomme le référentiel de la feuille : juridiction, édition et empreinte du texte UE relu", async () => {
+    const { run, base } = await scenario(), fingerprint = "a".repeat(64);
+    const eu = { ...run, leaseWork: { ...run.leaseWork!, framework: { standard: "IFRS 16", jurisdiction: "EU_adopted", edition: "IFRS 16, règlement (UE) 2023/1803 (JO L 237 du 26.9.2023)", editionFingerprint: fingerprint } } } as WorkpaperRun;
+    const html = buildLeaseExport({ ...base, run: eu, format: "html", kind: "diagnostic" }).content;
+    expect(html).toContain("<td>Référentiel</td><td>IFRS 16 · EU_adopted · IFRS 16, règlement (UE) 2023/1803 (JO L 237 du 26.9.2023) · empreinte du texte " + fingerprint + "</td>");
+    expect((await leaseDemoExport("html")).content).toContain("<td>Référentiel</td><td>IFRS 16 · IASB · IFRS 16, IASB 2026</td>");
+  });
 });
 
 describe("L16-05 exemple synthétique publié", () => {

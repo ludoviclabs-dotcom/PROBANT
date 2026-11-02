@@ -14,7 +14,8 @@
 .page :is(button, input, select, textarea) { border: 1px solid var(--pb-rule-strong); border-radius: var(--pb-radius-1); background: var(--pb-plane-2); padding: 7px 10px; max-width: 100%; }
 .page button { cursor: pointer; }
 .page :is(button, input, select, textarea):disabled { opacity: 0.55; cursor: not-allowed; }
-.page label { display: grid; gap: 4px; font-size: 13px; color: var(--pb-ink-2); }
+/* minmax(0, 1fr): an implicit column would size itself on the longest select option (the EU jurisdiction label) and overflow at 390 px. */
+.page label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 13px; color: var(--pb-ink-2); }
 .mono { font-family: var(--pb-font-mono); font-size: 12.5px; }
 .muted { color: var(--pb-ink-3); font-size: 13px; }
 .money { font-family: var(--pb-font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }

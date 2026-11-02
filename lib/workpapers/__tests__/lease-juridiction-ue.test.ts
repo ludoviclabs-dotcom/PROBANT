@@ -69,5 +69,6 @@ describe("Texte UE relu (relectures simulées) : EU_adopted exécutable en réel
     const [leases] = CAPABILITY_FRAMEWORKS, text = leases.exclusions.join(" ");
     expect(text).toContain("Juridiction EU_adopted ouverte en réel pour le seul texte relu");
     expect(text).toContain("Règle relue pour les juridictions IASB et EU_adopted");
+    expect(leases.modes.local_persistent.scope).toContain("et pour la juridiction EU_adopted (règlement (UE) 2023/1803, version d'origine)");
   });
 });

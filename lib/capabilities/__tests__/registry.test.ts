@@ -33,7 +33,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.5.8");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.5.9");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -95,13 +95,14 @@ describe("IFRS C01 axe « référentiel », hors cycles du journal", () => {
     expect(CAPABILITY_REGISTRY.some(c => c.procedures.some(p => (p.id as string) === "ifrs16.leases") || c.routes.includes("/ifrs/locations"))).toBe(false);
     expect(CL_ENGINE_PROCEDURES.some(p => (p.id as string) === "ifrs16.leases")).toBe(false);
   });
-  it("dit ce qui existe : page, scénario synthétique et chaîne locale ouverte par la relecture nommée de la règle (IASB seulement), jamais « IFRS complet »", () => {
+  it("dit ce qui existe : page, scénario synthétique et chaîne locale ouverte par les relectures nommées consignées (IASB, puis UE si son texte est relu), jamais « IFRS complet »", () => {
     const [leases] = CAPABILITY_FRAMEWORKS;
     expect(leases).toMatchObject({ id: "ifrs16.leases", family: "clients", route: "/ifrs/locations", pageAvailable: true });
     expect(leases.modes).toMatchObject({ historical: { implemented: false }, scenario: { implemented: true }, local_persistent: { implemented: true } });
     expect(leases.modes.local_persistent.scope).toContain("exécution réelle ouverte pour la juridiction IASB depuis la relecture personnelle nommée de la fiche de règle");
     // The reviewed jurisdictions follow the records of rule-review.ts; both states are pinned by lease-juridiction-ue.test.ts.
     expect(leases.exclusions.join(" ")).toContain(LEASE_JURISDICTIONS.length > 1 ? "Règle relue pour les juridictions IASB et EU_adopted" : "Règle relue pour la seule juridiction IASB");
+    expect(leases.modes.local_persistent.scope.includes("et pour la juridiction EU_adopted (règlement (UE) 2023/1803, version d'origine)")).toBe(LEASE_JURISDICTIONS.length > 1);
     expect(leases.modes.local_persistent.scope).toContain("page /ifrs/locations");
     expect(leases.modes.local_persistent.scope).toContain("sans annexe exhaustive ni effet fiscal");
     expect([leases.modes.local_persistent.scope, ...leases.exclusions].join(" ")).not.toMatch(/IFRS complet(?! ?,)|conformité IFRS/);
