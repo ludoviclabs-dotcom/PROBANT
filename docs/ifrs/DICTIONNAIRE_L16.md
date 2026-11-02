@@ -74,9 +74,9 @@ Fichier produit par `npm run ifrs:l16-docs` depuis `lib/ifrs/leases/dictionary.t
 | Champ | Libellé | Type | Unité | Obligatoire | n/a | Contrôle et blocage |
 |---|---|---|---|---|---|---|
 | `contractVersion` | Version du contrat de l'échéance | texte | — | oui | non | Vide → à qualifier |
-| `paidDate` | Date de règlement | date ISO | — | non | oui | Échéance exigible : vide ou inconnu → à qualifier (X13) ; future : non applicable |
+| `paidDate` | Date de règlement | date ISO | — | non | oui | Échéance exigible : vide, inconnu ou postérieure à la date de revue → à qualifier (X13) ; future : non applicable |
 | `paidAmount` | Montant réglé total | montant `0.00` | EUR | non | oui | Échéance exigible : vide → à qualifier ; réglé < dû → hors V1 (X13) ; réglé > dû → à qualifier (Q06) |
-| `paidVat` | TVA comprise dans le règlement (TVA récupérable qualifiée) | montant `0.00` | EUR | non | oui | Règlement TTC : loyer, TVA et total restent distincts |
+| `paidVat` | TVA comprise dans le règlement (TVA récupérable qualifiée) | montant `0.00` | EUR | non | oui | Règlement TTC : loyer, TVA et total restent distincts ; TVA ou montant réglé négatif → règlement inconnu, à qualifier (X13) |
 
 ## Comptabilité (`lease_ledger`) — une ligne par charge ou paiement de loyer ; `Amount` = montant ; `Date` = date d'écriture
 

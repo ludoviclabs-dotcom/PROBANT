@@ -82,6 +82,22 @@ describe("L16-01 qualification — cas du prompt", () => {
     expect(ttc.status).toBe("eligible_v1");
     expect(ttc.dues.find(d => d.dueDate === "2026-03-31")).toMatchObject({ settlement: "regle", amount: { amount: "1000.00" }, paidAmount: { amount: "1200.00" }, paidVat: { amount: "200.00" } });
   });
+  it("règlement non établi à la date de revue (X13) : daté après la revue, ou TVA ou montant négatif → inconnu, à qualifier, jamais « réglé »", async () => {
+    const due = (r: Rows) => r.lease_schedule.find(d => d.key === "F03-2026-03-31")!.details.fields as Record<string, string>;
+    const settled = (c: Awaited<ReturnType<typeof one>>) => c.dues.find(d => d.dueDate === "2026-03-31")!.settlement;
+    // Review date 2027-02-15: a payment dated the next day is not evidence at that date; the review date itself still counts.
+    const later = await one("F03", r => { due(r).paidDate = "2027-02-16"; });
+    expect(later.status).toBe("a_qualifier");
+    expect(settled(later)).toBe("inconnu");
+    expect(JSON.stringify(later.reasons)).toContain("règlement daté du 2027-02-16, après la date de revue (2027-02-15)");
+    expect(settled(await one("F03", r => { due(r).paidDate = "2027-02-15"; }))).toBe("regle");
+    // 1 000,00 due, 900,00 paid with −100,00 VAT: netting would show 1 000,00 settled; the payment is short, never « réglé ».
+    const negativeVat = await one("F03", r => { Object.assign(due(r), { paidAmount: "900.00", paidVat: "-100.00" }); });
+    expect(negativeVat.status).not.toBe("eligible_v1");
+    expect(settled(negativeVat)).toBe("inconnu");
+    expect(JSON.stringify(negativeVat.reasons)).toContain("montant réglé ou TVA négatif");
+    expect(settled(await one("F03", r => { due(r).paidAmount = "-1000.00"; }))).toBe("inconnu");
+  });
   it("contrat comptable non rapproché : ligne du grand livre sans contrat du registre, mesurée à part, sans compensation", async () => {
     const q = await qualify(r => { r.lease_ledger.push({ key: "GL-613-X", amount: "-500.00", date: "2026-12-31", details: { contractId: "INCONNU-9", source: { title: "GL", pack: "P", date: "2026-01-02", page: null, clause: "613" }, fields: { account: "613200", periodStart: "2026-01-01", periodEnd: "2026-12-31", piece: "OD-9" } } }); });
     expect(q.coverage.ledger).toEqual({ lines: 5, matched: 4, unmatched: 1, absMatched: { amount: "15000.00", currency: "EUR" }, absUnmatched: { amount: "500.00", currency: "EUR" }, unknownContracts: ["INCONNU-9"] });

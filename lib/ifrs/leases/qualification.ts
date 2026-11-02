@@ -190,7 +190,8 @@ function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startD
   const life = v("lease_contracts", "usefulLifeMonths");
   if (life !== null && Number(life) < 1) qualify("Q04", "Durée d'utilité inférieure à un mois", "usefulLifeMonths");
   // 6. Dues and settlements: a due already payable at the review date needs a settlement proof; a future due is not missing.
-  const version = base.version, dues = [...(own.lease_schedule.get(id) ?? [])].sort((a, b) => (a.date < b.date ? -1 : 1));
+  // A settlement only counts as proof if it is dated on or before the review date (X13) and its amounts are not negative; otherwise it is unknown.
+  const version = base.version, dues = [...(own.lease_schedule.get(id) ?? [])].sort((a, b) => (a.date < b.date ? -1 : 1)), unproven = new Map<string, string>();
   base.dues = dues.map(d => {
     evidence.push(d.proof);
     const role: DueRole = d.date <= period.asOfDate ? "exigible" : "non_encore_exigible";
@@ -198,6 +199,9 @@ function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startD
     let settlement: Settlement = "non_applicable";
     if (role === "exigible") {
       if (!paid || !paidDate || [paid, paidDate].some(x => x === UNKNOWN_TOKEN || x === NOT_APPLICABLE_TOKEN)) settlement = "inconnu";
+      else if (!/^\d{4}-\d{2}-\d{2}$/.test(paidDate)) { settlement = "inconnu"; unproven.set(d.key, "date de règlement « " + paidDate + " » hors format ISO"); }
+      else if (paidDate > period.asOfDate) { settlement = "inconnu"; unproven.set(d.key, "règlement daté du " + paidDate + ", après la date de revue (" + period.asOfDate + ") : non établi à cette date"); }
+      else if (paid.startsWith("-") || vatPaid?.startsWith("-")) { settlement = "inconnu"; unproven.set(d.key, "montant réglé ou TVA négatif : règlement incohérent"); }
       else {
         const net = cents({ amount: paid, currency: "EUR" }) - (vatPaid && /^-?\d/.test(vatPaid) ? cents({ amount: vatPaid, currency: "EUR" }) : 0n), due = cents(d.amount);
         settlement = net === due ? "regle" : net < due ? "insuffisant" : "excedentaire";
@@ -217,7 +221,7 @@ function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startD
   if (version && dues.some(d => d.fields.contractVersion !== version)) qualify("Q09", "Échéance rattachée à une autre version du contrat", "schedule");
   for (const d of base.dues) {
     if (d.settlement === "insuffisant") hors("X13", "Échéance du " + d.dueDate + " réglée partiellement : échéancier non respecté");
-    if (d.settlement === "inconnu") qualify("X13", "Échéance du " + d.dueDate + " exigible à la date de revue : preuve de règlement absente (inconnu)", "schedule");
+    if (d.settlement === "inconnu") qualify("X13", "Échéance du " + d.dueDate + " exigible à la date de revue : " + (unproven.get(d.key) ?? "preuve de règlement absente") + " (inconnu)", "schedule");
     if (d.settlement === "excedentaire") qualify("Q06", "Échéance du " + d.dueDate + " : règlement supérieur au loyer dû (paiement réel discordant)", "schedule");
   }
   base.historical = commencement < period.startDate;

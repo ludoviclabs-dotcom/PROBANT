@@ -72,9 +72,9 @@ export const LEASE_DICTIONARY = {
   ],
   lease_schedule: [
     f("contractVersion", "text", "Version du contrat de l'échéance", "Vide → à qualifier"),
-    f("paidDate", "date", "Date de règlement", "Échéance exigible : vide ou inconnu → à qualifier (X13) ; future : non applicable", { naAllowed: true, required: false }),
+    f("paidDate", "date", "Date de règlement", "Échéance exigible : vide, inconnu ou postérieure à la date de revue → à qualifier (X13) ; future : non applicable", { naAllowed: true, required: false }),
     f("paidAmount", "amount", "Montant réglé total", "Échéance exigible : vide → à qualifier ; réglé < dû → hors V1 (X13) ; réglé > dû → à qualifier (Q06)", { naAllowed: true, required: false, unit: "EUR" }),
-    f("paidVat", "amount", "TVA comprise dans le règlement (TVA récupérable qualifiée)", "Règlement TTC : loyer, TVA et total restent distincts", { naAllowed: true, required: false, unit: "EUR" }),
+    f("paidVat", "amount", "TVA comprise dans le règlement (TVA récupérable qualifiée)", "Règlement TTC : loyer, TVA et total restent distincts ; TVA ou montant réglé négatif → règlement inconnu, à qualifier (X13)", { naAllowed: true, required: false, unit: "EUR" }),
   ],
   lease_ledger: [
     f("account", "text", "Compte PCG (612, 613, 614…)", "Indice de recherche, jamais une preuve d'exhaustivité"),
