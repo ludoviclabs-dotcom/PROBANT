@@ -53,26 +53,31 @@ de `next` doit vérifier qu'ils restent nécessaires et compatibles. La clé
 
 Base `9ab9ca4` (main) : 1 `critical`, 6 `high`, 21 `moderate` — job
 « dependency scan · SBOM » rouge sur `main` depuis au moins le 31/10/2026.
-Après correctifs : 0 `critical`, **1 `high`**, 21 `moderate` — **FAIL** tant
-que la ligne `zod` ci-dessous n'est pas tranchée.
+Après correctifs : 0 `critical`, **0 `high`**, 21 `moderate` —
+`npm audit --audit-level=high` **PASS**.
 
 | Avis | Sévérité | Origine réelle | Décision | Statut |
 |---|---|---|---|---|
 | `next` — GHSA-2464-fhr4-w9xw (RCE via l'optimisation d'image SVG), GHSA-p3m5-59mp-jv5r (DoS Server Actions) | critical / high | `next@15.5.27`, direct | `next` et `eslint-config-next` → `^15.5.28`, premier patch corrigé de la branche 15 | **PASS** |
 | `undici` — 7 avis (EventSource, SRI, content-encoding, redirections, TLS, WebSocket, decompress) | high | `undici@6.29.0` sous `@vercel/blob`, `undici@7.30.0` sous `jsdom` | `npm update undici` → 6.29.1 et 7.30.1, dans les plages déjà déclarées | **PASS** |
-| `@vercel/blob`, `@vercel/oidc`, `@vercel/oidc-aws-credentials-provider`, `@vercel/cli-config` | high | Aucun avis propre : chaîne `… → @vercel/cli-config → zod@4.1.11`. La dernière `@vercel/cli-config` (0.3.5) épingle encore `zod` 4.1.11 | `overrides: { "@vercel/cli-config": { "zod": "^4.6.7" } }` — même majeure, ciblée sur ce seul parent. À retirer quand `@vercel/cli-config` publiera une version sur `zod` ≥ 4.6.6 | **PASS** |
-| `zod` — GHSA-mrhx-c7xc-m3w5 (mémoire épuisée par un tableau surdimensionné, plage `< 4.6.6`) | high | `zod@3.25.76`, direct, dernière 3.x publiée. Le correctif 4.6.6 ne touche que `v4/core` : aucune version 3.x ni le sous-chemin `zod/v3` ne sont corrigés | **Non traité dans ce lot** : migration majeure zod 4, décision utilisateur. Passer par `zod/v3` ferait taire l'audit sans corriger le code exécuté — refusé | **FAIL** |
+| `@vercel/blob`, `@vercel/oidc`, `@vercel/oidc-aws-credentials-provider`, `@vercel/cli-config` | high | Aucun avis propre : chaîne `… → @vercel/cli-config → zod@4.1.11`. La dernière `@vercel/cli-config` (0.3.5) épingle encore `zod` 4.1.11 | `overrides: { "@vercel/cli-config": { "zod": "$zod" } }` — aligne ce seul parent sur le `zod` direct (4.6.7). À retirer quand `@vercel/cli-config` publiera une version sur `zod` ≥ 4.6.6 | **PASS** |
+| `zod` — GHSA-mrhx-c7xc-m3w5 (mémoire épuisée par un tableau surdimensionné, plage `< 4.6.6`) | high | `zod@3.25.76`, direct, dernière 3.x publiée. Le correctif 4.6.6 ne touche que `v4/core` : aucune version 3.x ni le sous-chemin `zod/v3` ne sont corrigés | Migration `zod` → `^4.6.7`, décidée par l'utilisateur le 02/11/2026 (détail ci-dessous). Passer par `zod/v3` aurait fait taire l'audit sans corriger le code exécuté — refusé | **PASS** |
 | `minimatch` GHSA-g3hv-75wg-m249 et ses 20 dépendants (`eslint`, `@typescript-eslint/*`, `exceljs` → `archiver`…) | moderate | Outillage ESLint et `exceljs` | Non bloquant (`--audit-level=high`) ; npm ne propose que des rétrogradations majeures (`eslint` 4, `exceljs` 4.1.1) — refusées | **NOT_TESTED** |
 
-**Mesure de la migration zod 4** (essai `npm i zod@4.6.7 --no-save`, non
-conservé) : `tsc` signale 24 erreurs dans 2 fichiers
-(`app/api/adjustments/route.ts` : `errorMap` / `invalid_type_error` ;
-`lib/workpapers/loan-review.ts` : typage de la table `SCHEMAS`) ; le projet
-vitest `unit` passe à 56 échecs sur 2229, tous dans les 6 fichiers Capitaux
-propres, d'une seule cause : `z.record(z.enum(…), …)` devient exhaustif en
-zod 4 (`lib/workpapers/capitaux-review.ts:164`, même forme en
-`lib/workpapers/stock-contract.ts:209`). Les projets `durable` et e2e n'ont pas
-été exécutés sous zod 4 : **NOT_VERIFIED**.
+**Migration zod 4.** Les 119 imports `from "zod"` sont inchangés. Trois
+écarts de l'API, relevés par `tsc` et par 56 échecs du projet vitest `unit` lors
+d'un premier essai, sont corrigés à comportement constant :
+
+| Fichier | Écart zod 4 | Correction |
+|---|---|---|
+| `lib/workpapers/capitaux-review.ts` (×2), `lib/workpapers/stock-contract.ts` | `z.record(z.enum(…), …)` exige désormais toutes les clés | `z.partialRecord`, sémantique de zod 3 : une nature sans écriture reste **absente**, jamais réputée nulle |
+| `app/api/adjustments/route.ts` | `errorMap` et `invalid_type_error` supprimés | paramètre `error`, mêmes messages |
+| `lib/workpapers/loan-review.ts` | `z.ZodTypeAny` ne produit plus `any` | table de schémas typée par `satisfies`, détail étiqueté par type de source : chaque contrôle lit les champs de son propre schéma |
+
+Changements silencieux vérifiés : les 45 UUID littéraux du dépôt respectent la
+RFC 9562 exigée par `.uuid()` ; les `.optional().default("")` du FEC gardent
+leur effet ; seul `ZodIssueCode.custom` est employé ; seule la route des
+ajustements renvoie des messages zod, tous personnalisés.
 
 ### 1.3 `xlsx` — blocage P0-1 du plan
 

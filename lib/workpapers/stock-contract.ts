@@ -206,7 +206,7 @@ export const stockResultSchema = z.object({
   sites: z.array(z.object({ site: id, countDate: dateSchema.nullable(), visited: z.boolean(), countLines: z.number().int().nonnegative(), systemLines: z.number().int().nonnegative(), units: z.number().int().nonnegative() }).strict()),
   units: z.array(stockUnitResultSchema),
   references: z.array(z.object({ reference: id, uom: z.string(), units: z.number().int().positive(), net: qty, gross: qty, compensated: z.boolean() }).strict()),
-  totals: z.record(z.enum(ST_STATUSES), z.number().int().nonnegative()),
+  totals: z.partialRecord(z.enum(ST_STATUSES), z.number().int().nonnegative()),
   exceptions: z.array(z.object({ id, code: z.enum(ST_EXCEPTION_CODES), label: text, message: text, unitId: z.string().nullable(), amount: knownAmountSchema }).strict()),
   // The method joins the texts of the sub-lots run (quantities, costs, value review): longer than a single note.
   evidence: z.array(proofSchema), method: z.string().trim().min(1).max(6000), limitations: z.array(text),

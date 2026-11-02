@@ -18,9 +18,9 @@ const UpsertAdjustmentSchema = z.object({
   dossierId: z.string().min(1).optional(),
   cycleSlug: z.string().min(1, "cycleSlug est requis"),
   axe: z.enum(["probabilite", "detectabilite"], {
-    errorMap: () => ({ message: "axe doit valoir « probabilite » ou « detectabilite »" }),
+    error: "axe doit valoir « probabilite » ou « detectabilite »",
   }),
-  valeurAjustee: z.number({ invalid_type_error: "valeurAjustee doit être un nombre" }),
+  valeurAjustee: z.number({ error: "valeurAjustee doit être un nombre" }),
   commentaire: z.string().optional(),
 });
 

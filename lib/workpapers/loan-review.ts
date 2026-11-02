@@ -53,8 +53,11 @@ const clauseSchema = z.object({ ...common, kind: z.enum(["guarantee", "covenant"
 const rateSchema = z.object({ ...common, indexName: short, indexPercent: rate, fixingDate: dateSchema }).strict();
 /** Balance des comptes de dettes financières à la clôture : clé = compte ; montant = solde créditeur. */
 const balanceSchema = z.object({ account, label: text, basis: z.literal("account_closing"), source: loanSourceSchema }).strict();
-const SCHEMAS: Record<LoanType, z.ZodTypeAny> = { loan_contracts: contractSchema, loan_schedule: scheduleSchema, loan_ledger: ledgerSchema, loan_payments: paymentSchema,
-  loan_confirmations: confirmationSchema, loan_clauses: clauseSchema, loan_rates: rateSchema, loan_balance: balanceSchema };
+const SCHEMAS = { loan_contracts: contractSchema, loan_schedule: scheduleSchema, loan_ledger: ledgerSchema, loan_payments: paymentSchema,
+  loan_confirmations: confirmationSchema, loan_clauses: clauseSchema, loan_rates: rateSchema, loan_balance: balanceSchema } satisfies Record<LoanType, z.ZodType<Record<string, unknown>>>;
+/** Détail validé, étiqueté par son type de source : chaque branche lit les champs de son propre schéma. */
+type LoanDetails = { [K in LoanType]: { kind: K; d: z.infer<(typeof SCHEMAS)[K]> } }[LoanType];
+const loanDetails = (type: LoanType, raw: string | undefined) => ({ kind: type, d: SCHEMAS[type].parse(parseDetails(raw)) }) as LoanDetails;
 export type Contract = z.infer<typeof contractSchema>;
 export type Due = z.infer<typeof scheduleSchema>;
 export type Clause = z.infer<typeof clauseSchema>;
@@ -80,20 +83,20 @@ export function assertLoanBatch(batch: ImportBatch, period: AccountingPeriod) {
     assertScope(batch.scope, row.scope);
     if (!row.normalized || row.errors.length || keys.has(row.normalized.key)) throw new Error("LOAN_SOURCE_ROW_INVALID");
     keys.add(row.normalized.key);
-    const d = SCHEMAS[type].parse(parseDetails(row.original.Details)), value = cents(row.normalized.amount);
+    const { kind, d } = loanDetails(type, row.original.Details), value = cents(row.normalized.amount);
     if (d.source.date > period.asOfDate) throw new Error("LOAN_SOURCE_AFTER_REVIEW");
-    if (type !== "loan_schedule" && row.normalized.date > period.asOfDate) throw new Error("LOAN_EVENT_AFTER_REVIEW");
-    if (type === "loan_contracts") {
+    if (kind !== "loan_schedule" && row.normalized.date > period.asOfDate) throw new Error("LOAN_EVENT_AFTER_REVIEW");
+    if (kind === "loan_contracts") {
       if (d.startDate > d.maturity || d.effectiveFrom > d.effectiveTo || row.normalized.date !== d.effectiveFrom || value <= 0n) throw new Error("LOAN_CONTRACT_DATES_INVALID");
-      if (d.revisionDates && d.revisionDates.some((r: string, i: number) => i > 0 && r <= d.revisionDates[i - 1])) throw new Error("LOAN_REVISION_DATES_INVALID");
+      if (d.revisionDates?.some((r, i, dates) => i > 0 && r <= dates[i - 1])) throw new Error("LOAN_REVISION_DATES_INVALID");
     }
-    if (type === "loan_schedule" && (d.start >= d.end || d.dueDate < d.end || row.normalized.date !== d.dueDate)) throw new Error("LOAN_SCHEDULE_DATES_INVALID");
-    if ((type === "loan_schedule" || type === "loan_payments") && value < 0n) throw new Error("LOAN_MAGNITUDE_INVALID");
-    if ((type === "loan_clauses" || type === "loan_rates") && value !== 0n) throw new Error("LOAN_AMOUNT_NOT_APPLICABLE");
+    if (kind === "loan_schedule" && (d.start >= d.end || d.dueDate < d.end || row.normalized.date !== d.dueDate)) throw new Error("LOAN_SCHEDULE_DATES_INVALID");
+    if ((kind === "loan_schedule" || kind === "loan_payments") && value < 0n) throw new Error("LOAN_MAGNITUDE_INVALID");
+    if ((kind === "loan_clauses" || kind === "loan_rates") && value !== 0n) throw new Error("LOAN_AMOUNT_NOT_APPLICABLE");
     // An index value is usable only once fixed: at the latest on the revision date and on the notice date (itself not after the review date).
-    if (type === "loan_rates" && (d.fixingDate > row.normalized.date || d.fixingDate > d.source.date)) throw new Error("LOAN_RATE_FIXING_DATE_INVALID");
-    if (type === "loan_clauses" && d.reading !== "unread" && (!d.reader || !d.qualification)) throw new Error("LOAN_CLAUSE_READING_EVIDENCE_REQUIRED");
-    if (type === "loan_balance" && (row.normalized.date !== period.closingDate || row.normalized.key !== d.account)) throw new Error("LOAN_BALANCE_ROW_INVALID");
+    if (kind === "loan_rates" && (d.fixingDate > row.normalized.date || d.fixingDate > d.source.date)) throw new Error("LOAN_RATE_FIXING_DATE_INVALID");
+    if (kind === "loan_clauses" && d.reading !== "unread" && (!d.reader || !d.qualification)) throw new Error("LOAN_CLAUSE_READING_EVIDENCE_REQUIRED");
+    if (kind === "loan_balance" && (row.normalized.date !== period.closingDate || row.normalized.key !== d.account)) throw new Error("LOAN_BALANCE_ROW_INVALID");
   }
 }
 
