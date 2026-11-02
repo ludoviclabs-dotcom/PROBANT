@@ -38,7 +38,10 @@
     "exceljs": {
       "uuid": "11.1.1"
     },
-    "fast-glob": "$fast-glob"
+    "fast-glob": "$fast-glob",
+    "@vercel/cli-config": {
+      "zod": "$zod"
+    }
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1110.0",
@@ -51,7 +54,7 @@
     "fuse.js": "^7.0.0",
     "js-yaml": "^4.1.0",
     "lucide-react": "^0.473.0",
-    "next": "^15.5.27",
+    "next": "^15.5.28",
     "pdf-lib": "1.17.1",
     "pdfjs-dist": "^4.10.38",
     "postgres": "^3.4.9",
@@ -61,7 +64,7 @@
     "recharts": "^3.9.1",
     "server-only": "^0.0.1",
     "tailwind-merge": "^2.6.0",
-    "zod": "^3.24.1",
+    "zod": "^4.6.7",
     "@vercel/blob": "^2.6.1",
     "exceljs": "^4.4.0"
   },
@@ -78,7 +81,7 @@
     "axe-core": "^4.13.0",
     "drizzle-kit": "^0.31.10",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.27",
+    "eslint-config-next": "^15.5.28",
     "jsdom": "^29.1.1",
     "postcss": "^8.5.26",
     "tailwindcss": "^4.0.0",

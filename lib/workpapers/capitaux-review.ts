@@ -161,11 +161,11 @@ export const equityResultSchema = z.object({
   components: z.array(z.object({
     component: components, label: note, inScope: z.boolean(), exclusionReason: note.nullable(), status: z.enum(["computed", "incomplete", "excluded"]),
     accounts: z.array(z.object({ account: id, label: note, opening: moneySchema.nullable(), closing: moneySchema.nullable(), proofIds: z.array(id) }).strict()),
-    opening: moneySchema.nullable(), movements: z.record(natures, moneySchema), movementsTotal: moneySchema, expected: moneySchema.nullable(), closing: moneySchema.nullable(),
+    opening: moneySchema.nullable(), movements: z.partialRecord(natures, moneySchema), movementsTotal: moneySchema, expected: moneySchema.nullable(), closing: moneySchema.nullable(),
     difference: knownAmountSchema, missing: z.array(note), entryIds: z.array(id), evidence: z.array(proofSchema),
   }).strict()),
   natures: z.array(natures),
-  totals: z.object({ complete: z.boolean(), inScopeComponents: z.number().int().nonnegative(), computedComponents: z.number().int().nonnegative(), opening: knownAmountSchema, movements: z.record(natures, moneySchema), movementsTotal: moneySchema, expected: knownAmountSchema, closing: knownAmountSchema, difference: knownAmountSchema, transfersEffect: moneySchema }).strict(),
+  totals: z.object({ complete: z.boolean(), inScopeComponents: z.number().int().nonnegative(), computedComponents: z.number().int().nonnegative(), opening: knownAmountSchema, movements: z.partialRecord(natures, moneySchema), movementsTotal: moneySchema, expected: knownAmountSchema, closing: knownAmountSchema, difference: knownAmountSchema, transfersEffect: moneySchema }).strict(),
   entries: z.array(z.object({ entryId: id, account: id, component: components, nature: natures, amount: moneySchema, date: dateSchema, effectDate: dateSchema, decisionRef: id.nullable(), transferRef: id.nullable(), pieceRef: note, label: note,
     inScope: z.boolean(), decisionStatus: entryStatus, effectStatus: z.enum(["in_period", "outside_period"]), proofId: id }).strict()),
   transfers: z.array(z.object({ transferRef: id, entryIds: z.array(id).min(2), components: z.array(components), total: moneySchema, lines: z.array(z.object({ entryId: id, component: components, amount: moneySchema }).strict()) }).strict()),
