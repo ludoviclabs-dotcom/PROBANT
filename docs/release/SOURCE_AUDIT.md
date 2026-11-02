@@ -49,6 +49,31 @@ de `next` doit vérifier qu'ils restent nécessaires et compatibles. La clé
 `//overrides` de `package.json` renvoie ici et vers
 [`ADR-009`](../adr/ADR-009-next-16-compatibility.md).
 
+### 1.2 bis Campagne du 02/11/2026
+
+Base `9ab9ca4` (main) : 1 `critical`, 6 `high`, 21 `moderate` — job
+« dependency scan · SBOM » rouge sur `main` depuis au moins le 31/10/2026.
+Après correctifs : 0 `critical`, **1 `high`**, 21 `moderate` — **FAIL** tant
+que la ligne `zod` ci-dessous n'est pas tranchée.
+
+| Avis | Sévérité | Origine réelle | Décision | Statut |
+|---|---|---|---|---|
+| `next` — GHSA-2464-fhr4-w9xw (RCE via l'optimisation d'image SVG), GHSA-p3m5-59mp-jv5r (DoS Server Actions) | critical / high | `next@15.5.27`, direct | `next` et `eslint-config-next` → `^15.5.28`, premier patch corrigé de la branche 15 | **PASS** |
+| `undici` — 7 avis (EventSource, SRI, content-encoding, redirections, TLS, WebSocket, decompress) | high | `undici@6.29.0` sous `@vercel/blob`, `undici@7.30.0` sous `jsdom` | `npm update undici` → 6.29.1 et 7.30.1, dans les plages déjà déclarées | **PASS** |
+| `@vercel/blob`, `@vercel/oidc`, `@vercel/oidc-aws-credentials-provider`, `@vercel/cli-config` | high | Aucun avis propre : chaîne `… → @vercel/cli-config → zod@4.1.11`. La dernière `@vercel/cli-config` (0.3.5) épingle encore `zod` 4.1.11 | `overrides: { "@vercel/cli-config": { "zod": "^4.6.7" } }` — même majeure, ciblée sur ce seul parent. À retirer quand `@vercel/cli-config` publiera une version sur `zod` ≥ 4.6.6 | **PASS** |
+| `zod` — GHSA-mrhx-c7xc-m3w5 (mémoire épuisée par un tableau surdimensionné, plage `< 4.6.6`) | high | `zod@3.25.76`, direct, dernière 3.x publiée. Le correctif 4.6.6 ne touche que `v4/core` : aucune version 3.x ni le sous-chemin `zod/v3` ne sont corrigés | **Non traité dans ce lot** : migration majeure zod 4, décision utilisateur. Passer par `zod/v3` ferait taire l'audit sans corriger le code exécuté — refusé | **FAIL** |
+| `minimatch` GHSA-g3hv-75wg-m249 et ses 20 dépendants (`eslint`, `@typescript-eslint/*`, `exceljs` → `archiver`…) | moderate | Outillage ESLint et `exceljs` | Non bloquant (`--audit-level=high`) ; npm ne propose que des rétrogradations majeures (`eslint` 4, `exceljs` 4.1.1) — refusées | **NOT_TESTED** |
+
+**Mesure de la migration zod 4** (essai `npm i zod@4.6.7 --no-save`, non
+conservé) : `tsc` signale 24 erreurs dans 2 fichiers
+(`app/api/adjustments/route.ts` : `errorMap` / `invalid_type_error` ;
+`lib/workpapers/loan-review.ts` : typage de la table `SCHEMAS`) ; le projet
+vitest `unit` passe à 56 échecs sur 2229, tous dans les 6 fichiers Capitaux
+propres, d'une seule cause : `z.record(z.enum(…), …)` devient exhaustif en
+zod 4 (`lib/workpapers/capitaux-review.ts:164`, même forme en
+`lib/workpapers/stock-contract.ts:209`). Les projets `durable` et e2e n'ont pas
+été exécutés sous zod 4 : **NOT_VERIFIED**.
+
 ### 1.3 `xlsx` — blocage P0-1 du plan
 
 | Contrôle | Résultat | Preuve |
