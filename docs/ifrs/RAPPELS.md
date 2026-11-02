@@ -4,7 +4,7 @@ Actions laissées en attente par décision de l'utilisateur. Une ligne se retire
 
 | Ouvert le | Rappel | Pourquoi c'est en attente | Ce qui en dépend |
 |---|---|---|---|
-| 30/10/2026 | **Texte de l'Union européenne d'IFRS 16** (règlement 2023/1803) à lire | EUR-Lex renvoie une page vide (quatre essais au 29/10/2026), accès non contourné. Le 31/10/2026, l'utilisateur a dit qu'il fournirait plus tard le PDF du règlement | La juridiction `EU_adopted` en réel (X33) ; la condition 3 de [`SOURCES.md`](./SOURCES.md) § 4 |
+| 30/10/2026 | **Juridiction UE d'IFRS 16** : relecture personnelle nommée du texte UE (pages 815 à 840 du règlement 2023/1803, liste dans [`SOURCES.md`](./SOURCES.md) § 6), puis décision d'ouvrir `EU_adopted` | Le PDF a été fourni par l'utilisateur et lu par outil le 02/11/2026 : même structure que le texte IASB pour les paragraphes de la règle ; seules diffèrent la cession-bail (2022) et le § 49 (IFRS 18), hors V1. La relecture mot à mot du texte français reste un acte humain, et la version consolidée n'est pas lue | La juridiction `EU_adopted` en réel (X33) ; la condition 3 de [`SOURCES.md`](./SOURCES.md) § 4 |
 | 31/10/2026 | **Décision IFRS 18 (go / no-go)** : reportée | L'utilisateur n'a pas de balance déjà établie en IFRS (31/10/2026) ; rien ne justifie d'engager P18-01 | Les lots P18-01 à P18-06 ; le mapping P18 de la matrice L16-06, sans objet en attendant |
 
 ## Rappels clos
