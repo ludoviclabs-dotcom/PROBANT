@@ -56,10 +56,14 @@ describe("C01 contexte IFRS", () => {
     expect(() => assertIfrsContext(scope, { ...context, firstApplication: { kind: "modified_retrospective", reason: "x" } })).toThrow("L16_REQUEST_INVALID");
     expect(() => assertIfrsContext(scope, { ...context, period: { ...period, closingDate: "2027-02-30" } })).toThrow("L16_REQUEST_INVALID");
   });
-  it("X33 : EU_adopted n'est pas activable en réel tant que le texte UE n'est pas lu ; aucun blocage en scénario ni pour l'IASB", () => {
-    expect(frameworkBlockers({ ...framework, jurisdiction: "EU_adopted" }, "real")).toEqual([expect.stringContaining("X33")]);
-    expect(frameworkBlockers({ ...framework, jurisdiction: "EU_adopted" }, "demo")).toEqual([]);
-    expect(frameworkBlockers(framework, "real")).toEqual([]);
+  it("X33 : EU_adopted n'est activable en réel qu'avec la relecture nommée du texte UE, pour l'édition relue ; aucun blocage en scénario ni pour l'IASB", () => {
+    const eu = { ...framework, jurisdiction: "EU_adopted" as const, editionFingerprint: "a".repeat(64) }, reviewed = { sha256: "a".repeat(64) };
+    expect(frameworkBlockers(eu, "real", null)).toEqual([expect.stringContaining("X33 : texte de l'Union européenne sans relecture personnelle nommée")]);
+    expect(frameworkBlockers(eu, "real", reviewed)).toEqual([]);
+    expect(frameworkBlockers(eu, "real", { sha256: "b".repeat(64) })).toEqual([expect.stringContaining("X33 : édition déclarée différente")]);
+    expect(frameworkBlockers({ ...eu, editionFingerprint: null }, "real", reviewed)).toEqual([expect.stringContaining("X33 : édition déclarée différente")]);
+    expect(frameworkBlockers(eu, "demo", null)).toEqual([]);
+    expect(frameworkBlockers(framework, "real", null)).toEqual([]);
   });
 });
 

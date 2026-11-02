@@ -186,7 +186,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
           {portfolio && <SummaryLine summary={portfolio.summary}/>}
           {qualification ? <CompletenessMatrix qualification={qualification} framing={framing} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
             : run ? <StateNotice tone="info" title="Qualification non disponible">{view.qualificationIssues[run.id] ? "Sources illisibles : " + view.qualificationIssues[run.id] : "Enregistrez les politiques pour qualifier les contrats des sources courantes."}</StateNotice> : null}
-          {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} work={run.leaseWork} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
+          {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} work={run.leaseWork} jurisdictions={view.capability.jurisdictions} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
             onSave={(draft: LeaseWorkDraft) => void command("configure_leases", { work: draft })}/>}
           <section className={s.section} aria-labelledby="l16-portfolio-title">
             <div className={s.sectionHead}><h2 id="l16-portfolio-title">Portefeuille et calcul</h2><span className={s.muted}>Lecture du résultat de la version r{run?.revision ?? "—"} · v{run?.version ?? "—"} ; filtrer ou trier ne change ni la population figée ni l'export.</span></div>

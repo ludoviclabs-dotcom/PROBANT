@@ -14,7 +14,7 @@ import { approvedLeaseBatches, LEASE_PERIOD } from "./lease-fixture";
  * **simulé ici**), la fiche reste à revoir, la règle provisoire, toute exécution réelle est refusée sans montant, et le registre des capacités
  * ne l'annonce pas ; le scénario synthétique reste calculé. La relecture réellement consignée est vérifiée par lease-socle et contracts.
  */
-vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: null }));
+vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: null, LEASE_RULE_REVIEW_EU: null }));
 
 const scope: WorkpaperScope = { organizationId: "org-l16-non-relue", dossierId: "dossier-l16-non-relue", periodId: periodId(LEASE_PERIOD), mode: "real" };
 async function request(s: WorkpaperScope) {

@@ -1,7 +1,8 @@
 import type { RuleReference } from "@/lib/workpapers/model";
 import { leaseRuleBasisSchema, type LeaseRuleBasis } from "@/lib/ifrs/shared/rule-basis";
 import { LEASE_ENGINE_VERSION } from "./engine";
-import { LEASE_RULE_REVIEW, type LeaseRuleReview } from "./rule-review";
+import type { IfrsJurisdiction } from "@/lib/ifrs/shared/context";
+import { LEASE_RULE_REVIEW, LEASE_RULE_REVIEW_EU, type LeaseRuleReview, type LeaseRuleReviewEu } from "./rule-review";
 
 /**
  * Règle de l'atelier « Locations IFRS 16 », version 1.0.0 avec le moteur (L16-02). Une feuille 0.1.0 (socle C01) devient « règle remplacée »
@@ -11,6 +12,19 @@ import { LEASE_RULE_REVIEW, type LeaseRuleReview } from "./rule-review";
  */
 export const LEASE_RULE_VERSION = "1.0.0";
 const EXCLUSIONS = Array.from({ length: 34 }, (_, i) => "X" + String(i + 1).padStart(2, "0"));
+/** Texte de l'Union européenne lu le 02/11/2026 (`docs/ifrs/SOURCES.md` § 6) : l'édition qu'une feuille `EU_adopted` déclare, par son empreinte. */
+export const LEASE_EU_TEXT = { regulation: "(UE) 2023/1803", edition: "IFRS 16, règlement (UE) 2023/1803 (JO L 237 du 26.9.2023)", sha256: "06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951" } as const;
+/** Éditions proposées pour une feuille réelle : l'IASB dès que la règle est relue, l'UE en plus si son texte a sa propre relecture nommée. */
+export interface LeaseJurisdictionOption { jurisdiction: IfrsJurisdiction; label: string; edition: string; editionFingerprint: string | null }
+export function leaseJurisdictions(review: LeaseRuleReview | null, euReview: LeaseRuleReviewEu | null): LeaseJurisdictionOption[] {
+  if (!review) return [];
+  const iasb: LeaseJurisdictionOption = { jurisdiction: "IASB", label: "IFRS publiées par l'IASB (édition 2026)", edition: "IFRS 16, IASB 2026", editionFingerprint: null };
+  return euReview && euReview.text.sha256 === LEASE_EU_TEXT.sha256
+    ? [iasb, { jurisdiction: "EU_adopted", label: "IFRS adoptées dans l'Union européenne (règlement 2023/1803)", edition: LEASE_EU_TEXT.edition, editionFingerprint: LEASE_EU_TEXT.sha256 }] : [iasb];
+}
+export const LEASE_JURISDICTIONS = leaseJurisdictions(LEASE_RULE_REVIEW, LEASE_RULE_REVIEW_EU);
+/** Texte UE relu, pour le verrou X33 : null tant que sa relecture nommée manque. */
+export const LEASE_EU_REVIEWED_TEXT = LEASE_JURISDICTIONS.some(j => j.jurisdiction === "EU_adopted") ? { sha256: LEASE_EU_TEXT.sha256 } : null;
 export function leaseRuleBasis(review: LeaseRuleReview | null): LeaseRuleBasis {
   return leaseRuleBasisSchema.parse({
     ruleId: "ifrs16.leases", ruleVersion: LEASE_RULE_VERSION, engineVersion: LEASE_ENGINE_VERSION,
@@ -20,7 +34,7 @@ export function leaseRuleBasis(review: LeaseRuleReview | null): LeaseRuleBasis {
     consultedAt: "2026-10-29", effectiveDate: "2019-01-01", entityProfile: "Preneur, euros, loyers fixes mensuels à terme échu, 1 à 120 mois (docs/ifrs/SCOPE_V1.md)",
     assumptions: [
       "Paragraphes lus le 29/10/2026 par extraction outillée et paraphrase, B9-B33 compris ; la lecture mot à mot est un acte de la relecture nommée",
-      "Texte de l'Union européenne (règlement 2023/1803) non lu : EUR-Lex renvoie une page vide (quatre essais, 29/10/2026) ; seule la juridiction IASB est validable",
+      "Texte de l'Union européenne (règlement 2023/1803, version d'origine) lu par outil le 02/11/2026 : mêmes paragraphes que l'IASB pour la règle ; la juridiction UE exige sa propre relecture nommée (X33)",
     ],
     internalPolicies: [
       "Virgule fixe à 40 décimales ; publication par soldes arrondis au centime, moitié à l'opposé de zéro ; écart d'arrondi tracé, borné à un centime par mois",

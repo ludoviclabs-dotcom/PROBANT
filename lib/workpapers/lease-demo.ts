@@ -1,4 +1,4 @@
-import { LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
+import { LEASE_JURISDICTIONS, LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
 import { qualifyLeases } from "@/lib/ifrs/leases/qualification";
 import { frameLeases } from "@/lib/ifrs/leases/framing";
 import { leasePortfolioView } from "@/lib/ifrs/leases/portfolio";
@@ -51,7 +51,7 @@ export async function leaseDemoView() {
     sourcesCurrent: { [runId]: true }, ruleCurrent: { [runId]: true }, qualification: { [runId]: qualification }, qualificationIssues: {}, framing: { [runId]: framing }, adjustments: { [runId]: bundle }, portfolio: { [runId]: leasePortfolioView(run, [run], qualification) },
     contentHashes: { [runId]: contentHash(run) },
     review: { [runId]: leaseReviewSummary(run, result.execution === "completed" ? result.result as LeaseResult : null, qualification, facts, bundle) }, workspace: { [runId]: workspace },
-    emptyWorkspace: workspace, capability: { engine: "1.0.0", realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required", rule: { id: "ifrs16.leases", version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES } };
+    emptyWorkspace: workspace, capability: { engine: "1.0.0", realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required", rule: { id: "ifrs16.leases", version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES, jurisdictions: LEASE_JURISDICTIONS } };
 }
 
 /**

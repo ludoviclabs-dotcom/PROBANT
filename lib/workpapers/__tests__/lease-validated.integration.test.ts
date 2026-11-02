@@ -30,7 +30,7 @@ import { leaseFiles, LEASE_PERIOD } from "./lease-fixture";
  * 31/10/2026) ; elle vérifie le branchement du moteur (exécution réelle, preuves, points de revue, conclusion, relecture personnelle, verrouillage).
  */
 vi.mock("@/lib/ifrs/leases/rule-review", () => ({ LEASE_RULE_REVIEW: { reviewedBy: "Relecture simulée de recette", reviewedAt: "2026-10-29T12:00:00.000Z", jurisdiction: "IASB",
-  confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } } }));
+  confirmations: { wordByWordParagraphs: true, b9ToB33: true, internalPoliciesAccepted: true, referenceCasesExamined: true } }, LEASE_RULE_REVIEW_EU: null }));
 const databaseUrl = process.env.PROBANT_CLIENTS_TEST_DATABASE_URL;
 describe.skipIf(!databaseUrl)("recette Locations IFRS 16 — règle validée par simulation, moteur réel, relecture personnelle nommée", () => {
   let client: ReturnType<typeof postgres>, http: ReturnType<typeof leaseHandlers>, closing: ReturnType<typeof closingHandlers>, sessions: DrizzleSessionStore;

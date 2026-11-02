@@ -7,6 +7,7 @@ import { assertScope, periodId, scopeSchema, type WorkpaperScope } from "@/lib/w
  * Le périmètre et la période viennent du serveur (session et feuille) ; seul le référentiel est déclaré par le travail de la feuille.
  */
 export const IFRS_JURISDICTIONS = ["IASB", "EU_adopted"] as const;
+export type IfrsJurisdiction = typeof IFRS_JURISDICTIONS[number];
 export const ifrsFrameworkSchema = z.object({
   standard: z.literal("IFRS 16"), jurisdiction: z.enum(IFRS_JURISDICTIONS),
   edition: z.string().trim().min(1).max(100), editionFingerprint: z.string().regex(/^[a-f0-9]{64}$/).nullable(),
@@ -34,8 +35,11 @@ export function assertIfrsContext(expected: WorkpaperScope, value: unknown): Ifr
 
 /**
  * Motifs qui empêchent une exécution réelle pour ce référentiel, indépendamment du moteur.
- * X33 : le texte UE d'IFRS 16 n'est pas lu (C00, `SOURCES.md` § 1) : la juridiction `EU_adopted` n'est pas activable en réel.
+ * X33 : la juridiction `EU_adopted` n'est activable en réel qu'avec la relecture nommée du texte UE (`euReviewedText`, null sinon), et
+ * seulement pour l'édition relue : une feuille qui déclare une autre empreinte d'édition reste bloquée.
  */
-export function frameworkBlockers(framework: IfrsFramework, mode: WorkpaperScope["mode"]): string[] {
-  return mode === "real" && framework.jurisdiction === "EU_adopted" ? ["X33 : texte de l'Union européenne non lu, juridiction EU_adopted non activable en réel"] : [];
+export function frameworkBlockers(framework: IfrsFramework, mode: WorkpaperScope["mode"], euReviewedText: { sha256: string } | null): string[] {
+  if (mode !== "real" || framework.jurisdiction !== "EU_adopted") return [];
+  if (!euReviewedText) return ["X33 : texte de l'Union européenne sans relecture personnelle nommée, juridiction EU_adopted non activable en réel"];
+  return framework.editionFingerprint === euReviewedText.sha256 ? [] : ["X33 : édition déclarée différente du texte de l'Union européenne relu"];
 }

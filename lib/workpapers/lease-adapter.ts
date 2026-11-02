@@ -5,7 +5,7 @@ import type { ImportBatch } from "./imports";
 import { frozen, moneySchema, type ProcedureTemplate, type WorkpaperRun } from "./model";
 import { CalculationRegistry, type CalculationRequest } from "./calculations";
 import { frameworkBlockers } from "@/lib/ifrs/shared/context";
-import { IFRS16_RULE, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
+import { IFRS16_RULE, LEASE_EU_REVIEWED_TEXT, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
 import { evaluateLeases, isLeaseResult, type LeaseResult } from "./lease-review";
 import { leaseWorkSchema, type LeaseWork } from "./lease-work";
 import { LEASE_REQUIRED_TYPES } from "./lease-sources";
@@ -23,13 +23,14 @@ export const LEASE_TEMPLATE: ProcedureTemplate = {
 
 /**
  * Adaptateur de calcul de l'atelier : le moteur pur (L16-02) derrière le registre de calcul existant. Le registre bloque toute exécution
- * réelle tant que la règle n'est pas validée par la relecture nommée (`rule_not_applicable`) ; la juridiction EU_adopted reste bloquée en réel (X33).
+ * réelle tant que la règle n'est pas validée par la relecture nommée (`rule_not_applicable`) ; la juridiction EU_adopted exige en plus la
+ * relecture nommée du texte UE et l'édition relue (X33).
  */
 export class LeaseRegistry extends CalculationRegistry {
   override execute(request: CalculationRequest) {
     if (request.rule.id !== "ifrs16.leases" || request.population.unit !== "lease_contract") throw new Error("L16_ADAPTER_INVALID");
     const work = leaseWorkSchema.safeParse((request.parameters as { work?: unknown } | null)?.work);
-    const blockers = work.success ? frameworkBlockers(work.data.framework, request.scope.mode) : [];
+    const blockers = work.success ? frameworkBlockers(work.data.framework, request.scope.mode, LEASE_EU_REVIEWED_TEXT) : [];
     if (blockers.length) {
       const traced = inputByReference(new CalculationRegistry().execute(request), request.imports);
       return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers], result: { status: "framework_not_activatable", reason: blockers.join(" ; ") } });

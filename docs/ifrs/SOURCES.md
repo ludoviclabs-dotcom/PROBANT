@@ -92,4 +92,4 @@ PDF français du JO L 237 du 26.9.2023, déposé par l'utilisateur hors du dép�
 - **Version consolidée.** Le texte lu est la version d'origine de 2023, pas la version consolidée. Le règlement de l'Union qui adopte la modification de 2022 sur la cession-bail n'est pas lu, ni l'état d'adoption d'IFRS 18 dans l'Union.
 - **Effet sur V1.** Aucun : les deux sujets sont hors V1.
 
-**État de X33.** `EU_adopted` reste bloquée en réel : le texte est lu par outil, mais la fiche de règle n'a pas de relecture nommée pour cette juridiction.
+**État de X33.** `EU_adopted` reste bloquée en réel : le texte est lu par outil, mais la fiche de règle n'a pas de relecture nommée pour cette juridiction. Depuis le 02/11/2026, cette relecture a sa propre consignation (`LEASE_RULE_REVIEW_EU`, fiche [`FICHE_RELECTURE_UE.md`](./FICHE_RELECTURE_UE.md)) ; elle n'ouvre que l'édition dont l'empreinte est relue.

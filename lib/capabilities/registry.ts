@@ -1,4 +1,5 @@
 import { durableChainEnabled } from "@/lib/runtime/profile";
+import { LEASE_JURISDICTIONS } from "@/lib/ifrs/leases/rule";
 import { LEASE_RULE_REVIEW } from "@/lib/ifrs/leases/rule-review";
 import { RECONCILIATION_DEFINITIONS, DOCUMENT_DEFINITIONS } from "./reconciliation-definitions";
 import { WORKSHOP_DEFINITIONS } from "./workshop-definitions";
@@ -19,8 +20,9 @@ export * from "./procedures";
  * 1.5.5 (IFRS L16-05): review summary, cited resolutions and named personal review on the sheet; JSON / CSV / printable HTML exports with manifest (diagnostic or reviewed); selection for a declared base in the closing file (« Travaux IFRS »), never added to misstatements nor C05.
  * 1.5.6 (IFRS, relecture nommée de la règle consignée) : la chaîne locale Locations est annoncée, exécution réelle ouverte pour la juridiction IASB seulement.
  * 1.5.7 (IFRS C03) : les limites disent le pont partiel d'une base PCG et l'absence de présentation IFRS 18 (atelier non engagé).
+ * 1.5.8 (IFRS, texte UE lu) : la juridiction EU_adopted dépend de la relecture nommée du texte UE, distincte de celle de l'IASB.
  */
-export const CAPABILITY_REGISTRY_VERSION = "1.5.7";
+export const CAPABILITY_REGISTRY_VERSION = "1.5.8";
 export type CapabilityMode = "historical" | "scenario" | "local_persistent";
 export const MODE_LABELS: Record<CapabilityMode, string> = { historical: "Constats historiques", scenario: "Atelier · simulation", local_persistent: "Dossier local · persistance" };
 const reconciliationIds: Partial<Record<CapabilityCycleId, string>> = { clients: "clients", achats: "fournisseurs", tresorerie: "tresorerie", immobilisations: "immobilisations", stocks: "stocks", provisions: "provisions", capitaux_propres: "capitaux-propres", dettes_financieres: "dettes-financieres", fiscal: "impots-taxes", paie: "paie", exceptionnel: "resultat-exceptionnel" };
@@ -89,7 +91,10 @@ export const CAPABILITY_FRAMEWORKS = FRAMEWORK_PROCEDURES.map(p => ({ ...p,
     "Grand livre 612 / 613 / 614 et pièces pour un retraitement déterminé (lease_ledger)", "Ouverture historique validée pour une reprise (lease_opening)"],
   exclusions: ["Preneur seulement, euros, loyers fixes mensuels à terme échu, 1 à 120 mois (docs/ifrs/SCOPE_V1.md)", "Ni IFRS complet, ni annexe exhaustive, ni effet fiscal ; aucune méthode de transition choisie par l'outil",
     "Une base PCG plus ce seul retraitement reste un pont partiel : les autres retraitements d'une base IFRS restent indéterminés", "Aucune présentation IFRS 18 : atelier non engagé (classement, sous-totaux, MPM et comparatifs de transition absents)",
-    "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'est pas lu (X33)", LEASE_RULE_REVIEW ? "Règle relue pour la seule juridiction IASB (relecture personnelle nommée consignée) ; aucune autre juridiction n'est exécutable en réel" : "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"],
+    LEASE_JURISDICTIONS.length > 1 ? "Juridiction EU_adopted ouverte en réel pour le seul texte relu, règlement (UE) 2023/1803 dans sa version d'origine (X33 levé par la relecture nommée du texte UE)"
+      : "Juridiction EU_adopted non activable en réel tant que le texte de l'Union européenne n'a pas sa relecture personnelle nommée (X33)",
+    !LEASE_RULE_REVIEW ? "Règle à revoir : aucune exécution réelle tant que la fiche de règle n'est pas validée"
+      : LEASE_JURISDICTIONS.length > 1 ? "Règle relue pour les juridictions IASB et EU_adopted (relectures personnelles nommées consignées)" : "Règle relue pour la seule juridiction IASB (relecture personnelle nommée consignée) ; aucune autre juridiction n'est exécutable en réel"],
   modes: {
     historical: { implemented: false, scope: "Absent des constats historiques" },
     scenario: { implemented: true, scope: "Scénario synthétique en lecture seule (/ifrs/locations?demo=1) : « simulation non revue », calculé par le même moteur, jamais enregistré" },

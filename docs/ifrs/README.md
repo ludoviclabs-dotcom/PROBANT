@@ -37,6 +37,7 @@ Un fichier de ce répertoire est une spécification ou un relevé ; seul le code
 | [`handoffs/L16-03.md`](./handoffs/L16-03.md) | cadrage PCG, retraitement de clôture et pont, sélection, contrat exposé à IFRS 18, recette avant / après, captures [`captures/l16-03/`](./captures/l16-03/) |
 | [`handoffs/L16-02.md`](./handoffs/L16-02.md) · [`handoffs/L16-01.md`](./handoffs/L16-01.md) | Moteur, résultat, oracle ; dictionnaire, qualification et tableau cas → statut → cause → action |
 | [`handoffs/C02.md`](./handoffs/C02.md) | Langage visuel : composants, API de sélection, contrats de branchement, captures [`captures/c02/`](./captures/c02/) |
+| [`FICHE_RELECTURE_UE.md`](./FICHE_RELECTURE_UE.md) | **À remplir par l'utilisateur** : relecture du texte UE (règlement 2023/1803, pages exactes), bloc à consigner dans `rule-review.ts` ; ouvre la juridiction `EU_adopted` (X33) |
 | [`FICHE_RELECTURE_UTILISATEUR.md`](./FICHE_RELECTURE_UTILISATEUR.md) | Fiche de relecture de la règle point par point, texte UE, cible de capacité, décision IFRS 18 ; réponses reçues le 31/10/2026, reportées dans [`RAPPELS.md`](./RAPPELS.md) |
 | [`RAPPELS.md`](./RAPPELS.md) | **Rappels en attente** : texte UE (PDF à fournir), décision IFRS 18 reportée ; rappels clos : relecture de la règle, cible de capacité |
 | [`REVUE_REGLE_IFRS16.md`](./REVUE_REGLE_IFRS16.md) | Relecture nommée de la règle : consignée le 31/10/2026 (IASB) ; guide conservé |

@@ -152,7 +152,7 @@ describe("L16-02 adaptateur : moteur en scénario, exécution réelle bloquée t
     expect(result.evidence.documents.length).toBe(leaseRunEvidence(result).length);
     expect(stableSha256(new LeaseRegistry().execute(await request(demo)))).toBe(stableSha256(r));
   });
-  it("X33 : EU_adopted ajoute son propre motif en réel, pas en scénario ; une autre procédure ou unité est refusée", async () => {
+  it("X33 : EU_adopted sans l'édition UE relue ajoute son propre motif en réel, pas en scénario ; une autre procédure ou unité est refusée", async () => {
     expect(new LeaseRegistry().execute(await request(scope, "EU_adopted")).blockedControls).toEqual(expect.arrayContaining([expect.stringContaining("X33")]));
     const demo = { ...scope, mode: "demo" as const };
     expect(new LeaseRegistry().execute(await request(demo, "EU_adopted"))).toMatchObject({ execution: "completed" });

@@ -24,7 +24,8 @@ export interface LeaseView {
   /** Synthèse de revue (L16-05) et empreinte de chaque version lue, nommée par un export ou une sélection. */
   review?: Record<string, LeaseReviewSummary>; contentHashes?: Record<string, string>;
   workspace: Record<string, LeaseWorkspaceView>; emptyWorkspace: LeaseWorkspaceView;
-  capability: { engine: string; realExecution: "allowed" | "blocked_rule_review_required"; rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; requiredTypes: readonly string[] };
+  capability: { engine: string; realExecution: "allowed" | "blocked_rule_review_required"; rule: { id: string; version: string; basisStatus: "review_required" | "validated" }; requiredTypes: readonly string[];
+    jurisdictions: readonly { jurisdiction: "IASB" | "EU_adopted"; label: string; edition: string; editionFingerprint: string | null }[] };
 }
 
 export const STATUS_LABELS: Record<ContractStatus, string> = { non_location: "Non-location documentée", exemption_documentee: "Exemption documentée", eligible_v1: "Calculable sur ce périmètre",
