@@ -10,6 +10,7 @@ import type { EquityWork as CapitauxWork } from "./capitaux-review";
 import type { FiscalWork } from "./fiscal-review";
 import type { StockWork } from "./stock-contract";
 import type { ProvisionWork } from "./provision-contract";
+import type { LeaseWork } from "./lease-work";
 import { z } from "zod";
 import type { DossierSnapshot } from "@/lib/canonical-model/dossier";
 import type { Finding } from "@/lib/canonical-model/finding";
@@ -66,7 +67,7 @@ export interface EvidenceLink {
   status: "verified" | "suggestion"; purpose: string;
 }
 export interface Population {
-  id: string; scope: WorkpaperScope; importIds: string[]; unit: "loan_contract_due" | "event" | "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "security_distribution" | "account" | "asset" | "decision_movement" | "vat_entry" | "result_entry" | "stock_unit" | "pv_event";
+  id: string; scope: WorkpaperScope; importIds: string[]; unit: "loan_contract_due" | "event" | "row" | "invoice" | "third_party" | "purchase_entry" | "subsequent_payment" | "equity_decision_movement" | "security_distribution" | "account" | "asset" | "decision_movement" | "vat_entry" | "result_entry" | "stock_unit" | "pv_event" | "lease_contract";
   items: { id: string; rowIds: string[]; amount: Money }[]; hash: string;
 }
 export interface SelectionSet {
@@ -94,12 +95,12 @@ export interface WorkpaperRun {
   id: string; rootId: string; revision: number; version: number; schemaVersion: typeof WORKPAPER_SCHEMA_VERSION;
   scope: WorkpaperScope; period: AccountingPeriod; template: ProcedureTemplate; state: WorkpaperState;
   preparedBy: string; importIds: string[]; population?: Population; selection?: SelectionSet;
-  loanWork?: LoanWork; exceptionalWork?: ExceptionalWork; investmentWork?: InvestmentWork; cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; equityWork?: EquityWork; capitauxWork?: CapitauxWork; fiscalWork?: FiscalWork; stockWork?: StockWork; provisionWork?: ProvisionWork; payablesWork?: PayablesWork; clientsWork?: ClientsSalesWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
+  loanWork?: LoanWork; exceptionalWork?: ExceptionalWork; investmentWork?: InvestmentWork; cashWork?: CashWork; fixedAssetWork?: FixedAssetWork; equityWork?: EquityWork; capitauxWork?: CapitauxWork; fiscalWork?: FiscalWork; stockWork?: StockWork; provisionWork?: ProvisionWork; payablesWork?: PayablesWork; clientsWork?: ClientsSalesWork; leaseWork?: LeaseWork; result?: CalculationRun; evidence: EvidenceLink[]; findings: Finding[]; notes: WorkpaperNote[];
   conclusion?: string; submittedHash?: string; approval?: Approval; supersedes?: string; previousLockedId?: string;
   events: { id: string; action: string; actorId: string; at: string; version: number }[];
 }
 export function contentHash(run: WorkpaperRun): string {
-  return stableSha256({ ...(run.loanWork ? { loanWork: run.loanWork } : {}), ...(run.exceptionalWork ? {exceptionalWork:run.exceptionalWork} : {}), ...(run.investmentWork ? {investmentWork:run.investmentWork} : {}), ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), ...(run.equityWork ? { equityWork: run.equityWork } : {}), ...(run.capitauxWork ? { capitauxWork: run.capitauxWork } : {}), ...(run.fiscalWork ? { fiscalWork: run.fiscalWork } : {}), ...(run.stockWork ? { stockWork: run.stockWork } : {}), ...(run.provisionWork ? { provisionWork: run.provisionWork } : {}), ...(run.payablesWork ? { payablesWork: run.payablesWork } : {}), ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
+  return stableSha256({ ...(run.loanWork ? { loanWork: run.loanWork } : {}), ...(run.exceptionalWork ? {exceptionalWork:run.exceptionalWork} : {}), ...(run.investmentWork ? {investmentWork:run.investmentWork} : {}), ...(run.cashWork ? { cashWork: run.cashWork } : {}), ...(run.fixedAssetWork ? { fixedAssetWork: run.fixedAssetWork } : {}), ...(run.equityWork ? { equityWork: run.equityWork } : {}), ...(run.capitauxWork ? { capitauxWork: run.capitauxWork } : {}), ...(run.fiscalWork ? { fiscalWork: run.fiscalWork } : {}), ...(run.stockWork ? { stockWork: run.stockWork } : {}), ...(run.provisionWork ? { provisionWork: run.provisionWork } : {}), ...(run.payablesWork ? { payablesWork: run.payablesWork } : {}), ...(run.clientsWork ? { clientsWork: run.clientsWork } : {}), ...(run.leaseWork ? { leaseWork: run.leaseWork } : {}), id: run.id, rootId: run.rootId, revision: run.revision, supersedes: run.supersedes, previousLockedId: run.previousLockedId, scope: run.scope, period: run.period, template: run.template, importIds: run.importIds, population: run.population, selection: run.selection, result: run.result, evidence: run.evidence, findings: run.findings, notes: run.notes, conclusion: run.conclusion, preparedBy: run.preparedBy });
 }
 export function validateRun(run: WorkpaperRun): WorkpaperRun {
   scopeSchema.parse(run.scope);
@@ -118,6 +119,9 @@ export function validateRun(run: WorkpaperRun): WorkpaperRun {
   if (run.clientsWork && (run.template.id !== "clients.sales" || run.clientsWork.schemaVersion !== "clients-sales-1" || !run.clientsWork.framing.runId || !run.clientsWork.framing.rootId || !Number.isSafeInteger(run.clientsWork.framing.version) || run.clientsWork.framing.version < 1 || !/^[a-f0-9]{64}$/.test(run.clientsWork.framing.contentHash))) throw new Error("CLIENT_SALES_WORK_INVALID");
   if (run.cashWork && (run.template.id !== "cash.reconciliation" || run.clientsWork || run.cashWork.schemaVersion !== "cash-reconciliation-1" || !run.cashWork.convention?.validatedBy)) throw new Error("CASH_WORK_INVALID");
   if (run.fixedAssetWork && (run.template.id !== "fixed_assets.review" || run.clientsWork || run.cashWork || run.fixedAssetWork.schemaVersion !== "fixed-assets-1" || !run.fixedAssetWork.convention?.validatedBy)) throw new Error("FIXED_ASSET_WORK_INVALID");
+  // IFRS 16 leases (IFRS C01): one server-stamped lease work per run, bound to its procedure; an IFRS sheet carries no cycle work.
+  if (run.leaseWork && (run.template.id !== "ifrs16.leases" || run.leaseWork.schemaVersion !== "ifrs16-leases-1" || !run.leaseWork.authorId || !Number.isFinite(Date.parse(run.leaseWork.authoredAt)))) throw new Error("L16_WORK_INVALID");
+  if (run.template.id === "ifrs16.leases" && (run.loanWork || run.exceptionalWork || run.investmentWork || run.cashWork || run.fixedAssetWork || run.equityWork || run.capitauxWork || run.fiscalWork || run.stockWork || run.provisionWork || run.payablesWork || run.clientsWork)) throw new Error("L16_WORK_INVALID");
   if (periodIssues(run.period).length || run.scope.periodId !== periodId(run.period)) throw new Error("WORKPAPER_PERIOD_INVALID");
   if (!run.id || !run.preparedBy || !run.template.id || !run.template.version || !run.template.objective.trim() || !["manual", "calculated"].includes(run.template.kind)) throw new Error("WORKPAPER_TEMPLATE_INVALID");
   if (!Number.isSafeInteger(run.version) || run.version < 1 || !Number.isSafeInteger(run.revision) || run.revision < 1) throw new Error("WORKPAPER_VERSION_INVALID");

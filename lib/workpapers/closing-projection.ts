@@ -11,7 +11,8 @@ import { amountText, type ClosingEvaluation, type Denominators, type JournalLine
  * or the manual work, results, pieces, notes, misstatements and contradictions; the other sheets stay listed. No engine is recalculated, no opinion is generated.
  * 1.1.0: the effects of the transversal events map (C11) are listed beside the misstatements, at their C05 stage, with their source sheets placed in their lineage.
  */
-export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.1.0";
+/** 1.2.0 (L16-05): « Travaux IFRS » section, apart from the cycles, the misstatements and the C05 effects. 1.3.0 (C03): the selected base says it stays a partial bridge. */
+export const CLOSING_PROJECTION_SCHEMA = "closing-dossier-1.3.0";
 export const ASSIGNMENT_LABELS: Record<LineageAssignment, string> = { retenue: "Retenue au programme", a_rattacher: "À rattacher ou écarter", ecartee: "Écartée avec motif", hors_programme: "Hors programme" };
 /** C05 stage of an event effect after the file's review decision (residual = the part of a corrected effect left uncorrected), in the vocabulary of the misstatements. */
 export function effectStageLabel(x: Pick<DossierEventEffect, "status" | "stage" | "bridge" | "decisions">): string {
@@ -61,6 +62,8 @@ export interface DossierProjection {
   dates: ClosingEvaluation["dates"]; thresholds: { label: string; source: string; amount: string; basis: string | null; rate: string | null; rationale: string; by: string; at: string }[]; thresholdNotice: string;
   completion: { closable: boolean; blockers: string[]; professionalGaps: string[]; professional: ClosingEvaluation["validation"]; personal: ClosingEvaluation["personal"] };
   exclusions: ProjectionExclusion[]; noOpinion: string; limitations: string[]; hash: string;
+  /** IFRS works (L16-05): own denominators and section; never added to `findings.totals` nor to the C05 effects. */
+  ifrsWorks: ClosingEvaluation["ifrs"];
 }
 
 const sheetOf = (x: ClosingEvaluation["sheets"][number]): ProjectionSheet => ({ procedure: x.procedure, label: x.label, rootId: x.rootId, runId: x.current.runId, revision: x.current.revision, version: x.current.version, state: x.current.state,
@@ -118,7 +121,7 @@ export function projectDossier(input: { dossierId: string; periodId: string; seq
     },
     dates: e.dates, thresholds: e.thresholds.map(t => ({ label: t.label, source: t.source, amount: amountText(t.amount), basis: t.basis ?? null, rate: t.rate ?? null, rationale: t.rationale, by: t.by, at: t.at })), thresholdNotice: e.thresholdNotice,
     completion: { closable: e.closable, blockers: e.blockers.map(b => b.label), professionalGaps: e.professionalGaps.map(b => b.label), professional: e.validation, personal: e.personal },
-    exclusions, noOpinion: e.noOpinion,
+    exclusions, noOpinion: e.noOpinion, ifrsWorks: e.ifrs,
     limitations: ["Projection du journal et des feuilles observées à leur version courante : aucun moteur n’est recalculé ici.", "Une feuille verrouillée ne couvre que la procédure et la population rattachées ; les autres feuilles restent listées.",
       "La relecture personnelle nommée (mode solo) ne vaut pas revue par une autre personne ; la validation professionnelle reste distincte.", "Montants inconnus comptés à part, jamais pour zéro ; aucune comparaison aux seuils documentés.",
       e.events.status === "lue" ? "Effets des événements transversaux lus dans la carte C11 (empreinte " + e.events.map!.hash.slice(0, 12) + "…) : catégorie distincte des anomalies journalisées, sans total commun. Étape C05 de chaque effet issue des décisions journalisées par le dossier (corrections et appréciations) : "

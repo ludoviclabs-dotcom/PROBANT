@@ -11,6 +11,7 @@ import { equityPopulationItems as capitauxPopulationItems, isEquityPopulation as
 import { citPopulationItems, isFiscalPopulation, vatPopulationItems } from "./fiscal-population";
 import { isStockPopulation, stockPopulationItems } from "./stock-population";
 import { isProvisionPopulation, provisionPopulationItems } from "./provision-population";
+import { isLeasePopulation, leasePopulationItems } from "./lease-sources";
 
 /**
  * Invoice grouping is limited to the validated Clients open-at-closing mapping.
@@ -26,6 +27,9 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   // Loans (C13): one contract (all versions) or one due payable during the exercise, from the loans mapping.
   const loanUnit = unit === "loan_contract_due";
   if (loanUnit && !isLoanPopulation(imports)) throw new Error("LOAN_POPULATION_MAPPING_INVALID");
+  // IFRS 16 leases (IFRS C01): one contract = one row of the single contract register of the leases mapping.
+  const leaseUnit = unit === "lease_contract";
+  if (leaseUnit && !isLeasePopulation(imports)) throw new Error("L16_POPULATION_MAPPING_INVALID");
   const exceptionalUnit=unit==='event';
   if(exceptionalUnit && (imports.some(b=>b.mapping.version!=='exceptional-review-1') || imports.filter(b=>b.document.documentType==='exceptional_ledger').length!==1)) throw Error('EXCEPTIONAL_POPULATION_MAPPING_INVALID');
   const investmentUnit=unit==='security_distribution';
@@ -42,11 +46,11 @@ export function freezePopulation(scope: WorkpaperScope, imports: ImportBatch[], 
   const stockUnit = unit === "stock_unit" && isStockPopulation(imports);
   // Provisions register (Mission 16): one event of the single approved register of the provisions mapping.
   const provisionUnit = unit === "pv_event" && isProvisionPopulation(imports);
-  if (!loanUnit && !exceptionalUnit && !investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !provisionUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
+  if (!loanUnit && !leaseUnit && !exceptionalUnit && !investmentUnit && !payablesUnit && !equityUnit && !capitauxUnit && !fiscalUnit && !stockUnit && !provisionUnit && !accountUnit && !assetUnit && unit !== "row" && !invoiceUnit) throw new Error("GROUPED_POPULATION_MAPPING_NOT_VALIDATED");
   if (!imports.length || new Set(imports.map((b) => b.id)).size !== imports.length) throw new Error("POPULATION_IMPORTS_INVALID");
   imports.forEach((b) => { assertScope(scope, b.scope); if (!b.approval || !b.report.calculationAllowed || b.report.blocking.length) throw new Error("POPULATION_IMPORT_UNAPPROVED"); });
   const populationImports = investmentUnit ? imports.filter(b=>["investment_register","investment_distributions"].includes(b.document.documentType)) : equityUnit ? imports.filter(b=>["equity_ledger","equity_decisions"].includes(b.document.documentType)) : payablesUnit ? imports.filter(b => b.document.documentType === (unit === "purchase_entry" ? "purchases_ledger" : "payables_payments")) : unit === "invoice" ? imports.filter(b => b.document.documentType === "clients_invoices") : unit === "account" ? imports.filter(b => b.document.documentType === "cash_ledger") : imports;
-  const items = loanUnit ? loanPopulationItems(imports, assertLoanPopulationPeriod(scope, period)) : exceptionalUnit ? exceptionalUnits(imports) : unit === "stock_unit" ? stockPopulationItems(imports) : unit === "pv_event" ? provisionPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
+  const items = loanUnit ? loanPopulationItems(imports, assertLoanPopulationPeriod(scope, period)) : leaseUnit ? leasePopulationItems(imports) : exceptionalUnit ? exceptionalUnits(imports) : unit === "stock_unit" ? stockPopulationItems(imports) : unit === "pv_event" ? provisionPopulationItems(imports) : unit === "vat_entry" ? vatPopulationItems(imports) : unit === "result_entry" ? citPopulationItems(imports) : unit === "decision_movement" ? capitauxPopulationItems(imports) : unit === "asset" ? registerUnits(imports.find(b => b.document.documentType === "fa_register")!).map(u => {
     // The population measure is the gross closing value; an asset without one is refused rather than counted as zero.
     if (!u.grossClosing) throw new Error("FA_GROSS_CLOSING_REQUIRED");
     return { id: u.unitId, rowIds: u.rowIds, amount: u.grossClosing };

@@ -1,0 +1,261 @@
+{
+  "schema": "probant-l16-06-mutations-1",
+  "generatedBy": "scripts/ifrs/mutations-l16.mjs",
+  "node": "v24.14.0",
+  "database": true,
+  "results": [
+    {
+      "id": "M1",
+      "label": "Taux mensuel r / 12 au lieu de (1 + r)^(1/12) − 1",
+      "file": "lib/ifrs/shared/fixed-point.ts",
+      "tests": [
+        "lib/ifrs/leases/__tests__/engine.test.ts",
+        "lib/ifrs/leases/__tests__/proprietes.test.ts",
+        "lib/ifrs/shared/__tests__/fixed-point.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 38
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 16,
+        "failed": 22,
+        "skipped": 0,
+        "failedSuites": 7,
+        "failedTitles": [
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F01 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F03 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F04 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F05 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F06 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F07 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F08 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F09 : échéancier publié, valeurs exactes et chaque clôture au centime"
+        ]
+      }
+    },
+    {
+      "id": "M2",
+      "label": "Signe du dernier loyer inversé dans l'échéancier",
+      "file": "lib/ifrs/leases/engine.ts",
+      "tests": [
+        "lib/ifrs/leases/__tests__/engine.test.ts",
+        "lib/ifrs/leases/__tests__/proprietes.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 19
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 2,
+        "failed": 17,
+        "skipped": 0,
+        "failedSuites": 6,
+        "failedTitles": [
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F01 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F02 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F03 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F04 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F05 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F06 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F07 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F08 : échéancier publié, valeurs exactes et chaque clôture au centime"
+        ]
+      }
+    },
+    {
+      "id": "M3",
+      "label": "Contrat compté deux fois dans le sous-total du portefeuille",
+      "file": "lib/workpapers/lease-review.ts",
+      "tests": [
+        "lib/workpapers/__tests__/lease-proprietes.test.ts",
+        "lib/ifrs/leases/__tests__/portfolio.test.ts",
+        "lib/workpapers/__tests__/lease-export.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 19
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 3,
+        "failed": 16,
+        "skipped": 0,
+        "failedSuites": 10,
+        "failedTitles": [
+          "lib/workpapers/__tests__/lease-export.test.ts › même version : même empreinte métier et mêmes données ; seules les métadonnées d'émission changent",
+          "lib/workpapers/__tests__/lease-export.test.ts › totaux identiques à l'écran, dans le JSON, les CSV et le HTML ; montants inconnus jamais comptés pour zéro",
+          "lib/workpapers/__tests__/lease-export.test.ts › rapport HTML imprimable : contexte répété, en-têtes de tableau répétés, mesures distinctes, informations non couvertes",
+          "lib/workpapers/__tests__/lease-export.test.ts › export revu : version approuvée, à jour, dernière révision ; sinon un motif dit quoi faire",
+          "lib/workpapers/__tests__/lease-export.test.ts › feuille bloquée : export diagnostic sans montant ni journal ; le motif du blocage est écrit",
+          "lib/workpapers/__tests__/lease-export.test.ts › docs/ifrs/exemples/l16-05 est exactement ce que le code produit (npm run ifrs:l16-docs) : aucune dérive silencieuse",
+          "lib/workpapers/__tests__/lease-export.test.ts › par contrat : exceptions, jugements de durée et de taux cités, cadrage, résultat, retraitement ; points bloquants comptés jusqu'à leur résolution",
+          "lib/workpapers/__tests__/lease-proprietes.test.ts › sous-total : somme des seuls contrats calculés, poste par poste, au centime ; jamais un contrat compté deux fois"
+        ]
+      }
+    },
+    {
+      "id": "M4a",
+      "label": "Source remplacée ignorée par le runtime (feuille dite à jour)",
+      "file": "lib/workpapers/lease-runtime.ts",
+      "tests": [
+        "lib/workpapers/__tests__/lease-durable.integration.test.ts",
+        "lib/workpapers/__tests__/lease-validated.integration.test.ts"
+      ],
+      "project": "durable",
+      "status": "detectee",
+      "baseline": {
+        "passed": 13
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 11,
+        "failed": 2,
+        "skipped": 0,
+        "failedSuites": 4,
+        "failedTitles": [
+          "lib/workpapers/__tests__/lease-durable.integration.test.ts › source remplacée : seule la feuille Locations est à réviser ; la feuille Emprunts voisine reste à jour ; révision et historique conservés",
+          "lib/workpapers/__tests__/lease-validated.integration.test.ts › exécution réelle : chiffres de l'oracle au centime, cadrés sur la base PCG, retraitement proposé puis revu à version exacte ; conclusion, relecture personnelle nommée et verrouillage"
+        ]
+      }
+    },
+    {
+      "id": "M4b",
+      "label": "Source remplacée ignorée à la sélection d'un retraitement",
+      "file": "lib/ifrs/shared/selection.ts",
+      "tests": [
+        "lib/ifrs/shared/__tests__/contracts.test.ts",
+        "lib/workpapers/__tests__/lease-adjustment.test.ts",
+        "lib/workpapers/__tests__/closing-ifrs.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 34
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 31,
+        "failed": 3,
+        "skipped": 0,
+        "failedSuites": 6,
+        "failedTitles": [
+          "lib/workpapers/__tests__/closing-ifrs.test.ts › refus motivés : feuille non revue, version lue périmée, base inconnue ou déjà retraitée, autre exercice, scénario, feuille inconnue",
+          "lib/workpapers/__tests__/lease-adjustment.test.ts › source remplacée après revue : la sélection est à réexaminer, une nouvelle sélection est refusée ; une révision remplace la lignée sans s'ajouter",
+          "lib/ifrs/shared/__tests__/contracts.test.ts › refuse une feuille non revue, une version ou une empreinte différente, une révision remplacée, une source ou une règle remplacée"
+        ]
+      }
+    },
+    {
+      "id": "M4c",
+      "label": "Source remplacée ignorée après sélection (sélection jamais « à réexaminer »)",
+      "file": "lib/ifrs/shared/selection.ts",
+      "tests": [
+        "lib/ifrs/shared/__tests__/contracts.test.ts",
+        "lib/workpapers/__tests__/lease-adjustment.test.ts",
+        "lib/workpapers/__tests__/closing-ifrs.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 34
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 31,
+        "failed": 3,
+        "skipped": 0,
+        "failedSuites": 6,
+        "failedTitles": [
+          "lib/workpapers/__tests__/closing-ifrs.test.ts › source remplacée ou révision après sélection : la sélection est conservée et dite à réexaminer ; le retrait vise la version lue",
+          "lib/workpapers/__tests__/lease-adjustment.test.ts › source remplacée après revue : la sélection est à réexaminer, une nouvelle sélection est refusée ; une révision remplace la lignée sans s'ajouter",
+          "lib/ifrs/shared/__tests__/contracts.test.ts › source remplacée : seule la sélection de la lignée concernée est à réexaminer ; consulter ne périme rien"
+        ]
+      }
+    },
+    {
+      "id": "M5",
+      "label": "Coût direct initial vide accepté comme zéro",
+      "file": "lib/ifrs/leases/qualification.ts",
+      "tests": [
+        "lib/ifrs/leases/__tests__/qualification.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 17
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 16,
+        "failed": 1,
+        "skipped": 0,
+        "failedSuites": 2,
+        "failedTitles": [
+          "lib/ifrs/leases/__tests__/qualification.test.ts › champ vide ≠ zéro : un coût initial vide rend le contrat à qualifier ; « 0.00 » est une valeur ; « inconnu » garde son motif"
+        ]
+      }
+    },
+    {
+      "id": "M6",
+      "label": "Dernière échéance ajustée pour absorber l'arrondi (soldes arrondis reportés, résidu dans le dernier loyer)",
+      "file": "lib/ifrs/leases/engine.ts",
+      "tests": [
+        "lib/ifrs/leases/__tests__/engine.test.ts",
+        "lib/ifrs/leases/__tests__/proprietes.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 19
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 8,
+        "failed": 11,
+        "skipped": 0,
+        "failedSuites": 6,
+        "failedTitles": [
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F03 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F05 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F07 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F08 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F09 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F10 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/engine.test.ts › contrat historique : sans ouverture, ouverture incomplète ou différente d'un centime → diagnostic, chiffres affichés, ouverture jamais retenue pour équilibrer",
+          "lib/ifrs/leases/__tests__/proprietes.test.ts › chaque contrat : taux mensuel et dette initiale exacts à 10⁻²⁰, dette publiée après chaque échéance et chiffres de la clôture au centime"
+        ]
+      }
+    },
+    {
+      "id": "M7",
+      "label": "Amortissement sur la durée du contrat au lieu de la durée d'utilité plus courte",
+      "file": "lib/ifrs/leases/engine.ts",
+      "tests": [
+        "lib/ifrs/leases/__tests__/engine.test.ts",
+        "lib/ifrs/leases/__tests__/proprietes.test.ts"
+      ],
+      "project": "unit",
+      "status": "detectee",
+      "baseline": {
+        "passed": 19
+      },
+      "mutated": {
+        "ran": true,
+        "passed": 17,
+        "failed": 2,
+        "skipped": 0,
+        "failedSuites": 4,
+        "failedTitles": [
+          "lib/ifrs/leases/__tests__/engine.test.ts › L16-F09 : échéancier publié, valeurs exactes et chaque clôture au centime",
+          "lib/ifrs/leases/__tests__/proprietes.test.ts › chaque contrat : taux mensuel et dette initiale exacts à 10⁻²⁰, dette publiée après chaque échéance et chiffres de la clôture au centime"
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,2 @@
+Key;Amount;Date;Details
+"CTR-001-2026-01-31";"1000.00";"2026-01-31";"{""contractId"":""CTR-001"",""source"":{""title"":""Pièce (exemple)"",""pack"":""Pack"",""date"":""2026-01-02"",""page"":1,""clause"":""Article""},""fields"":{""contractVersion"":""v1"",""paidDate"":""2026-01-31"",""paidAmount"":""1200.00"",""paidVat"":""200.00""}}"

@@ -1,0 +1,358 @@
+{
+  "schema": "probant-l16-06-charge-1",
+  "generatedBy": "scripts/ifrs/bench-l16.ts",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i5-4670 CPU @ 3.40GHz",
+    "logicalCores": 4,
+    "ramGiB": 7.9,
+    "os": "Windows_NT 10.0.19045 (Windows 10 Pro)",
+    "arch": "x64",
+    "node": "v24.14.0",
+    "gcExposed": true,
+    "heapLimitMiB": 2240
+  },
+  "parameters": {
+    "contracts": 100,
+    "months": 120,
+    "schedules": 12000,
+    "seed": 16006,
+    "repeat": 5,
+    "reader": "real",
+    "registryMeasured": true,
+    "heavyMeasured": true,
+    "period": {
+      "startDate": "2026-01-01",
+      "closingDate": "2026-12-31",
+      "asOfDate": "2027-02-15",
+      "currency": "EUR",
+      "validation": "provisional"
+    },
+    "scope": "demo (même moteur, aucune écriture)"
+  },
+  "portfolio": {
+    "byResult": {
+      "computed": 100,
+      "diagnostic": 0,
+      "not_commenced": 0,
+      "not_applicable": 0
+    },
+    "adjustmentContracts": 100,
+    "debtClosing": {
+      "amount": "24285253.60",
+      "currency": "EUR"
+    },
+    "outcome": "no_exception_detected"
+  },
+  "timings": {
+    "generationMs": 10.2,
+    "sourcesReadMs": 2062.9,
+    "l16": {
+      "evaluateColdMs": 538.4,
+      "evaluateWarm": {
+        "n": 5,
+        "minMs": 445.88,
+        "medianMs": 454.29,
+        "p95Ms": 511.46,
+        "maxMs": 511.46
+      },
+      "qualification": {
+        "n": 5,
+        "minMs": 161.72,
+        "medianMs": 166.11,
+        "p95Ms": 175.38,
+        "maxMs": 175.38
+      },
+      "oneContractEngine": {
+        "n": 100,
+        "minMs": 0.57,
+        "medianMs": 0.63,
+        "p95Ms": 1.55,
+        "maxMs": 1.74
+      },
+      "reevaluateAfterOneContractChanged": {
+        "n": 5,
+        "minMs": 453.9,
+        "medianMs": 473.44,
+        "p95Ms": 495.9,
+        "maxMs": 495.9
+      }
+    },
+    "sharedRegistry": {
+      "coldMs": 2961.6,
+      "warm": {
+        "n": 5,
+        "minMs": 2877.97,
+        "medianMs": 2892.03,
+        "p95Ms": 3167.44,
+        "maxMs": 3167.44
+      }
+    },
+    "views": {
+      "portfolio": {
+        "n": 5,
+        "minMs": 3.35,
+        "medianMs": 4.6,
+        "p95Ms": 6.97,
+        "maxMs": 6.97
+      },
+      "charts": {
+        "n": 5,
+        "minMs": 2.67,
+        "medianMs": 3.85,
+        "p95Ms": 7.16,
+        "maxMs": 7.16
+      },
+      "reviewSummary": {
+        "n": 5,
+        "minMs": 1.96,
+        "medianMs": 2.28,
+        "p95Ms": 3.42,
+        "maxMs": 3.42
+      },
+      "readSerialized": {
+        "n": 5,
+        "minMs": 759.36,
+        "medianMs": 764.57,
+        "p95Ms": 805.03,
+        "maxMs": 805.03
+      },
+      "contentHash": {
+        "n": 5,
+        "minMs": 160.17,
+        "medianMs": 164.25,
+        "p95Ms": 166.84,
+        "maxMs": 166.84
+      },
+      "screenFilter": {
+        "n": 100,
+        "minMs": 0.02,
+        "medianMs": 0.02,
+        "p95Ms": 0.04,
+        "maxMs": 0.2
+      }
+    },
+    "exports": {
+      "json": {
+        "n": 5,
+        "minMs": 585.83,
+        "medianMs": 595.62,
+        "p95Ms": 606.64,
+        "maxMs": 606.64,
+        "bytes": 4527196
+      },
+      "html": {
+        "n": 5,
+        "minMs": 533.81,
+        "medianMs": 566.29,
+        "p95Ms": 664,
+        "maxMs": 664,
+        "bytes": 2698193
+      },
+      "contracts_csv": {
+        "n": 5,
+        "minMs": 463.28,
+        "medianMs": 466.5,
+        "p95Ms": 482.67,
+        "maxMs": 482.67,
+        "bytes": 20434
+      },
+      "schedules_csv": {
+        "n": 5,
+        "minMs": 487.31,
+        "medianMs": 490.05,
+        "p95Ms": 540.19,
+        "maxMs": 540.19,
+        "bytes": 1844133
+      },
+      "bridges_csv": {
+        "n": 5,
+        "minMs": 464.33,
+        "medianMs": 474.52,
+        "p95Ms": 478.88,
+        "maxMs": 478.88,
+        "bytes": 1672
+      },
+      "journal_csv": {
+        "n": 5,
+        "minMs": 462.74,
+        "medianMs": 465.28,
+        "p95Ms": 476.4,
+        "maxMs": 476.4,
+        "bytes": 259092
+      }
+    },
+    "materializeBundleMs": 190.5
+  },
+  "sizes": {
+    "perSource": {
+      "lease_contracts": {
+        "rows": 100,
+        "fileBytes": 103498,
+        "previewJsonBytes": 156354,
+        "storedBytes": 298147,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_assumptions": {
+        "rows": 100,
+        "fileBytes": 110323,
+        "previewJsonBytes": 162682,
+        "storedBytes": 313575,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_schedule": {
+        "rows": 12000,
+        "fileBytes": 4015861,
+        "previewJsonBytes": 10316552,
+        "storedBytes": 16115129,
+        "reader": "lecteur réel, fichier entier"
+      },
+      "lease_ledger": {
+        "rows": 100,
+        "fileBytes": 37912,
+        "previewJsonBytes": 91856,
+        "storedBytes": 146201,
+        "reader": "lecteur réel, fichier entier"
+      }
+    },
+    "draftRunBytes": 20410,
+    "executedRunBytes": 3130455,
+    "executedRunParts": {
+      "input": 21638,
+      "runEvidence": 2534,
+      "contractsWithoutDuesAndSchedules": 507879,
+      "dues": 3100,
+      "schedules": 1129432,
+      "evidence": 1181636,
+      "bundle": 252356,
+      "notes": 2
+    },
+    "chainBytes": 18884780,
+    "readBytes": 15173374
+  },
+  "memory": {
+    "start": {
+      "rssMiB": 99.8,
+      "heapUsedMiB": 20.4
+    },
+    "afterSources": {
+      "rssMiB": 339.9,
+      "heapUsedMiB": 40.8
+    },
+    "afterEvaluateCold": {
+      "rssMiB": 341.3,
+      "heapUsedMiB": 55.7
+    },
+    "afterRegistry": {
+      "rssMiB": 485.8,
+      "heapUsedMiB": 59.7
+    },
+    "afterViews": {
+      "rssMiB": 528.7,
+      "heapUsedMiB": 89.3
+    },
+    "afterExports": {
+      "rssMiB": 529.5,
+      "heapUsedMiB": 90
+    },
+    "peakRssMiB": 843.6
+  },
+  "gates": [
+    {
+      "gate": "lease_contracts · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 103498,
+      "ok": true
+    },
+    {
+      "gate": "lease_contracts · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 100,
+      "ok": true
+    },
+    {
+      "gate": "lease_contracts · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 156354,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 110323,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 100,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 162682,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 4015861,
+      "ok": false
+    },
+    {
+      "gate": "lease_schedule · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 12000,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 10316552,
+      "ok": false
+    },
+    {
+      "gate": "lease_ledger · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 37912,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 100,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · aperçu ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 91856,
+      "ok": true
+    },
+    {
+      "gate": "sources du dossier-exercice ≤ 24 Mio (aperçus + originaux, store partagé)",
+      "limit": 25165824,
+      "value": 16873052,
+      "ok": true
+    },
+    {
+      "gate": "version de feuille ≤ 3,5 Mio (écriture)",
+      "limit": 3670016,
+      "value": 2914609,
+      "ok": true
+    },
+    {
+      "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
+      "limit": 25165824,
+      "value": 18884780,
+      "ok": true
+    },
+    {
+      "gate": "lecture de l'atelier ≤ 8 Mio",
+      "limit": 8388608,
+      "value": 15173374,
+      "ok": false
+    }
+  ],
+  "capacity": []
+}

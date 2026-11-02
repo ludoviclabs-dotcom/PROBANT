@@ -1,0 +1,276 @@
+{
+  "capturedAt": "2026-10-31T16:35:25.343Z",
+  "dossierId": "06406f88-154a-42ae-ad42-b196c46c99df",
+  "periodId": "period-cabc536c56357d5fae16cc06e69c90d40da55a8499d93923e3618106228464ee",
+  "owner": "Camille Recette",
+  "beforeRestart": {
+    "run": {
+      "id": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+      "version": 11,
+      "state": "locked",
+      "importIds": [
+        "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4",
+        "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588",
+        "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196",
+        "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
+      ],
+      "policies": [
+        {
+          "kind": "short_term_exemption",
+          "answer": {
+            "kind": "value",
+            "value": "not_elected"
+          },
+          "assetCategory": "Matériel de bureau"
+        }
+      ],
+      "population": "8df7b078e718fed0ac8e49041dc30ef24b9a22723335fa9515beb6072d654962"
+    },
+    "sourceHeads": [
+      {
+        "document_type": "lease_contracts",
+        "import_id": "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588"
+      },
+      {
+        "document_type": "lease_assumptions",
+        "import_id": "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
+      },
+      {
+        "document_type": "lease_schedule",
+        "import_id": "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4"
+      }
+    ],
+    "qualification": [
+      [
+        "F01",
+        "eligible_v1"
+      ],
+      [
+        "F03",
+        "eligible_v1"
+      ]
+    ],
+    "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
+    "actions": {
+      "create": "Une feuille existe déjà pour cet exercice",
+      "configure": "La feuille n'est plus modifiable dans cet état",
+      "freeze": "Population déjà figée",
+      "execute": "Calcul déjà enregistré pour cette version",
+      "revise": "permise",
+      "resolve": "Feuille calculée requise",
+      "conclude": "Calcul terminé requis",
+      "submit": "Calcul terminé requis",
+      "review": "Aucune version soumise",
+      "lock": "Version approuvée requise",
+      "export_diagnostic": "permise",
+      "export_reviewed": "permise"
+    },
+    "exportHash": "ee66bd3528582ef80048e029d7848d293e348485d283546bc4b08b304a516884",
+    "ifrsWorks": {
+      "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
+      "lineages": [
+        {
+          "procedure": "ifrs16.leases",
+          "label": "Locations IFRS 16 — preneur, périmètre V1",
+          "rootId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "logicalId": "ifrs16.leases:workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "revision": 1,
+          "version": 11,
+          "state": "locked",
+          "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
+          "sourcesCurrent": true,
+          "ruleCurrent": true,
+          "outcome": "no_exception_detected",
+          "bundle": {
+            "status": "reviewed",
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "contracts": 2,
+            "lines": 11,
+            "debit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "credit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "taxStatus": "not_computed"
+          },
+          "selection": {
+            "status": "selectionne",
+            "reasons": [],
+            "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+            "revision": 1,
+            "runVersion": 11,
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "by": "proprietaire-local",
+            "at": "2026-10-31T16:35:16.000Z",
+            "base": {
+              "baseKind": "PCG",
+              "included": "aucun retraitement IFRS 16 déjà inclus, déclaré",
+              "limits": "Base PCG de l'exercice ; pont partiel limité au retraitement IFRS 16, sans autre traitement IFRS",
+              "citation": "EXEMPLE-lease_ledger.csv · 048199674c98"
+            }
+          },
+          "posting": {
+            "status": "non_documentee",
+            "text": null,
+            "by": null,
+            "at": null,
+            "citations": []
+          },
+          "toDecide": false,
+          "previous": []
+        }
+      ],
+      "orphanSelections": [],
+      "denominators": {
+        "lineages": 1,
+        "reviewed": 1,
+        "selected": 1,
+        "toReexamine": 0,
+        "postingsDocumented": 0
+      }
+    }
+  },
+  "afterRestart": {
+    "run": {
+      "id": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+      "version": 11,
+      "state": "locked",
+      "importIds": [
+        "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4",
+        "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588",
+        "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196",
+        "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
+      ],
+      "policies": [
+        {
+          "kind": "short_term_exemption",
+          "answer": {
+            "kind": "value",
+            "value": "not_elected"
+          },
+          "assetCategory": "Matériel de bureau"
+        }
+      ],
+      "population": "8df7b078e718fed0ac8e49041dc30ef24b9a22723335fa9515beb6072d654962"
+    },
+    "sourceHeads": [
+      {
+        "document_type": "lease_contracts",
+        "import_id": "import-a2ba0b0982c922b343670d1789b88d6f4144d3d7d1a5744d5f7be2100bb9f588"
+      },
+      {
+        "document_type": "lease_assumptions",
+        "import_id": "import-fbb4162de96a4fb40ecf444b43ecbbd2a4a6219ad130fdd171c1271bd462e4ca"
+      },
+      {
+        "document_type": "lease_schedule",
+        "import_id": "import-c8c153469b2b9d5f96bfe761f55952bf9f0cc7271d23e4dff4e1b79ba816e196"
+      },
+      {
+        "document_type": "lease_ledger",
+        "import_id": "import-7e094d68b0e03c4281f8c1b3fde3991e1de59ad57ddd254286f7e34bea71edf4"
+      }
+    ],
+    "qualification": [
+      [
+        "F01",
+        "eligible_v1"
+      ],
+      [
+        "F03",
+        "eligible_v1"
+      ]
+    ],
+    "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
+    "actions": {
+      "create": "Une feuille existe déjà pour cet exercice",
+      "configure": "La feuille n'est plus modifiable dans cet état",
+      "freeze": "Population déjà figée",
+      "execute": "Calcul déjà enregistré pour cette version",
+      "revise": "permise",
+      "resolve": "Feuille calculée requise",
+      "conclude": "Calcul terminé requis",
+      "submit": "Calcul terminé requis",
+      "review": "Aucune version soumise",
+      "lock": "Version approuvée requise",
+      "export_diagnostic": "permise",
+      "export_reviewed": "permise"
+    },
+    "exportHash": "ee66bd3528582ef80048e029d7848d293e348485d283546bc4b08b304a516884",
+    "ifrsWorks": {
+      "notice": "Travaux IFRS : section distincte des anomalies et des effets C05, jamais additionnée à leurs totaux. Un retraitement sélectionné reste une proposition de reporting pour la base déclarée : ce n'est ni une correction d'erreur ni une comptabilisation, que seule une pièce citée documente. Impôt non calculé.",
+      "lineages": [
+        {
+          "procedure": "ifrs16.leases",
+          "label": "Locations IFRS 16 — preneur, périmètre V1",
+          "rootId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "logicalId": "ifrs16.leases:workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+          "revision": 1,
+          "version": 11,
+          "state": "locked",
+          "contentHash": "7a88aab18e3052233bbc95cc26de4160c28145c290084992177a6fc7fbb06c3c",
+          "sourcesCurrent": true,
+          "ruleCurrent": true,
+          "outcome": "no_exception_detected",
+          "bundle": {
+            "status": "reviewed",
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "contracts": 2,
+            "lines": 11,
+            "debit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "credit": {
+              "amount": "51901.17",
+              "currency": "EUR"
+            },
+            "taxStatus": "not_computed"
+          },
+          "selection": {
+            "status": "selectionne",
+            "reasons": [],
+            "runId": "workpaper-06c97f170b20fcba8b8fc40b5e3ab0f2a8c169d572d9d7cc73db7287ef14f0b2",
+            "revision": 1,
+            "runVersion": 11,
+            "bundleHash": "f92a9382232837adcfa99d8aaf00d61513cdf268d1c8370b10441613f0a3f29c",
+            "by": "proprietaire-local",
+            "at": "2026-10-31T16:35:16.000Z",
+            "base": {
+              "baseKind": "PCG",
+              "included": "aucun retraitement IFRS 16 déjà inclus, déclaré",
+              "limits": "Base PCG de l'exercice ; pont partiel limité au retraitement IFRS 16, sans autre traitement IFRS",
+              "citation": "EXEMPLE-lease_ledger.csv · 048199674c98"
+            }
+          },
+          "posting": {
+            "status": "non_documentee",
+            "text": null,
+            "by": null,
+            "at": null,
+            "citations": []
+          },
+          "toDecide": false,
+          "previous": []
+        }
+      ],
+      "orphanSelections": [],
+      "denominators": {
+        "lineages": 1,
+        "reviewed": 1,
+        "selected": 1,
+        "toReexamine": 0,
+        "postingsDocumented": 0
+      }
+    }
+  }
+}

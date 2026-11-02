@@ -1,0 +1,189 @@
+/*
+  Poste « Locations IFRS 16 » (C02) — ambiance `instruments` de la charte v1 (app/tokens.css), posée sur la racine de la page.
+  Filets de 1 px, rayons 0 / 2 / 4 px, aucune ombre ; gravité codée par forme + libellé, jamais la teinte seule.
+  Séries locales explicites (L16-04) : dette bleu (distinct de l'indigo d'action), droit d'utilisation violet, paiements cyan.
+  Inspecteur ancré dès 1400 px (convention Cloisons), tiroir en dessous ; transitions 160 ms, coupées sous mouvement réduit.
+*/
+.page { --l16-debt: #6AA8FF; --l16-rou: #B49CF0; --l16-pay: #6CC6D8; --l16-ok: #8FC79A; --l16-warn: #E3B35C; --l16-motion: 160ms;
+  min-height: 100vh; background: var(--pb-bg); color: var(--pb-ink); font: 14px/1.5 var(--pb-font-sans); padding: var(--pb-space-4) clamp(16px, 2.6vw, 40px) var(--pb-space-7); }
+.page * { box-sizing: border-box; }
+.page h1 { font: 500 28px/1.15 var(--pb-font-serif); margin: 4px 0 8px; letter-spacing: -0.2px; }
+.page h2 { font: 600 18px/1.3 var(--pb-font-sans); margin: 0 0 var(--pb-space-2); }
+.page h3 { font: 600 14px/1.3 var(--pb-font-sans); margin: var(--pb-space-3) 0 var(--pb-space-2); }
+.page p { margin: 6px 0; overflow-wrap: anywhere; }
+.page :is(button, input, select, textarea) { border: 1px solid var(--pb-rule-strong); border-radius: var(--pb-radius-1); background: var(--pb-plane-2); padding: 7px 10px; max-width: 100%; }
+.page button { cursor: pointer; }
+.page :is(button, input, select, textarea):disabled { opacity: 0.55; cursor: not-allowed; }
+/* minmax(0, 1fr): an implicit column would size itself on the longest select option (the EU jurisdiction label) and overflow at 390 px. */
+.page label { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; font-size: 13px; color: var(--pb-ink-2); }
+.mono { font-family: var(--pb-font-mono); font-size: 12.5px; }
+.muted { color: var(--pb-ink-3); font-size: 13px; }
+.money { font-family: var(--pb-font-mono); font-variant-numeric: tabular-nums; white-space: nowrap; text-align: right; }
+.eyebrow { font: 500 12px/1.4 var(--pb-font-mono); letter-spacing: 1.2px; text-transform: uppercase; color: var(--pb-ink-3); margin: 0; }
+.lede { max-width: 72ch; color: var(--pb-ink-2); }
+.primary { background: var(--pb-verif) !important; color: var(--pb-on-verif) !important; border-color: var(--pb-verif) !important; font-weight: 600; }
+.srOnly { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+
+.families { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--pb-ink-3); margin-bottom: var(--pb-space-3); }
+.families [aria-current] { color: var(--pb-ink); }
+.header { border-bottom: var(--pb-rule-w) solid var(--pb-rule); padding-bottom: var(--pb-space-3); }
+
+/* Bandeau de contexte : entité, exercice, référentiel, mode, version, fraîcheur. */
+.band { display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 13px; color: var(--pb-ink-2); padding: 10px 0; border-bottom: var(--pb-rule-w) solid var(--pb-rule); }
+.band strong { color: var(--pb-ink); font-weight: 600; }
+.band [data-fresh="source_replaced"], .band [data-fresh="rule_replaced"] { color: var(--pb-signal); }
+.simulation { border: var(--pb-rule-w) dashed var(--pb-verif); padding: 8px 12px; margin: var(--pb-space-3) 0 0; border-radius: var(--pb-radius-1); }
+
+.notice { border-left: var(--pb-break-w) solid var(--l16-warn); background: var(--pb-plane-2); padding: 10px 14px; margin: var(--pb-space-3) 0; }
+.notice[data-tone="danger"] { border-color: var(--pb-signal); }
+.notice[data-tone="info"] { border-color: var(--pb-verif); }
+.scope { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: var(--pb-space-3) 0; }
+.scope label { min-width: 150px; flex: 1; }
+.scope :is(input, select) { width: 100%; min-width: 0; }
+
+/* Rail des étapes : vertical à côté du travail dès 1024 px, liste empilée en dessous. */
+.layout { display: grid; gap: var(--pb-space-4); margin-top: var(--pb-space-4); }
+@media (min-width: 1024px) { .layout { grid-template-columns: 220px minmax(0, 1fr); } }
+.rail ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.rail li { display: grid; grid-template-columns: 22px 1fr; gap: 6px; padding: 8px 6px; border-left: var(--pb-break-w) solid var(--pb-rule); }
+.rail li[data-state="current"] { border-color: var(--pb-verif); background: var(--pb-plane-2); }
+.rail li[data-state="blocked"] { border-color: var(--pb-signal); }
+.rail li[data-state="done"] { border-color: var(--l16-ok); }
+.railGlyph { font-family: var(--pb-font-mono); text-align: center; }
+.railState { display: block; font-size: 12px; color: var(--pb-ink-3); }
+.railReason { display: block; font-size: 12px; color: var(--pb-ink-2); overflow-wrap: anywhere; }
+
+/* Travail + inspecteur : panneau persistant dès 1400 px. */
+.work { display: grid; gap: var(--pb-space-4); min-width: 0; }
+@media (min-width: 1400px) { .work[data-inspector="open"] { grid-template-columns: minmax(0, 1fr) 400px; } }
+.section { border-top: var(--pb-rule-w) solid var(--pb-rule); padding-top: var(--pb-space-3); margin-top: var(--pb-space-3); min-width: 0; }
+.sectionHead { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; margin: var(--pb-space-2) 0; }
+.filters button[aria-pressed="true"] { border-color: var(--pb-verif); color: var(--pb-verif); }
+
+/* Matrice : défilement horizontal limité au tableau, région focalisable et annoncée. */
+.scroll { overflow-x: auto; max-width: 100%; border: var(--pb-rule-w) solid var(--pb-rule); }
+.scroll:focus-visible { outline: 2px solid var(--pb-verif); outline-offset: 2px; }
+.table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 720px; font-size: 13px; }
+.table caption { text-align: left; caption-side: top; padding: 8px 10px; color: var(--pb-ink-3); font-size: 12.5px; }
+.table th, .table td { border-bottom: var(--pb-rule-w) solid var(--pb-rule); padding: 6px 8px; text-align: left; vertical-align: top; }
+.table thead th { font-weight: 600; color: var(--pb-ink-2); background: var(--pb-plane-2); position: sticky; top: 0; }
+.table tbody tr[aria-selected="true"] { background: var(--pb-selection); }
+/* La colonne du contrat reste visible pendant le défilement horizontal de la matrice. */
+.rowHead, .table thead th:first-child { position: sticky; left: 0; z-index: 1; background: var(--pb-bg); white-space: nowrap; }
+.table thead th:first-child { z-index: 2; background: var(--pb-plane-2); }
+.table tbody tr[aria-selected="true"] .rowHead { background: var(--pb-plane-3); }
+.rowHead button { border: 0; background: none; padding: 0; color: var(--pb-verif); text-decoration: underline; text-underline-offset: 3px; font-family: var(--pb-font-mono); }
+.cell { border: 0 !important; background: none !important; padding: 2px 4px !important; display: inline-flex; gap: 6px; align-items: center; white-space: nowrap; }
+.cell[data-cell="to_complete"] { color: var(--l16-warn); }
+.cell[data-cell="out_of_scope"] { color: var(--pb-signal); }
+.cell[data-cell="not_applicable"] { color: var(--pb-ink-3); }
+.cell[data-cell="confirmed"] { color: var(--l16-ok); }
+.cell[data-cell="documented"] { color: var(--pb-ink-2); }
+.cell[data-cell="difference"] { color: var(--pb-signal); }
+/* On the selected row the tinted background lowers contrast: the text goes to ink, the glyph and the label still carry the state. */
+.table tbody tr[aria-selected="true"] :is(.cell, .muted, .status) { color: var(--pb-ink); }
+/* Montants alignés à droite dans toute table (charte : chiffres tabulaires). */
+.table :is(td, th).money { text-align: right; }
+.nowrap { white-space: nowrap; }
+.status[data-framing="framed"] { color: var(--l16-ok); }
+.status[data-framing="difference"] { color: var(--pb-signal); }
+.status[data-framing="not_framed"] { color: var(--l16-warn); }
+.table tfoot th, .table tfoot td { font-weight: 600; border-top: var(--pb-rule-w) solid var(--pb-rule-strong, var(--pb-rule)); }
+.status { display: inline-flex; gap: 6px; align-items: center; min-width: 9.5em; }
+.status[data-status="a_qualifier"] { color: var(--l16-warn); }
+.status[data-status="hors_scope_v1"] { color: var(--pb-signal); }
+.status[data-status="eligible_v1"] { color: var(--l16-ok); }
+
+.reasons { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.reasons li { display: grid; grid-template-columns: auto 1fr; gap: 8px; align-items: baseline; }
+.reasons button { font-family: var(--pb-font-mono); font-size: 12.5px; }
+.kv { display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 4px 12px; margin: 0; }
+.kv dt { color: var(--pb-ink-3); font-size: 12.5px; }
+.kv dd { margin: 0; overflow-wrap: anywhere; }
+
+/* Inspecteur : persistant (ancré) ou tiroir modal. */
+.inspector { border-left: var(--pb-rule-w) solid var(--pb-rule); padding: 0 0 0 var(--pb-space-3); min-width: 0; align-self: start; position: sticky; top: var(--pb-space-3); max-height: calc(100vh - 32px); overflow-y: auto; }
+.drawerRoot { position: fixed; inset: 0; z-index: 40; }
+.drawerVeil { position: absolute; inset: 0; background: rgba(8, 9, 10, 0.6); }
+.drawer { position: absolute; top: 0; right: 0; height: 100%; width: min(440px, 100%); overflow-y: auto; background: var(--pb-bg); border-left: var(--pb-rule-w) solid var(--pb-rule-strong); padding: var(--pb-space-3);
+  animation: l16-in var(--l16-motion) var(--pb-ease); }
+@keyframes l16-in { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.inspectorHead { display: flex; justify-content: space-between; align-items: start; gap: 8px; border-bottom: var(--pb-rule-w) solid var(--pb-rule); padding-bottom: var(--pb-space-2); margin-bottom: var(--pb-space-2); }
+
+/* Barre d'action : chaque bouton désactivé dit pourquoi, en texte visible. */
+.actions { display: grid; gap: 8px; margin: var(--pb-space-3) 0; padding: 10px 0; border-top: var(--pb-rule-w) solid var(--pb-rule); border-bottom: var(--pb-rule-w) solid var(--pb-rule); }
+.action { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; }
+.actionReason { font-size: 12.5px; color: var(--pb-ink-3); }
+.saveState[data-state="saved"] { color: var(--l16-ok); }
+.saveState[data-state="failed"], .saveState[data-state="conflict"] { color: var(--pb-signal); }
+.saveState[data-state="dirty"], .saveState[data-state="saving"] { color: var(--l16-warn); }
+
+.frame { border: var(--pb-rule-w) solid var(--pb-rule); padding: var(--pb-space-3); }
+.frameEmpty { min-height: 120px; display: grid; place-items: center; color: var(--pb-ink-3); text-align: center; border: var(--pb-rule-w) dashed var(--pb-rule-strong); padding: var(--pb-space-3); }
+.form { display: grid; gap: 10px; }
+@media (min-width: 760px) { .form { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }
+
+/* L16-04 — rail : nom court de l'étape, travail à faire dessous. */
+.rail a { color: inherit; text-underline-offset: 3px; }
+.railTask { display: block; font-size: 12.5px; color: var(--pb-ink-2); }
+
+/* Ligne de synthèse du portefeuille : une phrase, pas une grille de chiffres clés. */
+.summary { margin: var(--pb-space-3) 0 0 !important; padding: 10px 0; border-top: var(--pb-rule-w) solid var(--pb-rule); border-bottom: var(--pb-rule-w) solid var(--pb-rule); color: var(--pb-ink-2); }
+.summary strong { color: var(--pb-ink); font-weight: 600; }
+.partial { color: var(--l16-warn); }
+
+/* Table du portefeuille : recherche, tri, pagination. */
+.tableTools { display: flex; flex-wrap: wrap; gap: 6px 16px; align-items: end; justify-content: space-between; margin: var(--pb-space-2) 0; }
+.tableTools label { min-width: min(320px, 100%); }
+.sortButton { border: 0 !important; background: none !important; padding: 0 !important; font: inherit; color: inherit; text-decoration: underline dotted; text-underline-offset: 3px; }
+.pager { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin: var(--pb-space-2) 0; font-size: 13px; color: var(--pb-ink-2); }
+.limits { margin: var(--pb-space-2) 0 0; padding-left: 18px; color: var(--pb-ink-3); font-size: 12.5px; }
+
+/* Graphiques : axes depuis zéro, séries distinguées par trait et forme autant que par la teinte. */
+.frame + .frame { margin-top: var(--pb-space-3); }
+.chart { width: 100%; min-width: 0; margin-top: var(--pb-space-2); }
+.chart svg { display: block; overflow: visible; }
+.axis line { stroke: var(--pb-rule); stroke-width: 1; }
+.axis line[data-zero] { stroke: var(--pb-rule-strong); }
+.axis text, .timelineText, .bridgeLabel { fill: var(--pb-ink-3); font: 11.5px var(--pb-font-sans); }
+.bridgeValue { fill: var(--pb-ink); font: 12px var(--pb-font-mono); font-variant-numeric: tabular-nums; }
+.seriesDebt { fill: none; stroke: var(--l16-debt); stroke-width: 2; }
+.seriesRou { fill: none; stroke: var(--l16-rou); stroke-width: 2; stroke-dasharray: 6 4; }
+.markDebt { fill: var(--l16-debt); }
+.markRou { fill: var(--l16-rou); }
+.cursor { stroke: var(--pb-ink-3); stroke-width: 1; stroke-dasharray: 2 3; }
+.hit { fill: transparent; pointer-events: all; cursor: pointer; }
+.hit:focus { outline: none; }
+.hit:focus-visible { stroke: var(--pb-verif); stroke-width: 2; }
+.barPrincipal { fill: var(--l16-pay); }
+.barInterest { stroke: var(--l16-pay); stroke-width: 1; }
+.hatchBack { fill: var(--pb-bg); }
+.hatchLine { stroke: var(--l16-pay); stroke-width: 2; }
+.zeroRule { stroke: var(--pb-rule-strong); stroke-width: 1; }
+.bridgeBar[data-series="debt"] { fill: var(--l16-debt); stroke: var(--l16-debt); }
+.bridgeBar[data-series="rou"] { fill: var(--l16-rou); stroke: var(--l16-rou); }
+.bridgeBar[data-kind="up"] { fill-opacity: 0.45; }
+.bridgeBar[data-kind="down"] { fill: none; stroke-width: 1.5; stroke-dasharray: 4 2; }
+.legend { list-style: none; display: flex; flex-wrap: wrap; gap: 4px 18px; margin: 6px 0 0; padding: 0; font-size: 12.5px; color: var(--pb-ink-2); }
+.legend li::before { content: ""; display: inline-block; width: 22px; height: 0; margin-right: 6px; vertical-align: middle; border-top: 2px solid; }
+.legend li[data-series="debt"]::before { border-color: var(--l16-debt); }
+.legend li[data-series="rou"]::before { border-color: var(--l16-rou); border-top-style: dashed; }
+.legend li[data-series="principal"]::before { height: 10px; border: 0; background: var(--l16-pay); width: 12px; }
+.legend li[data-series="interest"]::before { height: 10px; border: 1px solid var(--l16-pay); width: 12px; background: repeating-linear-gradient(45deg, var(--l16-pay) 0 2px, transparent 2px 5px); }
+.readout { font-size: 13px; color: var(--pb-ink-2); font-variant-numeric: tabular-nums; }
+.readout strong { color: var(--pb-ink); }
+
+/* Revue (L16-05) : points et leur état écrit, rangées d'export. */
+.points { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.points li { border-left: var(--pb-break-w) solid var(--pb-rule); padding: 4px 0 4px 10px; }
+.points li[data-state="blocking"] { border-color: var(--pb-signal); }
+.points li[data-state="resolved"] { border-color: var(--l16-ok); }
+.exportRow { display: grid; gap: 4px; padding: 8px 0; border-top: var(--pb-rule-w) solid var(--pb-rule); }
+
+/* Frise du contrat : exercice en fond, contrat en barre, une marque par échéance. */
+.timelinePeriod { fill: var(--pb-plane-2); stroke: var(--pb-rule-strong); stroke-dasharray: 3 3; }
+.timelineBar { fill: var(--l16-debt); }
+.timelineTick { stroke: var(--pb-ink-3); stroke-width: 1; }
+
+@media (prefers-reduced-motion: reduce) { .drawer { animation: none; } }

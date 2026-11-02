@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES } from "@/lib/capabilities/procedures";
+import { CAPABILITY_CYCLE_LABELS, ENGINE_PROCEDURES, FRAMEWORK_PROCEDURES } from "@/lib/capabilities/procedures";
 import { REVIEW_KIND_LABELS, type ReviewKind } from "@/lib/auth/review-kind";
 import { ReviewKindNotice } from "@/components/probant/ReviewKindNotice";
 import s from "./local.module.css";
@@ -17,7 +17,9 @@ type Phase = "loading" | "disabled" | "signed_out" | "ready" | "error";
 
 /** Une entrée par feuille durable, dans l'ordre du registre ; le dossier de clôture observe ces feuilles. */
 const WORK_LINKS = [...new Map(ENGINE_PROCEDURES.map(p => [p.route, { route: p.route, cycle: CAPABILITY_CYCLE_LABELS[p.cycle], labels: ENGINE_PROCEDURES.filter(q => q.route === p.route).map(q => q.label) }])).values(),
-  { route: "/dossier-cloture", cycle: CAPABILITY_CYCLE_LABELS.transversal, labels: ["Programme de travail, pièces et clôture"] }];
+  { route: "/dossier-cloture", cycle: CAPABILITY_CYCLE_LABELS.transversal, labels: ["Programme de travail, pièces et clôture"] },
+  // Référentiels (IFRS C02) : un atelier par procédure de l'axe « référentiel », hors cycles du journal.
+  ...FRAMEWORK_PROCEDURES.map(p => ({ route: p.route, cycle: "Référentiels", labels: [p.label] }))];
 
 const dateFr = (iso: string) => new Date(iso).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" });
 
@@ -122,6 +124,7 @@ export function LocalProfileWorkspace() {
         {!dossier ? <p className={s.muted}>Sélectionnez ou créez un dossier.</p> : <>
           <p className={s.muted}>Chaque feuille s&apos;ouvre avec ce dossier ; saisissez-y les dates de l&apos;exercice puis importez vos pièces.</p>
           <ul className={s.links}>{WORK_LINKS.map(l => <li key={l.route}><a href={l.route + "?dossierId=" + encodeURIComponent(dossier.id)}><span className={s.cycle}>{l.cycle}</span><span>{l.labels.join(" · ")}</span></a></li>)}</ul>
+          <p className={s.cycle}>Présentation IFRS 18 — non engagée : décision après la recette de l'atelier IFRS 16.</p>
           <details className={s.method}><summary>Identifiants du dossier</summary><p>Créé le {dateFr(dossier.createdAt)}</p><p className={s.mono}>Dossier {dossier.id}</p><p className={s.mono}>Référence {dossier.externalRef}</p></details>
         </>}
       </aside>

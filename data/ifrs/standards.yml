@@ -511,17 +511,41 @@ entries:
           kind: primary
           url: https://www.efrag.org/en/financial-reporting/endorsement-status
           retrievedAt: "2026-08-14"
+        - sourceId: eurlex-2023-1803
+          kind: primary
+          url: https://eur-lex.europa.eu/eli/reg/2023/1803/oj
+          paragraphReference: Annexe, IFRS 16, JO L 237 du 26.9.2023, p. 814-851 ; articles 1 à 5
+          retrievedAt: "2026-11-02"
+          sha256: 06e74a9524d2e7c9d872e771ed960e585755645da2e54a1b793eb3779c424951
+          pages: 992
+          note: Version d'origine (non consolidée), PDF français fourni par l'utilisateur et lu localement. Mêmes paragraphes que le texte IASB 2026, sauf 102A, C1D, C20E (cession-bail, 2022) et C1E (IFRS 18) ; aucune dérogation UE pour IFRS 16 (docs/ifrs/SOURCES.md § 6). Texte français relu par l'utilisateur le 02/11/2026 pour la relecture nommée de la juridiction UE.
     scope: Comptabilisation des contrats de location chez le preneur et le bailleur.
     topics: [droit d'utilisation, dette locative, durée du contrat]
     affectedCycles: [contrats-location-ifrs16]
     pcgDifferences: []
     dataRequirements: []
     disclosureRequirements: []
-    status: review_required
+    # 29/10/2026 (IFRS L16-01, L16-02) : § 5-38, annexe A, B3-B42 et C1 lus par extraction outillée et paraphrase ; texte UE non lu.
+    # 31/10/2026 : relecture personnelle nommée de la fiche de règle consignée (lib/ifrs/leases/rule-review.ts), juridiction IASB seulement ;
+    # le texte de l'Union européenne reste non lu (juridiction EU_adopted bloquée en réel, X33).
+    # 02/11/2026 : règlement (UE) 2023/1803 lu par outil (structure comparée au texte IASB), puis relecture nommée du texte français consignée
+    # (LEASE_RULE_REVIEW_EU, Ludo Labs) : EU_adopted ouverte en réel pour cette seule édition (X33 levé).
+    status: verified
     sources:
+      - sourceId: ifrs-16
+        kind: primary
+        url: https://www.ifrs.org/content/dam/ifrs/publications/html-standards/english/2026/issued/ifrs16.html
+        retrievedAt: "2026-10-31"
+        note: Texte IASB 2026 « issued », relu par l'utilisateur pour la relecture nommée de la fiche de règle ifrs16.leases.
       - sourceId: ifrs-standards-master
         kind: primary
         url: https://www.ifrs.org/issued-standards/list-of-standards/
+      - sourceId: ifric-ad-2019-09-ibr
+        kind: secondary
+        url: https://www.ifrs.org/content/dam/ifrs/supporting-implementation/agenda-decisions/2019/ifrs-16-lessees-incremental-borrowing-rate-september-2019.pdf
+      - sourceId: ifric-ad-2019-11-lease-term
+        kind: secondary
+        url: https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-november-2019/
 
   - id: ifrs-17
     number: IFRS 17

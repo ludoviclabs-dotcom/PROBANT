@@ -1,0 +1,72 @@
+import { z } from "zod";
+import type { CalculationRun } from "@/lib/canonical-model/calculation";
+import { stableSha256 } from "@/lib/synthesis/canonical";
+import type { ImportBatch } from "./imports";
+import { frozen, moneySchema, type ProcedureTemplate, type WorkpaperRun } from "./model";
+import { CalculationRegistry, type CalculationRequest } from "./calculations";
+import { frameworkBlockers } from "@/lib/ifrs/shared/context";
+import { IFRS16_RULE, LEASE_EU_REVIEWED_TEXT, LEASE_RULE_VERSION } from "@/lib/ifrs/leases/rule";
+import { evaluateLeases, isLeaseResult, type LeaseResult } from "./lease-review";
+import { leaseWorkSchema, type LeaseWork } from "./lease-work";
+import { LEASE_REQUIRED_TYPES } from "./lease-sources";
+
+export const LEASE_TEMPLATE: ProcedureTemplate = {
+  id: "ifrs16.leases", version: LEASE_RULE_VERSION, objective: "Locations IFRS 16 (preneur, périmètre V1) : qualification, dette locative, droit d'utilisation et retraitement de clôture proposé", kind: "calculated",
+  assertions: [
+    { label: "Population des contrats qualifiée : location, exemption documentée, éligible V1, à qualifier ou hors périmètre, sans réponse vide comptée comme une absence", validation: "proposed" },
+    { label: "Dette locative et droit d'utilisation recalculés sur paramètres sourcés, en virgule fixe, publiés au centime", validation: "proposed" },
+    { label: "Retraitement de clôture proposé, équilibré et cadré sur les loyers PCG, distinct des anomalies d'audit", validation: "proposed" },
+  ],
+  requiredDocumentTypes: [...LEASE_REQUIRED_TYPES],
+  rule: IFRS16_RULE,
+};
+
+/**
+ * Adaptateur de calcul de l'atelier : le moteur pur (L16-02) derrière le registre de calcul existant. Le registre bloque toute exécution
+ * réelle tant que la règle n'est pas validée par la relecture nommée (`rule_not_applicable`) ; la juridiction EU_adopted exige en plus la
+ * relecture nommée du texte UE et l'édition relue (X33).
+ */
+export class LeaseRegistry extends CalculationRegistry {
+  override execute(request: CalculationRequest) {
+    if (request.rule.id !== "ifrs16.leases" || request.population.unit !== "lease_contract") throw new Error("L16_ADAPTER_INVALID");
+    const work = leaseWorkSchema.safeParse((request.parameters as { work?: unknown } | null)?.work);
+    const blockers = work.success ? frameworkBlockers(work.data.framework, request.scope.mode, LEASE_EU_REVIEWED_TEXT) : [];
+    if (blockers.length) {
+      const traced = inputByReference(new CalculationRegistry().execute(request), request.imports);
+      return frozen({ ...traced, execution: "blocked" as const, outcome: "inconclusive" as const, blockedControls: [...traced.blockedControls, ...blockers], result: { status: "framework_not_activatable", reason: blockers.join(" ; ") } });
+    }
+    const registry = new CalculationRegistry();
+    registry.register(IFRS16_RULE, z.array(z.object({ id: z.string(), amount: moneySchema }).strict()), z.object({ runId: z.string().min(1), rootId: z.string().min(1), revision: z.number().int().positive(), work: leaseWorkSchema }).strict(),
+      z.custom<LeaseResult>(isLeaseResult), (_input, p) => evaluateLeases(request.scope, request.period, request.imports, { runId: p.runId, rootId: p.rootId, revision: p.revision }, request.population, request.selection, p.work as LeaseWork), r => r.outcome);
+    return inputByReference(registry.execute(request), request.imports);
+  }
+}
+
+type StoredInput = { imports: { id: string; mappingHash: string; rowCount: number; rowsHash: string }[] } & Record<string, unknown>;
+/**
+ * Entrées du calcul par référence (option O1 de `docs/ifrs/CAPACITE_LOCATIONS.md`) : chaque version de la feuille recopie le calcul, donc la
+ * copie des lignes sources figées laisse place à leur nombre et à leur empreinte. Ce sont les `normalizedHash` déjà calculés par le registre
+ * dans `sourceRefs`. Les lignes restent dans le store d'imports, en ajout seul. `inputHash`, calculé par le registre sur les entrées
+ * complètes avant ce remplacement, se vérifie en les reconstituant (`leaseCalculationInput`).
+ */
+export function inputByReference(run: CalculationRun, imports: readonly ImportBatch[]): CalculationRun {
+  const input = run.input as { imports?: { id: string; mappingHash: string; rows: ImportBatch["rows"] }[] } | null;
+  if (!input?.imports) return run;
+  const documentOf = new Map(imports.map(b => [b.id, b.document.id])), hashOf = new Map(run.sourceRefs.map(r => [r.documentVersionId, r.normalizedHash]));
+  return frozen({ ...run, input: { ...input, imports: input.imports.map(b => ({ id: b.id, mappingHash: b.mappingHash, rowCount: b.rows.length, rowsHash: hashOf.get(documentOf.get(b.id)!)! })) } });
+}
+/**
+ * Entrées exactes d'un calcul Locations, reconstituées depuis les sources figées : chaque source doit redonner son nombre de lignes et son
+ * empreinte, sinon `L16_INPUT_SOURCE_MISMATCH` ; l'empreinte du tout redonne alors `inputHash`.
+ */
+export function leaseCalculationInput(run: CalculationRun, imports: readonly ImportBatch[]) {
+  const input = run.input as StoredInput;
+  return { ...input, imports: input.imports.map(ref => {
+    const batch = imports.find(b => b.id === ref.id);
+    if (!batch || batch.rows.length !== ref.rowCount || stableSha256(batch.rows) !== ref.rowsHash) throw new Error("L16_INPUT_SOURCE_MISMATCH");
+    return { id: ref.id, mappingHash: ref.mappingHash, rows: batch.rows };
+  }) };
+}
+
+/** Règle courante : gabarit et règle à la version de l'adaptateur ; une autre version se révise, jamais ne se réexécute (lue aussi par le dossier de clôture). */
+export const leaseRuleCurrent = (run: WorkpaperRun) => run.template.version === LEASE_TEMPLATE.version && run.template.rule?.version === LEASE_TEMPLATE.rule!.version;

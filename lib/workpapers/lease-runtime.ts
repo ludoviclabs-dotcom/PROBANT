@@ -1,0 +1,183 @@
+import { sql } from "drizzle-orm";
+import { ApiError } from "@/lib/api/errors";
+import type { AccountingPeriod } from "@/lib/canonical-model/period";
+import { LEASE_JURISDICTIONS, LEASE_REVIEW_REFUSALS, LEASE_RULE_BASIS } from "@/lib/ifrs/leases/rule";
+import { LEASE_ENGINE_VERSION } from "@/lib/ifrs/leases/engine";
+import { qualifyLeases, type LeaseQualification } from "@/lib/ifrs/leases/qualification";
+import { frameLeases, type LeaseFraming } from "@/lib/ifrs/leases/framing";
+import { leasePortfolioView, type LeasePortfolioView } from "@/lib/ifrs/leases/portfolio";
+import { leaseReviewSummary, type LeaseReviewSummary } from "@/lib/ifrs/leases/review-summary";
+import { materializeBundle, type AdjustmentBundle } from "@/lib/ifrs/shared/bundle";
+import { leaseWorkspaceView, type LeaseWorkspaceView } from "@/lib/ifrs/leases/view-model";
+import { mayReviewOwnWork } from "@/lib/auth/review-kind";
+import { ClientsRuntime } from "./clients-runtime";
+import { ClientsImports, ClientsWorkpaperRepository, rows, type ClientsSql } from "./clients-persistence";
+import type { ImportBatch, ImportMapping } from "./imports";
+import { LEASE_TEMPLATE, LeaseRegistry, leaseRuleCurrent } from "./lease-adapter";
+import { leaseReviewPoints, type LeaseResult } from "./lease-review";
+import type { LeaseCommand } from "./lease-commands";
+import { assertLeaseBatch, isLeaseType, leaseFacts, LEASE_REQUIRED_TYPES, LEASE_TYPES, resolveLeaseCitation, type LeaseType } from "./lease-sources";
+import { buildLeaseExport, type LeaseExportFormat, type LeaseExportKind } from "./lease-export";
+import { leaseDraftOf, stampLeaseWork } from "./lease-work";
+import { contentHash, periodId, type NoteCitation, type WorkpaperRun, type WorkpaperScope } from "./model";
+import type { Principal } from "./policy";
+import { freezePopulation, selectPopulation } from "./selection";
+import { WorkpaperService } from "./service";
+
+/** Erreur métier de l'atelier, avec les prérequis absents quand l'opération est impossible (C00 § 8 : `{ error, missing? }`). */
+export class LeaseError extends Error {
+  constructor(code: string, readonly missing?: string[]) { super(code); }
+}
+/** Refus du lecteur de fichier (format, colonnes, lignes) : donnée invalide, jamais une indisponibilité technique. */
+export class LeaseImportError extends Error {}
+type Head = { document_type: string; import_id: string };
+/** Sources figées toujours têtes de leurs types, et aucune source de ces types ajoutée après le gel (même règle que l'adaptateur de clôture). */
+const sourcesCurrentFor = (run: WorkpaperRun, heads: Head[]) => run.importIds.every(i => heads.some(h => h.import_id === i)) && (!run.population || heads.every(h => run.importIds.includes(h.import_id)));
+const ruleCurrentFor = leaseRuleCurrent;
+const citationText = (c: NoteCitation) => "\nPièce : " + c.fileName + " ; version " + c.sha256 + " ; ligne " + (c.row ?? "non applicable");
+
+/**
+ * Locations IFRS 16 (socle IFRS C01) sur le store partagé « Clients » : mêmes sessions, CSRF, autorisation du dossier, verrou transactionnel,
+ * historique des versions et reçus d'idempotence qu'Emprunts. Sources, population, sélection, travail et règle sont hachés et versionnés ;
+ * une source remplacée ou ajoutée, ou une règle remplacée, rend la feuille à réviser. L'exécution réelle exige une règle validée par la relecture nommée.
+ */
+export class LeaseRuntime extends ClientsRuntime {
+  protected override readonly procedureIds = ["ifrs16.leases"];
+  protected override readonly sourceTypes = LEASE_TYPES;
+  protected override importAdapter(): "ifrs16.leases" { return "ifrs16.leases"; }
+  protected override validateSource(batch: ImportBatch, period: AccountingPeriod) { assertLeaseBatch(batch, period); }
+  protected override async makePreview(file: File, scope: WorkpaperScope, mapping: ImportMapping, actor: Principal, type: string, period: AccountingPeriod) {
+    try { return await super.makePreview(file, scope, mapping, actor, type, period); }
+    catch (error) { if (error instanceof ApiError || !(error instanceof Error)) throw error; throw new LeaseImportError(/^[A-Z][A-Z0-9_]*$/.test(error.message) ? error.message : "L16_IMPORT_SCHEMA_INVALID"); }
+  }
+  private async leaseHeads(tx: ClientsSql, scope: WorkpaperScope) { return (await this.heads(tx, scope)).filter(h => isLeaseType(h.document_type)); }
+  protected override async assertCurrent(tx: ClientsSql, scope: WorkpaperScope, run: WorkpaperRun) {
+    if (!sourcesCurrentFor(run, await this.leaseHeads(tx, scope))) throw new Error("L16_SOURCE_REPLACED_REVISION_REQUIRED");
+    if (!ruleCurrentFor(run)) throw new Error("L16_RULE_REPLACED_REVISION_REQUIRED");
+  }
+  async previewLease(request: Request, dossierId: string, period: AccountingPeriod, file: File, mapping: ImportMapping, type: LeaseType, key: string) {
+    return this.previewSource(request, dossierId, period, file, mapping, type, key);
+  }
+  /** Dernière révision d'une lignée : une révision antérieure reste lisible, jamais modifiable. */
+  private async latestRevisionId(tx: ClientsSql, scope: WorkpaperScope, rootId: string) {
+    const [latest] = await rows<{ id: string }>(tx, sql`SELECT h.id FROM clients_workpaper_heads h JOIN clients_workpaper_versions v USING (organization_id,dossier_id,period_id,id,version) WHERE h.organization_id=${scope.organizationId} AND h.dossier_id=${scope.dossierId} AND h.period_id=${scope.periodId} AND v.run->>'rootId'=${rootId} ORDER BY (v.run->>'revision')::int DESC LIMIT 1`);
+    return latest?.id ?? null;
+  }
+  /** Lecture : feuilles, têtes courantes et, par feuille, fraîcheur des sources et de la règle, et qualification de ses sources figées (ou des têtes avant le gel). */
+  async leaseRead(request: Request, dossierId: string, pid: string, id?: string, history = false, version?: number) {
+    const view = await super.read(request, dossierId, pid, id, history, version);
+    const extra = await this.transaction(request, dossierId, pid, "read", async (tx, scope) => {
+      const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), sourcesCurrent: Record<string, boolean> = {}, ruleCurrent: Record<string, boolean> = {};
+      const qualification: Record<string, LeaseQualification | null> = {}, qualificationIssues: Record<string, string> = {};
+      const framing: Record<string, LeaseFraming | null> = {}, adjustments: Record<string, AdjustmentBundle | null> = {}, portfolio: Record<string, LeasePortfolioView | null> = {};
+      const review: Record<string, LeaseReviewSummary> = {};
+      const contentHashes: Record<string, string> = Object.fromEntries(view.runs.map(r => [r.id, contentHash(r)]));
+      for (const run of view.runs) {
+        sourcesCurrent[run.id] = sourcesCurrentFor(run, heads); ruleCurrent[run.id] = ruleCurrentFor(run);
+        const ids = run.importIds.length ? run.importIds : heads.map(h => h.import_id);
+        let facts: ReturnType<typeof leaseFacts> | null = null;
+        try {
+          facts = leaseFacts(imports.batches.filter(b => ids.includes(b.id) && b.approval));
+          qualification[run.id] = run.leaseWork ? qualifyLeases(facts, run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null;
+          // Framing is shown before any calculation: it compares the PCG lines with the qualified schedule, without the engine.
+          framing[run.id] = qualification[run.id] ? frameLeases(qualification[run.id]!, facts.lease_ledger, run.period) : null;
+        } catch (error) { qualification[run.id] = null; framing[run.id] = null; qualificationIssues[run.id] = error instanceof Error ? error.message : "L16_SOURCES_INVALID"; }
+        // The adjustment is materialized from this exact version: proposed, or reviewed once approved or locked.
+        const result = run.result?.execution === "completed" ? run.result.result as LeaseResult : null;
+        adjustments[run.id] = result?.bundle ? materializeBundle(result.bundle, run) : null;
+        // Portfolio line, table, series and bridges (L16-04) are read from the stored result, never recomputed by the screen.
+        portfolio[run.id] = leasePortfolioView(run, view.runs, qualification[run.id] ?? null);
+        // Review summary (L16-05): exceptions, cited judgements, framing, results and points, from the same frozen sources.
+        review[run.id] = leaseReviewSummary(run, result, qualification[run.id] ?? null, facts ? [...facts.lease_contracts, ...facts.lease_assumptions] : [], adjustments[run.id]);
+      }
+      // Server view-model (C02): steps, allowed actions and their reasons; the screen derives nothing else.
+      const ruleValidated = LEASE_TEMPLATE.rule!.validation === "validated", base = { mode: "real" as const, permissions: view.permissions, actorId: view.actorId, selfReviewAllowed: mayReviewOwnWork(view.reviewKind),
+        sourceTypes: heads.map(h => h.document_type), requiredTypes: LEASE_REQUIRED_TYPES, ruleValidated };
+      const workspace: Record<string, LeaseWorkspaceView> = Object.fromEntries(view.runs.map(run => [run.id, leaseWorkspaceView({ ...base, run, sourcesCurrent: sourcesCurrent[run.id], ruleCurrent: ruleCurrent[run.id], qualification: qualification[run.id] ?? null, framing: framing[run.id] ?? null })]));
+      const emptyWorkspace = leaseWorkspaceView({ ...base, run: null, sourcesCurrent: true, ruleCurrent: true, qualification: null });
+      return { sourcesCurrent, ruleCurrent, qualification, qualificationIssues, framing, adjustments, portfolio, review, contentHashes, workspace, emptyWorkspace };
+    });
+    const response = { ...view, ...extra, capability: { engine: LEASE_ENGINE_VERSION, realExecution: LEASE_TEMPLATE.rule!.validation === "validated" ? "allowed" : "blocked_rule_review_required",
+      rule: { id: LEASE_TEMPLATE.rule!.id, version: LEASE_TEMPLATE.version, basisStatus: LEASE_RULE_BASIS.status }, requiredTypes: LEASE_REQUIRED_TYPES, jurisdictions: LEASE_JURISDICTIONS, reviewRefusals: LEASE_REVIEW_REFUSALS } };
+    if (Buffer.byteLength(JSON.stringify(response)) > 8 * 1024 * 1024) throw new ApiError("L16_LIMIT_EXCEEDED", "État trop volumineux.", 413);
+    return response;
+  }
+  /**
+   * Export d'une version exacte (L16-05) : le navigateur nomme la version et l'empreinte qu'il a lues ; une autre empreinte est un conflit.
+   * Lecture seule, droit d'export ; une version ancienne reste exportable en diagnostic, l'export revu exige la version revue courante.
+   */
+  async leaseExport(request: Request, dossierId: string, pid: string, input: { id: string; version: number; expectedHash: string; format: LeaseExportFormat; kind: LeaseExportKind }) {
+    return this.transaction(request, dossierId, pid, "download", async (tx, scope, actor) => {
+      const repository = new ClientsWorkpaperRepository(tx), versions = await repository.history(scope, input.id), run = versions.find(v => v.version === input.version);
+      if (!run || run.template.id !== "ifrs16.leases") throw new Error("WORKPAPER_VERSION_NOT_FOUND");
+      if (contentHash(run) !== input.expectedHash) throw new Error("EXPORT_SNAPSHOT_CONFLICT");
+      const heads = await this.leaseHeads(tx, scope), imports = await ClientsImports.load(tx, scope), frozen = imports.batches.filter(b => run.importIds.includes(b.id) && b.approval);
+      const facts = leaseFacts(frozen), qualification = run.leaseWork ? qualifyLeases(facts, run.period, run.leaseWork, { id: "ifrs16.leases", version: run.template.version, basisStatus: LEASE_RULE_BASIS.status }) : null;
+      const result = run.result?.execution === "completed" ? run.result.result as LeaseResult : null, head = versions.at(-1)!;
+      return buildLeaseExport({ run, result, qualification, facts: [...facts.lease_contracts, ...facts.lease_assumptions], bundle: result?.bundle ? materializeBundle(result.bundle, run) : null,
+        sources: frozen.map(b => ({ importId: b.id, documentVersionId: b.document.id, documentType: b.document.documentType, fileName: b.document.fileName, sha256: b.document.byteHash, rows: b.rows.length, approvedAt: b.approval?.at ?? null })),
+        standing: { latestRevision: head.version === run.version && (await this.latestRevisionId(tx, scope, run.rootId)) === run.id, sourcesCurrent: sourcesCurrentFor(run, heads), ruleCurrent: ruleCurrentFor(run) },
+        kind: input.kind, format: input.format, emission: { exportedAt: new Date(this.now() * 1000).toISOString(), exportedBy: actor.id } });
+    });
+  }
+  async leaseCommand(request: Request, dossierId: string, pid: string, command: LeaseCommand, key: string) {
+    return this.transaction(request, dossierId, pid, ["review", "lock"].includes(command.command) ? "review" : "prepare", async (tx, scope, actor) => this.receipt(tx, scope, actor, key, { operation: "lease_command", ...command }, async () => {
+      const repository = new ClientsWorkpaperRepository(tx), imports = await ClientsImports.load(tx, scope), at = new Date(this.now() * 1000).toISOString();
+      const service = new WorkpaperService(repository, imports, new LeaseRegistry(), async () => actor, () => at, "ifrs16.leases");
+      if (command.command === "create_leases") {
+        if (periodId(command.period) !== pid) throw new Error("WORKPAPER_PERIOD_INVALID");
+        return { run: await service.create(scope, command.period, LEASE_TEMPLATE, command.instanceKey) };
+      }
+      const current = await repository.get(scope, command.id);
+      if (!current || current.template.id !== "ifrs16.leases") throw new Error("L16_NOT_FOUND");
+      if (await this.latestRevisionId(tx, scope, current.rootId) !== current.id) throw new Error("L16_REVISION_REPLACED");
+      if (command.command !== "revise") await this.assertCurrent(tx, scope, current);
+      const heads = await this.leaseHeads(tx, scope);
+      const cite = (ref: { documentVersionId: string; rowId: string }, allowed: readonly string[] = current.importIds) => resolveLeaseCitation(imports.batches, allowed, ref);
+      const id = current.id, v = command.expectedVersion;
+      let run: WorkpaperRun;
+      switch (command.command) {
+        case "configure_leases": {
+          // Before the freeze, a citation points to a current approved head; after, only to the frozen sources.
+          const allowed = current.population ? current.importIds : heads.map(h => h.import_id);
+          run = await service.configureLeases(scope, id, v, stampLeaseWork(command.work, ref => cite(ref, allowed), actor.id, at));
+          break;
+        }
+        case "freeze_leases": {
+          if (current.state !== "draft" || current.population) throw new Error("INPUTS_ALREADY_FROZEN");
+          if (!current.leaseWork) throw new LeaseError("L16_WORK_REQUIRED", ["configure_leases"]);
+          const batches = command.importIds.map(i => imports.get(scope, i, actor)), types = batches.map(b => b.document.documentType);
+          const missing = LEASE_REQUIRED_TYPES.filter(t => !types.includes(t));
+          if (batches.some(b => !isLeaseType(b.document.documentType) || !heads.some(h => h.import_id === b.id)) || new Set(types).size !== types.length
+            || heads.some(h => !command.importIds.includes(h.import_id)) || missing.length) throw new LeaseError("L16_CURRENT_SOURCES_REQUIRED", missing);
+          batches.forEach(b => assertLeaseBatch(b, current.period));
+          // Configure on the frozen sources: every confirmation is cited again on the exact versions frozen.
+          run = await service.configureLeases(scope, id, v, stampLeaseWork(leaseDraftOf(current.leaseWork), ref => cite(ref, command.importIds), actor.id, at));
+          const population = freezePopulation(scope, batches, "lease_contract", actor, current.period);
+          const selection = selectPopulation(population, { method: "targeted", criteria: command.criteria, exclusions: [], requestedSize: population.items.length, selectedIds: population.items.map(i => i.id) }, actor);
+          run = await service.attachInputs(scope, id, run.version, population, selection);
+          run = await service.transition(scope, id, run.version, "ready");
+          break;
+        }
+        case "execute": {
+          if (!current.leaseWork) throw new LeaseError("L16_WORK_REQUIRED", ["configure_leases"]);
+          run = await service.execute(scope, id, v, { runId: id, rootId: current.rootId, revision: current.revision, work: current.leaseWork });
+          if (run.state === "executed") {
+            // One compare-and-swap for all generated points; each carries its own reason, never an attributed amount.
+            const points = leaseReviewPoints(run.result!.result as LeaseResult);
+            if (points.length) run = await service.addNotes(scope, id, run.version, points.map(p => ({ id: "lease:" + p.key, kind: "observation" as const, text: p.text, amount: p.amount, blocking: p.blocking })));
+          }
+          break;
+        }
+        case "resolve": run = await service.resolveNote(scope, id, v, command.noteId, command.text, cite(command.citation)); break;
+        case "conclude": run = await service.conclude(scope, id, v, command.text + citationText(cite(command.citation))); break;
+        case "submit": run = await service.transition(scope, id, v, "awaiting_review"); break;
+        case "review": run = await service.transition(scope, id, v, command.decision, command.text + citationText(cite(command.citation)), command.submittedHash); break;
+        case "lock": run = await service.lock(scope, id, v); break;
+        // A revision adopts the current template: an earlier rule version is never re-executed (C00, D18).
+        case "revise": run = await service.revise(scope, id, v, LEASE_TEMPLATE); break;
+      }
+      return { run };
+    }));
+  }
+}

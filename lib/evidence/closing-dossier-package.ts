@@ -27,6 +27,18 @@ const decisionText = (v: EventDecision) => (v.kind === "correction" ? (v.correct
 const sheetText = (s: { label: string; rootId: string; runId: string; revision: number; version: number; state: string; contentHash: string; period: { startDate: string; closingDate: string }; populationSize: number | null }) =>
   s.label + " · racine " + s.rootId + " · " + s.runId + " r" + s.revision + " v" + s.version + " · " + s.state + " · période " + s.period.startDate + " → " + s.period.closingDate + " · population " + (s.populationSize ?? "non figée") + " · empreinte " + s.contentHash.slice(0, 16);
 
+const SELECTION = { non_selectionne: "non sélectionné", selectionne: "sélectionné pour la base déclarée", a_reexaminer: "à réexaminer" } as const;
+/** « Travaux IFRS » (L16-05) : section propre, dénominateurs propres, jamais additionnée aux anomalies ni aux effets C05. */
+function ifrsSection(p: DossierProjection) {
+  const w = p.ifrsWorks, d = w.denominators;
+  return `<section><h2>Travaux IFRS (section distincte des anomalies)</h2><p class="notice">${esc(w.notice)}</p><p>${d.lineages} lignée(s) IFRS observée(s) ; ${d.reviewed} revue(s) ; ${d.selected} retraitement(s) sélectionné(s), ${d.toReexamine} à réexaminer ; ${d.postingsDocumented} comptabilisation(s) documentée(s) par une pièce.</p>
+${table("Lignées", ["Feuille", "Version", "Retraitement", "Sélection", "Base déclarée", "Comptabilisation"], w.lineages.map(l => [l.label + " · " + l.rootId, "r" + l.revision + " · v" + l.version + " · " + l.state + (l.sourcesCurrent ? "" : " · source remplacée"),
+    l.bundle ? l.bundle.status + " · " + l.bundle.contracts + " contrat(s) · débit " + l.bundle.debit.amount + " = crédit " + l.bundle.credit.amount + " · impôt non calculé" : "aucun",
+    SELECTION[l.selection.status] + (l.selection.reasons.length ? " (" + l.selection.reasons.join(", ") + ")" : "") + (l.toDecide ? " — revu, à décider" : ""),
+    l.selection.base ? l.selection.base.baseKind + " · " + l.selection.base.included + " · " + l.selection.base.citation + (l.selection.base.bridge ? " · " + l.selection.base.bridge.text : "") : "—",
+    l.posting.status === "documentee" ? "documentée : " + l.posting.citations.join(", ") : "non documentée (la sélection ne la prouve pas)"]))}
+${w.orphanSelections.length ? table("Sélections sans lignée observée", ["Lignée", "Version", "Sélectionnée par"], w.orphanSelections.map(o => [o.logicalId, o.runId + " · " + o.bundleHash.slice(0, 12), o.by + " · " + o.at])) : ""}</section>`;
+}
 export function closingDossierHtml(p: DossierProjection) {
   const d = p.denominators;
   return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>PROBANT — Dossier et clôture</title><style>
@@ -61,6 +73,7 @@ ${table("Candidats sans effet compté", ["Événement", "État", "Motif", "Feuil
 ${table("Limites enregistrées au marquage personnel", ["Code", "Limite"], p.completion.personal.limits.map(l => [l.code, l.label]))}
 ${table("Travaux restants (communs)", ["Élément"], p.completion.blockers.map(b => [b]))}${table("Conditions d’une revue professionnelle non remplies", ["Élément"], p.completion.professionalGaps.map(b => [b]))}</section>
 <section><h2>Exclusions encore pertinentes</h2>${table("Exclusions motivées et limites de capacité", ["Nature", "Élément", "Motif"], p.exclusions.map(x => [x.kind, x.label, x.reason]))}</section>
+${ifrsSection(p)}
 <section><h2>Limites de cette restitution</h2><ul>${[...p.limitations, "PDF standard dérivé du HTML, non validé PDF/A ; caractères hors Latin-1 remplacés dans le PDF. HTML et JSON conservent le texte Unicode."].map(l => `<li>${esc(l)}</li>`).join("")}</ul></section></body></html>`;
 }
 

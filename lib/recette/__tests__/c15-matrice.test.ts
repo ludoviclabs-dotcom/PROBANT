@@ -27,7 +27,7 @@ import { coherentLiasse, computationInput, eligibleProfile, period as taxPeriod,
 import { buildClientMission } from "@/lib/workpapers/client-mission";
 import { clientMissionHtml } from "@/lib/evidence/client-mission-package";
 import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
-import { CAPABILITY_REGISTRY, ENGINE_PROCEDURES, WORKFLOW_ROUTES, WORKSHOPS } from "@/lib/capabilities/registry";
+import { CAPABILITY_FRAMEWORKS, CAPABILITY_REGISTRY, ENGINE_PROCEDURES, WORKFLOW_ROUTES, WORKSHOPS } from "@/lib/capabilities/registry";
 
 /**
  * Recette finale C15 — matrice du rapport du 12/10/2026 (§ 11) rejouée sur les moteurs livrés.
@@ -317,6 +317,8 @@ describe("C15 · liens du registre des capacités", () => {
     const links = new Set<string>([
       ...CAPABILITY_REGISTRY.flatMap(c => [...c.routes, ...(c.synthesisRoute ? [c.synthesisRoute] : []), ...Object.values(c.modes).flatMap(m => "route" in m && m.route ? [m.route] : [])]),
       ...ENGINE_PROCEDURES.map(p => p.route), ...WORKFLOW_ROUTES.map(r => r.href), ...WORKSHOPS.map(w => w.route),
+      // Ateliers de référentiel (IFRS C02) : une route n'est annoncée qu'avec sa page.
+      ...CAPABILITY_FRAMEWORKS.filter(f => f.pageAvailable).map(f => f.route),
     ]);
     expect(links.size).toBeGreaterThan(20);
     expect([...links].filter(l => !page(l))).toEqual([]);

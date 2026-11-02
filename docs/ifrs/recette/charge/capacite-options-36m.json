@@ -1,0 +1,649 @@
+{
+  "schema": "probant-l16-06-capacite-options-1",
+  "generatedBy": "scripts/ifrs/capacite-l16.ts",
+  "seed": 16006,
+  "months": 36,
+  "limits": {
+    "fileBytes": 3145728,
+    "parserBytes": 10485760,
+    "parserRows": 50000,
+    "previewJsonBytes": 3145728,
+    "sourcesBytes": 25165824,
+    "versionJsonBytes": 3670016,
+    "versionsBytes": 25165824,
+    "readBytes": 8388608
+  },
+  "calibration": {
+    "contracts": 12,
+    "postgres": 1602756,
+    "counter": 1602756,
+    "relativeError": 0
+  },
+  "combos": [
+    {
+      "id": "A",
+      "label": "Actuel",
+      "options": [],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.12,
+        "chain": 0.7575,
+        "read": 0.1612
+      },
+      "maxCheckError": 0.00041617255377824865,
+      "capacity": {
+        "contracts": 29,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 29
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 31
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 49
+          }
+        ]
+      },
+      "verification": {
+        "measured": 29,
+        "estimate": 29
+      }
+    },
+    {
+      "id": "B",
+      "label": "O1 seule",
+      "options": [
+        "O1"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0867,
+        "chain": 0.5497,
+        "read": 0.1279
+      },
+      "maxCheckError": 0.0004362641569277978,
+      "capacity": {
+        "contracts": 40,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 40
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 43
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 62
+          }
+        ]
+      },
+      "verification": {
+        "measured": 40,
+        "estimate": 40
+      }
+    },
+    {
+      "id": "C",
+      "label": "O2 seule",
+      "options": [
+        "O2"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.046,
+        "chain": 0.2903,
+        "read": 0.0872
+      },
+      "maxCheckError": 0.000413751664868194,
+      "capacity": {
+        "contracts": 75,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 75
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 82
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 91
+          }
+        ]
+      },
+      "verification": {
+        "measured": 75,
+        "estimate": 75
+      }
+    },
+    {
+      "id": "D",
+      "label": "O1 + O2",
+      "options": [
+        "O1",
+        "O2"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0127,
+        "chain": 0.0825,
+        "read": 0.054
+      },
+      "maxCheckError": 0.00045956139541810363,
+      "capacity": {
+        "contracts": 102,
+        "binding": [
+          "échéancier · aperçu"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 273
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 289
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 147
+          }
+        ]
+      },
+      "verification": {
+        "measured": 101,
+        "estimate": 102
+      }
+    },
+    {
+      "id": "E",
+      "label": "O1 + O2 + R",
+      "options": [
+        "O1",
+        "O2",
+        "R"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0127,
+        "chain": 0.0825,
+        "read": 0.0101
+      },
+      "maxCheckError": 0.00037751960569406694,
+      "capacity": {
+        "contracts": 102,
+        "binding": [
+          "échéancier · aperçu"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 273
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 289
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 787
+          }
+        ]
+      },
+      "verification": {
+        "measured": 101,
+        "estimate": 102
+      }
+    },
+    {
+      "id": "F",
+      "label": "O1 + O2 + O3 + R",
+      "options": [
+        "O1",
+        "O2",
+        "O3",
+        "R"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0126,
+        "chain": 0.0152,
+        "read": 0.0101
+      },
+      "maxCheckError": 0.00037751960569406694,
+      "capacity": {
+        "contracts": 102,
+        "binding": [
+          "échéancier · aperçu"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 1388
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 263
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 102
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 452
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 277
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 1575
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 787
+          }
+        ]
+      },
+      "verification": {
+        "measured": 101,
+        "estimate": 102
+      }
+    },
+    {
+      "id": "G",
+      "label": "O4 seule (limites ×8)",
+      "options": [
+        "O4"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.12,
+        "chain": 0.7575,
+        "read": 0.1612
+      },
+      "maxCheckError": 0.00041617255377824865,
+      "capacity": {
+        "contracts": 233,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 11111
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 2106
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 816
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 3620
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 233
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 253
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 396
+          }
+        ]
+      },
+      "verification": {
+        "measured": 233,
+        "estimate": 233
+      }
+    },
+    {
+      "id": "J",
+      "label": "O1 + O2 + O4",
+      "options": [
+        "O1",
+        "O2",
+        "O4"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0127,
+        "chain": 0.0825,
+        "read": 0.054
+      },
+      "maxCheckError": 0.00045956139541810363,
+      "capacity": {
+        "contracts": 816,
+        "binding": [
+          "échéancier · aperçu"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 11111
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 2106
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 816
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 3620
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 2201
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 2327
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 1185
+          }
+        ]
+      },
+      "verification": null
+    },
+    {
+      "id": "K",
+      "label": "O1 + O2 + R + O5",
+      "options": [
+        "O1",
+        "O2",
+        "R",
+        "O5"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.004,
+        "schedulePreview": 0.0105,
+        "sourcesStored": 0.0235,
+        "versionJson": 0.0127,
+        "chain": 0.0825,
+        "read": 0.0101
+      },
+      "maxCheckError": 0.0003560409354837222,
+      "capacity": {
+        "contracts": 273,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 3846
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 745
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 284
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 1019
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 273
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 289
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 787
+          }
+        ]
+      },
+      "verification": {
+        "measured": 274,
+        "estimate": 273
+      }
+    },
+    {
+      "id": "H",
+      "label": "O1 + O2 + O3 + R + O4",
+      "options": [
+        "O1",
+        "O2",
+        "O3",
+        "R",
+        "O4"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.0114,
+        "schedulePreview": 0.0294,
+        "sourcesStored": 0.053,
+        "versionJson": 0.0126,
+        "chain": 0.0152,
+        "read": 0.0101
+      },
+      "maxCheckError": 0.00037751960569406694,
+      "capacity": {
+        "contracts": 816,
+        "binding": [
+          "échéancier · aperçu"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 11111
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 2106
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 816
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 3620
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 2227
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 12637
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 6336
+          }
+        ]
+      },
+      "verification": null
+    },
+    {
+      "id": "I",
+      "label": "O1 + O2 + O3 + R + O4 + O5",
+      "options": [
+        "O1",
+        "O2",
+        "O3",
+        "R",
+        "O4",
+        "O5"
+      ],
+      "perContractMiB": {
+        "scheduleFile": 0.004,
+        "schedulePreview": 0.0105,
+        "sourcesStored": 0.0235,
+        "versionJson": 0.0126,
+        "chain": 0.0152,
+        "read": 0.0101
+      },
+      "maxCheckError": 0.0003589878294370748,
+      "capacity": {
+        "contracts": 2227,
+        "binding": [
+          "version de feuille (écriture)"
+        ],
+        "gates": [
+          {
+            "gate": "échéancier · lignes du lecteur",
+            "contracts": 30769
+          },
+          {
+            "gate": "échéancier · fichier",
+            "contracts": 5960
+          },
+          {
+            "gate": "échéancier · aperçu",
+            "contracts": 2280
+          },
+          {
+            "gate": "sources du dossier-exercice",
+            "contracts": 8160
+          },
+          {
+            "gate": "version de feuille (écriture)",
+            "contracts": 2227
+          },
+          {
+            "gate": "historique des feuilles",
+            "contracts": 12637
+          },
+          {
+            "gate": "lecture de l'atelier",
+            "contracts": 6336
+          }
+        ]
+      },
+      "verification": null
+    }
+  ]
+}

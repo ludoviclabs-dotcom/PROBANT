@@ -1,0 +1,254 @@
+{
+  "schema": "probant-l16-06-charge-1",
+  "generatedBy": "scripts/ifrs/bench-l16.ts",
+  "machine": {
+    "cpu": "Intel(R) Core(TM) i5-4670 CPU @ 3.40GHz",
+    "logicalCores": 4,
+    "ramGiB": 7.9,
+    "os": "Windows_NT 10.0.19045 (Windows 10 Pro)",
+    "arch": "x64",
+    "node": "v24.14.0",
+    "gcExposed": true,
+    "heapLimitMiB": 2240
+  },
+  "parameters": {
+    "contracts": 1000,
+    "months": 120,
+    "schedules": 120000,
+    "seed": 16006,
+    "repeat": 5,
+    "reader": "memory",
+    "registryMeasured": false,
+    "heavyMeasured": false,
+    "period": {
+      "startDate": "2026-01-01",
+      "closingDate": "2026-12-31",
+      "asOfDate": "2027-02-15",
+      "currency": "EUR",
+      "validation": "provisional"
+    },
+    "scope": "demo (même moteur, aucune écriture)"
+  },
+  "portfolio": {
+    "byResult": {
+      "computed": 1000,
+      "diagnostic": 0,
+      "not_commenced": 0,
+      "not_applicable": 0
+    },
+    "adjustmentContracts": 1000,
+    "debtClosing": {
+      "amount": "232835526.47",
+      "currency": "EUR"
+    },
+    "outcome": "no_exception_detected"
+  },
+  "timings": {
+    "generationMs": 157.7,
+    "sourcesReadMs": 1342.8,
+    "l16": {
+      "evaluateColdMs": 5060.8,
+      "evaluateWarm": {
+        "n": 5,
+        "minMs": 4370.27,
+        "medianMs": 4613.05,
+        "p95Ms": 5210.6,
+        "maxMs": 5210.6
+      },
+      "qualification": {
+        "n": 5,
+        "minMs": 1555.27,
+        "medianMs": 1666.28,
+        "p95Ms": 1754.69,
+        "maxMs": 1754.69
+      },
+      "oneContractEngine": {
+        "n": 100,
+        "minMs": 0.56,
+        "medianMs": 0.59,
+        "p95Ms": 1.27,
+        "maxMs": 16.91
+      },
+      "reevaluateAfterOneContractChanged": {
+        "n": 5,
+        "minMs": 4478.28,
+        "medianMs": 4761.74,
+        "p95Ms": 5109.83,
+        "maxMs": 5109.83
+      }
+    },
+    "sharedRegistry": null,
+    "views": {
+      "portfolio": {
+        "n": 5,
+        "minMs": 49.52,
+        "medianMs": 52.18,
+        "p95Ms": 65.3,
+        "maxMs": 65.3
+      },
+      "charts": {
+        "n": 5,
+        "minMs": 46.82,
+        "medianMs": 48.7,
+        "p95Ms": 49.7,
+        "maxMs": 49.7
+      },
+      "reviewSummary": {
+        "n": 5,
+        "minMs": 204.79,
+        "medianMs": 209.31,
+        "p95Ms": 215.49,
+        "maxMs": 215.49
+      },
+      "readSerialized": null,
+      "contentHash": null,
+      "screenFilter": {
+        "n": 100,
+        "minMs": 0.14,
+        "medianMs": 0.17,
+        "p95Ms": 0.38,
+        "maxMs": 0.76
+      }
+    },
+    "exports": {},
+    "materializeBundleMs": 1678.2
+  },
+  "sizes": {
+    "perSource": {
+      "lease_contracts": {
+        "rows": 1000,
+        "fileBytes": 1034805,
+        "previewJsonBytes": null,
+        "storedBytes": null,
+        "reader": "lignes construites en mémoire au format du lecteur (volume hors des portes réelles)"
+      },
+      "lease_assumptions": {
+        "rows": 1000,
+        "fileBytes": 1103023,
+        "previewJsonBytes": null,
+        "storedBytes": null,
+        "reader": "lignes construites en mémoire au format du lecteur (volume hors des portes réelles)"
+      },
+      "lease_schedule": {
+        "rows": 120000,
+        "fileBytes": 40153881,
+        "previewJsonBytes": null,
+        "storedBytes": null,
+        "reader": "lignes construites en mémoire au format du lecteur (volume hors des portes réelles)"
+      },
+      "lease_ledger": {
+        "rows": 1000,
+        "fileBytes": 378877,
+        "previewJsonBytes": null,
+        "storedBytes": null,
+        "reader": "lignes construites en mémoire au format du lecteur (volume hors des portes réelles)"
+      }
+    },
+    "draftRunBytes": 130227,
+    "executedRunBytes": 25900557,
+    "executedRunParts": {
+      "input": 131193,
+      "runEvidence": 2190,
+      "contractsWithoutDuesAndSchedules": 4942434,
+      "dues": 31000,
+      "schedules": 11267635,
+      "evidence": 7264558,
+      "bundle": 2093143,
+      "notes": 2
+    },
+    "chainBytes": 156054477,
+    "readBytes": 114445535
+  },
+  "memory": {
+    "start": {
+      "rssMiB": 83.6,
+      "heapUsedMiB": 20.3
+    },
+    "afterSources": {
+      "rssMiB": 355.9,
+      "heapUsedMiB": 182.4
+    },
+    "afterEvaluateCold": {
+      "rssMiB": 1006.2,
+      "heapUsedMiB": 296.4
+    },
+    "afterViews": {
+      "rssMiB": 1459.7,
+      "heapUsedMiB": 373.6
+    },
+    "afterExports": {
+      "rssMiB": 1459.7,
+      "heapUsedMiB": 373.6
+    },
+    "peakRssMiB": 2002.9
+  },
+  "gates": [
+    {
+      "gate": "lease_contracts · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 1034805,
+      "ok": true
+    },
+    {
+      "gate": "lease_contracts · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 1000,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 1103023,
+      "ok": true
+    },
+    {
+      "gate": "lease_assumptions · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 1000,
+      "ok": true
+    },
+    {
+      "gate": "lease_schedule · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 40153881,
+      "ok": false
+    },
+    {
+      "gate": "lease_schedule · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 120000,
+      "ok": false
+    },
+    {
+      "gate": "lease_ledger · fichier ≤ 3 Mio (store)",
+      "limit": 3145728,
+      "value": 378877,
+      "ok": true
+    },
+    {
+      "gate": "lease_ledger · lecteur tabulaire (10 Mio, 50 000 lignes)",
+      "limit": 50000,
+      "value": 1000,
+      "ok": true
+    },
+    {
+      "gate": "version de feuille ≤ 3,5 Mio (écriture)",
+      "limit": 3670016,
+      "value": 23750611,
+      "ok": false
+    },
+    {
+      "gate": "historique des feuilles ≤ 24 Mio (création → verrouillage, 11 versions)",
+      "limit": 25165824,
+      "value": 156054477,
+      "ok": false
+    },
+    {
+      "gate": "lecture de l'atelier ≤ 8 Mio",
+      "limit": 8388608,
+      "value": 114445535,
+      "ok": false
+    }
+  ],
+  "capacity": []
+}

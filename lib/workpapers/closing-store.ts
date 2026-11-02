@@ -1,4 +1,5 @@
 import { readSourceHeads, readStoreHeads } from "@/lib/capabilities/store-readers";
+import { frameworkProcedure } from "@/lib/capabilities/procedures";
 import { sql, type SQL } from "drizzle-orm";
 import type { WorkpaperRun, WorkpaperScope } from "./model";
 import { type CycleFamily } from "./closing-contract";
@@ -19,6 +20,8 @@ export interface ClosingTx {
   receipt(scope: WorkpaperScope, actorId: string, key: string): Promise<{ requestHash: string; response: unknown } | null>;
   putReceipt(scope: WorkpaperScope, actorId: string, key: string, requestHash: string, response: unknown): Promise<void>;
   cycleRuns(scope: WorkpaperScope): Promise<{ family: CycleFamily; run: WorkpaperRun }[]>;
+  /** Framework sheets (IFRS), read apart from the cycles for the « Travaux IFRS » section (L16-05). */
+  frameworkRuns(scope: WorkpaperScope): Promise<{ family: CycleFamily; run: WorkpaperRun }[]>;
   /** Current source heads of each family, for the observation adapters (C14). */
   cycleSourceHeads(scope: WorkpaperScope): Promise<Partial<Record<CycleFamily, { document_type: string; import_id: string }[]>>>;
 }
@@ -68,7 +71,9 @@ class PostgresClosingTx implements ClosingTx {
     await this.tx.execute(sql`INSERT INTO cl_command_receipts (organization_id,dossier_id,period_id,actor_id,idempotency_key,request_hash,response)
       VALUES (${scope.organizationId},${scope.dossierId},${scope.periodId},${actorId},${key},${requestHash},${JSON.stringify(response)}::jsonb)`);
   }
-  async cycleRuns(scope: WorkpaperScope) { return readStoreHeads(this.tx, scope); }
+  /** Cycle sheets only: a framework sheet (IFRS, C01) shares a family table but is no cycle observation; its own section comes with L16-05. */
+  async cycleRuns(scope: WorkpaperScope) { return (await readStoreHeads(this.tx, scope)).filter(r => !frameworkProcedure(r.run.template.id)); }
+  async frameworkRuns(scope: WorkpaperScope) { return (await readStoreHeads(this.tx, scope)).filter(r => frameworkProcedure(r.run.template.id)); }
   async cycleSourceHeads(scope: WorkpaperScope) { return readSourceHeads(this.tx, scope); }
 }
 export class PostgresClosingDatabase implements ClosingDatabase {

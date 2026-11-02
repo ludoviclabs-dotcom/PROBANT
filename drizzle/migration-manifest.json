@@ -25,7 +25,8 @@
     "0018_provision_workpapers.up.sql",
     "0019_closing_dossier.up.sql",
     "0020_payroll_local.up.sql",
-    "0021_loans_review.up.sql"
+    "0021_loans_review.up.sql",
+    "0022_ifrs16_leases.up.sql"
   ],
   "down": [
     "0000_init_durable_ingestion.down.sql",
@@ -51,7 +52,8 @@
     "0018_provision_workpapers.down.sql",
     "0019_closing_dossier.down.sql",
     "0020_payroll_local.down.sql",
-    "0021_loans_review.down.sql"
+    "0021_loans_review.down.sql",
+    "0022_ifrs16_leases.down.sql"
   ],
   "tables": [
     "control_executions",

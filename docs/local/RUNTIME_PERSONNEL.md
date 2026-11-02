@@ -10,7 +10,7 @@ PROBANT s'exécute sur votre PC avec une base PostgreSQL qui lui est propre et d
 | **Type de dossier** (`CapabilityMode`, contrat C01) | historique · scénario · local persistant | les données lues |
 | **Type de relecture** (`ReviewKind`, `lib/auth/review-kind.ts`) | `distinct_identity` relecture par une autre identité · `personal` relecture personnelle nommée · `simulated_second_identity` simulation | le serveur, d'après l'identité authentifiée |
 
-Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les quatorze drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Paie/Congés — C12, Emprunts — C13).
+Un profil personnel n'ouvre une chaîne que si son drapeau vaut `personal` ; il refuse `disposable`. Une recette jetable garde exactement son comportement antérieur. Les quinze drapeaux sont ceux des missions (Clients, Achats, Equity, Participations, Exceptionnel, Trésorerie, Immobilisations, Capitaux propres, Fiscal, Stocks, Provisions, Clôture, Paie/Congés — C12, Emprunts — C13, Locations IFRS 16 — socle IFRS C01, sans moteur).
 
 ## Dépendances effectivement nécessaires
 

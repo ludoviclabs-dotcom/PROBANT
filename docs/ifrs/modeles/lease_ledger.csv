@@ -1,0 +1,2 @@
+Key;Amount;Date;Details
+"GL-613-2026-01";"1000.00";"2026-01-31";"{""contractId"":""CTR-001"",""source"":{""title"":""Pièce (exemple)"",""pack"":""Pack"",""date"":""2026-01-02"",""page"":1,""clause"":""Article""},""fields"":{""account"":""613500"",""periodStart"":""2026-01-01"",""periodEnd"":""2026-01-31"",""piece"":""AC-2026-0001""}}"

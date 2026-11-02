@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vitest";
 import { PgDialect } from "drizzle-orm/pg-core";
-import { CAPABILITY_REGISTRY, ENGINE_PROCEDURES, STORE_FAMILIES, configuredProcedures } from "../registry";
+import { CAPABILITY_FRAMEWORKS, CAPABILITY_REGISTRY, ENGINE_PROCEDURES, FRAMEWORK_PROCEDURES, PROCEDURE_ACTIVATION, STORE_FAMILIES, configuredProcedures } from "../registry";
 import { readStoreHeads, scopedFamilyRuns } from "../store-readers";
 import { capabilityReadModel } from "../read-model";
 import { CL_CYCLES, CL_ENGINE_PROCEDURES, CL_FAMILIES } from "@/lib/workpapers/closing-contract";
 import { AUDIT_CYCLES, DOCUMENT_TYPES } from "@/lib/rapprochement/catalog";
 import { MODULE_MANIFEST } from "@/lib/workpapers/availability";
 import { clientMissionFixture } from "@/lib/workpapers/__tests__/client-mission-fixture";
+import { observeRuns, sheetLineages } from "@/lib/workpapers/closing-cycles";
+import { LEASE_JURISDICTIONS } from "@/lib/ifrs/leases/rule";
+import { LEASE_TEMPLATE } from "@/lib/workpapers/lease-adapter";
+import type { WorkpaperRun } from "@/lib/workpapers/model";
 
 describe("C01 registre et adaptateurs de lecture", () => {
   it("preserves the journal cycles (14 since C13), 18 engine procedures, 8 stores and 11 reconciliation configurations", () => {
@@ -29,7 +33,7 @@ describe("C01 registre et adaptateurs de lecture", () => {
     expect(stocks.exclusions).toContain("Coûts CUMP / PEPS déclarés, non reconstitués depuis les transactions");
     expect(stocks.exclusions.some(e => e.includes("Aucune dépréciation ni provision automatique"))).toBe(true);
     expect(text).not.toMatch(/inventaire (physique )?(complet|exhaustif)|présence physique (certifiée|établie)/i);
-    expect(capabilityReadModel({}).registryVersion).toBe("1.4.1");
+    expect(capabilityReadModel({}).registryVersion).toBe("1.5.9");
   });
   it("C09 : Capitaux propres ont une seule entrée de cycle sur deux feuilles, sans conclusion juridique ni classement par compte", async () => {
     const equity = CAPABILITY_REGISTRY.find(c => c.id === "capitaux_propres")!;
@@ -79,5 +83,51 @@ describe("C01 registre et adaptateurs de lecture", () => {
     const read = capabilityReadModel({}, { scope: f.scope, rows: [{ family: "clients", run: f.locked }], procedures: ["clients.frame"] });
     expect(read.observationStatus).toBe("read"); expect(read.observations[0]).toMatchObject({ state: "locked", runId: f.locked.id, version: 12, outcome: f.locked.result!.outcome, approval: { actorId: "actual-reviewer" } });
     expect(capabilityReadModel({}, { scope: f.scope, rows: [], procedures: ["clients.frame"] }).observations).toEqual([]);
+  });
+});
+
+describe("IFRS C01 axe « référentiel », hors cycles du journal", () => {
+  const leaseRun = (f: Awaited<ReturnType<typeof clientMissionFixture>>): WorkpaperRun => ({ id: "workpaper-ifrs16", rootId: "workpaper-ifrs16", revision: 1, version: 1, schemaVersion: "1.0.0", scope: f.scope, period: f.locked.period,
+    template: LEASE_TEMPLATE, state: "draft", preparedBy: "actual-preparer", importIds: [], evidence: [], findings: [], notes: [], events: [] });
+  it("ajoute ifrs16.leases sur son axe, sans toucher aux 14 cycles ni aux 18 procédures de cycle", () => {
+    expect(FRAMEWORK_PROCEDURES.map(p => p.id)).toEqual(["ifrs16.leases"]);
+    expect(ENGINE_PROCEDURES.some(p => (p.id as string) === "ifrs16.leases")).toBe(false);
+    expect(CAPABILITY_REGISTRY.some(c => c.procedures.some(p => (p.id as string) === "ifrs16.leases") || c.routes.includes("/ifrs/locations"))).toBe(false);
+    expect(CL_ENGINE_PROCEDURES.some(p => (p.id as string) === "ifrs16.leases")).toBe(false);
+  });
+  it("dit ce qui existe : page, scénario synthétique et chaîne locale ouverte par les relectures nommées consignées (IASB, puis UE si son texte est relu), jamais « IFRS complet »", () => {
+    const [leases] = CAPABILITY_FRAMEWORKS;
+    expect(leases).toMatchObject({ id: "ifrs16.leases", family: "clients", route: "/ifrs/locations", pageAvailable: true });
+    expect(leases.modes).toMatchObject({ historical: { implemented: false }, scenario: { implemented: true }, local_persistent: { implemented: true } });
+    expect(leases.modes.local_persistent.scope).toContain("exécution réelle ouverte pour la juridiction IASB depuis la relecture personnelle nommée de la fiche de règle");
+    // The reviewed jurisdictions follow the records of rule-review.ts; both states are pinned by lease-juridiction-ue.test.ts.
+    expect(leases.exclusions.join(" ")).toContain(LEASE_JURISDICTIONS.length > 1 ? "Règle relue pour les juridictions IASB et EU_adopted" : "Règle relue pour la seule juridiction IASB");
+    expect(leases.modes.local_persistent.scope.includes("et pour la juridiction EU_adopted (règlement (UE) 2023/1803, version d'origine)")).toBe(LEASE_JURISDICTIONS.length > 1);
+    expect(leases.modes.local_persistent.scope).toContain("page /ifrs/locations");
+    expect(leases.modes.local_persistent.scope).toContain("sans annexe exhaustive ni effet fiscal");
+    expect([leases.modes.local_persistent.scope, ...leases.exclusions].join(" ")).not.toMatch(/IFRS complet(?! ?,)|conformité IFRS/);
+    expect(leases.exclusions.join(" ")).toMatch(/X33/);
+    // C03: the limits say the partial bridge and the absence of any IFRS 18 presentation.
+    expect(leases.exclusions.join(" ")).toContain("reste un pont partiel");
+    expect(leases.exclusions.join(" ")).toContain("Aucune présentation IFRS 18");
+  });
+  it("s'active par PROBANT_IFRS16_DURABLE, refusé sur Vercel production, et la configuration ne vaut pas exécution", () => {
+    expect(PROCEDURE_ACTIVATION["ifrs16.leases"]).toBe("PROBANT_IFRS16_DURABLE");
+    expect(configuredProcedures({})["ifrs16.leases"]).toEqual({ activated: false, databaseConfigured: false });
+    expect(configuredProcedures({ PROBANT_IFRS16_DURABLE: "disposable", DATABASE_URL: "configured" })["ifrs16.leases"]).toEqual({ activated: true, databaseConfigured: true });
+    expect(configuredProcedures({ PROBANT_IFRS16_DURABLE: "disposable", VERCEL_ENV: "production" })["ifrs16.leases"].activated).toBe(false);
+    expect(configuredProcedures({ PROBANT_LOANS_DURABLE: "disposable" })["ifrs16.leases"].activated).toBe(false);
+  });
+  it("le store « clients » accepte une feuille ifrs16.leases ; une autre famille la refuse", async () => {
+    const f = await clientMissionFixture(), run = leaseRun(f);
+    expect(scopedFamilyRuns(f.scope, [{ family: "clients", run: f.locked }, { family: "clients", run }])).toHaveLength(2);
+    expect(() => scopedFamilyRuns(f.scope, [{ family: "fa", run }])).toThrow(/PROCEDURE_MISMATCH/);
+    expect(() => scopedFamilyRuns(f.scope, [{ family: "clients", run: { ...run, template: { ...run.template, id: "ifrs99.unknown" } } }])).toThrow(/PROCEDURE_MISMATCH/);
+  });
+  it("le dossier de clôture et la lecture des capacités se lisent à l'identique avec une feuille ifrs16.leases présente", async () => {
+    const f = await clientMissionFixture(), run = leaseRun(f), without = [{ family: "clients" as const, run: f.locked }], withLease = [...without, { family: "clients" as const, run }];
+    expect(sheetLineages(observeRuns(withLease))).toEqual(sheetLineages(observeRuns(without)));
+    expect(observeRuns(withLease).filter(o => o.procedure !== "ifrs16.leases")).toEqual(observeRuns(without));
+    expect(capabilityReadModel({}, { scope: f.scope, rows: withLease, procedures: ["clients.frame"] })).toEqual(capabilityReadModel({}, { scope: f.scope, rows: without, procedures: ["clients.frame"] }));
   });
 });

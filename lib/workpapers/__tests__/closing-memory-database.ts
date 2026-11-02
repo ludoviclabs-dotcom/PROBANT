@@ -1,3 +1,4 @@
+import { frameworkProcedure } from "@/lib/capabilities/procedures";
 import type { WorkpaperRun, WorkpaperScope } from "../model";
 import type { CycleFamily } from "../closing-contract";
 import type { ClosingEvent } from "../closing-journal";
@@ -44,11 +45,14 @@ class MemoryClosingTx implements ClosingTx {
   }
   async receipt(scope: WorkpaperScope, actorId: string, k: string) { return this.s.receipts[key(scope)]?.[actorId + "|" + k] ?? null; }
   async putReceipt(scope: WorkpaperScope, actorId: string, k: string, requestHash: string, response: unknown) { (this.s.receipts[key(scope)] ??= {})[actorId + "|" + k] = { requestHash, response: structuredClone(response) }; }
-  async cycleRuns(scope: WorkpaperScope) {
+  private async allRuns(scope: WorkpaperScope) {
     const out: { family: CycleFamily; run: WorkpaperRun }[] = [];
     for (const c of this.cycles) out.push(...(await c.runs(scope)).map(run => ({ family: c.family, run })));
     return out;
   }
+  // Same split as the PostgreSQL adapter: framework sheets (IFRS) are read apart from the cycle sheets.
+  async cycleRuns(scope: WorkpaperScope) { return (await this.allRuns(scope)).filter(r => !frameworkProcedure(r.run.template.id)); }
+  async frameworkRuns(scope: WorkpaperScope) { return (await this.allRuns(scope)).filter(r => frameworkProcedure(r.run.template.id)); }
   async cycleSourceHeads(scope: WorkpaperScope) {
     const out: Partial<Record<CycleFamily, { document_type: string; import_id: string }[]>> = {};
     for (const c of this.cycles) if (c.heads) out[c.family] = [...(out[c.family] ?? []), ...(await c.heads(scope))];
