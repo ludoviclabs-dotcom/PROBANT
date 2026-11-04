@@ -43,7 +43,7 @@ for (const width of [1440, 1024, 390]) {
     await page.goto(`/dashboard/depot?guide=1&etape=0&${DEMO}`);
 
     for (const [i, [id, route, phase]] of STEPS.entries()) {
-      await expect(page).toHaveURL(new RegExp(`${route.replace(/\//g, "\\/")}\\?guide=1&etape=${i}&${DEMO}`));
+      await expect(page).toHaveURL((url) => url.pathname === route && url.search === `?guide=1&etape=${i}&${DEMO}`);
       await settled(page, id, phase);
       const layout = await page.evaluate(() => {
         const vw = window.innerWidth;

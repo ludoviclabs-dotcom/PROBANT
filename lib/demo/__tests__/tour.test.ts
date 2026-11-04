@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { DEMO_DOSSIER } from "@/lib/demo/dataset";
@@ -27,12 +27,13 @@ const norm = (s: string) => s.replace(/[  ]/g, " ");
 /** Texte de tous les composants : chaque ancre citée par le script doit y exister. */
 function sources(dir: string): string[] {
   const out: string[] = [];
-  for (const name of readdirSync(dir)) {
-    const p = path.join(dir, name);
-    if (statSync(p).isDirectory()) {
-      if (name === "__tests__" || name === "node_modules") continue;
+  // Dirent : le type vient de la lecture du dossier, sans second appel sur le fichier entre la vérification et la lecture.
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const p = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "__tests__" || entry.name === "node_modules") continue;
       out.push(...sources(p));
-    } else if (p.endsWith(".tsx")) out.push(readFileSync(p, "utf8"));
+    } else if (entry.isFile() && entry.name.endsWith(".tsx")) out.push(readFileSync(p, "utf8"));
   }
   return out;
 }
