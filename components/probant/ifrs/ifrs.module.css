@@ -122,6 +122,9 @@
 .frame { border: var(--pb-rule-w) solid var(--pb-rule); padding: var(--pb-space-3); }
 .frameEmpty { min-height: 120px; display: grid; place-items: center; color: var(--pb-ink-3); text-align: center; border: var(--pb-rule-w) dashed var(--pb-rule-strong); padding: var(--pb-space-3); }
 .form { display: grid; gap: 10px; }
+/* Policy cell awaited by a contract: a label and an accent rule, never colour alone. */
+.table td[data-awaited] { box-shadow: inset 3px 0 0 var(--pb-verif); }
+.awaited { margin-top: 4px; font-size: 12.5px; color: var(--pb-ink); font-weight: 600; }
 @media (min-width: 760px) { .form { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); } }
 
 /* L16-04 — rail : nom court de l'étape, travail à faire dessous. */

@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import type { LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { LeaseQualification, QualifiedContract } from "@/lib/ifrs/leases/qualification";
-import { CELL_GLYPH, CELL_LABELS, cellState, isUnframed, MATRIX_COLUMNS, moneyFr, reasonColumn, STATUS_GLYPH, STATUS_LABELS, plural, type MatrixColumn } from "./format";
+import { CELL_GLYPH, CELL_LABELS, cellState, infoNotes, isUnframed, MATRIX_COLUMNS, moneyFr, reasonColumn, STATUS_GLYPH, STATUS_LABELS, plural, type MatrixColumn } from "./format";
 import { Pager } from "./Primitives";
 import { FILTERS, type LeaseFilter } from "./selection-url";
 import s from "./ifrs.module.css";
@@ -32,8 +32,8 @@ export function CompletenessMatrix({ qualification, framing, filter, selected, o
   const page = paging.filter === filter ? Math.min(paging.page, pages - 1) : 0, visible = rows.slice(page * MATRIX_PAGE, (page + 1) * MATRIX_PAGE);
   const framingOf = (id: string) => framing?.contracts.find(f => f.contractId === id) ?? null;
   const codes = useMemo(() => {
-    const counts = new Map<string, { count: number; message: string }>();
-    for (const c of qualification.contracts) for (const r of c.reasons) if (r.effect !== "info" && r.effect !== "exemption" && r.effect !== "non_location") counts.set(r.code, { count: (counts.get(r.code)?.count ?? 0) + 1, message: counts.get(r.code)?.message ?? r.message });
+    const counts = new Map<string, { count: number; message: string; info: boolean }>();
+    for (const c of qualification.contracts) for (const r of c.reasons) if (r.effect !== "exemption" && r.effect !== "non_location") counts.set(r.code, { count: (counts.get(r.code)?.count ?? 0) + 1, message: counts.get(r.code)?.message ?? r.message, info: r.effect === "info" });
     return [...counts.entries()].sort((a, b) => b[1].count - a[1].count || (a[0] < b[0] ? -1 : 1));
   }, [qualification]);
   const { registry, ledger } = qualification.coverage;
@@ -53,7 +53,7 @@ export function CompletenessMatrix({ qualification, framing, filter, selected, o
           <tbody>{visible.map(c => <tr key={c.contractId} aria-selected={selected === c.contractId}>
             <th scope="row" className={s.rowHead}><button type="button" onClick={e => onOpen(c.contractId, null, e.currentTarget)}>{c.contractId}</button>
               <div className={s.muted}>{c.assetCategory ?? "catégorie non renseignée"}</div></th>
-            <td><span className={s.status} data-status={c.status}><span aria-hidden="true">{STATUS_GLYPH[c.status]}</span>{STATUS_LABELS[c.status]}</span></td>
+            <td><span className={s.status} data-status={c.status}><span aria-hidden="true">{STATUS_GLYPH[c.status]}</span>{STATUS_LABELS[c.status]}</span>{infoNotes(c).map(n => <div key={n} className={s.muted}>{n}</div>)}</td>
             {MATRIX_COLUMNS.map(col => { const state = cellState(c, col.id, framingOf(c.contractId));
               return <td key={col.id}><button type="button" className={s.cell} data-cell={state} aria-label={c.contractId + " · " + col.label + " : " + CELL_LABELS[state]} onClick={e => onOpen(c.contractId, col.id, e.currentTarget)}>
                 <span aria-hidden="true">{CELL_GLYPH[state]}</span>{CELL_LABELS[state]}</button></td>; })}
@@ -63,12 +63,12 @@ export function CompletenessMatrix({ qualification, framing, filter, selected, o
     <Pager page={page} pages={pages} total={rows.length} size={MATRIX_PAGE} label="Pages de la matrice" onPage={p => setPaging({ filter, page: p })}/>
     <h3>Motifs relevés</h3>
     {codes.length === 0 ? <p className={s.muted}>Aucun motif de qualification sur ce registre.</p> :
-      <ul className={s.reasons}>{codes.map(([code, v]) => <li key={code}><button type="button" aria-pressed={filter === "code:" + code} onClick={() => onFilter(("code:" + code) as LeaseFilter)}>{code} · {v.count}</button><span>{v.message}</span></li>)}</ul>}
+      <ul className={s.reasons}>{codes.map(([code, v]) => <li key={code}><button type="button" aria-pressed={filter === "code:" + code} onClick={() => onFilter(("code:" + code) as LeaseFilter)}>{code} · {v.count}</button><span>{v.info ? "Information, ne bloque pas : " : ""}{v.message}</span></li>)}</ul>}
     <h3>Couverture</h3>
     <dl className={s.kv}>
       <dt>Registre fourni</dt><dd>{plural(registry.contracts, "contrat")} : {Object.entries(registry.byStatus).filter(([, n]) => n).map(([k, n]) => n + " · " + STATUS_LABELS[k as keyof typeof STATUS_LABELS]).join(" · ") || "aucun"}</dd>
       <dt>Population comptable fournie</dt><dd>{plural(ledger.lines, "ligne")} · {ledger.matched} rattachée(s) à un contrat · {ledger.unmatched} non rattachée(s){ledger.unknownContracts.length ? " (contrats inconnus : " + ledger.unknownContracts.join(", ") + ")" : ""}</dd>
-      {framing && <><dt>Cadrage PCG</dt><dd>{framing.byStatus.framed} contrat(s) cadré(s) · {framing.byStatus.difference} en écart · {framing.byStatus.not_framed} non rapproché(s) ; {plural(framing.lines.framed, "ligne cadrée", "lignes cadrées")} ({moneyFr(framing.lines.absFramed)}), {framing.lines.notFramed} autre(s), {framing.lines.unattached} sans contrat ({moneyFr(framing.lines.absUnattached)}, en valeur absolue)</dd></>}
+      {framing && <><dt>Cadrage PCG</dt><dd>{framing.byStatus.framed} contrat(s) cadré(s) · {framing.byStatus.difference} en écart · {framing.byStatus.not_framed} non rapproché(s) ; {plural(framing.lines.framed, "ligne cadrée", "lignes cadrées")} ({moneyFr(framing.lines.absFramed)}), {plural(framing.lines.notFramed, "ligne")} de contrats non calculés ou non cadrés ({moneyFr(framing.lines.absNotFramed)}), {framing.lines.unattached} sans contrat ({moneyFr(framing.lines.absUnattached)}, en valeur absolue)</dd></>}
       <dt>Lignes orphelines</dt><dd>{qualification.orphans.length ? plural(qualification.orphans.length, "ligne") + " sans contrat du registre, conservée(s), jamais appariée(s)" : "aucune"}</dd>
     </dl>
     <p className={s.muted}>Ces dénominateurs portent sur les sources fournies : ils ne prouvent pas l'exhaustivité des contrats de l'entité.</p>

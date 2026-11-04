@@ -12,7 +12,7 @@ import { executionProfileLabel } from "@/lib/runtime/profile";
 import { AdjustmentPanel } from "./AdjustmentPanel";
 import { CompletenessMatrix } from "./CompletenessMatrix";
 import { ContractDetail } from "./ContractDetail";
-import { blockedControlLabel, dateFr, leaseFailureMessage, SHEET_STATE_LABELS, type LeaseView } from "./format";
+import { awaitedPolicies, blockedControlLabel, dateFr, leaseFailureMessage, periodInputIssues, SHEET_STATE_LABELS, type LeaseView } from "./format";
 import { Inspector, useDocked } from "./Inspector";
 import { LeaseChartsPanel } from "./LeaseCharts";
 import { PolicyEditor } from "./PolicyEditor";
@@ -83,6 +83,8 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
     return () => { active = false; loadedOnce.current = false; };
   }, [demo, initialDossierId, initialPeriodId, session]);
   async function load() {
+    const issues = initialPeriodId ? [] : periodInputIssues(period);
+    if (issues.length) { setError(issues.join(" ")); setView(null); return; }
     setLoading(true); setError(""); setConflict(null); setStatus("idle");
     try { await session(); await refresh(); } catch (e) { setError(e instanceof Error ? e.message : "Lecture impossible"); setView(null); } finally { setLoading(false); }
   }
@@ -131,12 +133,13 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
   }
   const command = (name: string, fields: Record<string, unknown> = {}) => run ? mutate({ command: name, id: run.id, expectedVersion: run.version, ...fields }) : Promise.resolve();
   function onAction(id: ActionId) {
-    if (id === "create") void mutate({ command: "create_leases", period, instanceKey: "ifrs16-" + pid });
+    if (id === "create") { const issues = periodInputIssues(period); if (issues.length) { setError(issues.join(" ")); return; } void mutate({ command: "create_leases", period, instanceKey: "ifrs16-" + pid }); }
     else if (id === "freeze") void command("freeze_leases", { importIds: view!.sourceHeads.filter(h => h.document_type.startsWith("lease_")).map(h => h.import_id), criteria: CRITERIA });
     else void command(id);
   }
   const openContract = (contractId: string, column: Parameters<typeof open>[1], el: HTMLElement) => { trigger.current = el; open(contractId, column); };
   const selected = qualification?.contracts.find(c => c.contractId === selection.contractId) ?? null;
+  const awaited = useMemo(() => awaitedPolicies(qualification?.contracts ?? []), [qualification]);
   const categories = useMemo(() => [...new Set((qualification?.contracts ?? []).flatMap(c => c.assetCategory ? [c.assetCategory] : []))].sort(), [qualification]);
   const sheetUrl = "/ifrs/locations?" + new URLSearchParams({ dossierId, periodId: pid });
 
@@ -144,7 +147,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
     { label: "Dossier", value: demo ? "SYN-LEASES (synthétique)" : dossierId || "—" },
     { label: "Exercice", value: period.startDate ? dateFr(period.startDate) + " → " + dateFr(period.closingDate) : "—" },
     { label: "Revue au", value: period.asOfDate ? dateFr(period.asOfDate) : "—" },
-    { label: "Référentiel", value: "IFRS 16 · IASB 2026" },
+    { label: "Référentiel", value: run?.leaseWork?.framework.jurisdiction === "EU_adopted" ? "IFRS 16 · UE (règlement 2023/1803)" : run?.leaseWork ? "IFRS 16 · IASB 2026" : "IFRS 16 · IASB 2026 (par défaut, à enregistrer)" },
     { label: "Mode", value: demo ? "scénario synthétique" : executionProfileLabel(view?.executionProfile ?? undefined) },
     { label: "Feuille", value: run ? `r${run.revision} · v${run.version} · ${SHEET_STATE_LABELS[run.state] ?? run.state}` : "—" },
     { label: "Règle", value: view ? "ifrs16.leases " + view.capability.rule.version + " · " + (view.capability.rule.basisStatus === "validated" ? "validée" : "à revoir") : "—" },
@@ -164,7 +167,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
     </header>
     {!demo && <form className={s.scope} onSubmit={e => { e.preventDefault(); void load(); }}>
       <label>Dossier<DossierScopedInput value={dossierId} required disabled={saving || loading} onChange={e => { setDossierId(e.target.value); setView(null); }} placeholder="Identifiant du dossier"/></label>
-      {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d'exercice", "Clôture", "Date de revue"][i]}<input type="date" value={period[k]} required={!initialPeriodId} disabled={saving || loading || !!initialPeriodId} onChange={e => { setPeriod(p => ({ ...p, [k]: e.target.value })); setView(null); }}/></label>)}
+      {(["startDate", "closingDate", "asOfDate"] as const).map((k, i) => <label key={k}>{["Début d'exercice", "Clôture", "Date de revue"][i]}<input type="date" min="1900-01-01" max="2999-12-31" value={period[k]} required={!initialPeriodId} disabled={saving || loading || !!initialPeriodId} onChange={e => { setPeriod(p => ({ ...p, [k]: e.target.value })); setView(null); }}/></label>)}
       <button className={s.primary} disabled={saving || loading}>{loading ? "Lecture…" : "Ouvrir la feuille"}</button>
     </form>}
     <ContextBand items={band} simulation={demo ? "Simulation non revue" : null}/>
@@ -188,7 +191,7 @@ export function LeaseWorkspace({ demo = false, initialDossierId = "", initialPer
           {portfolio && <SummaryLine summary={portfolio.summary}/>}
           {qualification ? <CompletenessMatrix qualification={qualification} framing={framing} filter={selection.filter} selected={selection.contractId} onFilter={filter} onOpen={openContract}/>
             : run ? <StateNotice tone="info" title="Qualification non disponible">{view.qualificationIssues[run.id] ? "Sources illisibles : " + view.qualificationIssues[run.id] : "Enregistrez les politiques pour qualifier les contrats des sources courantes."}</StateNotice> : null}
-          {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} work={run.leaseWork} jurisdictions={view.capability.jurisdictions} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
+          {run && !demo && <PolicyEditor key={run.id + ":" + run.version} categories={categories} awaited={awaited} work={run.leaseWork} jurisdictions={view.capability.jurisdictions} editable={workspace.actions.configure.allowed} busy={saving} saveState={status}
             onSave={(draft: LeaseWorkDraft) => void command("configure_leases", { work: draft })}/>}
           <section className={s.section} aria-labelledby="l16-portfolio-title">
             <div className={s.sectionHead}><h2 id="l16-portfolio-title">Portefeuille et calcul</h2><span className={s.muted}>Lecture du résultat de la version r{run?.revision ?? "—"} · v{run?.version ?? "—"} ; filtrer ou trier ne change ni la population figée ni l'export.</span></div>

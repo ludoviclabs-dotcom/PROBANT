@@ -78,6 +78,8 @@ test("UE-P1 · référentiel UE choisi à l'écran → calcul réel aux montants
   S.runId = ((await api(page, leasesUrl())).body as Read).runs[0].id;
   expect((await sheet()).leaseWork!.framework).toEqual(EU_FRAMEWORK);
   await expect(page.getByLabel("Référentiel de la feuille")).toHaveValue("EU_adopted");
+  // The context band names the sheet's own framework, not a fixed IASB label.
+  await expect(page.getByText("IFRS 16 · UE (règlement 2023/1803)")).toBeVisible();
 
   await page.getByRole("button", { name: "Figer la population" }).click();
   await expect.poll(async () => (await sheet()).state).toBe("ready");

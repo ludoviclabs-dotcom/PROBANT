@@ -14,7 +14,7 @@ const draftOf = (work: LeaseWork | undefined): Record<string, Election> => Objec
  */
 type Jurisdiction = LeaseView["capability"]["jurisdictions"][number];
 const IASB_FALLBACK: Jurisdiction = { jurisdiction: "IASB", label: "IFRS publiées par l'IASB (édition 2026)", edition: "IFRS 16, IASB 2026", editionFingerprint: null };
-export function PolicyEditor({ categories, work, jurisdictions, editable, busy, saveState, onSave }: { categories: string[]; work: LeaseWork | undefined; jurisdictions: readonly Jurisdiction[];
+export function PolicyEditor({ categories, awaited = {}, work, jurisdictions, editable, busy, saveState, onSave }: { categories: string[]; awaited?: Record<string, string[]>; work: LeaseWork | undefined; jurisdictions: readonly Jurisdiction[];
   editable: boolean; busy: boolean; saveState: string; onSave(draft: LeaseWorkDraft): void }) {
   const offered = jurisdictions.length ? jurisdictions : [IASB_FALLBACK];
   const [jurisdiction, setJurisdiction] = useState<Jurisdiction["jurisdiction"]>(work?.framework.jurisdiction ?? "IASB");
@@ -34,11 +34,14 @@ export function PolicyEditor({ categories, work, jurisdictions, editable, busy, 
       <span role="status" aria-live="polite" className={s.saveState} data-state={dirty && saveState !== "saving" ? "dirty" : saveState}>{dirty && saveState !== "saving" ? "Modifications non enregistrées" : saveState === "saved" ? "Enregistré — version serveur reçue" : saveState === "conflict" ? "Conflit de version" : saveState === "saving" ? "Enregistrement…" : work ? "Travail enregistré" : "Aucun travail enregistré"}</span></div>
     {categories.length === 0 ? <p className={s.muted}>{work ? "Aucune catégorie : approuvez d'abord le registre des contrats." : "Enregistrez d'abord le cadre de la feuille (première application) : les contrats sont alors qualifiés et leurs catégories apparaissent ici."}</p> :
       <div className={s.scroll} role="region" aria-label="Politiques par catégorie — défilement au clavier" tabIndex={0}><table className={s.table} style={{ minWidth: 520 }}>
-        <caption>« Non déclarée » n'est pas un refus : un contrat de 12 mois au plus reste à qualifier tant que la politique de sa catégorie manque.</caption>
+        <caption>« Non déclarée » n'est pas un refus : un contrat de 12 mois au plus reste à qualifier tant que la politique de sa catégorie manque. {Object.keys(awaited).length
+          ? "Réponse attendue : " + Object.entries(awaited).map(([key, ids]) => KINDS.find(k => k.kind === key.split("|")[0])!.label + " — " + key.split("|")[1] + " (" + ids.join(", ") + ")").join(" ; ") + "."
+          : "Aucune réponse n'est attendue pour qualifier les contrats ; les autres cases restent facultatives."}</caption>
         <thead><tr><th scope="col">Catégorie</th>{KINDS.map(k => <th key={k.kind} scope="col">{k.label}</th>)}</tr></thead>
         <tbody>{categories.map(category => <tr key={category}><th scope="row">{category}</th>{KINDS.map(k => { const key = k.kind + "|" + category;
-          return <td key={k.kind}><select aria-label={k.label + " — " + category} value={values[key] ?? ""} disabled={!editable || busy} onChange={e => setValues(v => ({ ...v, [key]: e.target.value as Election }))}>
-            <option value="">Non déclarée</option><option value="elected">Élue</option><option value="not_elected">Non élue</option></select></td>; })}</tr>)}</tbody>
+          const waiting = awaited[key];
+          return <td key={k.kind} data-awaited={waiting ? "true" : undefined}><select aria-label={k.label + " — " + category + (waiting ? " (réponse attendue)" : "")} value={values[key] ?? ""} disabled={!editable || busy} onChange={e => setValues(v => ({ ...v, [key]: e.target.value as Election }))}>
+            <option value="">Non déclarée</option><option value="elected">Élue</option><option value="not_elected">Non élue</option></select>{waiting && <div className={s.awaited}>Attendue : {waiting.join(", ")}</div>}</td>; })}</tr>)}</tbody>
       </table></div>}
     <div className={s.form}>{offered.length > 1
       ? <label>Référentiel de la feuille<select value={framework.jurisdiction} disabled={!editable || busy} onChange={e => setJurisdiction(e.target.value as Jurisdiction["jurisdiction"])}>
