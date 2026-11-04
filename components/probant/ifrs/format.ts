@@ -143,10 +143,10 @@ const INFO_NOTES: Record<string, string> = {
   X34: "Prise d'effet après la clôture : rien de reconnu à cette date (X34)",
 };
 export const infoNotes = (c: Pick<QualifiedContract, "reasons">) => [...new Set(c.reasons.filter(r => r.effect === "info" && INFO_NOTES[r.code]).map(r => INFO_NOTES[r.code]))];
-/** Politiques attendues : la catégorie d'un contrat de 12 mois au plus sans politique court terme (Q08), avec les contrats qui l'attendent. */
-export function awaitedPolicies(contracts: Pick<QualifiedContract, "contractId" | "assetCategory" | "reasons">[]): Record<string, string[]> {
+/** Politiques attendues, telles que la qualification les nomme (`awaitsPolicy` : court terme Q08, élection § 15 X07), avec les contrats qui les attendent. */
+export function awaitedPolicies(contracts: Pick<QualifiedContract, "contractId" | "reasons">[]): Record<string, string[]> {
   const out: Record<string, string[]> = {};
-  for (const c of contracts) if (c.assetCategory && c.reasons.some(r => r.code === "Q08")) (out["short_term_exemption|" + c.assetCategory] ??= []).push(c.contractId);
+  for (const c of contracts) for (const key of new Set(c.reasons.flatMap(r => r.awaitsPolicy ? [r.awaitsPolicy.kind + "|" + r.awaitsPolicy.assetCategory] : []))) (out[key] ??= []).push(c.contractId);
   return out;
 }
 export function leaseFailureMessage(code: string | undefined, status: number): string {

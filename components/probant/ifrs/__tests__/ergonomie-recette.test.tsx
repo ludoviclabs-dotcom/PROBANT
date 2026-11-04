@@ -56,13 +56,21 @@ describe("Qualification dite avant le calcul", () => {
 });
 
 describe("Politiques attendues", () => {
-  it("la catégorie d'un contrat de 12 mois au plus sans politique (Q08) est signalée avec ses contrats ; les autres cases restent facultatives", () => {
+  it("les politiques nommées par la qualification (court terme Q08, élection § 15 X07) sont signalées avec leurs contrats ; les autres cases restent facultatives", () => {
     const contracts = [
-      { contractId: "NAC-01", assetCategory: "Matériel de levage", reasons: [{ code: "Q08", effect: "a_qualifier" as const, message: "politique court terme non déclarée" }] },
-      { contractId: "ENT-VEN", assetCategory: "Locaux", reasons: [] },
+      { contractId: "NAC-01", reasons: [{ code: "Q08", effect: "a_qualifier" as const, message: "politique court terme non déclarée", awaitsPolicy: { kind: "short_term_exemption" as const, assetCategory: "Matériel de levage" } }] },
+      { contractId: "VUL-03", reasons: [{ code: "X07", effect: "a_qualifier" as const, message: "Élection § 15 déclarée sans politique", field: "serviceComponents", awaitsPolicy: { kind: "non_lease_components_election" as const, assetCategory: "Véhicules utilitaires" } }] },
+      // Services present without any election: the contract data must change; no category policy would lift it.
+      { contractId: "VUL-02", reasons: [{ code: "X07", effect: "a_qualifier" as const, message: "Services non séparés sans élection § 15 documentée", field: "serviceComponents" }] },
+      { contractId: "ENT-VEN", reasons: [] },
     ];
     const awaited = awaitedPolicies(contracts);
-    expect(awaited).toEqual({ "short_term_exemption|Matériel de levage": ["NAC-01"] });
+    expect(awaited).toEqual({ "short_term_exemption|Matériel de levage": ["NAC-01"], "non_lease_components_election|Véhicules utilitaires": ["VUL-03"] });
+    cleanup();
+    render(<PolicyEditor categories={["Véhicules utilitaires"]} awaited={awaited} work={undefined} jurisdictions={[]} editable busy={false} saveState="idle" onSave={() => {}}/>);
+    expect(screen.getByLabelText("Composantes non séparées (§ 15) — Véhicules utilitaires (réponse attendue)")).toBeTruthy();
+    expect(screen.getByText("Attendue : VUL-03")).toBeTruthy();
+    cleanup();
     render(<PolicyEditor categories={["Locaux", "Matériel de levage"]} awaited={awaited} work={undefined} jurisdictions={[]} editable busy={false} saveState="idle" onSave={() => {}}/>);
     expect(screen.getByText(/Réponse attendue : Exemption court terme \(§ 8\) — Matériel de levage \(NAC-01\)/)).toBeTruthy();
     expect(screen.getByLabelText("Exemption court terme (§ 8) — Matériel de levage (réponse attendue)")).toBeTruthy();
