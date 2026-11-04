@@ -1,0 +1,1114 @@
+/*
+  Visite guidée — mise en scène dans la charte « Le grand livre rendu vivant », ambiance « instruments ».
+  Aucune ombre portée : la profondeur vient des plans (bg < plane-2 < plane-3) et des filets de 1 px.
+  Rayons 0 / 2 / 4 px. Toutes les animations sont finies ; sous `prefers-reduced-motion`, la règle de
+  app/tokens.css les neutralise (la racine porte `data-ambiance`), et le moteur saute les déplacements.
+
+  Pile (dans le portail, racine à z 9000) :
+    1 capture · 2 voile/cadre · 4 journal, particules · 5 fiche · 6 scènes plein écran · 7 curseur · 8 carte, frise
+*/
+
+.root {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  pointer-events: none;
+  color: var(--pb-ink);
+  font-family: var(--pb-font-sans);
+  --tour-veil: rgba(17, 18, 20, 0.8);
+  --tour-frieze-h: 64px;
+}
+
+@media (max-width: 899px) {
+  .root {
+    --tour-frieze-h: 52px;
+  }
+}
+
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* ── Capture : bloque l'application pendant la visite (un clic met en pause) ── */
+
+.capture {
+  position: fixed;
+  z-index: 1;
+  pointer-events: auto;
+  cursor: default;
+  background: transparent;
+  transition: background var(--pb-dur-base) var(--pb-ease);
+}
+
+.capture[data-veil] {
+  background: var(--tour-veil);
+}
+
+/* ── Cadre (spotlight) : trou dans le voile, filet de vérification et repères d'angle ── */
+
+.hole {
+  position: fixed;
+  z-index: 2;
+  border-radius: var(--pb-radius-1);
+  box-shadow: 0 0 0 200vmax var(--tour-veil);
+  pointer-events: none;
+  transition:
+    left var(--pb-dur-base) var(--pb-ease),
+    top var(--pb-dur-base) var(--pb-ease),
+    width var(--pb-dur-base) var(--pb-ease),
+    height var(--pb-dur-base) var(--pb-ease);
+}
+
+.frame {
+  position: fixed;
+  z-index: 2;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--pb-verif) 55%, transparent);
+  border-radius: var(--pb-radius-1);
+  transition:
+    left var(--pb-dur-base) var(--pb-ease),
+    top var(--pb-dur-base) var(--pb-ease),
+    width var(--pb-dur-base) var(--pb-ease),
+    height var(--pb-dur-base) var(--pb-ease);
+}
+
+.frame[data-flag="bloquant"],
+.frame[data-flag="majeur"] {
+  border-color: color-mix(in srgb, var(--pb-signal) 70%, transparent);
+}
+
+.corner {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-color: var(--pb-ink);
+  border-style: solid;
+  border-width: 0;
+  animation: tourCornerIn var(--pb-dur-rule) var(--pb-ease) both;
+}
+
+.corner[data-c="tl"] { left: -5px; top: -5px; border-left-width: 2px; border-top-width: 2px; --dx: -8px; --dy: -8px; }
+.corner[data-c="tr"] { right: -5px; top: -5px; border-right-width: 2px; border-top-width: 2px; --dx: 8px; --dy: -8px; }
+.corner[data-c="bl"] { left: -5px; bottom: -5px; border-left-width: 2px; border-bottom-width: 2px; --dx: -8px; --dy: 8px; }
+.corner[data-c="br"] { right: -5px; bottom: -5px; border-right-width: 2px; border-bottom-width: 2px; --dx: 8px; --dy: 8px; }
+
+@keyframes tourCornerIn {
+  from { opacity: 0; transform: translate(var(--dx), var(--dy)); }
+  to   { opacity: 1; transform: translate(0, 0); }
+}
+
+/* Trait de lecture : un filet balaie le cadre une fois, à l'ouverture. */
+.sweep {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 1px;
+  background: var(--pb-verif);
+  opacity: 0;
+  animation: tourSweep 900ms var(--pb-ease-flow) 120ms both;
+}
+
+@keyframes tourSweep {
+  0%   { top: 0; opacity: 0; }
+  15%  { opacity: 0.9; }
+  100% { top: 100%; opacity: 0; }
+}
+
+/* Pastille du cadre : repère de chapitre et libellé de la cible. */
+.tag {
+  position: fixed;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100vw - 32px);
+  padding: 3px 8px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-2);
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--pb-ink-2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+  animation: tourFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.tagCode {
+  color: var(--pb-verif);
+}
+
+.tagFlag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--pb-ink);
+}
+
+@keyframes tourFade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes tourRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Carte de narration ── */
+
+.card {
+  position: fixed;
+  z-index: 8;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100vh - var(--tour-frieze-h) - 40px);
+  overflow: auto;
+  padding: 18px 20px 16px;
+  border: 1px solid var(--pb-rule-strong);
+  border-top: 2px solid var(--pb-verif);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-2);
+  animation: tourRise var(--pb-dur-base) var(--pb-ease) both;
+  outline: none;
+}
+
+.card:focus-visible {
+  outline: 2px solid var(--pb-verif);
+  outline-offset: 2px;
+}
+
+.cardHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.kicker {
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.kicker b {
+  font-weight: 500;
+  color: var(--pb-verif);
+}
+
+.quit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 4px;
+  border: 0;
+  border-radius: var(--pb-radius-1);
+  background: transparent;
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--pb-ink-3);
+  cursor: pointer;
+}
+
+.quit:hover {
+  color: var(--pb-ink);
+}
+
+.kbd {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 4px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  font-family: var(--pb-font-mono);
+  font-size: 10px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--pb-ink-3);
+}
+
+.title {
+  margin: 0 0 8px;
+  font-family: var(--pb-font-serif);
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1.18;
+  letter-spacing: -0.005em;
+  color: var(--pb-ink);
+  text-wrap: balance;
+}
+
+.body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--pb-ink-2);
+}
+
+.enClair {
+  margin: 12px 0 0;
+  padding-top: 10px;
+  border-top: 1px solid var(--pb-rule);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--pb-ink-3);
+}
+
+.enClair span {
+  margin-right: 8px;
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-2);
+}
+
+/* Moment « À vous » : invitation, compte à rebours, confirmation. */
+.ask {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin: 14px 0 0;
+  padding: 9px 10px;
+  border: 1px dashed color-mix(in srgb, var(--pb-verif) 60%, transparent);
+  border-radius: var(--pb-radius-1);
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--pb-ink);
+}
+
+.ask[data-state="done"] {
+  border-style: solid;
+  border-color: var(--pb-rule-strong);
+  color: var(--pb-ink-2);
+}
+
+.askKey {
+  flex-shrink: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-verif);
+}
+
+.askTimer {
+  margin-left: auto;
+  flex-shrink: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  color: var(--pb-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.progress {
+  position: relative;
+  height: 1px;
+  margin-top: 16px;
+  background: var(--pb-rule-strong);
+}
+
+.progressFill {
+  position: absolute;
+  left: 0;
+  top: -0.5px;
+  height: 2px;
+  background: var(--pb-verif);
+  transform-origin: left center;
+}
+
+/* ── Frise « fil de preuve » : transport, chapitres, maillons ── */
+
+.frieze {
+  position: fixed;
+  z-index: 8;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--tour-frieze-h);
+  display: flex;
+  align-items: stretch;
+  gap: 16px;
+  padding: 0 16px;
+  border-top: 1px solid var(--pb-rule-strong);
+  background: var(--pb-bg);
+  pointer-events: auto;
+  animation: tourFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.transport {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.ctrl {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-2);
+  color: var(--pb-ink);
+  cursor: pointer;
+}
+
+.ctrl:hover:not(:disabled) {
+  border-color: var(--pb-ink-3);
+}
+
+.ctrl:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ctrl[data-primary] {
+  width: 36px;
+  height: 36px;
+  border-color: var(--pb-verif);
+  color: var(--pb-verif);
+}
+
+.ctrl:focus-visible,
+.chapterBtn:focus-visible,
+.quit:focus-visible,
+.cta:focus-visible,
+.ctaGhost:focus-visible {
+  outline: 2px solid var(--pb-verif);
+  outline-offset: 2px;
+}
+
+.clock {
+  align-self: center;
+  flex-shrink: 0;
+  min-width: 84px;
+  font-family: var(--pb-font-mono);
+  font-size: 11.5px;
+  color: var(--pb-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.clock b {
+  font-weight: 400;
+  color: var(--pb-ink);
+}
+
+.chapters {
+  position: relative;
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chapterItem {
+  min-width: 0;
+  display: flex;
+}
+
+.chapterBtn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  width: 100%;
+  min-width: 0;
+  padding: 8px 6px 10px 0;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  color: var(--pb-ink-3);
+  cursor: pointer;
+}
+
+.chapterBtn:hover .chapterName,
+.chapterBtn[aria-current="step"] .chapterName {
+  color: var(--pb-ink);
+}
+
+.chapterName {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  font-size: 12.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color var(--pb-dur-fast) var(--pb-ease);
+}
+
+.chapterNum {
+  font-family: var(--pb-font-serif);
+  font-size: 13px;
+  letter-spacing: 0.04em;
+  color: var(--pb-ink-3);
+}
+
+.chapterToken {
+  min-width: 0;
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  line-height: 1.2;
+  color: var(--pb-ink-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.chapterToken[data-lit] {
+  color: var(--pb-verif);
+  animation: tourFade var(--pb-dur-rule) var(--pb-ease) both;
+}
+
+/* Piste du chapitre : filet continu, rempli au fil de la lecture, repères d'étape. */
+.track {
+  position: absolute;
+  left: 0;
+  right: 6px;
+  bottom: 0;
+  height: 1px;
+  background: var(--pb-rule-strong);
+}
+
+.trackFill {
+  position: absolute;
+  left: 0;
+  top: -0.5px;
+  height: 2px;
+  background: var(--pb-verif);
+}
+
+.trackTick {
+  position: absolute;
+  top: -3px;
+  width: 1px;
+  height: 7px;
+  background: var(--pb-rule-strong);
+}
+
+.trackTick[data-done] {
+  background: var(--pb-verif);
+}
+
+.chapterLabel {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 899px) {
+  .clock,
+  .chapterToken {
+    display: none;
+  }
+  .chapters {
+    gap: 2px;
+  }
+  .chapterName {
+    font-size: 11.5px;
+  }
+  /* Sous 900 px : les numéros seuls ; le titre du chapitre est lu dans la carte et l'intertitre. */
+  .chapterLabel {
+    display: none;
+  }
+}
+
+@media (max-width: 639px) {
+  .frieze {
+    gap: 10px;
+    padding: 0 12px;
+  }
+  .ctrl {
+    width: 36px;
+    height: 36px;
+  }
+}
+
+/* ── Fiche « artefact connecté » ── */
+
+.callout {
+  position: fixed;
+  z-index: 5;
+  width: 240px;
+  padding: 10px 12px 11px;
+  border: 1px solid var(--pb-rule-strong);
+  border-left: 2px solid var(--pb-verif);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-3);
+  pointer-events: none;
+  animation: tourRise var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.calloutKey {
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.calloutValue {
+  margin-top: 4px;
+  font-family: var(--pb-font-mono);
+  font-size: 15px;
+  line-height: 1.35;
+  color: var(--pb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.calloutNote {
+  margin-top: 4px;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--pb-ink-3);
+}
+
+.calloutLink {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  overflow: visible;
+}
+
+.calloutLink path {
+  fill: none;
+  stroke: var(--pb-verif);
+  stroke-width: 1;
+  stroke-dasharray: 400;
+  stroke-dashoffset: 400;
+  animation: tourDraw var(--pb-dur-flow) var(--pb-ease-flow) 120ms forwards;
+}
+
+.calloutLink circle {
+  fill: var(--pb-verif);
+}
+
+@keyframes tourDraw {
+  to { stroke-dashoffset: 0; }
+}
+
+/* ── Journal du moteur (étape dépôt) ── */
+
+.log {
+  position: fixed;
+  z-index: 4;
+  padding: 10px 12px 11px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-bg);
+  pointer-events: none;
+  transition: opacity var(--pb-dur-base) var(--pb-ease);
+  animation: tourFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.log[data-fading] {
+  opacity: 0;
+}
+
+.logHead {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.logPct {
+  color: var(--pb-verif);
+  font-variant-numeric: tabular-nums;
+}
+
+.ticks {
+  display: flex;
+  gap: 3px;
+  margin: 8px 0 7px;
+}
+
+.ticks i {
+  flex: 1;
+  height: 8px;
+  background: var(--pb-rule-strong);
+  transition: background var(--pb-dur-fast) var(--pb-ease);
+}
+
+.ticks i[data-on] {
+  background: var(--pb-ink-2);
+}
+
+.logLines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  line-height: 1.55;
+  color: var(--pb-ink-2);
+}
+
+.logLine {
+  overflow: hidden;
+  white-space: nowrap;
+  animation: tourType 420ms steps(28) both;
+}
+
+.logLine[data-ok] {
+  color: var(--pb-ink);
+}
+
+.logLine[data-alert] {
+  color: var(--pb-signal);
+}
+
+.logMark {
+  color: var(--pb-ink-3);
+}
+
+@keyframes tourType {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 0 0 0); }
+}
+
+/* ── Particules : jetons du dossier qui rejoignent le rail ── */
+
+.particle {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  padding: 1px 6px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-plane-2);
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  color: var(--pb-ink-2);
+  offset-rotate: 0deg;
+  pointer-events: none;
+  /* Durée = TRAVEL_MS de DataParticles.tsx ; le décalage de départ est posé en ligne. */
+  animation: tourParticle 1100ms cubic-bezier(0.45, 0, 0.25, 1) both;
+}
+
+@keyframes tourParticle {
+  from { offset-distance: 0%; opacity: 0; }
+  12%  { opacity: 1; }
+  85%  { opacity: 1; }
+  to   { offset-distance: 100%; opacity: 0; }
+}
+
+/* ── Curseur fantôme ── */
+
+.cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.cursorRing {
+  position: absolute;
+  left: -12px;
+  top: -12px;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--pb-ink);
+  border-radius: 999px;
+  animation: tourClick 460ms var(--pb-ease) forwards;
+}
+
+@keyframes tourClick {
+  from { transform: scale(0.6); opacity: 0.9; }
+  to   { transform: scale(2.2); opacity: 0; }
+}
+
+/* ── Scènes plein écran : ouverture, intertitres de chapitre, conclusion ── */
+
+.scene {
+  position: fixed;
+  z-index: 6;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: var(--tour-frieze-h);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 24px;
+  background: rgba(17, 18, 20, 0.95);
+  overflow: auto;
+  pointer-events: auto;
+  animation: tourFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.scene[data-leaving] {
+  opacity: 0;
+  transition: opacity var(--pb-dur-base) var(--pb-ease);
+}
+
+.sceneInner {
+  width: min(880px, 100%);
+}
+
+.sceneInner[data-wide] {
+  width: min(1080px, 100%);
+}
+
+.sceneEyebrow {
+  margin: 0 0 18px;
+  font-family: var(--pb-font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+  animation: tourRise var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.sceneTitle {
+  margin: 0;
+  font-family: var(--pb-font-serif);
+  font-weight: 400;
+  font-size: clamp(34px, 5.4vw, 60px);
+  line-height: 1.04;
+  letter-spacing: -0.015em;
+  color: var(--pb-ink);
+  text-wrap: balance;
+  animation: tourRise var(--pb-dur-rule) var(--pb-ease) 80ms both;
+}
+
+.sceneLede {
+  max-width: 58ch;
+  margin: 18px 0 0;
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--pb-ink-2);
+  animation: tourRise var(--pb-dur-rule) var(--pb-ease) 200ms both;
+}
+
+.sceneRule {
+  height: 2px;
+  margin: 28px 0 0;
+  background: var(--pb-ink);
+  transform-origin: left center;
+  animation: tourRule 700ms var(--pb-ease-flow) 260ms both;
+}
+
+@keyframes tourRule {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+/* Intertitre de chapitre. */
+.chapterNumeral {
+  display: block;
+  margin-bottom: 6px;
+  font-family: var(--pb-font-serif);
+  font-style: italic;
+  font-size: 26px;
+  color: var(--pb-ink-3);
+  animation: tourFade var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.chapterMeta {
+  margin: 14px 0 0;
+  font-family: var(--pb-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+/* Ouverture : les trois registres, trois familles de traits. */
+.registers {
+  margin: 30px 0 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--pb-rule-strong);
+}
+
+.register {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--pb-rule);
+  animation: tourRise var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.register svg {
+  overflow: visible;
+}
+
+.register line {
+  stroke-dasharray: 64;
+  stroke-dashoffset: 64;
+  animation: tourDraw var(--pb-dur-flow) var(--pb-ease-flow) both;
+}
+
+.registerName {
+  font-size: 15px;
+  color: var(--pb-ink);
+}
+
+.registerDetail {
+  margin-left: 8px;
+  font-size: 13px;
+  color: var(--pb-ink-3);
+}
+
+.registerCount {
+  font-family: var(--pb-font-mono);
+  font-size: 13px;
+  color: var(--pb-ink-2);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Conclusion : le fil de preuve, en une ligne continue. */
+.threadWrap {
+  position: relative;
+  margin: 34px 0 0;
+}
+
+.thread {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.threadLine {
+  position: absolute;
+  left: 4px;
+  right: 4px;
+  top: 4px;
+  height: 1px;
+  background: var(--pb-ink-2);
+  transform-origin: left center;
+  animation: tourRule 1200ms var(--pb-ease-flow) 200ms both;
+}
+
+.threadNode {
+  position: relative;
+  min-width: 0;
+  padding: 18px 10px 0 0;
+  animation: tourRise var(--pb-dur-base) var(--pb-ease) both;
+}
+
+.threadNode::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 9px;
+  height: 9px;
+  background: var(--pb-ink);
+}
+
+.threadNode[data-last]::before {
+  background: var(--pb-bg);
+  border: 1.5px solid var(--pb-verif);
+  border-radius: 999px;
+}
+
+.threadKey {
+  display: block;
+  font-family: var(--pb-font-mono);
+  font-size: 10.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--pb-ink-3);
+}
+
+.threadValue {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--pb-font-mono);
+  font-size: 12.5px;
+  line-height: 1.35;
+  color: var(--pb-ink);
+  overflow-wrap: break-word;
+}
+
+.threadNode[data-last] .threadValue {
+  color: var(--pb-verif);
+}
+
+.metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin: 30px 0 0;
+  border-top: 1px solid var(--pb-rule-strong);
+  border-bottom: 1px solid var(--pb-rule-strong);
+}
+
+.metric {
+  flex: 1 1 160px;
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 18px 14px 0;
+}
+
+.metric + .metric {
+  padding-left: 18px;
+  border-left: 1px solid var(--pb-rule);
+}
+
+.metricValue {
+  font-family: var(--pb-font-mono);
+  font-size: 30px;
+  font-weight: 300;
+  color: var(--pb-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.metricLabel {
+  font-size: 13px;
+  color: var(--pb-ink-2);
+}
+
+.ctas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 28px 0 0;
+}
+
+.cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 20px;
+  border: 1px solid var(--pb-verif);
+  border-radius: var(--pb-radius-1);
+  background: var(--pb-verif);
+  color: var(--pb-on-verif);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ctaGhost {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid var(--pb-rule-strong);
+  border-radius: var(--pb-radius-1);
+  background: transparent;
+  color: var(--pb-ink);
+  font: inherit;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.ctaGhost:hover {
+  border-color: var(--pb-ink-3);
+}
+
+.sceneNote {
+  margin: 18px 0 0;
+  font-size: 12.5px;
+  color: var(--pb-ink-3);
+}
+
+@media (max-width: 759px) {
+  .scene {
+    align-items: flex-start;
+    padding: 28px 16px;
+  }
+  .threadWrap {
+    padding-left: 22px;
+  }
+  .thread {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+    gap: 14px;
+  }
+  .threadLine {
+    left: 4px;
+    right: auto;
+    top: 4px;
+    bottom: 4px;
+    width: 1px;
+    height: auto;
+    transform-origin: center top;
+    animation-name: tourRuleY;
+  }
+  .threadNode {
+    padding: 0;
+  }
+  .threadNode::before {
+    left: -22px;
+  }
+  .register {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+  .registerDetail {
+    display: block;
+    margin: 2px 0 0;
+  }
+  .metric + .metric {
+    padding-left: 0;
+    border-left: 0;
+    border-top: 1px solid var(--pb-rule);
+  }
+  .metric {
+    flex-basis: 100%;
+  }
+}
+
+@keyframes tourRuleY {
+  from { transform: scaleY(0); }
+  to   { transform: scaleY(1); }
+}
+
+/*
+  Mouvement réduit : app/tokens.css coupe toutes les animations sous [data-ambiance]. Les traits qui
+  n'apparaissent QUE par leur animation (tracé par stroke-dashoffset) reçoivent ici leur état final.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .calloutLink path,
+  .register line {
+    stroke-dashoffset: 0;
+  }
+}

@@ -37,7 +37,7 @@ export function VerdictSentence({
   );
 
   return (
-    <div className={variant === "A" ? s.verdictColA : s.verdictColB}>
+    <div data-tour="synthese-verdict" className={variant === "A" ? s.verdictColA : s.verdictColB}>
       <p data-a="txt" className={variant === "A" ? s.eyebrowA : s.eyebrowB}>{eyebrow}</p>
       <h3 data-a="txt" className={variant === "A" ? s.verdictA : s.verdictB}>
         {variant === "A" ? (

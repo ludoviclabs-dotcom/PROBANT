@@ -1,42 +1,64 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import s from "./tour.module.css";
 
 /**
- * Curseur fantôme de la visite guidée : voyage en « spring » vers la cible
- * `data-tour` de l'étape courante, puis émet un ripple de clic et notifie
- * l'arrivée (`onArrived`) — le spotlight s'ouvre alors côté GuidedTour.
+ * Point visé : le milieu du tracé pour une forme SVG (un flux de Sankey est une bande courbe, le centre de sa
+ * boîte englobante peut tomber à côté), sinon le centre de l'élément ; toujours borné à la partie visible.
+ */
+function aimPoint(el: Element): { x: number; y: number } {
+  let x: number;
+  let y: number;
+  const geo = el as SVGGeometryElement;
+  const ctm = typeof geo.getScreenCTM === "function" ? geo.getScreenCTM() : null;
+  if (typeof geo.getTotalLength === "function" && ctm) {
+    const p = geo.getPointAtLength(geo.getTotalLength() / 2);
+    x = ctm.a * p.x + ctm.c * p.y + ctm.e;
+    y = ctm.b * p.x + ctm.d * p.y + ctm.f;
+  } else {
+    const r = el.getBoundingClientRect();
+    x = r.left + r.width / 2;
+    y = r.top + Math.min(r.height / 2, 160);
+  }
+  return { x: Math.max(12, Math.min(window.innerWidth - 12, x)), y: Math.max(12, Math.min(window.innerHeight - 80, y)) };
+}
+
+/**
+ * Curseur fantôme de la visite guidée : il voyage vers l'élément que `resolve` désigne (cible de l'étape, ou
+ * bouton à cliquer pendant un moment « À vous »), marque son arrivée d'un anneau, puis notifie `onArrived`.
  *
- * - `targetSelector: null` masque le curseur (étape sans cible) mais conserve
- *   sa dernière position pour que le voyage suivant parte du bon endroit.
- * - `travelKey` force un nouveau voyage même si le sélecteur est identique
- *   (deux étapes consécutives sur la même cible).
- * - Sous `prefers-reduced-motion`, le curseur saute instantanément.
+ * - `resolve: null` masque le curseur mais garde sa dernière position (le voyage suivant part du bon endroit) ;
+ * - `travelKey` force un nouveau voyage même si l'élément est le même ;
+ * - sous `prefers-reduced-motion`, le curseur saute sans voyager.
  *
- * pointer-events:none partout — n'intercepte jamais l'interaction.
+ * Dessin de la charte : flèche ivoire cernée d'un filet graphite, sans ombre portée. pointer-events:none.
  */
 export function GhostCursor({
-  targetSelector,
+  resolve,
   travelKey,
   onArrived,
 }: {
-  targetSelector: string | null;
-  travelKey: number;
+  resolve: (() => Element | null) | null;
+  travelKey: string;
   onArrived: () => void;
 }) {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [animated, setAnimated] = useState(false);
-  const [rippleNonce, setRippleNonce] = useState(0);
+  const [ringNonce, setRingNonce] = useState(0);
 
   const posRef = useRef<{ x: number; y: number } | null>(null);
   const onArrivedRef = useRef(onArrived);
   useEffect(() => void (onArrivedRef.current = onArrived), [onArrived]);
-  // « Tir unique » du voyage en cours — partagé entre transitionend et le
-  // timeout de secours (transitionend ne vient pas si la position n'a pas bougé).
+  const resolveRef = useRef(resolve);
+  useEffect(() => void (resolveRef.current = resolve), [resolve]);
+  // Tir unique du voyage en cours, partagé entre `transitionend` et le minuteur de secours.
   const fireRef = useRef<(() => void) | null>(null);
 
+  const visible = resolve !== null;
+
   useEffect(() => {
-    if (!targetSelector) return;
+    if (!visible) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let raf = 0;
     let timer = 0;
@@ -45,20 +67,19 @@ export function GhostCursor({
     const fire = () => {
       if (fired) return;
       fired = true;
-      setRippleNonce((n) => n + 1);
+      setRingNonce((n) => n + 1);
       onArrivedRef.current();
     };
     fireRef.current = fire;
 
     const seek = () => {
-      const el = document.querySelector<HTMLElement>(targetSelector);
+      const el = resolveRef.current?.();
       if (!el) {
         if (tries++ < 150) raf = requestAnimationFrame(seek);
         else fire(); // cible introuvable : ne bloque jamais la visite
         return;
       }
-      const r = el.getBoundingClientRect();
-      const to = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      const to = aimPoint(el);
       const from = posRef.current;
       posRef.current = to;
       if (reduced || !from) {
@@ -69,8 +90,6 @@ export function GhostCursor({
       }
       setAnimated(true);
       setPos(to);
-      // Secours : si transitionend ne vient pas (position inchangée, onglet
-      // masqué…), l'arrivée est déclarée après la durée du spring.
       timer = window.setTimeout(fire, 720);
     };
     seek();
@@ -79,62 +98,30 @@ export function GhostCursor({
       if (timer) window.clearTimeout(timer);
       fireRef.current = null;
     };
-  }, [targetSelector, travelKey]);
+  }, [visible, travelKey]);
 
   if (!pos) return null;
 
   return (
     <div
       aria-hidden
+      className={s.cursor}
       onTransitionEnd={(e) => {
         if (e.propertyName === "transform") fireRef.current?.();
       }}
       style={{
-        position: "fixed",
-        left: 0,
-        top: 0,
-        zIndex: 9998,
-        pointerEvents: "none",
         transform: `translate(${pos.x}px, ${pos.y}px)`,
-        transition: animated
-          ? "transform 600ms cubic-bezier(0.34, 1.56, 0.64, 1), opacity .25s ease"
-          : "opacity .25s ease",
-        opacity: targetSelector ? 1 : 0,
-        willChange: "transform",
+        transition: animated ? "transform 640ms cubic-bezier(.45,0,.25,1), opacity 240ms ease" : "opacity 240ms ease",
+        opacity: visible ? 1 : 0,
       }}
     >
-      {/* Ripple de clic — relancé à chaque arrivée via la clé. */}
-      {rippleNonce > 0 && (
-        <span
-          key={rippleNonce}
-          style={{
-            position: "absolute",
-            left: -11,
-            top: -11,
-            width: 22,
-            height: 22,
-            borderRadius: 999,
-            border: "2px solid rgba(255,255,255,0.85)",
-            animation: "pb-cursor-click 400ms ease-out forwards",
-          }}
-        />
-      )}
-      <svg
-        width="22"
-        height="22"
-        viewBox="0 0 24 24"
-        style={{
-          display: "block",
-          opacity: 0.75,
-          filter: "drop-shadow(0 2px 6px rgba(0,0,0,.55))",
-          transform: "translate(-3px, -2px)",
-        }}
-      >
+      {ringNonce > 0 && <span key={ringNonce} className={s.cursorRing} />}
+      <svg width="20" height="20" viewBox="0 0 24 24" style={{ display: "block", transform: "translate(-3px, -2px)" }}>
         <path
           d="M5 2 L5 17.6 L9.1 14.1 L11.5 19.6 L14 18.5 L11.6 13.1 L16.8 12.7 Z"
-          fill="rgba(255,255,255,0.92)"
-          stroke="rgba(10,14,20,0.9)"
-          strokeWidth="1.1"
+          fill="var(--pb-ink)"
+          stroke="var(--pb-bg)"
+          strokeWidth="1.2"
           strokeLinejoin="round"
         />
       </svg>

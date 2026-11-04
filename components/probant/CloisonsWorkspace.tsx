@@ -524,7 +524,7 @@ function ReviewDrawer({ findingId, title, onClose, children }: { findingId: stri
   return createPortal(
     <div role="presentation" data-ambiance="instruments" className={`${charteFonts} ${c.drawerRoot}`}>
       <div data-review-backdrop aria-hidden onClick={onClose} className={c.drawerVeil} />
-      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={`Constat : ${title}`} className={c.drawer}>
+      <div ref={panelRef} role="dialog" aria-modal="true" aria-label={`Constat : ${title}`} data-tour="review-panel" className={c.drawer}>
         <div className={c.drawerHead}>
           <span className={c.drawerKey}>Panneau de revue</span>
           <button ref={closeRef} type="button" onClick={onClose} aria-label="Fermer le panneau de revue" className={c.drawerClose}>
@@ -1181,7 +1181,7 @@ export function CloisonsWorkspace({
           {/* Rail ancré — affiché seulement quand la place le permet ; sinon tiroir (ReviewDrawer). */}
           <aside data-review-rail aria-label="Panneau de revue" className={c.rail}>
             {selectedFinding && railDocked ? (
-              <div key={selectedFinding.id} className={p.panel}>
+              <div key={selectedFinding.id} data-tour="review-panel" className={p.panel}>
                 <RailPanel finding={selectedFinding} decisions={decisions} onDecision={handleDecision} />
               </div>
             ) : (

@@ -102,6 +102,7 @@ export function CloisonSankey({
                   <path
                     data-a="band"
                     data-tour-flow={band.key}
+                    data-tour-count={band.n}
                     d={band.d}
                     fillOpacity={on ? (hover || fx ? 1 : 0.82) : 0.12}
                     className={s.band}

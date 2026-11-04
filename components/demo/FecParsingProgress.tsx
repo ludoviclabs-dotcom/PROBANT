@@ -2,43 +2,53 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePrefersReducedMotion } from "./usePrefersReducedMotion";
+import s from "./tour.module.css";
 
 /**
- * Progress de parsing FEC — théâtre de l'étape « dépôt » de la visite guidée.
- * Rejoue en ~3,5 s la séquence réelle du pipeline (lecture, validation LPF,
- * moteur de constats, seuil ISA 320) avec un log façon terminal (typewriter).
+ * Journal du moteur — mise en scène de l'étape « dépôt ». Rejoue en ~3,5 s la séquence réelle du pipeline :
+ * lecture et empreinte, contrôle LPF art. A.47 A-1, moteur de constats, seuil de signification.
  *
- * Les chiffres affichés (`facts`) viennent du dossier démo via tour.ts —
- * empreinte FEC, nombre de silos/constats, seuil calculé — jamais inventés ici.
- * Se positionne DANS la dropzone spotlightée (bas-gauche), pointer-events:none.
+ * Les valeurs (`facts`) viennent du dossier démo via `lib/demo/tour.ts` — empreinte, alertes d'admissibilité,
+ * silos, constats, seuil calculé — jamais inventées ici. Le seuil est présenté comme ce qu'il est : un calcul
+ * sur un paramètre interne du registre, pas un montant fixé par une norme. Ancré dans le cadre, pointer-events:none.
  */
 
 interface ParsingFacts {
   fingerprint: string;
   silos: number;
   findings: number;
+  blockingAdmissibility: number;
   seuil: string;
+  societe: string;
 }
 
 interface LogLine {
-  at: number; // ms depuis le début
-  to: number; // progression cible (%)
+  at: number;
+  to: number;
   text: string;
-  ok?: boolean;
+  tone?: "ok" | "alert";
 }
+
+const plural = (n: number, one: string, many = `${one}s`) => (n > 1 ? many : one);
 
 function buildSequence(f: ParsingFacts): LogLine[] {
   return [
-    { at: 0, to: 25, text: `Lecture FEC · empreinte ${f.fingerprint}…` },
-    { at: 800, to: 55, text: "Validation LPF art. A.47 A-1…" },
-    { at: 1600, to: 85, text: `Moteur de constats · ${f.silos} silos · ${f.findings} constats` },
-    { at: 2500, to: 95, text: `Calcul seuil ISA 320 · ${f.seuil}` },
-    { at: 3200, to: 100, text: "✓ Dossier DEMO SA prêt", ok: true },
+    { at: 0, to: 25, text: `Lecture du FEC · empreinte ${f.fingerprint}` },
+    {
+      at: 800,
+      to: 50,
+      text: `Contrôle LPF art. A.47 A-1 · ${f.blockingAdmissibility} ${plural(f.blockingAdmissibility, "alerte bloquante", "alertes bloquantes")}`,
+      tone: f.blockingAdmissibility > 0 ? "alert" : undefined,
+    },
+    { at: 1600, to: 80, text: `Moteur de constats · ${f.silos} silos · ${f.findings} constats` },
+    { at: 2400, to: 95, text: `Seuil de signification · ${f.seuil} · paramètre interne` },
+    { at: 3100, to: 100, text: `Dossier ${f.societe} prêt pour la revue`, tone: "ok" },
   ];
 }
 
-const FADE_AT = 3500;
-const DONE_AT = 3820; // fade-out 300 ms compris
+const FADE_AT = 3600;
+const DONE_AT = 3900;
+const TICKS = 20;
 
 export function FecParsingProgress({
   anchorRect,
@@ -62,7 +72,7 @@ export function FecParsingProgress({
     if (reduced) {
       setVisibleCount(seq.length);
       setPct(100);
-      const t = window.setTimeout(() => onDoneRef.current(), 700);
+      const t = window.setTimeout(() => onDoneRef.current(), 2400);
       return () => window.clearTimeout(t);
     }
     const timers: number[] = [];
@@ -80,110 +90,29 @@ export function FecParsingProgress({
   }, [reduced]);
 
   const seq = seqRef.current;
-  const width = Math.min(430, Math.max(280, anchorRect.width - 36));
+  const width = Math.min(440, Math.max(260, anchorRect.width - 32));
+  const on = Math.round((pct / 100) * TICKS);
 
   return (
     <div
       aria-hidden
-      style={{
-        position: "fixed",
-        left: anchorRect.left + 18,
-        top: anchorRect.bottom - 18,
-        transform: "translateY(-100%)",
-        width,
-        zIndex: 9992,
-        pointerEvents: "none",
-        borderRadius: 12,
-        border: "1px solid var(--pb-border-strong, #324563)",
-        background: "color-mix(in srgb, var(--pb-bg, #0a0e14) 92%, transparent)",
-        backdropFilter: "blur(4px)",
-        padding: "11px 14px 12px",
-        boxShadow: "0 16px 44px rgba(0,0,0,.55)",
-        opacity: fading ? 0 : 1,
-        transition: "opacity .3s ease",
-        animation: "pb-fade-in .25s ease both",
-      }}
+      className={s.log}
+      data-fading={fading ? "" : undefined}
+      style={{ left: anchorRect.left + 16, top: Math.max(12, anchorRect.bottom - 16), transform: "translateY(-100%)", width }}
     >
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "baseline",
-          gap: 8,
-          marginBottom: 7,
-        }}
-      >
-        <span
-          style={{
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
-            color: "var(--pb-text-faint, #5c6b82)",
-          }}
-        >
-          Moteur PROBANT
-        </span>
-        <span
-          className="tnum"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10.5,
-            fontWeight: 700,
-            color: "var(--pb-accent, #6366f1)",
-          }}
-        >
-          {pct} %
-        </span>
+      <div className={s.logHead}>
+        <span>Moteur PROBANT</span>
+        <span className={s.logPct}>{pct} %</span>
       </div>
-
-      {/* Barre de progression (glow subtil, largeur transitionnée). */}
-      <div
-        style={{
-          height: 5,
-          borderRadius: 5,
-          background: "var(--pb-surface-3, #1d2738)",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            height: "100%",
-            width: `${pct}%`,
-            borderRadius: 5,
-            background:
-              "linear-gradient(90deg, color-mix(in srgb, var(--pb-accent, #6366f1) 65%, transparent), var(--pb-accent, #6366f1))",
-            boxShadow: "0 0 10px color-mix(in srgb, var(--pb-accent, #6366f1) 55%, transparent)",
-            transition: "width .45s cubic-bezier(.3,.7,.4,1)",
-          }}
-        />
+      <div className={s.ticks}>
+        {Array.from({ length: TICKS }, (_, i) => (
+          <i key={i} data-on={i < on ? "" : undefined} />
+        ))}
       </div>
-
-      {/* Log terminal : chaque ligne arrive en machine à écrire. */}
-      <div
-        style={{
-          marginTop: 8,
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          fontFamily: "var(--font-mono)",
-          fontSize: 10.5,
-          lineHeight: 1.5,
-        }}
-      >
+      <div className={s.logLines}>
         {seq.slice(0, visibleCount).map((line) => (
-          <div
-            key={line.at}
-            style={{
-              overflow: "hidden",
-              whiteSpace: "nowrap",
-              textOverflow: "clip",
-              color: line.ok ? "var(--pb-ok, #22c55e)" : "var(--pb-text-muted, #8a99af)",
-              ["--pb-tw-width" as string]: `${line.text.length + 1}ch`,
-              animation: `pb-typewriter .42s steps(${Math.max(8, line.text.length)}) both`,
-            }}
-          >
-            <span style={{ color: "var(--pb-text-faint, #5c6b82)" }}>› </span>
+          <div key={line.at} className={s.logLine} data-ok={line.tone === "ok" ? "" : undefined} data-alert={line.tone === "alert" ? "" : undefined}>
+            <span className={s.logMark}>{line.tone === "ok" ? "■ " : "› "}</span>
             {line.text}
           </div>
         ))}

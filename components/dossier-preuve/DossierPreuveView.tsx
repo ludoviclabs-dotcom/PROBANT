@@ -130,7 +130,7 @@ export function DossierPreuveView() {
         </div>
       </dl>
 
-      <section aria-labelledby="dp-completude" className={p.section}>
+      <section aria-labelledby="dp-completude" data-tour="dossier-chaines" className={p.section}>
         <SectionHead
           id="dp-completude"
           title={`Complétude des ${matrix.total} ${plural(matrix.total, "chaîne")}`}
