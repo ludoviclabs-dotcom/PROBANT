@@ -1,4 +1,5 @@
 import type { Money } from "@/lib/canonical-model/money";
+import { isCivilDate, type AccountingPeriod } from "@/lib/canonical-model/period";
 import type { ReviewKind } from "@/lib/auth/review-kind";
 import type { ContractFraming, FramingLineStatus, FramingStatus, LeaseFraming } from "@/lib/ifrs/leases/framing";
 import type { ContractStatus, LeaseQualification, QualificationReason, QualifiedContract } from "@/lib/ifrs/leases/qualification";
@@ -122,11 +123,32 @@ const MESSAGES: Record<string, string> = {
   L16_DUPLICATE_CONTRACT: "Source refusée : identifiant de contrat en double.",
   IDEMPOTENCY_KEY_REUSED: "Commande déjà envoyée avec un autre contenu : rechargez avant de reprendre.",
   WORKPAPER_PERIOD_INVALID: "Exercice invalide pour ce dossier.",
+  L16_REQUEST_INVALID: "Commande refusée par le serveur : paramètres invalides. Vérifiez les dates de l'exercice (jour, mois, année sur 4 chiffres), puis réessayez.",
   L16_QUERY_INVALID: "Adresse invalide : dossier ou exercice mal formé.",
   L16_EXPORT_NOT_REVIEWED: "Export revu impossible : la version n'est ni approuvée ni verrouillée. L'export diagnostic reste disponible.",
   L16_EXPORT_NO_ADJUSTMENT: "Aucun retraitement proposé pour cette version : pas de journal à exporter.",
   EXPORT_SNAPSHOT_CONFLICT: "La feuille a changé depuis votre lecture : rechargez, puis exportez la version affichée.",
 };
+const PERIOD_FIELDS = { startDate: "Début d'exercice", closingDate: "Clôture", asOfDate: "Date de revue" } as const;
+/** Saisie de l'exercice relue avant tout envoi : chaque date nommée par son champ (une année à 5 chiffres n'est pas une date civile ; années 1900 à 2999, comme les bornes du champ). */
+export function periodInputIssues(period: Pick<AccountingPeriod, "startDate" | "closingDate" | "asOfDate">): string[] {
+  const issues = (Object.keys(PERIOD_FIELDS) as (keyof typeof PERIOD_FIELDS)[]).filter(k => !isCivilDate(period[k]) || period[k] < "1900-01-01" || period[k] > "2999-12-31")
+    .map(k => PERIOD_FIELDS[k] + " : date invalide (« " + (period[k] || "vide") + " ») — jour, mois et année sur 4 chiffres attendus.");
+  if (!issues.length && (period.startDate > period.closingDate || period.closingDate > period.asOfDate)) issues.push("Ordre requis : début d'exercice ≤ clôture ≤ date de revue.");
+  return issues;
+}
+/** Informations de qualification qui changent ce que le calcul produira, dites avant le calcul. */
+const INFO_NOTES: Record<string, string> = {
+  X24: "Calcul en diagnostic : contrat antérieur à l'exercice sans ouverture IFRS validée (X24)",
+  X34: "Prise d'effet après la clôture : rien de reconnu à cette date (X34)",
+};
+export const infoNotes = (c: Pick<QualifiedContract, "reasons">) => [...new Set(c.reasons.filter(r => r.effect === "info" && INFO_NOTES[r.code]).map(r => INFO_NOTES[r.code]))];
+/** Politiques attendues, telles que la qualification les nomme (`awaitsPolicy` : court terme Q08, élection § 15 X07), avec les contrats qui les attendent. */
+export function awaitedPolicies(contracts: Pick<QualifiedContract, "contractId" | "reasons">[]): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const c of contracts) for (const key of new Set(c.reasons.flatMap(r => r.awaitsPolicy ? [r.awaitsPolicy.kind + "|" + r.awaitsPolicy.assetCategory] : []))) (out[key] ??= []).push(c.contractId);
+  return out;
+}
 export function leaseFailureMessage(code: string | undefined, status: number): string {
   if (code && MESSAGES[code]) return MESSAGES[code];
   if (status === 403) return "Accès refusé pour ce dossier ou cette action (" + (code ?? "403") + ").";

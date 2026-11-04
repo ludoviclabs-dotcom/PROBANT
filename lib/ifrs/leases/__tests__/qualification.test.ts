@@ -53,6 +53,7 @@ describe("L16-01 qualification — cas du prompt", () => {
     const option = await one("F01", r => { fields(r, "lease_assumptions", "F01").purchaseOption = "present"; }, shortTerm);
     expect(option.status).toBe("a_qualifier"); expect(codes(option)).toEqual(["X22"]);
     expect(codes(await one("F01"))).toEqual(["Q08"]);
+    expect((await one("F01")).reasons[0].awaitsPolicy).toEqual({ kind: "short_term_exemption", assetCategory: "Matériel de bureau" });
     const notElected: QualificationWork = { policies: [{ kind: "short_term_exemption", assetCategory: "Matériel de bureau", answer: { kind: "value", value: "not_elected" } }], confirmations: [] };
     expect((await one("F01", undefined, notElected)).status).toBe("eligible_v1");
   });
@@ -61,8 +62,13 @@ describe("L16-01 qualification — cas du prompt", () => {
     expect((await one("F03", r => { Object.assign(fields(r, "lease_assumptions", "F03"), { lowValueExemption: "elected", lowValueNewValue: "900.00", lowValueJudgement: "Ordinateur portable, utilisable seul (B5)" }); })).status).toBe("exemption_documentee");
   });
   it("service non séparé sans élection § 15 → à qualifier (X07) ; élection § 15 sans politique de la catégorie → à qualifier", async () => {
-    expect(codes(await one("F03", r => { fields(r, "lease_contracts", "F03").serviceComponents = "present"; }))).toEqual(["X07"]);
-    expect(codes(await one("F03", r => { fields(r, "lease_contracts", "F03").serviceComponents = "election_15"; }))).toEqual(["X07"]);
+    const present = await one("F03", r => { fields(r, "lease_contracts", "F03").serviceComponents = "present"; });
+    expect(codes(present)).toEqual(["X07"]);
+    // Services present: the contract data must change; no category policy would lift it, so none is named as awaited.
+    expect(present.reasons[0].awaitsPolicy).toBeUndefined();
+    const election = await one("F03", r => { fields(r, "lease_contracts", "F03").serviceComponents = "election_15"; });
+    expect(codes(election)).toEqual(["X07"]);
+    expect(election.reasons[0].awaitsPolicy).toEqual({ kind: "non_lease_components_election", assetCategory: "Véhicules utilitaires" });
     const elected: QualificationWork = { policies: [{ kind: "non_lease_components_election", assetCategory: "Véhicules utilitaires", answer: { kind: "value", value: "elected" } }], confirmations: [] };
     expect((await one("F03", r => { fields(r, "lease_contracts", "F03").serviceComponents = "election_15"; }, elected)).status).toBe("eligible_v1");
   });

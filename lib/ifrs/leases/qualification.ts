@@ -15,7 +15,9 @@ export interface SourceFact {
   source: { title: string; pack: string; date: string; page: number | null; clause: string }; proof: SourceProof;
 }
 export type LeaseFacts = Record<LeaseDocumentType, SourceFact[]>;
-export interface QualificationReason { code: string; effect: "hors_scope_v1" | "a_qualifier" | "non_location" | "exemption" | "info"; field?: string; message: string }
+/** `awaitsPolicy` : la politique de catégorie dont la réponse lèverait ce motif (l'écran la signale, sans rien déduire du message). */
+export interface QualificationReason { code: string; effect: "hors_scope_v1" | "a_qualifier" | "non_location" | "exemption" | "info"; field?: string; message: string;
+  awaitsPolicy?: { kind: "short_term_exemption" | "non_lease_components_election"; assetCategory: string } }
 export interface LeasePolicy { kind: "short_term_exemption" | "non_lease_components_election" | "vat_treatment"; assetCategory: string; answer: Answer }
 export interface LeaseConfirmation { contractId: string; field: string; answer: Answer }
 type Answer = { kind: "value"; value: string } | { kind: "unknown"; reason: string } | { kind: "not_applicable"; reason: string };
@@ -139,7 +141,8 @@ function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startD
   const term = months !== null ? Number(months) : null;
   if (term !== null && term <= 12 && category) {
     const policy = work.policies.find(p => p.kind === "short_term_exemption" && p.assetCategory === category);
-    if (!policy || policy.answer.kind !== "value") add("Q08", "a_qualifier", "Contrat de 12 mois au plus : politique court terme de la catégorie « " + category + " » non déclarée (§ 8)");
+    if (!policy || policy.answer.kind !== "value") reasons.push({ code: "Q08", effect: "a_qualifier", message: "Contrat de 12 mois au plus : politique court terme de la catégorie « " + category + " » non déclarée (§ 8)",
+      awaitsPolicy: { kind: "short_term_exemption", assetCategory: category } });
     else if (policy.answer.value === "elected") {
       const option = need("lease_assumptions", "purchaseOption"), judgement = need("lease_assumptions", "termJudgement", "X20");
       if (option === "present") { add("X22", "a_qualifier", "Option d'achat : le contrat n'est pas de courte durée (annexe A), exemption refusée"); return done("a_qualifier"); }
@@ -180,7 +183,8 @@ function qualifyOne(contract: SourceFact, own: FactsByContract, period: { startD
   const services = v("lease_contracts", "serviceComponents");
   if (services === "present") qualify("X07", "Services non séparés sans élection § 15 documentée : composante locative à isoler", "serviceComponents");
   if (services === "election_15" && !work.policies.some(p => p.kind === "non_lease_components_election" && p.assetCategory === category && p.answer.kind === "value" && p.answer.value === "elected"))
-    qualify("X07", "Élection § 15 déclarée sans politique de la catégorie « " + category + " »", "serviceComponents");
+    reasons.push({ code: "X07", effect: "a_qualifier", message: "Élection § 15 déclarée sans politique de la catégorie « " + category + " »", field: "serviceComponents",
+      ...(category ? { awaitsPolicy: { kind: "non_lease_components_election" as const, assetCategory: category } } : {}) });
   if (v("lease_assumptions", "deposit") === "unqualified") qualify("X08", "Dépôt de garantie à qualifier", "deposit");
   const signature = v("lease_contracts", "signatureDate");
   if (signature && signature > commencement) qualify("Q01", "Signature postérieure au commencement", "signatureDate");
