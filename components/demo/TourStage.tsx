@@ -387,6 +387,7 @@ export default function TourStage() {
     let actionCleanup: (() => void) | null = null;
     let pulseEl: Element | null = null;
     let onClick: ((e: MouseEvent) => void) | null = null;
+    let confirmTimer = 0;
     let tick = 0;
 
     if (step.simulatedAction) {
@@ -426,7 +427,11 @@ export default function TourStage() {
       };
       onClick = (e: MouseEvent) => {
         const t = e.target as Element | null;
-        if (interactionRef.current === "waiting" && e.isTrusted && t?.closest?.(ia.accept)) markDone("user");
+        if (interactionRef.current !== "waiting" || !e.isTrusted || !t?.closest?.(ia.accept)) return;
+        // Le geste compte s'il a eu son effet : on lit la page une fois le rendu de React passé.
+        confirmTimer = window.setTimeout(() => {
+          if (ia.confirm()) markDone("user");
+        }, 150);
       };
       document.addEventListener("click", onClick, true);
       timers.push(
@@ -452,6 +457,7 @@ export default function TourStage() {
     return () => {
       timers.forEach((t) => window.clearTimeout(t));
       if (tick) window.clearInterval(tick);
+      if (confirmTimer) window.clearTimeout(confirmTimer);
       if (onClick) document.removeEventListener("click", onClick, true);
       actionCleanup?.();
       pulseEl?.classList.remove("pb-demo-node-pulse");

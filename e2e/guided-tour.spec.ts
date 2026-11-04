@@ -82,6 +82,12 @@ test("moment « À vous » : le clic du visiteur filtre l'analyse, le filtre est
   await settled(page, "sankey", "spot");
   await expect(page.getByRole("status").filter({ hasText: "Cliquez un flux du Sankey." })).toBeVisible();
 
+  // Un clic dans la cible mais sans effet (le titre du graphique) ne valide pas le geste.
+  await page.locator('[data-tour="synthese-sankey"] figcaption h3').click();
+  await page.waitForTimeout(400);
+  await expect(page.getByRole("status").filter({ hasText: "Bien vu" })).toHaveCount(0);
+  await expect(page.locator('[data-tour="synthese-filtre"]')).toContainText("Aucun.");
+
   const band = page.locator('[data-tour="synthese-sankey"] path[data-tour-flow="bilan-actif-majeur"]');
   const aim = await band.evaluate((el) => {
     const g = el as SVGGeometryElement;

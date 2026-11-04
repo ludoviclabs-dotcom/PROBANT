@@ -53,8 +53,13 @@ export interface TourCallout {
 export interface TourInteraction {
   /** Ce que la visite propose de faire (phrase à l'impératif). */
   prompt: string;
-  /** Éléments dont le clic compte comme le geste attendu (sélecteur CSS). */
+  /** Zone dont le clic PEUT être le geste attendu (sélecteur CSS) ; ce n'est qu'un préfiltre. */
   accept: string;
+  /**
+   * Le geste compte seulement s'il a eu son effet dans la page (lu dans le DOM peu après le clic) : un clic dans
+   * une zone vide de la cible ne valide rien et ne retient pas le geste automatique.
+   */
+  confirm: () => boolean;
   /** Élément que le curseur fantôme clique si le visiteur ne le fait pas. */
   autoTarget: () => Element | null;
   /** Délai après l'ouverture du cadre avant le geste automatique (ms). */
@@ -433,7 +438,8 @@ export const TOUR_STEPS: TourStep[] = [
     placement: "left",
     interaction: {
       prompt: "Cliquez un flux du Sankey.",
-      accept: '[data-tour="synthese-sankey"] svg',
+      accept: '[data-tour="synthese-sankey"]',
+      confirm: () => document.querySelector('[data-tour-action="filter-clear"]') !== null,
       autoTarget: widestMajorFlow,
       autoAfterMs: 4200,
       done: "Filtre croisé appliqué : la section Analyse suit.",
@@ -536,6 +542,7 @@ export const TOUR_STEPS: TourStep[] = [
     interaction: {
       prompt: "Ouvrez le premier constat avec « Analyser ».",
       accept: REVIEW_TRIGGER,
+      confirm: () => document.querySelector('[data-tour="review-panel"]') !== null,
       autoTarget: firstFindingTrigger,
       autoAfterMs: 4600,
       done: "Panneau de revue ouvert.",

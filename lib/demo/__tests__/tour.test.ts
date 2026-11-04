@@ -107,6 +107,7 @@ describe("visite guidée — séquençage", () => {
     const interactive = TOUR_STEPS.filter((s) => s.interaction);
     expect(interactive.map((s) => s.id)).toEqual(["sankey", "cloison"]);
     for (const s of interactive) {
+      expect(typeof s.interaction!.confirm, `${s.id} : le geste doit être confirmé par son effet`).toBe("function");
       expect(s.interaction!.autoAfterMs).toBeGreaterThanOrEqual(3000);
       expect(s.interaction!.autoAfterMs + 700 + s.interaction!.holdAfterMs).toBeLessThanOrEqual(s.duration);
     }
