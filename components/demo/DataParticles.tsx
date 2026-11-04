@@ -1,24 +1,22 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import s from "./tour.module.css";
 
 /**
- * Particules de données de la visite guidée : des mini-badges monospace
- * (comptes PCG, normes, valeurs du dossier) s'envolent de la dropzone vers les
- * premiers items de la navigation — « les données irriguent les modules ».
+ * Particules de données de la visite guidée : des jetons monospace (comptes PCG, normes, valeurs du dossier)
+ * quittent la zone de dépôt et rejoignent les écrans du rail — « les données irriguent les modules ».
  *
- * Trajectoires en arc via CSS Motion Path (`offset-path: path(...)`) calculées
- * depuis les getBoundingClientRect réels. 10 particules max, stagger 120 ms,
- * pointer-events:none, aucun layout shift (position:fixed). Si `offset-path`
- * n'est pas supporté, le composant se termine immédiatement (aucun fallback
- * approximatif). La garde CSS reduced-motion neutralise l'animation.
+ * Trajectoires en arc via CSS Motion Path (`offset-path`), calculées depuis les rectangles réels. Cibles : les
+ * liens VISIBLES de la navigation « Écrans du dossier » (rail dès 760 px, barre basse en dessous). Sans
+ * `offset-path` ni cible visible, le composant se termine aussitôt. Neutralisé sous mouvement réduit (le
+ * moteur ne le monte pas).
  */
 
 const MAX_PARTICLES = 10;
 const TRAVEL_MS = 1100;
-const STAGGER_MS = 120;
-/** Sélecteur des cibles : items de la navigation latérale (5 premiers). */
-const NAV_SELECTOR = "aside nav a";
+const STAGGER_MS = 110;
+const NAV_SELECTOR = 'nav[aria-label="Écrans du dossier"] a';
 
 interface Particle {
   token: string;
@@ -26,15 +24,7 @@ interface Particle {
   delay: number;
 }
 
-export function DataParticles({
-  fromRect,
-  tokens,
-  onDone,
-}: {
-  fromRect: DOMRect;
-  tokens: string[];
-  onDone: () => void;
-}) {
+export function DataParticles({ fromRect, tokens, onDone }: { fromRect: DOMRect; tokens: string[]; onDone: () => void }) {
   const [supported, setSupported] = useState(true);
   const onDoneRef = useRef(onDone);
   useEffect(() => void (onDoneRef.current = onDone), [onDone]);
@@ -42,22 +32,20 @@ export function DataParticles({
   const particles = useMemo<Particle[]>(() => {
     if (typeof document === "undefined") return [];
     const targets = Array.from(document.querySelectorAll<HTMLElement>(NAV_SELECTOR))
-      .slice(0, 5)
-      .map((el) => el.getBoundingClientRect());
+      .map((el) => el.getBoundingClientRect())
+      .filter((r) => r.width > 0 && r.height > 0 && r.bottom > 0 && r.top < window.innerHeight)
+      .slice(0, 8);
     if (targets.length === 0) return [];
     return tokens.slice(0, MAX_PARTICLES).map((token, i) => {
       const t = targets[i % targets.length];
-      // Départ : cœur de la dropzone, légèrement dispersé pour éviter la file
-      // indienne ; arrivée : centre de l'item de nav.
-      const fx = fromRect.left + fromRect.width * (0.42 + (i % 4) * 0.05);
-      const fy = fromRect.top + fromRect.height * 0.5 + ((i % 5) - 2) * 9;
-      const tx = t.left + t.width / 2;
+      const fx = fromRect.left + fromRect.width * (0.38 + (i % 4) * 0.06);
+      const fy = fromRect.top + fromRect.height * 0.45 + ((i % 5) - 2) * 9;
+      const tx = t.left + Math.min(t.width / 2, 60);
       const ty = t.top + t.height / 2;
-      // Arc : les poignées tirent la trajectoire vers le haut puis vers la nav.
-      const c1x = fx - (fx - tx) * 0.18;
-      const c1y = fy - 110 - (i % 3) * 26;
-      const c2x = tx + 150;
-      const c2y = ty - 42;
+      const c1x = fx - (fx - tx) * 0.2;
+      const c1y = fy - 120 - (i % 3) * 24;
+      const c2x = tx + 140;
+      const c2y = ty - 40;
       return {
         token,
         path: `M ${fx.toFixed(1)},${fy.toFixed(1)} C ${c1x.toFixed(1)},${c1y.toFixed(1)} ${c2x.toFixed(1)},${c2y.toFixed(1)} ${tx.toFixed(1)},${ty.toFixed(1)}`,
@@ -67,12 +55,9 @@ export function DataParticles({
   }, [fromRect, tokens]);
 
   useEffect(() => {
-    const ok =
-      typeof CSS !== "undefined" &&
-      CSS.supports("offset-path", 'path("M 0 0 L 10 10")') &&
-      particles.length > 0;
+    const ok = typeof CSS !== "undefined" && CSS.supports("offset-path", 'path("M 0 0 L 10 10")') && particles.length > 0;
     setSupported(ok);
-    const total = ok ? TRAVEL_MS + (particles.length - 1) * STAGGER_MS + 250 : 0;
+    const total = ok ? TRAVEL_MS + (particles.length - 1) * STAGGER_MS + 200 : 0;
     const t = window.setTimeout(() => onDoneRef.current(), total);
     return () => window.clearTimeout(t);
   }, [particles]);
@@ -80,30 +65,15 @@ export function DataParticles({
   if (!supported) return null;
 
   return (
-    <div aria-hidden style={{ position: "fixed", inset: 0, zIndex: 9990, pointerEvents: "none" }}>
+    <div aria-hidden>
       {particles.map((p, i) => (
         <span
           key={i}
-          style={
-            {
-              position: "fixed",
-              left: 0,
-              top: 0,
-              offsetPath: `path("${p.path}")`,
-              offsetRotate: "0deg",
-              animation: `pb-particle-move ${TRAVEL_MS}ms cubic-bezier(.45,.05,.55,.95) ${p.delay}ms both`,
-              fontFamily: "var(--font-mono)",
-              fontSize: 9.5,
-              fontWeight: 700,
-              letterSpacing: ".02em",
-              color: "var(--pb-accent, #5b9dff)",
-              background: "color-mix(in srgb, var(--pb-surface-2, #161d2b) 92%, transparent)",
-              border: "1px solid color-mix(in srgb, var(--pb-accent, #5b9dff) 45%, transparent)",
-              borderRadius: 6,
-              padding: "2px 6px",
-              boxShadow: "0 4px 14px rgba(0,0,0,.4)",
-            } as React.CSSProperties
-          }
+          className={s.particle}
+          style={{
+            offsetPath: `path("${p.path}")`,
+            animationDelay: `${p.delay}ms`,
+          }}
         >
           {p.token}
         </span>

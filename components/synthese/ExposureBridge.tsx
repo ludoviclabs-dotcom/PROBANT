@@ -213,7 +213,7 @@ export function ExposureBridge({
         </details>
       </figure>
 
-      <aside aria-label="Annotation de l’exposition" className={s.marginNote}>
+      <aside aria-label="Annotation de l’exposition" data-tour="synthese-exposition" className={s.marginNote}>
         <div className={s.noteKey}>Ajustement proposé · résultat</div>
         <div aria-live="polite" className={s.noteValue}>{proposedText}</div>
         {netText && <div className={s.noteNet}>{netText}</div>}
@@ -234,7 +234,7 @@ export function ExposureBridge({
             </li>
           ))}
         </ul>
-        <p className={s.noteExcluded}>{excludedNote}</p>
+        <p data-tour-read="excluded" className={s.noteExcluded}>{excludedNote}</p>
       </aside>
     </div>
   );

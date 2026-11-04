@@ -17,15 +17,15 @@ export function SignalScale({ signal, variant }: { signal: SignalView; variant: 
   const pos = `${signal.index}%`;
   if (variant === "A") {
     return (
-      <div data-a="txt" className={s.signalA}>
+      <div data-a="txt" data-tour="synthese-signal" className={s.signalA}>
         <div className={s.signalHead}>
           <span className={s.signalTitle}>Signal heuristique</span>
           <span className={s.signalMeta}>paramètre interne · non opposable</span>
         </div>
         <div className={s.signalValue}>
-          <span className={s.signalNumber}>{signal.index}</span>
+          <span data-tour-read="value" className={s.signalNumber}>{signal.index}</span>
           <span className={s.signalOutOf}>/100</span>
-          <span className={s.signalBand}>{signal.band}</span>
+          <span data-tour-read="band" className={s.signalBand}>{signal.band}</span>
         </div>
         <div role="img" aria-label={signal.aria} className={s.scaleA}>
           <div className={s.segments}>

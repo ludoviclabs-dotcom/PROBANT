@@ -15,11 +15,11 @@ export function FilterBar({ filter, clos, count, onClear }: { filter: CrossFilte
     ? `${clo ?? "Toutes cloisons"} → ${filter.sev ? SEVERITY_LABEL[filter.sev] : "toutes gravités"} · ${count} ${plural(count, "constat")}`
     : "Aucun. Cliquez un flux, une cloison ou une gravité du Sankey pour filtrer toute l’analyse.";
   return (
-    <div aria-live="polite" className={s.filterBar}>
+    <div aria-live="polite" data-tour="synthese-filtre" className={s.filterBar}>
       <span className={s.filterKey}>Filtre croisé</span>
-      <span className={active ? s.filterOn : s.filterOff}>{label}</span>
+      <span data-tour-read="filter" className={active ? s.filterOn : s.filterOff}>{label}</span>
       {active && (
-        <button type="button" className={s.btnSmall} onClick={onClear}>
+        <button type="button" data-tour-action="filter-clear" className={s.btnSmall} onClick={onClear}>
           Effacer le filtre
         </button>
       )}

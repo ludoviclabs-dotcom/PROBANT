@@ -357,7 +357,7 @@ export function RiskMappingView({ cycles }: { cycles: AuditCycle[] }) {
           </>
         }
         aside={
-          <dl className={`${p.readouts} ${s.readouts}`}>
+          <dl data-tour="risk-readouts" className={`${p.readouts} ${s.readouts}`}>
             <div>
               <dt>Cycles évalués</dt>
               <dd>

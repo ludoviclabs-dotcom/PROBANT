@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
 import { DemoLauncher } from "@/components/probant/DemoLauncher";
+import { TOUR_DURATION_LABEL } from "@/lib/demo/tour-entry";
 import { EASE, canAnimate } from "@/components/charte/motion";
 import { FecFlowView } from "./FecFlowView";
 import { WIDE_MIN, useViewportWidth } from "./useViewport";
@@ -53,7 +54,7 @@ export function Hero() {
         </p>
         <div data-a="txt" className={s.ctas}>
           <DemoLauncher className={s.ctaPrimary}>
-            Lancer la visite guidée <span className={s.ctaMeta}>· 95 s</span>
+            Lancer la visite guidée <span className={s.ctaMeta}>· {TOUR_DURATION_LABEL}</span>
           </DemoLauncher>
           <Link href="/dashboard/synthese" className={s.ctaSecondary}>
             Ouvrir la démo d’analyse FEC →

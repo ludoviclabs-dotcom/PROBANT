@@ -105,6 +105,7 @@ export function ReferentielWorkspace({
       <PageIntro
         index="08"
         title="Seuils & référentiel"
+        tourId="referentiel-socle"
         lead={
           <>
             <strong>{total}</strong> {plural(total, "source versionnée", "sources versionnées")} fondent les contrôles

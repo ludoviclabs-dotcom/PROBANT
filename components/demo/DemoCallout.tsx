@@ -2,28 +2,40 @@
 
 import { useMemo } from "react";
 import { useDemoCounter } from "./useDemoCounter";
+import s from "./tour.module.css";
 
 /**
- * Callout card flottante « artefact connecté » : une mini-carte factuelle
- * (titre · valeur · note) reliée à la cible spotlightée par une ligne SVG qui
- * se dessine (`pb-draw-line`). Le contenu vient de `tour.ts` (étape courante)
- * — jamais un chiffre inventé ici.
+ * Fiche « artefact connecté » : titre · valeur · note, reliée au cadre de l'étape par un filet qui se dessine.
+ * Le contenu vient du script (`lib/demo/tour.ts`) ou d'une lecture du DOM rendu — jamais un chiffre inventé ici.
  *
- * `countUp` anime les nombres contenus dans `value` (0 → n), avec une pastille
- * LIVE le temps de la montée. pointer-events:none : purement décoratif.
+ * Placement : autour du cadre (à droite, à gauche, dessous, dessus), ramené dans l'écran, la première position
+ * qui ne recouvre ni la carte de narration ni la cible ; à défaut (cible plus grande que l'écran), un coin haut
+ * du cadre, toujours hors de la carte.
+ * `countUp` anime les nombres contenus dans `value`. pointer-events:none : purement informatif.
  */
 
-const CALLOUT_W = 236;
-const CALLOUT_EST_H = 92;
+const CALLOUT_W = 240;
+const CALLOUT_EST_H = 96;
+const GAP = 28;
+const MARGIN = 12;
 
-export type CalloutSide = "left" | "right" | "top" | "bottom";
+interface Box {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+}
 
 /** Segments de `value` : les nombres sont animés, le reste est rendu tel quel. */
 function splitNumericSegments(value: string): (string | number)[] {
   return value
     .split(/(\d+)/)
-    .filter((s) => s !== "")
-    .map((s) => (/^\d+$/.test(s) ? Number(s) : s));
+    .filter((part) => part !== "")
+    .map((part) => (/^\d+$/.test(part) ? Number(part) : part));
+}
+
+function intersects(a: Box, b: Box): boolean {
+  return a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
 }
 
 export function DemoCallout({
@@ -32,7 +44,8 @@ export function DemoCallout({
   note,
   countUp = false,
   anchorRect,
-  side,
+  avoid,
+  allowInside = true,
   viewport,
 }: {
   title: string;
@@ -40,155 +53,99 @@ export function DemoCallout({
   note?: string;
   countUp?: boolean;
   anchorRect: DOMRect;
-  side: CalloutSide;
+  /** Rectangles à ne pas recouvrir : carte de narration, bouton d'un moment « À vous ». */
+  avoid: (DOMRect | null)[];
+  /** Repli dans un coin du cadre autorisé (non sur mobile : la fiche y masquerait la cible). */
+  allowInside?: boolean;
+  /** Zone utile de l'écran (hauteur sans la frise). */
   viewport: { w: number; h: number };
 }) {
-  // Progression partagée par tous les nombres de la valeur (easeOutQuart).
   const progress = useDemoCounter(1000, 1100, countUp) / 1000;
   const segments = useMemo(() => splitNumericSegments(value), [value]);
-  const counting = countUp && progress < 1;
 
-  const { card, line } = useMemo(() => {
-    const gap = 42; // distance carte ↔ cible (la ligne vit dans cet espace)
-    const cx = anchorRect.left + anchorRect.width / 2;
-    const cy = anchorRect.top + anchorRect.height / 2;
-    let left: number;
-    let top: number;
-    switch (side) {
-      case "left":
-        left = anchorRect.left - gap - CALLOUT_W;
-        top = cy - CALLOUT_EST_H / 2 - 30;
+  const layout = useMemo(() => {
+    const a = anchorRect;
+    const cy = Math.max(a.top + 40, Math.min(a.top + a.height / 2, a.bottom - 40));
+    const cx = a.left + a.width / 2;
+    const clampBox = (c: { left: number; top: number }) => ({
+      left: Math.max(MARGIN, Math.min(c.left, viewport.w - CALLOUT_W - MARGIN)),
+      top: Math.max(MARGIN, Math.min(c.top, viewport.h - CALLOUT_EST_H - MARGIN)),
+    });
+    const box = (c: { left: number; top: number }): Box => ({ left: c.left, top: c.top, right: c.left + CALLOUT_W, bottom: c.top + CALLOUT_EST_H });
+    const avoidBoxes: Box[] = avoid
+      .filter((r): r is DOMRect => r !== null)
+      .map((r) => ({ left: r.left - 8, top: r.top - 8, right: r.right + 8, bottom: r.bottom + 8 }));
+    const anchorBox: Box = { left: a.left + 4, top: a.top + 4, right: a.right - 4, bottom: a.bottom - 4 };
+    const free = (b: Box) => !avoidBoxes.some((x) => intersects(b, x));
+
+    // 1. Autour du cadre, ramené dans l'écran : ni sur la carte, ni sur la cible.
+    const around: { side: "left" | "right" | "top" | "bottom"; left: number; top: number }[] = [
+      { side: "right", left: a.right + GAP, top: cy - CALLOUT_EST_H / 2 },
+      { side: "left", left: a.left - GAP - CALLOUT_W, top: cy - CALLOUT_EST_H / 2 },
+      { side: "bottom", left: cx - CALLOUT_W / 2, top: a.bottom + GAP },
+      { side: "top", left: cx - CALLOUT_W / 2, top: a.top - GAP - CALLOUT_EST_H },
+    ];
+    let pick: { side: "left" | "right" | "top" | "bottom" | "inside"; left: number; top: number } | null = null;
+    for (const c of around) {
+      const k = clampBox(c);
+      if (free(box(k)) && !intersects(box(k), anchorBox)) {
+        pick = { side: c.side, ...k };
         break;
-      case "right":
-        left = anchorRect.right + gap;
-        top = cy - CALLOUT_EST_H / 2 - 30;
-        break;
-      case "top":
-        left = cx + anchorRect.width * 0.22;
-        top = anchorRect.top - gap - CALLOUT_EST_H;
-        break;
-      case "bottom":
-      default:
-        left = cx + anchorRect.width * 0.22;
-        top = anchorRect.bottom + gap;
-        break;
+      }
     }
-    left = Math.max(12, Math.min(left, viewport.w - CALLOUT_W - 12));
-    top = Math.max(12, Math.min(top, viewport.h - CALLOUT_EST_H - 12));
+    // 2. Sinon, dans un coin haut du cadre (cible plus grande que l'écran), toujours hors de la carte.
+    if (!pick && allowInside) {
+      const inside = [
+        { left: a.right - CALLOUT_W - 16, top: Math.max(a.top, MARGIN) + 16 },
+        { left: a.left + 16, top: Math.max(a.top, MARGIN) + 16 },
+      ].map(clampBox);
+      const k = inside.find((c) => free(box(c)));
+      if (k) pick = { side: "inside", ...k };
+    }
+    if (!pick) return null;
+    const { left, top } = pick;
 
-    // Extrémités de la ligne : bord de carte → bord de cible le plus proche.
-    const cardEdge = { x: 0, y: 0 };
-    const anchorEdge = { x: 0, y: 0 };
-    if (side === "left" || side === "right") {
-      cardEdge.x = side === "left" ? left + CALLOUT_W : left;
-      cardEdge.y = top + CALLOUT_EST_H / 2;
-      anchorEdge.x = side === "left" ? anchorRect.left : anchorRect.right;
-      anchorEdge.y = Math.max(anchorRect.top + 16, Math.min(cardEdge.y, anchorRect.bottom - 16));
+    // Filet : du bord de la fiche au bord du cadre le plus proche (aucun filet si la fiche est dans le cadre).
+    if (pick.side === "inside") return { left, top, line: null };
+    const card = { x: 0, y: 0 };
+    const end = { x: 0, y: 0 };
+    if (pick.side === "left" || pick.side === "right") {
+      card.x = pick.side === "left" ? left + CALLOUT_W : left;
+      card.y = top + CALLOUT_EST_H / 2;
+      end.x = pick.side === "left" ? a.left : a.right;
+      end.y = Math.max(a.top + 12, Math.min(card.y, a.bottom - 12));
     } else {
-      cardEdge.x = left + CALLOUT_W / 2;
-      cardEdge.y = side === "top" ? top + CALLOUT_EST_H : top;
-      anchorEdge.x = Math.max(anchorRect.left + 16, Math.min(cardEdge.x, anchorRect.right - 16));
-      anchorEdge.y = side === "top" ? anchorRect.top : anchorRect.bottom;
+      card.x = left + CALLOUT_W / 2;
+      card.y = pick.side === "top" ? top + CALLOUT_EST_H : top;
+      end.x = Math.max(a.left + 12, Math.min(card.x, a.right - 12));
+      end.y = pick.side === "top" ? a.top : a.bottom;
     }
-    // Légère courbure perpendiculaire pour éviter la ligne droite « outil debug ».
-    const mx = (cardEdge.x + anchorEdge.x) / 2;
-    const my = (cardEdge.y + anchorEdge.y) / 2;
-    const bend = side === "left" || side === "right" ? { x: 0, y: 18 } : { x: 18, y: 0 };
-    const d = `M ${cardEdge.x.toFixed(1)} ${cardEdge.y.toFixed(1)} Q ${(mx + bend.x).toFixed(1)} ${(my + bend.y).toFixed(1)}, ${anchorEdge.x.toFixed(1)} ${anchorEdge.y.toFixed(1)}`;
-    return { card: { left, top }, line: { d, end: anchorEdge } };
-  }, [anchorRect, side, viewport]);
+    // Coude orthogonal : un filet de la charte, pas une courbe d'outil de débogage.
+    const d =
+      pick.side === "left" || pick.side === "right"
+        ? `M ${card.x} ${card.y} H ${(card.x + end.x) / 2} V ${end.y} H ${end.x}`
+        : `M ${card.x} ${card.y} V ${(card.y + end.y) / 2} H ${end.x} V ${end.y}`;
+    return { left, top, line: { d, end } };
+  }, [anchorRect, avoid, allowInside, viewport]);
+
+  if (!layout) return null;
 
   return (
     <>
-      {/* Ligne de connexion carte → cible (se dessine, puis reste à 60 %). */}
-      <svg
-        aria-hidden
-        style={{
-          position: "fixed",
-          inset: 0,
-          width: "100%",
-          height: "100%",
-          zIndex: 9995,
-          pointerEvents: "none",
-        }}
-      >
-        <path
-          d={line.d}
-          fill="none"
-          stroke="var(--pb-accent, #5b9dff)"
-          strokeWidth={1.5}
-          strokeDasharray={300}
-          style={{ animation: "pb-draw-line .7s ease .15s both" }}
-        />
-        <circle
-          cx={line.end.x}
-          cy={line.end.y}
-          r={3}
-          fill="var(--pb-accent, #5b9dff)"
-          style={{ animation: "pbFadeIn .3s ease .6s both" }}
-        />
-      </svg>
-
-      <div
-        role="note"
-        aria-label={`${title} : ${value}`}
-        style={{
-          position: "fixed",
-          left: card.left,
-          top: card.top,
-          width: CALLOUT_W,
-          zIndex: 9995,
-          pointerEvents: "none",
-          borderRadius: 12,
-          border: "1px solid var(--pb-border-strong, #324563)",
-          background: "color-mix(in srgb, var(--pb-surface, #111722) 96%, transparent)",
-          boxShadow: "0 14px 40px rgba(0,0,0,.5), 0 0 0 1px rgba(91,157,255,.12)",
-          padding: "10px 13px 11px",
-          animation: "pb-callout-in .32s cubic-bezier(.16,1,.3,1) both",
-        }}
-      >
-        <div
-          style={{
-            fontSize: 9.5,
-            fontWeight: 700,
-            letterSpacing: ".07em",
-            textTransform: "uppercase",
-            color: "var(--pb-accent, #5b9dff)",
-          }}
-        >
-          {title}
+      {layout.line && (
+        <svg aria-hidden className={s.calloutLink} width="100%" height="100%">
+          <path d={layout.line.d} />
+          <circle cx={layout.line.end.x} cy={layout.line.end.y} r={2.5} />
+        </svg>
+      )}
+      <div role="note" aria-label={`${title} : ${value}`} className={s.callout} style={{ left: layout.left, top: layout.top }}>
+        <div className={s.calloutKey}>{title}</div>
+        <div className={s.calloutValue}>
+          {countUp
+            ? segments.map((seg, i) => (typeof seg === "number" ? <span key={i}>{Math.round(seg * progress)}</span> : <span key={i}>{seg}</span>))
+            : value}
         </div>
-        <div
-          className="tnum"
-          style={{
-            marginTop: 3,
-            display: "flex",
-            alignItems: "center",
-            gap: 7,
-            fontFamily: "var(--font-mono)",
-            fontSize: 14.5,
-            fontWeight: 700,
-            color: "var(--pb-text, #e6edf6)",
-          }}
-        >
-          <span>
-            {countUp
-              ? segments.map((seg, i) =>
-                  typeof seg === "number" ? (
-                    <span key={i}>{Math.round(seg * progress)}</span>
-                  ) : (
-                    <span key={i}>{seg}</span>
-                  ),
-                )
-              : value}
-          </span>
-          {counting && <span className="pb-live-dot" aria-hidden />}
-        </div>
-        {note && (
-          <div style={{ marginTop: 3, fontSize: 10.5, lineHeight: 1.4, color: "var(--pb-text-muted, #8a99af)" }}>
-            {note}
-          </div>
-        )}
+        {note && <div className={s.calloutNote}>{note}</div>}
       </div>
     </>
   );

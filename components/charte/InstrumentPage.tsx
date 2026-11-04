@@ -25,6 +25,7 @@ export function PageIntro({
   title,
   lead,
   aside,
+  tourId,
 }: {
   /** Numéro de l'étape dans le rail (« 03 »). */
   index: string;
@@ -33,9 +34,11 @@ export function PageIntro({
   title: string;
   lead?: ReactNode;
   aside?: ReactNode;
+  /** Ancre `data-tour` de la visite guidée, posée sur l'en-tête. */
+  tourId?: string;
 }) {
   return (
-    <header className={p.intro}>
+    <header data-tour={tourId} className={p.intro}>
       <div className={p.introMain}>
         <p className={p.eyebrow}>
           {index} · {title}

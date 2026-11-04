@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { DossierContextLink as Link } from "@/components/probant/DossierContextLink";
 import { DemoLauncher } from "@/components/probant/DemoLauncher";
+import { TOUR_DURATION_LABEL } from "@/lib/demo/tour-entry";
 import { Logo } from "@/components/charte/Logo";
 import { SeverityGlyph } from "@/components/charte/SeverityMark";
 import { NAV_ITEMS } from "./nav";
@@ -58,7 +59,7 @@ export function InstrumentRail({ badges, version }: { badges: Partial<Record<str
       <div className={s.railFoot}>
         <DemoLauncher className={s.railTour}>
           <span>Visite guidée</span>
-          <span className={s.railTourMeta}>95 s</span>
+          <span className={s.railTourMeta}>{TOUR_DURATION_LABEL}</span>
         </DemoLauncher>
         <span className={s.railVersion}>{version}</span>
       </div>
