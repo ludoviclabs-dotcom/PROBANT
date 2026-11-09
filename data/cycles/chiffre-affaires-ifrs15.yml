@@ -183,7 +183,7 @@ officialSources:
   - id: pcg-classe-7
     label: PCG — Produits (classe 7)
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
 
 keyPoints:

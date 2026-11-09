@@ -1,5 +1,9 @@
 # Audit Normatif 360 — descriptif de PR prêt à examiner
 
+> **Historique.** Le tiroir de navigation décrit ci-dessous (`CycleSidebar`, `useNavDrawer`) a été remplacé le
+> 09/11/2026 par des onglets dans l'ambiance papier de la charte ; voir `NORMATIF_VEILLE_PR.md`. Le correctif de
+> navigation vers `/normatif/cycles` (`loading.tsx`, filtres en liens de document) reste en vigueur.
+
 Titre : Audit Normatif 360 lisible à 390 px, navigation vers la liste des cycles rétablie, tiroirs de navigation accessibles (Normatif et tableau de bord)
 
 Base : `main` `ff3f9fb` (worktree propre au départ, branche `claude/competent-borg-3d6941`).

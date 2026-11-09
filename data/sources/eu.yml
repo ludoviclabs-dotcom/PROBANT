@@ -18,6 +18,7 @@ sources:
   - id: efrag
     label: EFRAG — Statut d'adoption des IFRS dans l'UE
     type: EU_REGULATION
-    url: https://www.efrag.org
+    url: "https://www.efrag.org/en/financial-reporting/endorsement-status"
     status: OBLIGATOIRE
     summary: Suivi de l'adoption (endorsement) des normes IFRS au niveau européen.
+    note: "L'EFRAG rend un avis d'adoption ; l'adoption est un règlement de la Commission. Dernier rapport de statut au 24/09/2026 (lu par la veille du 09/11/2026)."

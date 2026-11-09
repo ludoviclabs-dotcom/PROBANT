@@ -236,7 +236,7 @@ officialSources:
   - id: pcg
     label: PCG — Valeurs mobilières de placement (50) et dépréciations (59)
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
 
 keyPoints:

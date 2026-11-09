@@ -1,67 +1,101 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Search } from "lucide-react";
 import { buildSearchIndex, searchCycles } from "@/lib/audit-cycles/search";
 import { CYCLE_FAMILY_LABEL, type CycleSearchItem } from "@/lib/audit-cycles/types";
+import p from "@/components/charte/page.module.css";
+import n from "./normatif.module.css";
 
+/**
+ * Recherche plein texte dans les cycles (Fuse.js, index construit dans le navigateur). Les résultats sont des
+ * liens ordinaires : Tab les parcourt, Flèche bas y entre depuis le champ, Échap referme la liste.
+ */
 export function SearchBar({ cycles }: { cycles: CycleSearchItem[] }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const listRef = useRef<HTMLUListElement>(null);
+  const inputId = useId();
+  const listId = useId();
 
   const index = useMemo(() => buildSearchIndex(cycles), [cycles]);
-  const results = useMemo(
-    () => searchCycles(query, index, 8),
-    [query, index],
-  );
+  const results = useMemo(() => searchCycles(query, index, 8), [query, index]);
+  const show = open && query.trim().length > 0;
 
   return (
-    <div className="relative">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--pb-text-faint)]" />
-        <input
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setOpen(true);
+    <div
+      className={n.search}
+      onBlur={(e) => {
+        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setOpen(false);
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Escape") {
+          setOpen(false);
+          (e.currentTarget.querySelector("input") as HTMLInputElement | null)?.focus();
+        }
+      }}
+    >
+      <label htmlFor={inputId} className={`${p.key} ${n.searchLabel}`}>
+        Rechercher un cycle, une norme, un compte
+      </label>
+      <svg className={n.searchIcon} width={16} height={16} viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+        <circle cx={7} cy={7} r={5} strokeWidth={1.4} style={{ fill: "none", stroke: "currentColor" }} />
+        <path d="M11 11l3.5 3.5" strokeWidth={1.4} style={{ stroke: "currentColor" }} />
+      </svg>
+      <input
+        id={inputId}
+        type="search"
+        value={query}
+        autoComplete="off"
+        aria-controls={show ? listId : undefined}
+        onChange={(e) => {
+          setQuery(e.target.value);
+          setOpen(true);
+        }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === "ArrowDown" && show) {
+            e.preventDefault();
+            listRef.current?.querySelector("a")?.focus();
+          }
+        }}
+        placeholder="ISA 240, DSO, 411, stocks…"
+        className={n.searchInput}
+      />
+      {show ? (
+        <ul
+          id={listId}
+          ref={listRef}
+          className={n.searchResults}
+          // Garde le focus dans le champ pendant le clic : Safari ne focalise pas un lien cliqué, la liste se
+          // refermerait (blur) avant que le clic n'aboutisse.
+          onMouseDown={(e) => e.preventDefault()}
+          aria-label={`${results.length} résultat${results.length > 1 ? "s" : ""}`}
+          onKeyDown={(e) => {
+            if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
+            e.preventDefault();
+            const links = [...(listRef.current?.querySelectorAll("a") ?? [])];
+            const at = links.indexOf(document.activeElement as HTMLAnchorElement);
+            const next = e.key === "ArrowDown" ? Math.min(at + 1, links.length - 1) : at - 1;
+            if (next < 0) (e.currentTarget.parentElement?.querySelector("input") as HTMLInputElement | null)?.focus();
+            else links[next]?.focus();
           }}
-          onFocus={() => setOpen(true)}
-          onBlur={() => setTimeout(() => setOpen(false), 150)}
-          placeholder="Rechercher un cycle, une norme, un compte… (ex. ISA 240, DSO, 411, stocks)"
-          className="w-full rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface-2)] py-3 pl-10 pr-4 text-[13px] text-[var(--pb-text)] placeholder:text-[var(--pb-text-faint)] focus:border-[var(--pb-border-strong)] focus:outline-none focus:ring-1 focus:ring-[var(--pb-accent)]/50"
-        />
-      </div>
-
-      {open && query.trim() && (
-        <div className="absolute z-20 mt-1.5 w-full overflow-hidden rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] shadow-2xl">
+        >
           {results.length === 0 ? (
-            <div className="px-4 py-3 text-[12px] text-[var(--pb-text-faint)]">
-              Aucun cycle ne correspond à « {query} ».
-            </div>
+            <li className={n.searchResult}>Aucun cycle ne correspond à « {query} ».</li>
           ) : (
             results.map((r) => (
-              <Link
-                key={r.slug}
-                href={`/normatif/cycles/${r.slug}`}
-                className="flex items-center gap-3 border-b border-[var(--pb-border)]/50 px-4 py-2.5 text-[13px] last:border-0 hover:bg-[var(--pb-surface-2)]"
-              >
-                <span className="flex-1 truncate font-medium text-[var(--pb-text)]">
-                  {r.title}
-                </span>
-                <span className="shrink-0 text-[10px] text-[var(--pb-text-faint)]">
-                  {CYCLE_FAMILY_LABEL[r.family]}
-                </span>
-                {r.pcgAccounts.length > 0 && (
-                  <code className="tnum shrink-0 rounded bg-[var(--pb-surface-3)] px-1.5 py-0.5 text-[10px] text-[var(--pb-text-muted)]">
-                    {r.pcgAccounts.slice(0, 3).join(" ")}
-                  </code>
-                )}
-              </Link>
+              <li key={r.slug}>
+                <Link href={`/normatif/cycles/${r.slug}`} className={n.searchResult}>
+                  <span>{r.title}</span>
+                  <small>{r.pcgAccounts.slice(0, 3).join(" · ")}</small>
+                  <small>{CYCLE_FAMILY_LABEL[r.family]}</small>
+                </Link>
+              </li>
             ))
           )}
-        </div>
-      )}
+        </ul>
+      ) : null}
     </div>
   );
 }

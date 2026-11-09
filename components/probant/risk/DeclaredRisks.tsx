@@ -5,7 +5,7 @@ import s from "./risk.module.css";
 /**
  * Risques déclarés par la fiche normative du cycle, dans le panneau de détail : les trois catégories de la matrice
  * normative (inhérents, de contrôle, de fraude), leurs indices et la réponse d'audit, lus tels quels dans `cycle.risks`.
- * Même contenu que `components/normatif/RiskMatrix` (partagé avec /normatif/cycles/[slug], non modifié), mis en liste
+ * Même contenu que `RiskColumns` de `components/normatif/CyclePanels` (partagé avec /normatif/cycles/[slug]), mis en liste
  * à filets continus pour un panneau de 352 px dans l'ambiance « instruments ».
  */
 

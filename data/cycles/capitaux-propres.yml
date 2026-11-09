@@ -263,7 +263,7 @@ officialSources:
   - id: pcg
     label: Plan comptable général — Comptes de capitaux
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
   - id: cc-capitaux-propres
     label: Code de commerce — Capitaux propres et réserve légale

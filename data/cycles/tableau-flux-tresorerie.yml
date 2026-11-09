@@ -236,7 +236,7 @@ officialSources:
   - id: anc-flux-tresorerie
     label: ANC — Tableau des flux de trésorerie (comptes consolidés)
     type: ANC
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
     status: OBLIGATOIRE
   - id: isa-520
     label: ISA 520 — Analytical Procedures

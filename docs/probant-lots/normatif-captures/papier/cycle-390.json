@@ -1,0 +1,18 @@
+{
+  "route": "/normatif/cycles/achats-charges-externes",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "overflowing": [],
+  "ambiance": "papier",
+  "background": "rgb(243, 239, 230)",
+  "tabs": {
+    "current": "Cycles d'audit",
+    "visible": true,
+    "wraps": "nowrap",
+    "height": 44
+  },
+  "axe": {}
+}

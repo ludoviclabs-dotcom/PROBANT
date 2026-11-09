@@ -271,6 +271,15 @@ export interface NormativeSource {
   effectiveDate?: string;
   summary?: string;
   note?: string;
+  /**
+   * Dernière lecture de la source sur une page officielle (AAAA-MM-JJ), lorsqu'elle est tracée. Absente =
+   * jamais vérifiée : un relevé de lien joignable n'en tient pas lieu (voir lib/audit-cycles/veille.ts).
+   */
+  verifiedAt?: string;
+  /** Ce qui a été lu, et où, lors de cette vérification. */
+  verifiedNote?: string;
+  /** Identifiant de la même source dans le registre de connaissances (lib/knowledge/registry.ts), s'il existe. */
+  knowledgeSourceId?: string;
 }
 
 /**

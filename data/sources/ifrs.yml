@@ -1,6 +1,7 @@
 # Normes comptables internationales IAS / IFRS — IFRS Foundation
 # Source maîtresse : https://www.ifrs.org/issued-standards/list-of-standards/
-# Application UE : règlement CE 1606/2002 (cf. eu.yml) après adoption EFRAG.
+# Application UE : règlement CE 1606/2002 (cf. eu.yml) ; chaque norme est adoptée par un règlement de la Commission
+# modifiant le règlement (UE) 2023/1803, après avis de l'EFRAG (qui n'adopte rien lui-même).
 sources:
   - id: ifrs-standards-master
     label: IFRS Foundation — Liste des normes en vigueur
@@ -14,6 +15,7 @@ sources:
     type: IAS
     url: https://www.ifrs.org/issued-standards/list-of-standards/ias-1-presentation-of-financial-statements.html
     status: OBLIGATOIRE
+    note: "Remplacée par IFRS 18 pour les exercices ouverts à compter du 01/01/2027 (règlement (UE) 2026/338 du 13/02/2026, lu sur EUR-Lex le 09/11/2026). Modifiée en 2020 et 2022 (classement courant / non courant, covenants), applicable depuis 2024."
 
   - id: ias-2
     label: IAS 2 — Stocks
@@ -33,6 +35,7 @@ sources:
     type: IAS
     url: https://www.ifrs.org/issued-standards/list-of-standards/ias-8-accounting-policies-changes-in-accounting-estimates-and-errors.html
     status: OBLIGATOIRE
+    note: "Renommée « Base d'établissement des états financiers » (Basis of Preparation of Financial Statements) par IFRS 18, pour les exercices ouverts à compter du 01/01/2027 ; la page ifrs.org porte déjà ce titre."
 
   - id: ias-10
     label: IAS 10 — Événements postérieurs à la période de reporting
@@ -107,11 +110,11 @@ sources:
     summary: Critères d'activation des frais de développement, durées d'utilité.
 
   - id: ias-39
-    label: "IAS 39 — Instruments financiers : comptabilisation et évaluation"
+    label: "IAS 39 — Instruments financiers : comptabilisation et évaluation (ne contient plus que la comptabilité de couverture)"
     type: IAS
     url: https://www.ifrs.org/issued-standards/list-of-standards/ias-39-financial-instruments-recognition-and-measurement.html
     status: RECOMMANDE
-    note: Largement remplacée par IFRS 9 ; comptabilité de couverture résiduelle possible.
+    note: "Remplacée par IFRS 9, sauf l'option qui permet de garder ses dispositions de comptabilité de couverture ; pour une entité qui a retenu cette option, ces dispositions s'imposent (page ifrs.org lue par la veille du 09/11/2026)."
 
   - id: ifrs-3
     label: IFRS 3 — Regroupements d'entreprises
@@ -166,6 +169,8 @@ sources:
     url: https://www.ifrs.org/content/dam/ifrs/supporting-implementation/agenda-decisions/2019/ifrs-16-lessees-incremental-borrowing-rate-september-2019.pdf
     status: RECOMMANDE
     summary: Matériel explicatif, non normatif - taux propre au contrat (durée, sûreté, montant, environnement économique) ; profil de paiement non exigé explicitement. Lu intégralement le 29/10/2026.
+    verifiedAt: "2026-10-29"
+    verifiedNote: Décision d'agenda IFRIC (PDF ifrs.org) lue intégralement le 29/10/2026 (lot IFRS 16).
 
   - id: ifric-ad-2019-11-lease-term
     label: IFRIC — Décision d'agenda, durée du contrat et durée d'utilité des agencements (novembre 2019)
@@ -173,3 +178,5 @@ sources:
     url: https://www.ifrs.org/news-and-events/updates/ifric/2019/ifric-update-november-2019/
     status: RECOMMANDE
     summary: Matériel explicatif, non normatif - période exécutoire et pénalité appréciées sur l'économie d'ensemble du contrat. Lu par extraction le 29/10/2026.
+    verifiedAt: "2026-10-29"
+    verifiedNote: IFRIC Update de novembre 2019 lu par extraction le 29/10/2026 (lot IFRS 16).

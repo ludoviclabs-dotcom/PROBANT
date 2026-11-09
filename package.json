@@ -25,6 +25,7 @@
     "benchmark:ingestion": "tsx scripts/benchmark-ingestion.ts",
     "demo:video": "node scripts/demo/record-visite.mjs",
     "ifrs:l16-docs": "tsx scripts/ifrs/gen-l16-docs.ts",
+    "normatif:liens": "tsx scripts/normatif-link-check.ts",
     "verify:vercel": "node scripts/verify-vercel.mjs",
     "sbom": "node scripts/generate-sbom.mjs",
     "test:e2e": "playwright test",
