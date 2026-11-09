@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { loadAllCycles, loadAllSources, loadVeilleReport } from "../loader";
+import { loadAllCycles, loadAllMethodology, loadAllSources, loadVeilleReport } from "../loader";
+import { buildCitationIndex } from "../veille";
 import { buildCoverageMatrix, buildCycleIndex, referenceFamilyOf, sourceSpread, REFERENCE_FAMILIES } from "../view";
 
 describe("modèles de vue Audit Normatif 360 (données réelles du dépôt)", () => {
@@ -33,6 +34,20 @@ describe("modèles de vue Audit Normatif 360 (données réelles du dépôt)", ()
     // Le total d'une colonne = nombre de cycles qui citent au moins une source du référentiel.
     for (const col of matrix.columns) {
       expect(col.total).toBe(rows.filter((r) => r.cells.find((c) => c.family === col.id)!.count > 0).length);
+    }
+  });
+
+  it("lit les rattachements source → cycles dans les fiches, sans la veille (revue Codex, PR #108)", async () => {
+    const [cycles, methodology, report] = await Promise.all([loadAllCycles(), loadAllMethodology(), loadVeilleReport()]);
+    const { cyclesBySource, methodologyBySource } = buildCitationIndex(cycles, methodology);
+    // La fiche « capitaux propres » cite le Code de commerce : le lien existe même si aucune veille n'est chargée.
+    expect(cyclesBySource.get("cc-capitaux-propres")).toContain("capitaux-propres");
+    expect(cyclesBySource.size).toBeGreaterThan(30);
+    expect(methodologyBySource.get("isa-520")).toContain("analytical-procedures");
+    // Et la veille, quand elle existe, reprend exactement le même index.
+    for (const s of report!.sources) {
+      expect(s.cycles, s.id).toEqual(cyclesBySource.get(s.id) ?? []);
+      expect(s.methodology, s.id).toEqual(methodologyBySource.get(s.id) ?? []);
     }
   });
 

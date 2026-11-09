@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { loadAllSources, loadVeilleReport } from "@/lib/audit-cycles/loader";
+import { loadAllCycles, loadAllMethodology, loadAllSources, loadVeilleReport } from "@/lib/audit-cycles/loader";
+import { buildCitationIndex } from "@/lib/audit-cycles/veille";
 import { referenceFamilyOf, sourceSpread } from "@/lib/audit-cycles/view";
 import { SectionHead } from "@/components/charte/InstrumentPage";
 import { SourcesRegister, type SourceRow } from "@/components/normatif/SourcesRegister";
@@ -10,7 +11,14 @@ import n from "@/components/normatif/normatif.module.css";
 export const metadata = { title: "Sources normatives" };
 
 export default async function SourcesPage() {
-  const [sources, veille] = await Promise.all([loadAllSources(), loadVeilleReport()]);
+  const [sources, veille, cycles, methodology] = await Promise.all([
+    loadAllSources(),
+    loadVeilleReport(),
+    loadAllCycles(),
+    loadAllMethodology(),
+  ]);
+  // Nombre de cycles citant chaque source : lu dans les fiches, indépendant de la veille.
+  const { cyclesBySource } = buildCitationIndex(cycles, methodology);
   const veilleById = new Map((veille?.sources ?? []).map((s) => [s.id, s]));
   const spread = sourceSpread(sources);
   const total = spread.reduce((sum, f) => sum + f.count, 0);
@@ -25,7 +33,7 @@ export default async function SourcesPage() {
       family: referenceFamilyOf(s.type),
       status: s.status,
       url: s.url ?? null,
-      cycles: v?.cycles.length ?? 0,
+      cycles: cyclesBySource.get(s.id)?.length ?? 0,
       verification: v ? { state: v.verification.state, date: v.verification.date } : null,
       link: v?.link.state ?? null,
       evolutions: (v?.evolutions ?? []).map((e) => ({ short: e.short, timing: e.timing, integration: e.integration })),

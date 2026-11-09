@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { loadAllCycles, loadAllMethodology, loadAllSources, loadVeilleReport } from "@/lib/audit-cycles/loader";
-import { EVOLUTION_KIND_LABEL, LINK_OUTCOME_LABEL } from "@/lib/audit-cycles/veille";
+import { EVOLUTION_KIND_LABEL, LINK_OUTCOME_LABEL, buildCitationIndex } from "@/lib/audit-cycles/veille";
 import { SectionHead } from "@/components/charte/InstrumentPage";
 import { NormativeStatusBadge } from "@/components/normatif/NormativeStatusBadge";
 import { EvolutionMark, LinkMark, VerificationMark, formatDate } from "@/components/normatif/VeilleMarks";
@@ -31,8 +31,12 @@ export default async function SourceDetailPage({ params }: { params: Promise<{ s
   if (!source) notFound();
 
   const v = veille?.sources.find((s) => s.id === slug) ?? null;
-  const referencing = cycles.filter((c) => (v?.cycles ?? []).includes(c.slug));
-  const docs = methodology.filter((m) => (v?.methodology ?? []).includes(m.slug));
+  // Rattachements lus dans les fiches : ils ne dépendent pas de la veille (absente ou illisible, ils restent).
+  const citations = buildCitationIndex(cycles, methodology);
+  const citingCycles = new Set(citations.cyclesBySource.get(slug) ?? []);
+  const citingDocs = new Set(citations.methodologyBySource.get(slug) ?? []);
+  const referencing = cycles.filter((c) => citingCycles.has(c.slug));
+  const docs = methodology.filter((m) => citingDocs.has(m.slug));
   const evolutions = (veille?.evolutions ?? []).filter((e) => e.normatifSourceIds.includes(slug));
 
   return (

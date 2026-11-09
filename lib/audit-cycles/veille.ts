@@ -441,12 +441,20 @@ export function validateVeille(input: Pick<VeilleInput, "veille" | "sources" | "
   return issues;
 }
 
-export function buildVeilleReport(input: VeilleInput): VeilleReport {
-  const { veille, sources, cycles, methodology, linkCheck, knowledge } = input;
-  const arreteAu = veille.arreteAu;
-  const sourceById = new Map(sources.map((s) => [s.id, s]));
+export interface CitationIndex {
+  /** Identifiant de source → slugs des cycles qui la citent. */
+  cyclesBySource: Map<string, string[]>;
+  /** Slug d'un cycle → identifiants distincts des sources qu'il cite. */
+  sourcesByCycle: Map<string, Set<string>>;
+  /** Identifiant de source → slugs des documents de méthode qui la citent. */
+  methodologyBySource: Map<string, string[]>;
+}
 
-  // Qui cite quoi.
+/**
+ * Qui cite quoi, lu directement dans les fiches et les documents de méthode. Indépendant de la veille : les pages
+ * Sources s'en servent même quand `data/veille/veille.yml` est absent ou illisible.
+ */
+export function buildCitationIndex(cycles: AuditCycle[], methodology: MethodologyDocument[]): CitationIndex {
   const cyclesBySource = new Map<string, string[]>();
   const sourcesByCycle = new Map<string, Set<string>>();
   for (const cycle of cycles) {
@@ -458,6 +466,15 @@ export function buildVeilleReport(input: VeilleInput): VeilleReport {
   for (const doc of methodology) {
     for (const id of methodologySourceIds(doc)) methodologyBySource.set(id, [...(methodologyBySource.get(id) ?? []), doc.slug]);
   }
+  return { cyclesBySource, sourcesByCycle, methodologyBySource };
+}
+
+export function buildVeilleReport(input: VeilleInput): VeilleReport {
+  const { veille, sources, cycles, methodology, linkCheck, knowledge } = input;
+  const arreteAu = veille.arreteAu;
+  const sourceById = new Map(sources.map((s) => [s.id, s]));
+
+  const { cyclesBySource, sourcesByCycle, methodologyBySource } = buildCitationIndex(cycles, methodology);
 
   // Évolutions situées à la date d'arrêté.
   const evolutions: EvolutionView[] = veille.evolutions.map((e) => {
