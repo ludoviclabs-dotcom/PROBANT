@@ -230,7 +230,7 @@ officialSources:
   - id: pcg
     label: PCG — Engagements de retraite et avantages du personnel
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
   - id: isa-540
     label: ISA 540 — Auditing Accounting Estimates

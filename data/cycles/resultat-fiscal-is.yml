@@ -220,7 +220,7 @@ officialSources:
   - id: pcg
     label: PCG — Impôt sur les bénéfices (compte 69) et État (compte 444)
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
   - id: isa-250
     label: ISA 250 — Consideration of Laws and Regulations

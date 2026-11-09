@@ -218,7 +218,7 @@ officialSources:
   - id: pcg
     label: PCG — Charges et produits financiers (classes 66 et 76)
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
   - id: isa-520
     label: ISA 520 — Analytical Procedures

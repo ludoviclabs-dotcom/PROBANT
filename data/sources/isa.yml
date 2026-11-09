@@ -1,58 +1,62 @@
 # Normes internationales d'audit (ISA) — IAASB / IFAC
-# Source maîtresse : https://www.iaasb.org/publications/international-standards-auditing-isa
-# Les URLs individuelles pointent vers la page de référence IAASB ; le numéro de
-# paragraphe précis reste à confirmer (A_VALIDER) lors de la revue experte.
+# Source maîtresse : édition 2026 du Handbook IAASB (https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance).
+# L'ancienne page https://www.iaasb.org/publications/international-standards-auditing-isa refuse l'accès (403, y compris
+# dans un navigateur) au 09/11/2026 : remplacée le 09/11/2026. Le numéro de paragraphe précis reste à confirmer
+# (A_VALIDER) lors de la revue experte. En France, seules les NEP homologuées s'imposent au commissaire aux comptes.
 sources:
   - id: isa-master
     label: International Standards on Auditing — IAASB
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
-    summary: >
-      Recueil des normes internationales d'audit publiées par l'IAASB.
-      Référentiel d'audit appliqué à l'international et transposé en France via les NEP.
+    summary: "Recueil des normes internationales d'audit publiées par l'IAASB (édition 2026 du Handbook). En France, le commissaire aux comptes applique les NEP homologuées ; la H2A a engagé en 2026 l'adaptation d'un premier lot de 20 ISA en normes « ISA-FR » (programme de travail du 17/02/2026), sans norme ISA-FR homologuée au 09/11/2026."
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Page de l'édition 2026 du Handbook IAASB lue le 09/11/2026."
 
   - id: isa-200
     label: ISA 200 — Objectifs généraux de l'auditeur indépendant
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Objectifs généraux et conduite d'un audit selon les ISA, assurance raisonnable.
 
   - id: isa-240
-    label: ISA 240 — Responsabilités de l'auditeur en matière de fraude
+    label: "ISA 240 — Responsabilités de l'auditeur en matière de fraude (version clarifiée, jusqu'aux périodes ouvertes avant le 15/12/2026)"
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: >
       Présomption de risque de fraude sur la reconnaissance du revenu et le
       contournement des contrôles par la direction (journal entries, estimations).
+    note: "ISA 240 (Revised) s'applique aux audits des périodes ouvertes à compter du 15/12/2026 (communiqué IAASB du 08/07/2025, lu par la veille du 09/11/2026). En France, la NEP 240 (art. A. 821-80) reste inchangée."
 
   - id: isa-250
-    label: ISA 250 — Prise en compte des textes légaux et réglementaires
+    label: "ISA 250 (révisée) — Prise en considération des textes légaux et réglementaires"
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Conformité aux lois et règlements ayant une incidence sur les comptes.
+    note: "Version « ISA 250 (Revised) », applicable aux périodes ouvertes à compter du 15/12/2017. Pendant français : NEP 250 (art. A. 821-81 du code de commerce), absente du registre."
 
   - id: isa-300
     label: ISA 300 — Planification d'un audit d'états financiers
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Stratégie générale et plan de mission.
 
   - id: isa-315
-    label: ISA 315 (révisée) — Identification et évaluation des risques d'anomalies significatives
+    label: "ISA 315 (révisée en 2019) — Identification et évaluation des risques d'anomalies significatives"
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Connaissance de l'entité, du contrôle interne et évaluation des risques.
+    note: "Version désignée « ISA 315 (Revised 2019) » par l'IAASB, applicable aux périodes ouvertes à compter du 15/12/2021 ; amendée au 15/12/2026 par ISA 240 (Revised) et les amendements « publicly traded entity »."
 
   - id: isa-320
     label: ISA 320 — Caractère significatif lors de la planification et de la réalisation d'un audit
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: >
       Impose le principe et la documentation du seuil de signification, sans fixer
@@ -61,49 +65,49 @@ sources:
   - id: isa-330
     label: ISA 330 — Réponses de l'auditeur aux risques évalués
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Procédures complémentaires (tests de contrôles, contrôles de substance).
 
   - id: isa-450
     label: ISA 450 — Évaluation des anomalies relevées au cours de l'audit
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Cumul, évaluation et communication des anomalies (individuelles et agrégées).
 
   - id: isa-500
     label: ISA 500 — Éléments probants
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Caractère suffisant et approprié des éléments probants collectés.
 
   - id: isa-501
     label: ISA 501 — Éléments probants — considérations spécifiques
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Stocks (inventaire physique), litiges, information sectorielle.
 
   - id: isa-505
     label: ISA 505 — Confirmations externes
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Procédures de demande de confirmation des tiers (banques, clients, avocats).
 
   - id: isa-520
     label: ISA 520 — Procédures analytiques
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Revue de cohérence des corrélations plausibles entre données financières.
 
   - id: isa-530
     label: ISA 530 — Sondages en audit
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: >
       Détermination de la taille d'échantillon selon le risque acceptable, la
@@ -112,41 +116,44 @@ sources:
   - id: isa-540
     label: ISA 540 (révisée) — Audit des estimations comptables
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Estimations, incertitude d'évaluation, biais de la direction.
 
   - id: isa-550
     label: ISA 550 — Parties liées
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Identification et audit des relations et transactions avec les parties liées.
 
   - id: isa-560
     label: ISA 560 — Événements postérieurs à la clôture
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Événements ajustants et non ajustants survenant après la date de clôture.
 
   - id: isa-570
-    label: ISA 570 (révisée) — Continuité d'exploitation
+    label: "ISA 570 (révisée) — Continuité d'exploitation (version applicable jusqu'aux périodes ouvertes avant le 15/12/2026)"
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Appréciation de la continuité d'exploitation sur un horizon d'au moins 12 mois.
+    note: "ISA 570 (Revised 2024) s'applique aux audits des périodes ouvertes à compter du 15/12/2026 (page IAASB lue le 09/11/2026) ; elle compte l'horizon d'au moins douze mois à partir de la date d'approbation des états financiers. En France, la NEP 570 (art. A. 821-83) reste inchangée."
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Page IAASB « ISA 570 (Revised 2024), Going Concern » lue le 09/11/2026 : « effective for audits of financial statements for periods beginning on or after December 15, 2026 »."
 
   - id: isa-580
     label: ISA 580 — Déclarations écrites
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Déclarations écrites de la direction comme éléments probants.
 
   - id: isa-620
     label: ISA 620 — Utilisation des travaux d'un expert désigné par l'auditeur
     type: ISA
-    url: https://www.iaasb.org/publications/international-standards-auditing-isa
+    url: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
     status: OBLIGATOIRE
     summary: Recours à un expert (actuaire, évaluateur) et appréciation de ses travaux.

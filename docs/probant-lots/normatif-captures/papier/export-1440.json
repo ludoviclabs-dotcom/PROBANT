@@ -1,0 +1,18 @@
+{
+  "route": "/normatif/export",
+  "width": 1440,
+  "document": {
+    "scrollWidth": 1440,
+    "clientWidth": 1440
+  },
+  "overflowing": [],
+  "ambiance": "papier",
+  "background": "rgb(243, 239, 230)",
+  "tabs": {
+    "current": "Export",
+    "visible": true,
+    "wraps": "wrap",
+    "height": 48
+  },
+  "axe": {}
+}

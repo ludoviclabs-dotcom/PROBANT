@@ -10,12 +10,21 @@
 import { readFile, readdir } from "node:fs/promises";
 import path from "node:path";
 import yaml from "js-yaml";
+import { knowledgeRegistry } from "@/lib/knowledge/registry";
 import type { AuditCycle, MethodologyDocument, NormativeSource } from "./types";
+import {
+  buildVeilleReport,
+  type KnowledgeVerification,
+  type LinkCheckFile,
+  type VeilleData,
+  type VeilleReport,
+} from "./veille";
 
 const DATA_DIR = path.join(process.cwd(), "data");
 const CYCLES_DIR = path.join(DATA_DIR, "cycles");
 const SOURCES_DIR = path.join(DATA_DIR, "sources");
 const METHODOLOGY_DIR = path.join(DATA_DIR, "methodology");
+const VEILLE_DIR = path.join(DATA_DIR, "veille");
 
 async function listYaml(dir: string): Promise<string[]> {
   try {
@@ -95,6 +104,58 @@ export async function loadAllMethodology(): Promise<MethodologyDocument[]> {
       } satisfies MethodologyDocument;
     }),
   );
+}
+
+/**
+ * Veille arrêtée (`data/veille/veille.yml`). Fichier absent : veille vide, signalée comme telle par la page
+ * (aucune évolution n'est inventée, et aucune source n'est réputée à jour pour autant).
+ */
+export async function loadVeilleData(): Promise<VeilleData | null> {
+  try {
+    const content = await readFile(path.join(VEILLE_DIR, "veille.yml"), "utf-8");
+    const raw = (yaml.load(content) as Partial<VeilleData>) ?? {};
+    return {
+      arreteAu: String(raw.arreteAu ?? ""),
+      perimetre: raw.perimetre ?? "",
+      methode: raw.methode ?? "",
+      reverificationDays: typeof raw.reverificationDays === "number" ? raw.reverificationDays : 365,
+      evolutions: (raw.evolutions ?? []).map((e) => ({ ...e, normatifSourceIds: e.normatifSourceIds ?? [], limits: e.limits ?? [] })),
+    };
+  } catch {
+    return null;
+  }
+}
+
+/** Dernier relevé des liens officiels (`data/veille/link-check.json`, écrit par scripts/normatif-link-check.mjs). */
+export async function loadLinkCheck(): Promise<LinkCheckFile | null> {
+  try {
+    return JSON.parse(await readFile(path.join(VEILLE_DIR, "link-check.json"), "utf-8")) as LinkCheckFile;
+  } catch {
+    return null;
+  }
+}
+
+/** Dates de vérification du registre de connaissances, réutilisées par la veille (même source, même lecture). */
+export function knowledgeVerifications(): KnowledgeVerification[] {
+  const urlById = new Map(knowledgeRegistry.records.map((r) => [r.id, r.canonicalUrl]));
+  return knowledgeRegistry.versions.map((v) => ({
+    knowledgeSourceId: v.sourceId,
+    lastVerifiedAt: v.lastVerifiedAt,
+    canonicalUrl: urlById.get(v.sourceId),
+  }));
+}
+
+/** Rapport de veille complet, à la date d'arrêté de la veille. Null si aucune veille n'est arrêtée. */
+export async function loadVeilleReport(): Promise<VeilleReport | null> {
+  const [veille, sources, cycles, methodology, linkCheck] = await Promise.all([
+    loadVeilleData(),
+    loadAllSources(),
+    loadAllCycles(),
+    loadAllMethodology(),
+    loadLinkCheck(),
+  ]);
+  if (!veille) return null;
+  return buildVeilleReport({ veille, sources, cycles, methodology, linkCheck, knowledge: knowledgeVerifications() });
 }
 
 /** Charge un document méthodologique par slug. */

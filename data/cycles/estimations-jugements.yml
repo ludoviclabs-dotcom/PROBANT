@@ -191,7 +191,7 @@ officialSources:
   - id: pcg-122-x
     label: PCG art. 122 — Changements d'estimation et de méthode
     type: PCG
-    url: https://www.anc.gouv.fr/fr/reglementation
+    url: https://www.anc.gouv.fr/plan-comptable-general-0
     status: OBLIGATOIRE
 
 keyPoints:

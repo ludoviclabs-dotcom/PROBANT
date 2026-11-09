@@ -11,18 +11,21 @@ import { expect, test, type Page } from "@playwright/test";
  * complète) pour l'appliquer dans une transition suspendue qui ne se validait jamais. Un
  * préchargement complet, ou une URL jamais préchargée (`?famille=…`), naviguait normalement.
  *
- * Ce spec suit chaque point d'entrée du module — barre latérale, accueil, fil d'Ariane d'une fiche
- * cycle — sans attendre puis après préchargement, et attend l'URL, le titre réel et la liste.
- * Les filtres de la page sont des liens de document (voir `FilterChip`) : leurs enchaînements, qui
- * figeaient aussi la liste (dont « Tous » depuis un filtre chargé directement, 6 / 6), sont vérifiés.
+ * Ce spec suit chaque point d'entrée du module — onglets (anciennement barre latérale), accueil, fil
+ * d'Ariane d'une fiche cycle — sans attendre puis après préchargement, et attend l'URL, le titre réel et la
+ * liste. Les filtres de la page sont des liens de document (voir `FilterLink`) : leurs enchaînements, qui
+ * figeaient aussi la liste (dont « Toutes » depuis un filtre chargé directement, 6 / 6), sont vérifiés.
  */
+const tabs = (p: Page) => p.getByRole("navigation", { name: "Audit Normatif 360" });
+
 const ENTRIES: readonly { name: string; from: string; link: (page: Page) => ReturnType<Page["locator"]> }[] = [
-  { name: "barre latérale depuis le registre", from: "/normatif/sources", link: (p) => p.locator("#normatif-nav").getByRole("link", { name: "Cycles d'audit" }) },
+  { name: "onglets depuis le registre", from: "/normatif/sources", link: (p) => tabs(p).getByRole("link", { name: "Cycles d'audit" }) },
   {
-    name: "barre latérale depuis une fiche source",
+    name: "onglets depuis une fiche source",
     from: "/normatif/sources/cc-capitaux-propres",
-    link: (p) => p.locator("#normatif-nav").getByRole("link", { name: "Cycles d'audit" }),
+    link: (p) => tabs(p).getByRole("link", { name: "Cycles d'audit" }),
   },
+  { name: "onglets depuis la veille", from: "/normatif/veille", link: (p) => tabs(p).getByRole("link", { name: "Cycles d'audit" }) },
   { name: "lien de l'accueil", from: "/normatif", link: (p) => p.locator("main a[href='/normatif/cycles']").first() },
   {
     name: "fil d'Ariane d'une fiche cycle",
@@ -33,7 +36,7 @@ const ENTRIES: readonly { name: string; from: string; link: (page: Page) => Retu
 
 async function expectCyclesList(page: Page, url: RegExp) {
   await expect(page).toHaveURL(url);
-  await expect(page.locator("main").getByRole("heading", { name: "Cycles d'audit", level: 2, exact: true })).toBeVisible();
+  await expect(page.locator("main").getByRole("heading", { name: "Cycles d'audit", level: 1, exact: true })).toBeVisible();
   await expect(page.locator("main a[href^='/normatif/cycles/']").first()).toBeVisible();
 }
 
@@ -53,7 +56,7 @@ for (const entry of ENTRIES) {
 }
 
 test("filtres : enchaînements qui figeaient la liste, y compris « Tous » depuis un filtre chargé directement", async ({ page }) => {
-  // Les puces sont des liens de document (voir FilterChip) : chaque clic recharge la page serveur.
+  // Les filtres sont des liens de document (voir FilterLink) : chaque clic recharge la page serveur.
   const steps = [
     "/normatif/cycles",
     "/normatif/cycles?fraude=1",

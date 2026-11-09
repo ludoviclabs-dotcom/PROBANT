@@ -1,0 +1,1962 @@
+# Veille normative — Audit Normatif 360
+#
+# Ce fichier est la veille ARRÊTÉE : chaque évolution y est datée, sourcée et rattachée aux sources du
+# registre (data/sources), aux fiches cycles (data/cycles) ou aux documents de méthode (data/methodology)
+# qu'elle rend périmés. Il est lu par lib/audit-cycles/veille.ts, qui juge toutes les dates à `arreteAu`.
+#
+# Règles de saisie :
+#  - une évolution « établie » porte l'adresse officielle réellement lue (`officialUrl`) et la date de lecture
+#    (`readAt`) ; un fait repris d'une lecture déjà tracée dans le dépôt porte `access: repris_du_depot` et sa
+#    `provenance` ; un fait que la source officielle ne laisse pas lire porte `access: inaccessible` ;
+#  - `quote` : citation exacte et courte de la source officielle, ou null ;
+#  - `integration` : a_integrer tant que le contenu PROBANT (registre, fiche, méthode) ne reflète pas
+#    l'évolution ; integre une fois la correction faite et décrite dans `integrationNote` ;
+#  - rattacher aux sources précises et aux cycles concernés, pas à une source générique (« pcg ») qui
+#    exposerait à tort toutes les fiches.
+# Relancer le relevé des liens : npm run normatif:liens (écrit data/veille/link-check.json).
+
+arreteAu: '2026-11-09'
+reverificationDays: 365
+perimetre: 'Registre des sources d''Audit Normatif 360 (data/sources, 90 sources), six documents de méthodologie
+  (data/methodology) et les références des 35 fiches cycles (data/cycles). Hors périmètre : le moteur de constat
+  FEC et le registre de connaissances (lib/knowledge), dont les lectures datées sont réutilisées ici, pas refaites.
+
+  '
+methode: 'Relevé HTTP de toutes les adresses officielles du registre, puis lecture des pages officielles des émetteurs
+  (IAASB, H2A, IASB, EUR-Lex, ANC, Légifrance, AFA) pour les textes cités. Les lectures officielles déjà tracées
+  dans le dépôt (résolveur lib/knowledge/french-gaap.ts, registre lib/knowledge/registry.ts) sont reprises avec
+  leur date. Une source secondaire peut orienter une recherche, jamais établir un fait. La veille ne réécrit aucune
+  fiche : l''intégration d''une évolution reste une revue experte.
+
+  '
+evolutions:
+- id: anc-adresse-officielle
+  title: Site de l'ANC refondu — l'ancienne page « réglementation » répond 404
+  short: Site ANC
+  kind: adresse_officielle
+  group: france
+  issuer: Autorité des normes comptables
+  officialUrl: https://www.anc.gouv.fr/normes-comptables-francaises/reglements-de-lanc
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: Sans date d'effet — adresse relevée le 09/11/2026.
+  effectiveFrom: null
+  quote: Règlements de l’ANC | ANC
+  normatifSourceIds:
+  - anc-reglementation
+  - anc-flux-tresorerie
+  - pcg
+  - pcg-121-5
+  - pcg-122-x
+  - pcg-214-13
+  - pcg-214-x
+  - pcg-213-x
+  - pcg-221-x
+  - pcg-322-1
+  - pcg-cpt-418
+  - pcg-cpt-486-487
+  - pcg-cpt-408-486
+  - pcg-rattachement
+  - pcg-classe-7
+  outdatedInProbant: 'Les 15 sources PCG / ANC et 25 fiches cycles renvoyaient vers https://www.anc.gouv.fr/fr/reglementation,
+    qui répond 404 (relevé du 09/11/2026).
+
+    '
+  integration: integre
+  integrationNote: 'Adresses remplacées le 09/11/2026 : page « Règlements de l''ANC » pour les sources ANC, page
+    « Plan comptable général » (https://www.anc.gouv.fr/plan-comptable-general-0) pour les sources PCG, dans le
+    registre et dans les 25 fiches ; la fiche cycle lit désormais l''adresse du registre central.
+
+    '
+  limits:
+  - La page du PCG renvoie au recueil consolidé ; elle ne pointe pas l'article cité par chaque source.
+- id: h2a-adresse-officielle
+  title: Référentiel normatif des commissaires aux comptes publié par la H2A — le domaine h2a.fr ne répond pas
+  short: Site H2A
+  kind: adresse_officielle
+  group: audit
+  issuer: Haute autorité de l'audit (H2A)
+  officialUrl: https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: Sans date d'effet — adresse relevée le 09/11/2026.
+  effectiveFrom: null
+  quote: Référentiel normatif - H2A - Haute Autorité de l'audit
+  normatifSourceIds:
+  - h2a-master
+  - nep-200
+  - nep-300
+  - nep-315
+  - nep-320
+  - nep-330
+  - nep-450
+  - nep-500
+  - nep-501
+  - nep-505
+  - nep-520
+  - nep-530
+  - nep-540
+  - nep-550
+  - nep-560
+  - nep-570
+  - nep-580
+  - nep-240
+  outdatedInProbant: 'La source « H2A » pointait vers https://www.h2a.fr (domaine qui ne répond pas) et les NEP
+    vers une page générale de la CNCC, alors que la H2A publie chaque NEP homologuée sur une page propre.
+
+    '
+  integration: integre
+  integrationNote: 'Le 09/11/2026, la source H2A pointe vers le référentiel normatif et chaque NEP vers sa page
+    H2A, relevée dans l''index officiel du même jour, avec son article A. 821-xx. La page de la NEP 240 porte l''adresse
+    « lettre-a-elise » : c''est bien celle que l''index officiel lui associe.'
+  limits: []
+- id: anc-2022-06-resultat-exceptionnel
+  title: Règlement ANC 2022-06 — résultat exceptionnel redéfini et modèles de comptes modernisés
+  short: ANC 2022-06
+  kind: amendement
+  group: france
+  issuer: ANC — règlement du 4 novembre 2022, homologué par arrêté du 26/12/2023 (JO du 30/12/2023)
+  officialUrl: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2022/R2022_06/R2022_06.pdf
+  readAt: '2026-10-13'
+  access: repris_du_depot
+  publishedOn: '2023-12-30'
+  effectiveRule: 'Comptes afférents aux exercices ouverts à compter du 1er janvier 2025 ; application anticipée
+    possible dès la publication au Journal officiel (art. 27).
+
+    '
+  effectiveFrom: '2025-01-01'
+  quote: s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2025
+  normatifSourceIds: []
+  cycleSlugs:
+  - exceptionnel-cutoff
+  outdatedInProbant: 'La fiche « Charges et produits exceptionnels et cut-off » définit encore l''exceptionnel par
+    « opérations non liées à l''activité courante » sur les classes 67 et 77, sans dater la règle. Depuis les exercices
+    ouverts en 2025, le résultat exceptionnel relève de l''article 513-5 créé par ANC 2022-06 (531-5 après ANC 2026-03).
+
+    '
+  integration: a_integrer
+  integrationNote: 'Le moteur de constat applique déjà la version datée (résolveur lib/knowledge/french-gaap.ts,
+    silo « résultat exceptionnel ») ; c''est la fiche Normatif qui ne l''a pas reprise.
+
+    '
+  provenance: lib/knowledge/french-gaap.ts — PDF ANC lu le 13/10/2026 (en-tête d'homologation, art. 27).
+  limits:
+  - La nouvelle définition n'est pas recopiée ici: la lire à l'article 513-5 avant de réécrire la fiche.
+- id: anc-2024-07-autres-fonds-propres
+  title: Règlement ANC 2024-07 — distinction dettes et autres fonds propres
+  short: ANC 2024-07
+  kind: amendement
+  group: france
+  issuer: ANC — règlement du 6 décembre 2024, homologué par arrêté du 26/12/2025 (JO du 27/12/2025)
+  officialUrl: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2024/R2024-07/REGLT_2024_07_web.pdf
+  readAt: '2026-10-13'
+  access: repris_du_depot
+  publishedOn: '2025-12-27'
+  effectiveRule: 'Comptes afférents aux exercices ouverts à compter du 1er janvier 2026 ; anticipation possible,
+    dès la publication au JO, sur les exercices en cours à cette date (art. 6-1).
+
+    '
+  effectiveFrom: '2026-01-01'
+  quote: s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2026
+  normatifSourceIds: []
+  cycleSlugs:
+  - capitaux-propres
+  - dettes-financieres-emprunts
+  outdatedInProbant: 'Les fiches « Capital, réserves et résultat » et « Dettes financières et emprunts » ne mentionnent
+    pas le chapitre « Autres fonds propres » (art. 314-1 à 316-1) ni le passif à trois masses qui en découle.
+
+    '
+  integration: a_integrer
+  provenance: lib/knowledge/french-gaap.ts — PDF ANC lu le 13/10/2026 (art. 1er et 6).
+  limits:
+  - Aucune règle de classement n'est tirée du texte ici ; seule son applicabilité est établie.
+- id: anc-2026-04-impot-benefices
+  title: Règlement ANC 2026-04 — impôt sur les bénéfices (article 515-1 remplacé)
+  short: ANC 2026-04
+  kind: amendement
+  group: france
+  issuer: ANC — règlement adopté le 6 mai 2026, homologué par arrêté du 12/08/2026 (JO du 03/09/2026)
+  officialUrl: https://www.anc.gouv.fr/reglement-anc-ndeg-2026-04-du-4-mai-2026
+  readAt: '2026-10-13'
+  access: repris_du_depot
+  publishedOn: '2026-09-03'
+  effectiveRule: 'Entre en vigueur le lendemain de sa publication au JO (04/09/2026) et s''applique aux exercices
+    en cours à cette date ; aucune anticipation prévue.
+
+    '
+  effectiveFrom: '2026-09-04'
+  quote: s'appliquera aux exercices en cours à cette date
+  normatifSourceIds: []
+  cycleSlugs:
+  - resultat-fiscal-is
+  outdatedInProbant: 'La fiche « Résultat fiscal et impôt sur les sociétés » ne cite pas l''article 515-1 dans sa
+    rédaction 2026 (taux d''impôt en vigueur à la clôture) ; elle s''appuie sur IAS 12 et le CGI.
+
+    '
+  integration: a_integrer
+  integrationNote: Le moteur IS (lot C10) lit déjà la version applicable via lib/knowledge/french-gaap.ts.
+  provenance: lib/knowledge/french-gaap.ts — PDF et page officielle ANC lus le 13/10/2026.
+  limits:
+  - Le titre porte « du 4 mai 2026 » et la page officielle « adopté le 6 mai 2026 » ; les deux sont gardés.
+- id: anc-2026-03-produits-ventes
+  title: Règlement ANC 2026-03 — produits des ventes, contrats à long terme, renumérotation du titre V du PCG
+  short: ANC 2026-03
+  kind: amendement
+  group: france
+  issuer: ANC — règlement du 6 mars 2026, homologué par arrêté du 12/08/2026 (JO du 03/09/2026)
+  officialUrl: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2026/2026%20homologu%C3%A9/2026_03-JO.pdf
+  readAt: '2026-10-13'
+  access: repris_du_depot
+  publishedOn: '2026-09-03'
+  effectiveRule: 'Comptes afférents aux exercices ouverts à compter du 1er janvier 2027, anticipation possible sur
+    l''exercice en cours à la publication (art. 4) ; contrats de vente conclus ou renouvelés après l''entrée en
+    vigueur (04/09/2026).
+
+    '
+  effectiveFrom: '2027-01-01'
+  quote: s'applique aux comptes afférents aux exercices ouverts à compter du 1er janvier 2027
+  normatifSourceIds:
+  - pcg-classe-7
+  cycleSlugs:
+  - chiffre-affaires-ifrs15
+  - cutoff-separation-exercices
+  - exceptionnel-cutoff
+  outdatedInProbant: 'La fiche « Chiffre d''affaires » résume le traitement PCG par « transfert des risques et avantages
+    / achèvement » ; à compter de 2027 les produits des ventes relèvent des articles 521-1 à 523-7, et le titre
+    V est renuméroté (résultat exceptionnel 531-5, impôt 542-1, rattachement 521-4 et suivants).
+
+    '
+  integration: a_integrer
+  provenance: lib/knowledge/french-gaap.ts — PDF ANC lu le 13/10/2026, arrêté lu sur Légifrance le 15/10/2026.
+  limits:
+  - Prix variables, contrats à long terme et droits de retour (522-4 à 523-7) ne sont pas résumés ici.
+- id: isa-570-revised-2024
+  title: ISA 570 (Revised 2024), Continuité d'exploitation — nouvelle version applicable au 15/12/2026
+  short: ISA 570 (2024)
+  kind: revision
+  group: audit
+  issuer: IAASB
+  officialUrl: https://iaasb.org/publications/isa-570-revised-2024-going-concern
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2025-04-09'
+  effectiveRule: Applicable aux audits d'états financiers des périodes ouvertes à compter du 15 décembre 2026 («
+    periods beginning on or after December 15, 2026 », § 8 de la norme). Les amendements de conformité aux autres
+    ISA entrent en vigueur en même temps.
+  effectiveFrom: '2026-12-15'
+  quote: effective for audits of financial statements for periods beginning on or after December 15, 2026
+  normatifSourceIds:
+  - isa-570
+  outdatedInProbant: 'Le libellé « ISA 570 (révisée) » est le nom de la version précédente (ISA 570 (Revised)),
+    encore applicable aux périodes ouvertes avant le 15/12/2026 ; à partir de cette date, la norme s''intitule «
+    ISA 570 (Revised 2024) » (traduction CPA Canada publiée sur iaasb.org le 12/06/2025 : « ISA 570 (révisée en
+    2024), Continuité de l''exploitation »). Il faut versionner le libellé (ou porter deux entrées datées). Le résumé
+    « horizon d''au moins 12 mois » ne précise pas le point de départ : la version 2024 (§ 21, PDF lu) demande d''étendre
+    l''évaluation de la direction à au moins douze mois à compter de la date d''approbation des états financiers.'
+  applicability: Les ISA ne s'imposent pas directement au commissaire aux comptes français, tenu de respecter les
+    normes homologuées par le garde des Sceaux (art. L. 821-11 C. com., rappelé par le programme de travail H2A
+    2026). La NEP 570 (art. A. 821-83 C. com.) est en vigueur depuis le 01/01/2024 sans modification ultérieure
+    (Légifrance) et ne reprend donc pas ISA 570 (Revised 2024) ; ISA 570 ne figure pas parmi les 20 ISA du premier
+    lot « ISA-FR » 2026.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé d''ISA 570 daté et note sur la version 2024. Les fiches
+    « Continuité d''exploitation » et « Covenants » ne sont pas réécrites (horizon de douze mois à compter de l''approbation
+    des comptes).'
+  limits:
+  - 'Date d''approbation par l''IAASB connue au mois seulement : « décembre 2024 » (communiqué PIOB du 10/04/2025,
+    lu) ; certification PIOB : avril 2025. Le texte de la version 2015 n''a pas été relu pour comparer le point
+    de départ des 12 mois.'
+- id: isa-240-revised
+  title: ISA 240 (Revised), Responsabilités de l'auditeur concernant les fraudes — applicable au 15/12/2026
+  short: ISA 240 (R)
+  kind: revision
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/news-events/2025-07/iaasb-revises-fraud-standard-enhance-public-trust
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2025-07-08'
+  effectiveRule: Applicable aux audits d'états financiers des périodes ouvertes à compter du 15 décembre 2026, en
+    même temps qu'ISA 570 (Revised 2024) ; amendements de conformité aux autres normes IAASB à la même date.
+  effectiveFrom: '2026-12-15'
+  quote: effective for audits of financial statements for periods beginning on or after December 15, 2026
+  normatifSourceIds:
+  - isa-240
+  methodologySlugs:
+  - fraud-risk
+  outdatedInProbant: 'Le libellé « ISA 240 — Responsabilités de l''auditeur en matière de fraude » ne porte pas
+    de version : à partir des périodes ouvertes le 15/12/2026, la norme applicable est « ISA 240 (Revised) » (titre
+    FR publié sur iaasb.org le 18/08/2025, traduction CPA Canada : « Norme ISA 240 (révisée), Responsabilités de
+    l''auditeur concernant les fraudes lors d''un audit d''états financiers »). Le registre doit distinguer ISA
+    240 (version clarifiée) et ISA 240 (Revised).'
+  applicability: Côté France, la NEP 240 « Prise en considération de la possibilité de fraudes lors de l'audit des
+    comptes » (art. A. 821-80 C. com.) est inchangée depuis sa création par l'arrêté du 28/12/2023 (en vigueur au
+    01/01/2024, Légifrance) ; ISA 240 ne figure pas dans le premier lot ISA-FR 2026 de la H2A.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé d''ISA 240 daté. Les fiches et la méthode « Risque
+    de fraude » ne reprennent pas encore ISA 240 (Revised).'
+  limits:
+  - 'Approbation IAASB connue au mois seulement : « March 2025 » (communiqué PIOB du 08/07/2025, lu) ; certification
+    PIOB le 08/07/2025. Le contenu détaillé des changements (transparence dans le rapport, etc.) n''a pas été analysé.'
+- id: isa-500-330-520-exposure-draft-2026
+  title: ISA 500 (Revised) Éléments probants, ISA 330 et ISA 520 révisées — au stade d'exposé-sondage, pas de norme
+    finale
+  short: ED ISA 500
+  kind: revision
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/publications/proposed-revisions-audit-evidence-risk-response-isa-330-isa-500-isa-520
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-08-05'
+  effectiveRule: 'Aucune date d''effet : exposé-sondage publié le 05/08/2026, commentaires jusqu''au 15/12/2026.
+    Le plan de travail IAASB (mis à jour en mars 2026, PDF lu) vise une norme finale « Audit Evidence and Risk Response
+    » au T4 2027.'
+  effectiveFrom: null
+  quote: Responses are requested by December 15, 2026.
+  normatifSourceIds:
+  - isa-500
+  - isa-330
+  - isa-520
+  - nep-500
+  - nep-330
+  - nep-520
+  exposeCycles: false
+  outdatedInProbant: 'Rien de périmé : ISA 500, 330 et 520 actuelles restent applicables. Ne pas créer d''entrée
+    « ISA 500 (révisée) » en vigueur ; plusieurs sites secondaires annoncent à tort une ISA 500 (Revised) applicable
+    en décembre 2026.'
+  applicability: 'Le programme H2A 2026 marque ISA 330, 500 et 520 d''un astérisque : normes « en cours de révision
+    par l''IAASB », la finalisation des futures NEP/ISA-FR correspondantes interviendra à la publication des ISA
+    révisées.'
+  integration: a_surveiller
+  integrationNote: 'Exposé-sondage : aucune norme finale ; ne rien intégrer avant publication.'
+  limits:
+  - Date d'effet proposée dans l'exposé-sondage non lue (la page ne l'indique pas ; PDF de l'exposé-sondage non
+    ouvert).
+- id: isa-501-505-revision-project
+  title: Projet IAASB de révision d'ISA 501 et ISA 505 (série 500)
+  short: ISA 501/505
+  kind: revision
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2026-04/IAASB-Summary-Work-Plan-2024-2027-Updated-March-2026.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: null
+  effectiveRule: 'Aucune : projet en cours, norme finale visée au T1 2028 (plan de travail IAASB, mise à jour de
+    mars 2026).'
+  effectiveFrom: null
+  quote: ISA 500-Series – Revising ISAs 501 and 505 Unchanged (Q1 2028 target for Final)
+  normatifSourceIds:
+  - isa-501
+  - isa-505
+  - nep-501
+  - nep-505
+  exposeCycles: false
+  outdatedInProbant: Rien de périmé à ce jour ; prévoir une révision des libellés et résumés à la publication (pas
+    avant 2028).
+  applicability: NEP 501 et NEP 505 ne figurent pas dans le premier lot ISA-FR 2026 de la H2A.
+  integration: a_surveiller
+  integrationNote: Projet IAASB ; norme finale visée au premier trimestre 2028.
+  limits:
+  - Le plan de travail donne des cibles indicatives, pas des dates d'effet ; le contenu du projet n'a pas été lu.
+- id: iaasb-work-plan-315-320-540
+  title: 'Plan de travail IAASB : revue post-implémentation d''ISA 315 (Revised 2019) et ISA 540 (Revised), révision
+    d''ISA 320 prévue'
+  short: Plan IAASB
+  kind: revision
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2026-04/IAASB-Summary-Work-Plan-2024-2027-Updated-March-2026.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: null
+  effectiveRule: 'Aucune date d''effet. Revue post-implémentation d''ISA 540 (Revised) : achèvement visé au T4 2026
+    ; revue post-implémentation d''ISA 315 (Revised 2019) : achèvement visé au T1 2028 ; « Materiality – Revising
+    ISA 320 » : démarrage prévu en 2027.'
+  effectiveFrom: null
+  quote: Planned for commencement in 2027
+  normatifSourceIds:
+  - isa-315
+  - isa-320
+  - isa-540
+  exposeCycles: false
+  outdatedInProbant: Rien de périmé ; points de veille à reprendre en 2027-2028.
+  applicability: ISA 315, 320 et 540 figurent dans le premier lot ISA-FR 2026 de la H2A.
+  integration: a_surveiller
+  integrationNote: Revues post-implémentation et révision d'ISA 320 à suivre en 2027-2028.
+  limits:
+  - Cibles indicatives du plan de travail ; aucun exposé-sondage ISA 320 lu.
+- id: isa-600-revised-group-audits
+  title: ISA 600 (Revised), Audits d'états financiers de groupe — absente du registre
+  short: ISA 600 (R)
+  kind: absence_registre
+  group: audit
+  issuer: IAASB
+  officialUrl: https://iaasb.org/publications/international-standard-auditing-600-revised-special-considerations-audits-group-financial-statements
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2022-04-07'
+  effectiveRule: Applicable aux audits d'états financiers de groupe des périodes ouvertes à compter du 15 décembre
+    2023.
+  effectiveFrom: '2023-12-15'
+  quote: for audits of group financial statements for periods beginning on or after December 15, 2023
+  normatifSourceIds: []
+  cycleSlugs:
+  - consolidation-perimetre
+  outdatedInProbant: 'Aucune entrée isa-600 alors que le module comporte un cycle « Consolidation et périmètre ».
+    Titre officiel : « ISA 600 (Revised), Special Considerations—Audits of Group Financial Statements (Including
+    the Work of Component Auditors) ». ISA 600 (Revised) est aussi touchée par les amendements de décembre 2026
+    (ISA 240 (Revised), ISA 570 (Revised 2024), PTE/PIE).'
+  applicability: 'Équivalent français : NEP 600 révisée en 2025 (voir nep-600-revisee-2025).'
+  integration: a_integrer
+  limits:
+  - Date d'approbation IAASB non lue.
+- id: isqm-1-2-isa-220-revised
+  title: ISQM 1, ISQM 2 et ISA 220 (Revised), gestion de la qualité — absentes du registre
+  short: ISQM 1/2
+  kind: absence_registre
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/publications/international-standard-auditing-220-revised-quality-management-audit-financial-statements
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2020-12-17'
+  effectiveRule: 'ISA 220 (Revised) : audits d''états financiers des périodes ouvertes à compter du 15 décembre
+    2022. ISQM 1 (page IAASB publiée le 17/12/2020) : systèmes de gestion de la qualité conçus et mis en place au
+    plus tard le 15 décembre 2022.'
+  effectiveFrom: '2022-12-15'
+  quote: effective for audits of financial statements for periods beginning on or after December 15, 2022
+  normatifSourceIds: []
+  outdatedInProbant: Aucune entrée qualité (ISQM 1/2, ISA 220 (Revised)). ISQM 1, ISQM 2 et ISA 220 (Revised) sont
+    en outre modifiées par les amendements PTE/PIE applicables au 15/12/2026.
+  applicability: En France, la page H2A « Accéder au référentiel normatif » indique pour les normes de contrôle
+    qualité « Aucune norme homologuée à ce jour » ; ISQM 1/2 ne sont donc pas des normes homologuées pour le CAC.
+  integration: a_surveiller
+  integrationNote: 'Gestion de la qualité du cabinet : hors du périmètre des cycles ; aucune norme de contrôle qualité
+    homologuée en France.'
+  limits:
+  - Page IAASB d'ISQM 2 non lue séparément ; dates d'approbation non lues.
+- id: pte-pie-narrow-scope-amendments-2025
+  title: Amendements ciblés « publicly traded entity » / EIP aux ISQM, ISA et ISRE 2400 (Revised) — applicables
+    au 15/12/2026
+  short: ISA PTE
+  kind: amendement
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/news-events/2025-09/iaasb-adopts-new-publicly-traded-entity-definition-aligned-iesba-code-ethics
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2025-09-01'
+  effectiveRule: Applicables aux audits (et examens limités) d'états financiers des périodes ouvertes à compter
+    du 15 décembre 2026. La définition « listed entity » est alignée sur celle de « publicly traded entity » du
+    Code IESBA et les exigences propres aux entités cotées s'appliquent aux PTE.
+  effectiveFrom: '2026-12-15'
+  quote: become effective for engagements for periods beginning on or after December 15, 2026
+  normatifSourceIds:
+  - isa-master
+  outdatedInProbant: 'Le sommaire du texte final (PDF IFAC lu : https://ifacweb.blob.core.windows.net/publicfiles/2025-08/IAASB-Narrow-Scope-Amendments-PIE-PTE-Listed-Entity.pdf)
+    liste les normes amendées : ISQM 1, ISQM 2, ISA 200, 210, 220 (Revised), 240 (Revised), 260 (Revised), 265,
+    315 (Revised 2019), 510, 570 (Revised 2024), 600 (Revised), 700 (Revised), 701, 705 (Revised), 706 (Revised),
+    710, 720 (Revised), 800 (Revised), 805 (Revised), 810 (Revised), ISRE 2400 (Revised). Toute mention « entité
+    cotée » dans le contenu ISA de PROBANT devient imprécise pour les périodes ouvertes à compter du 15/12/2026.'
+  applicability: Sans effet direct sur le CAC français (les ISA ne sont pas des normes homologuées) ; les NEP raisonnent
+    en « entités d'intérêt public » (intitulé de la NEP 702 sur la page H2A).
+  integration: a_integrer
+  limits:
+  - publishedOn = date du communiqué IAASB (01/09/2025, page lue) ; le PDF et la certification PIOB sont datés «
+    August 2025 » sans jour. Date d'approbation non lue. L'articulation avec le droit français (EIP) n'a pas été
+    vérifiée dans un texte officiel.
+- id: isa-260-700-track1-2023
+  title: Amendements ciblés à ISA 700 (Revised) et ISA 260 (Revised) — transparence sur l'indépendance EIP (2023)
+  short: ISA 260/700
+  kind: absence_registre
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2023-10/IAASB-Listed-Public-Interest-Entities-Basis-Conclusions.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2023-10-12'
+  effectiveRule: Applicables aux audits d'états financiers des périodes ouvertes à compter du 15 décembre 2024.
+  effectiveFrom: '2024-12-15'
+  quote: effective for audits of financial statements for periods beginning on or after December 15, 2024
+  normatifSourceIds: []
+  outdatedInProbant: ISA 260 (Revised) et ISA 700 (Revised) ne figurent pas au registre alors que la synthèse et
+    la communication avec la gouvernance en relèvent. Ces deux normes sont de nouveau amendées au 15/12/2026 (ISA
+    240 (Revised), ISA 570 (Revised 2024), PTE/PIE).
+  applicability: 'Équivalents français non identiques : NEP 260 « Communications avec les organes mentionnés à l''article
+    L. 821-63 du code de commerce » et NEP 700 « Rapports du commissaires aux comptes sur les comptes annuels et
+    consolidés » (titre H2A, sic).'
+  integration: a_integrer
+  limits:
+  - Date d'effet lue dans la Basis for Conclusions (document non normatif de l'IAASB), pas dans le texte final des
+    amendements ; publishedOn = date affichée sur la page IAASB de publication (12/10/2023).
+- id: isa-315-revised-2019-label
+  title: ISA 315 (Revised 2019) — libellé « ISA 315 (révisée) » ambigu
+  short: ISA 315 (2019)
+  kind: renommage
+  group: audit
+  issuer: IAASB
+  officialUrl: https://iaasb.org/news-events/2019-12/iaasb-enhances-and-modernizes-isa-315-more-robust-risk-assessment
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2019-12-19'
+  effectiveRule: Applicable aux audits d'états financiers des périodes ouvertes à compter du 15 décembre 2021.
+  effectiveFrom: '2021-12-15'
+  quote: effective for financial statement audits for periods beginning on or after December 15, 2021
+  normatifSourceIds:
+  - isa-315
+  outdatedInProbant: Le libellé « ISA 315 (révisée) » ne distingue pas la version en vigueur, désignée « ISA 315
+    (Revised 2019) » dans tous les textes IAASB récents lus (PDF ISA 240 (Revised), ISA 570 (Revised 2024), amendements
+    PTE). ISA 315 (Revised 2019) est elle-même amendée au 15/12/2026 par ISA 240 (Revised) et par les amendements
+    PTE/PIE.
+  applicability: 'Équivalent français : NEP 315 révisée en novembre 2024 (voir nep-315-revisee-2024).'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé « ISA 315 (révisée en 2019) » et note de version.'
+  limits:
+  - Date d'approbation IAASB non lue.
+- id: isa-250-revised-label
+  title: ISA 250 (Revised), Prise en considération des textes législatifs et réglementaires — libellé sans version
+  short: ISA 250 (R)
+  kind: renommage
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/news-events/2016-10/iaasb-amends-standards-enhance-auditor-focus-non-compliance-laws-and-regulations
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2016-10-05'
+  effectiveRule: 'ISA 250 (Revised) : audits d''états financiers des périodes ouvertes à compter du 15 décembre
+    2017.'
+  effectiveFrom: '2017-12-15'
+  quote: effective for audits of financial statements for periods beginning on or after December 15, 2017
+  normatifSourceIds:
+  - isa-250
+  outdatedInProbant: Le registre écrit « ISA 250 » ; la norme en vigueur depuis 2017 est « ISA 250 (Revised), Consideration
+    of Laws and Regulations in an Audit of Financial Statements » (intitulé repris dans les PDF IAASB 2025). Elle
+    est de nouveau amendée au 15/12/2026 (amendements de conformité ISA 240 (Revised) et ISA 570 (Revised 2024)).
+  applicability: Le registre n'a pas d'entrée nep-250 alors que la NEP 250 existe (art. A. 821-81 C. com., en vigueur
+    depuis le 01/01/2024). ISA 250 figure dans le premier lot ISA-FR 2026.
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé « ISA 250 (révisée) ». L''absence de la NEP 250 est
+    suivie à part.'
+  limits: []
+- id: conforming-amendments-isa-240-revised
+  title: Amendements de conformité issus d'ISA 240 (Revised) à d'autres ISA du registre — 15/12/2026
+  short: Conformité 240
+  kind: amendement
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2025-07/IAASB-ISA-240-Revised-Fraud.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2025-07-08'
+  effectiveRule: 'Les amendements de conformité entrent en vigueur en même temps qu''ISA 240 (Revised) : périodes
+    ouvertes à compter du 15/12/2026.'
+  effectiveFrom: '2026-12-15'
+  quote: These amendments will become effective at the same time as ISA 240 (Revised)
+  normatifSourceIds:
+  - isa-master
+  outdatedInProbant: Le PDF (p. 94 à 138) modifie notamment ISA 200, 220 (Revised), 230, 250 (Revised), 260 (Revised),
+    265, 300, 315 (Revised 2019), 330, 450, 500, 505, 530, 540 (Revised), 550, 570 (Revised 2024), 580, 600 (Revised),
+    610, 700 (Revised), 701, 705 (Revised), 800 (Revised), 805 (Revised). Les résumés PROBANT de ces ISA ne sont
+    pas faux aujourd'hui mais devront porter une version datée « à compter du 15/12/2026 ».
+  applicability: Sans effet direct sur les NEP en vigueur.
+  integration: a_integrer
+  limits:
+  - 'Le PDF intitule la norme sur les sondages « ISA 530 (Revised), Audit Sampling » : cette désignation n''a pas
+    été confirmée sur une autre page IAASB. Le contenu de chaque amendement n''a pas été analysé.'
+- id: conforming-amendments-isa-570-revised-2024
+  title: Amendements de conformité issus d'ISA 570 (Revised 2024) à d'autres ISA du registre — 15/12/2026
+  short: Conformité 570
+  kind: amendement
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2025-04/IAASB-ISA-570-Going-Concern-Revised.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2025-04-09'
+  effectiveRule: 'Les amendements de conformité entrent en vigueur en même temps qu''ISA 570 (Revised 2024) : périodes
+    ouvertes à compter du 15/12/2026.'
+  effectiveFrom: '2026-12-15'
+  quote: These amendments will become effective at the same time as ISA 570 (Revised 2024)
+  normatifSourceIds:
+  - isa-master
+  outdatedInProbant: Le PDF (p. 67 à 139) modifie ISA 200, 210, 220 (Revised), 230, 250 (Revised), 260 (Revised),
+    315 (Revised 2019), 450, 500, 510, 540 (Revised), 560, 580, 600 (Revised), 610 (Revised 2013), 700 (Revised),
+    701, 705 (Revised), 706 (Revised), 710, 720 (Revised), 800 (Revised), 805 (Revised), 810 (Revised).
+  applicability: Sans effet direct sur les NEP en vigueur.
+  integration: a_integrer
+  limits:
+  - publishedOn = date de publication de la page IAASB d'ISA 570 (Revised 2024) ; le contenu de chaque amendement
+    n'a pas été analysé.
+- id: experts-narrow-scope-amendments-isa-620
+  title: Amendements ciblés à ISA 620 (utilisation des travaux d'un expert externe, projet IESBA) — 15/12/2026
+  short: ISA 620
+  kind: amendement
+  group: audit
+  issuer: IAASB
+  officialUrl: https://ifacweb.blob.core.windows.net/publicfiles/2026-01/IAASB-Basis-For-Conclusions-Experts-Narrow-Scope-Amendments_0.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2026-01-05'
+  effectiveRule: 'Audits et examens limités d''états financiers des périodes ouvertes à compter du 15 décembre 2026
+    ; autres missions d''assurance et services connexes commençant à compter de la même date. Normes amendées (page
+    IAASB lue) : ISA 620, ISRE 2400 (Revised), ISAE 3000 (Revised), ISRS 4400 (Revised).'
+  effectiveFrom: '2026-12-15'
+  quote: Audits and reviews of financial statements for periods beginning on or after December 15, 2026
+  normatifSourceIds:
+  - isa-620
+  exposeCycles: false
+  outdatedInProbant: ISA 620 reçoit un nouveau sous-paragraphe 8(f) (prise en compte des règles éthiques sur l'utilisation
+    des travaux d'un expert) et des paragraphes d'application A19A et A31A. Le résumé PROBANT reste exact mais la
+    version datée devra être portée.
+  applicability: Le registre n'a pas d'entrée nep-620 alors que la NEP 620 « Intervention d'un expert » existe (art.
+    A. 821-90 C. com., en vigueur depuis le 01/01/2024). ISA 620 figure dans le premier lot ISA-FR 2026.
+  integration: a_integrer
+  limits:
+  - Date d'effet lue dans la Basis for Conclusions (document non normatif) ; le texte des amendements est derrière
+    une connexion sur iaasb.org et n'a pas été lu. publishedOn = date de la page IAASB (05/01/2026).
+- id: isa-registry-master-url
+  title: URL maîtresse ISA du registre inaccessible
+  short: Page IAASB
+  kind: adresse_officielle
+  group: audit
+  issuer: IAASB
+  officialUrl: https://www.iaasb.org/publications/2026-handbook-international-quality-management-auditing-review-sustainability-and-other-assurance
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-09-30'
+  effectiveRule: 'Sans objet. L''édition 2026 du Handbook IAASB (page publiée le 30/09/2026, « Current Edition »)
+    inclut les normes applicables en décembre 2026 : ISA 240 (Revised), ISA 570 (Revised 2024), ISSA 5000, amendements
+    PTE/PIE et amendements « experts ».'
+  effectiveFrom: null
+  quote: You don't have access to view this page.
+  normatifSourceIds:
+  - isa-master
+  - isa-200
+  - isa-240
+  - isa-250
+  - isa-300
+  - isa-315
+  - isa-320
+  - isa-330
+  - isa-450
+  - isa-500
+  - isa-501
+  - isa-505
+  - isa-520
+  - isa-530
+  - isa-540
+  - isa-550
+  - isa-560
+  - isa-570
+  - isa-580
+  - isa-620
+  outdatedInProbant: Les 20 entrées isa.yml pointent toutes vers https://www.iaasb.org/publications/international-standards-auditing-isa,
+    qui renvoie une page « Access Denied » (HTTP 403) même dans un navigateur réel, alors que les autres pages iaasb.org
+    s'ouvrent. Remplacer par la page de publication de chaque norme ou par la page du Handbook 2026.
+  applicability: Sans objet.
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : les 20 sources ISA pointent vers la page de l''édition 2026
+    du Handbook IAASB.'
+  limits:
+  - La citation provient de la page refusée, pas de la page du Handbook ; la cause du refus (page retirée ou restreinte)
+    n'est pas connue.
+- id: cncc-page-nep-404
+  title: Page CNCC des NEP retirée — source primaire = Légifrance (art. A. 821-62 et s. C. com.) et H2A
+  short: Page CNCC
+  kind: adresse_officielle
+  group: audit
+  issuer: CNCC
+  officialUrl: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: Sans objet.
+  effectiveFrom: null
+  quote: Il semblerait que la page que vous cherchez n’existe plus ou a été déplacée
+  normatifSourceIds:
+  - nep-cncc-master
+  - nep-200
+  - nep-240
+  - nep-300
+  - nep-315
+  - nep-320
+  - nep-330
+  - nep-450
+  - nep-500
+  - nep-501
+  - nep-505
+  - nep-520
+  - nep-530
+  - nep-540
+  - nep-550
+  - nep-560
+  - nep-570
+  - nep-580
+  outdatedInProbant: 'L''URL utilisée par les 18 entrées nep.yml (dont la « source maîtresse ») redirige vers https://www.cncc.fr/404
+    (page affichée dans un navigateur réel). Les NEP sont homologuées par arrêté du garde des Sceaux et codifiées
+    aux articles A. 821-62 à A. 821-98 du code de commerce : la source primaire est Légifrance (texte en vigueur
+    et historique des versions), la H2A étant l''autorité qui adopte les normes et publie le référentiel. La CNCC
+    reste un émetteur de doctrine et l''un des traducteurs des ISA utilisés par la H2A, pas la source officielle
+    des NEP.'
+  applicability: Remplacer l'URL par l'article A. 821-xx Légifrance de chaque NEP et la page H2A de la norme.
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : source maîtresse des NEP renommée et pointée vers le référentiel
+    H2A ; chaque NEP vers sa page H2A, avec son article A. 821-xx.'
+  limits:
+  - 'Le site CNCC est une application JavaScript : aucune autre page CNCC listant les NEP n''a été trouvée.'
+- id: h2a-isa-fr-convergence-2026
+  title: 'Refonte du référentiel français sur la base des ISA : normes « ISA-FR » (programme H2A 2026)'
+  short: ISA-FR
+  kind: revision
+  group: audit
+  issuer: H2A
+  officialUrl: https://h2a-france.org/publications/commissions-de-normalisation-placees-aupres-de-la-h2a-plan-dorientation-2024-2026-et-programme-de-travail-2026/programme-de-travail-2026-commissions-normalisation-hors-durabilite/
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2026-02-17'
+  effectiveRule: 'Aucune date d''effet. La commission de normalisation débute en 2026 la révision du référentiel
+    d''audit ; travaux sur plusieurs années ; calendrier ajusté fin 2026. Premier lot de 20 ISA à adapter en « ISA-FR
+    », qui deviendront les NEP prévues par le code de commerce : ISA 200, 210, 230, 250, 260, 265, 300, 315, 320,
+    330*, 450, 500*, 510, 520*, 540, 550, 560, 580, 610, 620 (* ISA en cours de révision par l''IAASB). NEP nationales
+    conservées : 100, 630, 911, 912, 920, 9510, 9520, 9605.'
+  effectiveFrom: null
+  quote: 20 normes internationales qui se traduiront par des normes dites « ISA-FR »
+  normatifSourceIds:
+  - isa-master
+  - nep-cncc-master
+  outdatedInProbant: 'Le résumé d''isa-master (« transposé en France via les NEP ») est inexact : la H2A écrit que
+    la France a seulement maintenu « une certaine convergence » et passe désormais à une adaptation des ISA (ISA-FR).
+    Les entrées nep-* devront à terme être reliées à leur ISA-FR. ISA 240, 501, 505, 530, 570, 600 et 700 ne sont
+    pas dans le premier lot.'
+  applicability: Les NEP actuelles restent seules applicables tant que les ISA-FR ne sont pas homologuées.
+  integration: a_surveiller
+  integrationNote: 'Registre corrigé le 09/11/2026 : résumé d''« ISA » corrigé (pas de transposition). Aucune ISA-FR
+    homologuée au 09/11/2026.'
+  limits:
+  - publishedOn = date de la page H2A qui publie le programme (17/02/2026) ; aucune ISA-FR adoptée ou homologuée
+    n'a été trouvée au 09/11/2026.
+- id: nep-codification-a821-2024
+  title: NEP codifiées aux articles A. 821-62 et s. du code de commerce (arrêté du 28/12/2023, en vigueur au 01/01/2024)
+  short: Art. A. 821
+  kind: renommage
+  group: audit
+  issuer: Garde des Sceaux (arrêté) / H2A
+  officialUrl: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048877134
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-12-31'
+  effectiveRule: 'Articles créés par l''arrêté du 28/12/2023, art. 5, en vigueur depuis le 01/01/2024 (article A.
+    821-80 lu, et section https://www.legifrance.gouv.fr/codes/section_lc/LEGITEXT000005634379/LEGISCTA000048874163
+    lue). Toujours dans cette version au 09/11/2026 : NEP 230 (A. 821-66), 260 (A. 821-67), 320 (A. 821-70), 450
+    (A. 821-71), 500 (A. 821-74), 505 (A. 821-76), 580 (A. 821-79), 240 (A. 821-80), 250 (A. 821-81), 570 (A. 821-83),
+    560 (A. 821-85), 510 (A. 821-87), 620 (A. 821-90), 700 (A. 821-92), 701/702 (A. 821-93).'
+  effectiveFrom: '2024-01-01'
+  quote: Création Arrêté du 28 décembre 2023 - art. 5
+  normatifSourceIds:
+  - nep-240
+  - nep-320
+  - nep-450
+  - nep-500
+  - nep-505
+  - nep-560
+  - nep-570
+  - nep-580
+  outdatedInProbant: Pas de changement de fond pour ces NEP depuis le 01/01/2024 ; le registre ne cite aucun article
+    A. 821-xx. Pour la traçabilité (document, article, version), chaque NEP devrait porter son article et sa date
+    de version Légifrance.
+  applicability: Le texte opposable des NEP est celui des articles A. 821-xx du code de commerce.
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : chaque NEP du registre porte son article A. 821-xx du code
+    de commerce (index H2A lu le 09/11/2026).'
+  limits:
+  - Approbation ou arrêté du 2023-12-28.
+  - publishedOn = date de publication au JO indiquée par la H2A (31/12/2023) ; le titre complet de l'arrêté du 28/12/2023
+    n'a pas été lu. Le texte antérieur (homologations 2006-2017) n'a pas été comparé.
+- id: nep-315-revisee-2024
+  title: NEP 315 révisée — nouveau titre (homologation du 13/11/2024)
+  short: NEP 315
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/connaissance-de-lentite-et-de-son-environnement-et-evaluation-du-risque-danomalies-significatives-dans-les-comptes/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-11-19'
+  effectiveRule: « Applicable aux missions de certification des comptes relatives aux exercices ouverts à compter
+    de la date de sa publication au Journal officiel » (JO du 19/11/2024). Article A. 821-72 C. com. en vigueur
+    depuis le 20/11/2024 (modifié par l'arrêté du 13/11/2024, art. 4, Légifrance).
+  effectiveFrom: '2024-11-20'
+  quote: Homologuée par arrêté du 13 novembre 2024 publié au J.O. du 19 novembre 2024
+  normatifSourceIds:
+  - nep-315
+  outdatedInProbant: 'Libellé du registre « Connaissance de l''entité et évaluation du risque d''anomalies significatives
+    » ; titre officiel : « Prise de connaissance de l''entité et de son environnement, identification et évaluation
+    du risque d''anomalies significatives dans les comptes ». Le texte révisé (Légifrance) définit notamment les
+    contrôles généraux informatiques, les facteurs de risque inhérent et les outils et techniques automatisés :
+    à refléter dans les procédures PROBANT rattachées.'
+  applicability: Norme homologuée applicable au CAC ; ISA 315 (Revised 2019) n'est pas citée dans le texte.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : titre officiel et article. Contenu des fiches non relu au regard
+    de la révision (contrôles informatiques, facteurs de risque inhérent).'
+  limits:
+  - Approbation ou arrêté du 2024-11-13.
+  - Écart d'un jour entre la date de publication JO visée par la clause (19/11/2024) et l'entrée en vigueur Légifrance
+    (20/11/2024). Date d'adoption par la H2A non lue sur une page officielle. Comparaison détaillée avec l'ancienne
+    NEP 315 non faite.
+- id: nep-330-revisee-2024
+  title: NEP 330 révisée (homologation du 13/11/2024)
+  short: NEP 330
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/procedures-daudit-mises-en-oeuvre-par-le-commissaire-aux-comptes-a-lissue-de-son-evaluation-des-risques/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-11-19'
+  effectiveRule: « Applicable aux missions de certification des comptes relatives aux exercices ouverts à compter
+    de la date de sa publication au Journal officiel » (JO du 19/11/2024). Article A. 821-73 en vigueur depuis le
+    20/11/2024 (arrêté du 13/11/2024, art. 5).
+  effectiveFrom: '2024-11-20'
+  quote: exercices ouverts à compter de la date de sa publication au Journal officiel
+  normatifSourceIds:
+  - nep-330
+  outdatedInProbant: 'Libellé du registre « Procédures d''audit mises en œuvre à l''issue de l''évaluation des risques
+    » ; titre officiel : « Procédures d''audit mises en œuvre par le commissaire aux comptes à l''issue de sa prise
+    de connaissance de l''entité et de son environnement et de son évaluation du risque d''anomalies significatives
+    dans les comptes ».'
+  applicability: Norme homologuée applicable au CAC ; ISA 330 marquée « en cours de révision » dans le programme
+    ISA-FR.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : titre officiel et article ; contenu des fiches non relu.'
+  limits:
+  - Approbation ou arrêté du 2024-11-13.
+  - Écart d'un jour JO / entrée en vigueur, comme pour la NEP 315. Contenu des modifications non analysé.
+- id: nep-540-revisee-2024
+  title: NEP 540 révisée — nouveau titre (homologation du 13/11/2024)
+  short: NEP 540
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/audit-des-estimations-comptables-et-des-informations-y-afferentes-fournies-dans-lannexe/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-11-19'
+  effectiveRule: Article A. 821-82 C. com. en vigueur depuis le 20/11/2024, modifié par l'arrêté du 13/11/2024,
+    art. 8 (Légifrance).
+  effectiveFrom: '2024-11-20'
+  quote: Homologuée par arrêté du 13 novembre 2024 publié au J.O. du 19 novembre 2024
+  normatifSourceIds:
+  - nep-540
+  outdatedInProbant: 'Libellé du registre « Appréciation des estimations comptables » (ancien intitulé) ; titre
+    officiel : « Audit des estimations comptables et des informations y afférentes fournies dans l''annexe ».'
+  applicability: Norme homologuée applicable au CAC.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : titre officiel et article ; contenu des fiches non relu.'
+  limits:
+  - Approbation ou arrêté du 2024-11-13.
+  - Clause d'application propre à la NEP non affichée sur la page H2A et non lue sur Légifrance ; contenu des modifications
+    non analysé.
+- id: nep-520-530-550-revisees-2024
+  title: NEP 520, 530 et 550 révisées (homologation du 13/11/2024), titres inchangés
+  short: NEP 520-550
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/procedures-analytiques/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-11-19'
+  effectiveRule: 'A. 821-77 (NEP 520, arrêté du 13/11/2024 art. 6), A. 821-78 (NEP 530, art. 7) et A. 821-84 (NEP
+    550, art. 9) en vigueur depuis le 20/11/2024 (section Légifrance A. 821-63 à A. 821-95 lue). Le même arrêté
+    modifie aussi NEP 265 (A. 821-68), 315, 330, 540 et 920 (A. 821-95). Pages H2A des NEP 530 et 550 lues : même
+    mention d''homologation.'
+  effectiveFrom: '2024-11-20'
+  quote: Homologuée par arrêté du 13 novembre 2024 publié au J.O. du 19 novembre 2024
+  normatifSourceIds:
+  - nep-520
+  - nep-530
+  - nep-550
+  exposeCycles: false
+  outdatedInProbant: 'Libellés exacts. Ce qui manque : la version et sa date dans le registre (texte en vigueur
+    depuis le 20/11/2024).'
+  applicability: Normes homologuées applicables au CAC.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : article et date de version ; contenu des fiches non relu.'
+  limits:
+  - Approbation ou arrêté du 2024-11-13.
+  - Contenu des modifications non analysé ; clause d'application propre à chaque NEP non lue.
+- id: nep-200-300-501-revisees-2024
+  title: NEP 200, 300 et 501 révisées (homologation du 27/11/2024)
+  short: NEP 200-501
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/caractere-probant-des-elements-collectes-applications-specifiques/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-11-30'
+  effectiveRule: A. 821-63 (NEP 200, modifié par l'arrêté du 27/11/2024 art. 1), A. 821-69 (NEP 300, créé par le
+    même arrêté, art. 3) et A. 821-75 (NEP 501, modifié, art. 4) en vigueur depuis le 01/12/2024 (Légifrance). Le
+    même arrêté modifie aussi NEP 100 (A. 821-65) et NEP 730 (A. 821-86).
+  effectiveFrom: '2024-12-01'
+  quote: Homologuée par arrêté du 27 novembre 2024 publié au J.O. du 30 novembre 2024
+  normatifSourceIds:
+  - nep-200
+  - nep-300
+  - nep-501
+  outdatedInProbant: 'NEP 200 : titre officiel « Principes applicables à l''audit des comptes mis en œuvre dans
+    le cadre de la certification des comptes » (registre abrégé). NEP 501 : titre officiel « Caractère probant des
+    éléments collectés (applications spécifiques) » ; le résumé « Stocks, litiges et informations sectorielles »
+    omet les immobilisations financières, traitées par la norme (page H2A). NEP 300 : titre exact.'
+  applicability: Normes homologuées applicables au CAC.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : titres officiels et articles ; résumé de la NEP 501 et contenu
+    des fiches non relus.'
+  limits:
+  - Approbation ou arrêté du 2024-11-27.
+  - Contenu des modifications non analysé ; clause d'application propre à chaque NEP non lue.
+- id: nep-titres-paraphrases
+  title: Titres officiels des NEP 240, 320 et 560 paraphrasés dans le registre
+  short: Titres NEP
+  kind: renommage
+  group: audit
+  issuer: H2A
+  officialUrl: https://h2a-france.org/normes/application-de-la-notion-de-caractere-significatif-lors-de-la-planification-et-de-la-realisation-dun-audit/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-12-31'
+  effectiveRule: Titres en vigueur depuis le 01/01/2024 (articles A. 821-70, A. 821-80 et A. 821-85, non modifiés
+    depuis, Légifrance).
+  effectiveFrom: '2024-01-01'
+  quote: Application de la notion de caractère significatif lors de la planification
+  normatifSourceIds:
+  - nep-240
+  - nep-320
+  - nep-560
+  outdatedInProbant: 'NEP 320 : le registre écrit « Anomalies significatives et seuil de signification » ; titre
+    officiel « Application de la notion de caractère significatif lors de la planification et de la réalisation
+    d''un audit ». NEP 240 : titre officiel « Prise en considération de la possibilité de fraudes lors de l''audit
+    des comptes ». NEP 560 : titre officiel « Evènements postérieurs à la clôture de l''exercice ». Titres exacts
+    au registre : NEP 300, 450, 500, 505, 520, 530, 550, 570, 580.'
+  applicability: 'Sans changement de fond : correction de libellé.'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : titres officiels des NEP 240, 320 et 560.'
+  limits: []
+- id: nep-600-revisee-2025
+  title: NEP 600 révisée « Audit des comptes de groupe » (homologation du 29/10/2025) — absente du registre
+  short: NEP 600
+  kind: absence_registre
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/audit-des-comptes-de-groupe-y-compris-lutilisation-des-travaux-des-auditeurs-des-composants-aspects-particuliers-nep-600/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2025-11-04'
+  effectiveRule: « Applicable aux missions de certification des comptes de groupe relatives aux exercices ouverts
+    à compter de la date de sa publication au journal officiel » (JO du 04/11/2025). Article A. 821-64 en vigueur
+    depuis le 05/11/2025 (modifié par l'arrêté du 29/10/2025, art. 2, Légifrance).
+  effectiveFrom: '2025-11-05'
+  quote: relatives aux exercices ouverts à compter de la date de sa publication au journal officiel.
+  normatifSourceIds: []
+  cycleSlugs:
+  - consolidation-perimetre
+  outdatedInProbant: 'Aucune entrée nep-600 alors qu''un cycle « Consolidation et périmètre » existe. Titre officiel
+    : « Audit des comptes de groupe (y compris l''utilisation des travaux des auditeurs des composants) – aspects
+    particuliers ». Il remplace l''intitulé « Principes spécifiques applicables à l''audit des comptes consolidés
+    » (version Légifrance en vigueur du 01/01/2024 au 20/11/2024).'
+  applicability: Norme homologuée applicable au CAC ; pendant français d'ISA 600 (Revised), qui n'est pas citée
+    dans le texte lu.
+  integration: a_integrer
+  limits:
+  - Approbation ou arrêté du 2025-10-29.
+  - Écart d'un jour JO (04/11/2025) / entrée en vigueur Légifrance (05/11/2025). Une version intermédiaire d'A.
+    821-64 (20/11/2024 – 05/11/2025) existe et n'a pas été lue. Date d'adoption H2A non lue.
+- id: nep-230-700-absentes
+  title: NEP 230 (documentation) et NEP 700/701/702 (rapports) absentes du registre
+  short: NEP 230/700
+  kind: absence_registre
+  group: audit
+  issuer: H2A
+  officialUrl: https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-12-31'
+  effectiveRule: Articles A. 821-66 (NEP 230), A. 821-92 (NEP 700) et A. 821-93 (NEP 701, 702) en vigueur depuis
+    le 01/01/2024, non modifiés depuis (Légifrance).
+  effectiveFrom: '2024-01-01'
+  quote: Documentation de l’audit des comptes
+  normatifSourceIds: []
+  outdatedInProbant: 'Titres officiels à ajouter : NEP 230 « Documentation de l''audit des comptes » ; NEP 700 «
+    Rapports du commissaires aux comptes sur les comptes annuels et consolidés » (sic sur la page H2A) ; NEP 701
+    « Justification des appréciations dans les rapports du commissaire aux comptes sur les comptes annuels et consolidés
+    » (EIP) ; NEP 702 (même objet, entités qui ne sont pas des EIP). Ces normes encadrent la documentation et le
+    rapport que la synthèse PROBANT prépare.'
+  applicability: Normes homologuées applicables au CAC ; ISA 230 figure dans le premier lot ISA-FR 2026, ISA 700
+    non.
+  integration: a_integrer
+  limits:
+  - Titres longs de NEP 701/702 tronqués sur la page H2A lue ; à reprendre depuis la page de chaque norme.
+- id: nep-250-620-absentes
+  title: NEP 250 et NEP 620 absentes alors qu'ISA 250 et ISA 620 sont au registre
+  short: NEP 250/620
+  kind: absence_registre
+  group: audit
+  issuer: H2A
+  officialUrl: https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-12-31'
+  effectiveRule: Articles A. 821-81 (NEP 250) et A. 821-90 (NEP 620) en vigueur depuis le 01/01/2024, non modifiés
+    depuis (Légifrance).
+  effectiveFrom: '2024-01-01'
+  quote: Intervention d’un expert
+  normatifSourceIds:
+  - isa-250
+  - isa-620
+  outdatedInProbant: 'Le registre cite ISA 250 et ISA 620 sans leur pendant NEP : NEP 250 « Prise en compte du risque
+    d''anomalies significatives dans les comptes résultant du non-respect des textes légaux et réglementaires »
+    et NEP 620 « Intervention d''un expert ». Le principe du module (pendant français homologué) n''est pas respecté
+    pour ces deux normes.'
+  applicability: Normes homologuées applicables au CAC ; ISA 250 et ISA 620 figurent dans le premier lot ISA-FR
+    2026.
+  integration: a_integrer
+  limits:
+  - Le titre de la NEP 250 est reconstitué à partir du titre tronqué de la liste et de l'adresse de sa page H2A
+    ; à vérifier sur la page de la norme.
+- id: nep-9510-revisee-2026
+  title: NEP 9510 révisée — diligences sur le rapport de gestion et les informations adressées à l'organe délibérant
+    (2026)
+  short: NEP 9510
+  kind: revision
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000053958701
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-04-26'
+  effectiveRule: Arrêté du 20/04/2026 (NOR JUSC2608674A), JORF n° 0099 du 26/04/2026 ; norme adoptée par la H2A
+    le 12/03/2026 (décision n° 2026-03). Aucune date d'application n'est écrite dans l'arrêté. Page H2A de la NEP
+    9510 lue (même mention d'homologation).
+  effectiveFrom: null
+  quote: Arrêté du 20 avril 2026 portant homologation d'une norme d'exercice professionnel révisée
+  normatifSourceIds: []
+  outdatedInProbant: 'Absente du registre. Utile si PROBANT traite le rapport de gestion : la norme couvre les informations
+    de durabilité présentées dans une section distincte du rapport de gestion mais exclut leur certification (page
+    H2A).'
+  applicability: Norme nationale conservée dans le futur référentiel ISA-FR (programme H2A 2026).
+  integration: a_surveiller
+  integrationNote: Aucun cycle ne traite le rapport de gestion.
+  limits:
+  - Approbation ou arrêté du 2026-04-20.
+  - Date d'entrée en vigueur non lue (article A. 821-97 Légifrance non consulté) ; une source secondaire indique
+    le 27/04/2026, non retenue.
+- id: nep-911-912-revisees-2026
+  title: NEP 911 et 912 révisées — mandats de trois et six exercices dans les petites entreprises (2026)
+  short: NEP 911/912
+  kind: absence_registre
+  group: audit
+  issuer: H2A / garde des Sceaux
+  officialUrl: https://h2a-france.org/normes/mission-du-commissaire-aux-comptes-nomme-pour-six-exercices-dans-des-petites-entreprises/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-07-26'
+  effectiveRule: Article A. 821-94 C. com. en vigueur depuis le 27/07/2026, modifié par l'arrêté du 24/07/2026,
+    art. 2 (https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000048875554 lu).
+  effectiveFrom: '2026-07-27'
+  quote: Homologuée par arrêté du 24 juillet 2026 publié au J.O. du 26 juillet 2026
+  normatifSourceIds: []
+  outdatedInProbant: 'Absentes du registre. Pour un outil d''audit de PME, ce sont les normes du mandat ALPE : NEP
+    911 « Mission du commissaire aux comptes nommé pour trois exercices prévue à l''article L. 821-57 du code de
+    commerce », NEP 912 « Mission du commissaire aux comptes nommé pour six exercices dans des petites entreprises
+    ».'
+  applicability: Normes nationales conservées dans le futur référentiel ISA-FR (programme H2A 2026).
+  integration: a_integrer
+  limits:
+  - Approbation ou arrêté du 2026-07-24.
+  - Aucune disposition transitoire sur les mandats en cours n'a été trouvée sur la page Légifrance ; contenu des
+    modifications non analysé.
+- id: durabilite-pas-de-nep-homologuee
+  title: 'Certification des informations de durabilité : aucune NEP homologuée, lignes directrices H2A (version
+    de janvier 2026)'
+  short: Durabilité
+  kind: absence_registre
+  group: audit
+  issuer: H2A
+  officialUrl: https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/lignes-directrices-de-la-h2a/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: Lignes directrices H2A, version de janvier 2026, « applicable à compter de l'exercice 2026 » pour
+    la certification des informations portant sur les données 2025, dans l'attente de la norme européenne. Le programme
+    de travail H2A 2026 (commission durabilité, PDF lu) attend une norme d'assurance limitée de la Commission européenne
+    au plus tard le 01/07/2027 et prévoit une mise à jour des lignes directrices en 2026.
+  effectiveFrom: null
+  quote: dans l'attente de la norme européenne régissant la mission de certification
+  normatifSourceIds: []
+  outdatedInProbant: Rien au registre. Si un cycle durabilité est ajouté, la source est la ligne directrice H2A
+    (pas une NEP) ; la page H2A du référentiel ne liste aucune NEP de durabilité.
+  applicability: Lignes directrices H2A, pas une norme homologuée. ISSA 5000 (IAASB) n'est pas une norme homologuée
+    en France.
+  integration: a_surveiller
+  integrationNote: Aucun cycle durabilité ; lignes directrices H2A, pas de NEP.
+  limits:
+  - 'Page H2A datée du 22/07/2025 alors qu''elle annonce une version de janvier 2026 : publishedOn laissé à null.
+    La date d''effet d''ISSA 5000 n''a pas été lue sur une page officielle et n''est pas reportée ici.'
+- id: ifrs-18-remplace-ias-1
+  title: IFRS 18 remplace IAS 1 à compter des exercices ouverts le 1er janvier 2027
+  short: IFRS 18
+  kind: remplacement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-18-presentation-and-disclosure-in-financial-statements/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-04-09'
+  effectiveRule: 'IASB : exercices ouverts à compter du 1er janvier 2027, application anticipée permise ; IFRS 18
+    remplace IAS 1. UE : les entreprises appliquent la modification au plus tard à l''ouverture de leur premier
+    exercice commençant le 1er janvier 2027 ou après (règlement (UE) 2026/338, art. 2) ; « La norme IAS 1 Présentation
+    des états financiers est supprimée » (art. 1er, 3).'
+  effectiveFrom: '2027-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2026/338 de la Commission du 13 février 2026
+    ojDate: '2026-02-16'
+  quote: IFRS 18 is effective for annual reporting periods beginning on or after 1 January 2027
+  normatifSourceIds:
+  - ias-1
+  - ias-7
+  - ias-8
+  outdatedInProbant: 'ias-1 est OBLIGATOIRE sans borne de fin : elle ne régit plus que les exercices ouverts avant
+    le 01/01/2027 (hors anticipation d''IFRS 18). IFRS 18 est absente de data/sources/ifrs.yml (elle figure dans
+    lib/knowledge/registry.ts et data/ifrs/standards.yml). data/ifrs/standards.yml indique encore que la référence
+    du règlement UE « reste à confirmer » : (UE) 2026/338 est lu sur EUR-Lex. Selon le tableau de l''IFRS Foundation,
+    IFRS 18 modifie aussi 17 autres normes du registre (ids listés), dont IFRS 16 § 49 (docs/ifrs/SOURCES.md).'
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : notes de version sur IAS 1 et IAS 8. Les fiches citent encore
+    IAS 1 sans borne de fin.'
+  limits:
+  - Date du 9 avril 2024 lue dans le rapport EFRAG du 24/09/2026 (ifrs.org dit « April 2024 »). Adoption UE lue
+    sur https://eur-lex.europa.eu/eli/reg/2026/338/oj/fra le 09/11/2026. Les modifications corrélatives n'ont pas
+    été relues norme par norme ; liste tirée de « Changes in this edition » (IFRS Foundation, édition 2026).
+- id: ias-8-renomme-base-etablissement
+  title: IAS 8 renommée « Base d'établissement des états financiers » par IFRS 18
+  short: IAS 8
+  kind: renommage
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://www.ifrs.org/issued-standards/list-of-standards/ias-8-accounting-policies-changes-in-accounting-estimates-and-errors.html
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-04-09'
+  effectiveRule: 'Renommage décidé avec IFRS 18, applicable aux exercices ouverts à compter du 1er janvier 2027.
+    Titre IASB : « IAS 8 Basis of Preparation of Financial Statements ». Titre français UE dans l''annexe du règlement
+    (UE) 2026/338 : « Base d''établissement des états financiers ». Des paragraphes d''IAS 1 sont déplacés dans
+    IAS 8 et IFRS 7.'
+  effectiveFrom: '2027-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2026/338 de la Commission du 13 février 2026
+    ojDate: '2026-02-16'
+  quote: change the title of IAS 8 to Basis of Preparation of Financial Statements
+  normatifSourceIds:
+  - ias-8
+  outdatedInProbant: Le libellé « IAS 8 — Méthodes comptables, changements d'estimations et erreurs » et l'URL (ancien
+    slug) ne valent que jusqu'aux exercices ouverts avant le 01/01/2027. La page ifrs.org porte déjà le titre «
+    IAS 8 Basis of Preparation of Financial Statements » (édition « 2026 Issued »).
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : note sur le nouveau titre ; libellé gardé, applicable jusqu''aux
+    exercices ouverts avant 2027.'
+  limits:
+  - La page ifrs.org ne date pas le renommage ; il est rattaché ici à la date d'application d'IFRS 18. Le règlement
+    2026/338 cite encore IAS 8 sous son ancien titre à l'art. 1er, 2 ; le nouveau titre français figure dans une
+    note de l'annexe. Le déplacement de paragraphes vient du document « Changes in this edition » 2026.
+- id: ifrs-19-filiales-sans-obligation-information-public
+  title: 'IFRS 19 (filiales sans obligation d''information du public) : effet IASB 2027, adoption UE en attente'
+  short: IFRS 19
+  kind: nouvelle_norme
+  group: ifrs
+  issuer: IASB ; Commission européenne (projet de règlement)
+  officialUrl: https://www.ifrs.org/issued-standards/list-of-standards/ifrs-19-subsidiaries-without-public-accountability-disclosures/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-05-09'
+  effectiveRule: 'IASB : exercices ouverts à compter du 1er janvier 2027, application anticipée permise ; amendements
+    d''IFRS 19 publiés le 21/08/2025, même date d''effet IASB. UE : non adoptée au 24/09/2026 (rapport EFRAG : vote
+    ARC 05/06/2026, adoption attendue T3/T4 2026) ; projet de règlement D(2026) 116263 reçu par le Conseil le 13/07/2026,
+    art. 2 : application au plus tard à l''ouverture du premier exercice commençant le 1er janvier 2027 ou après.'
+  effectiveFrom: '2027-01-01'
+  euEndorsement:
+    status: En attente
+    regulation: null
+    ojDate: null
+  quote: IFRS 19 is effective for annual reporting periods on or after 1 January 2027
+  normatifSourceIds:
+  - ifrs-standards-master
+  cycleSlugs:
+  - consolidation-perimetre
+  outdatedInProbant: 'IFRS 19 est absente de data/sources/ifrs.yml. lib/knowledge/registry.ts (pending, EFRAG 23/07/2026)
+    et data/ifrs/standards.yml (not_endorsed, EFRAG 17/07/2026) restent exacts au 24/09/2026 mais citent un rapport
+    EFRAG antérieur. Le projet UE ajoute un art. 3 bis au règlement 2023/1803 : une entité d''intérêt public est
+    réputée avoir une obligation d''information du public.'
+  integration: a_integrer
+  limits:
+  - 'Aucune publication au JO UE n''a été trouvée au 09/11/2026, mais la recherche EUR-Lex outillée n''est pas concluante
+    : statut à reconfirmer avant toute activation. Projet lu dans le PDF du Conseil ST-11918-2026 (https://data.consilium.europa.eu/doc/document/ST-11918-2026-INIT/fr/pdf).
+    IAS 32 figure parmi les normes que modifie IFRS 19 (tableau IFRS Foundation).'
+- id: ifrs-9-ifrs-7-classement-evaluation-2024
+  title: 'IFRS 9 / IFRS 7 : modifications du classement et de l''évaluation des instruments financiers (mai 2024)'
+  short: IFRS 9 C&E
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2025/1047/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-05-30'
+  effectiveRule: 'UE : les entreprises appliquent les modifications au plus tard à l''ouverture de leur premier
+    exercice commençant le 1er janvier 2026 ou après (art. 2). IASB : 1er janvier 2026, application anticipée possible.'
+  effectiveFrom: '2026-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2025/1047 de la Commission du 27 mai 2025
+    ojDate: '2025-05-28'
+  quote: exercice commençant le 1er janvier 2026 ou après cette date.
+  normatifSourceIds:
+  - ifrs-9
+  - ifrs-7
+  exposeCycles: false
+  outdatedInProbant: Le résumé d'ifrs-9 (« Classement/évaluation, dépréciation par pertes de crédit attendues »)
+    ne date aucune version. Depuis les exercices 2026 s'appliquent la décomptabilisation d'un passif réglé par système
+    de paiement électronique, l'analyse des flux contractuels assortis de conditions éventuelles (critères ESG,
+    par exemple) et de nouvelles informations sur les instruments de capitaux propres à la juste valeur par OCI.
+  integration: a_integrer
+  limits:
+  - Date d'émission (30/05/2024) lue dans le rapport EFRAG ; date IASB lue dans « Changes in this edition » 2026
+    (IFRS Foundation). Contenu résumé d'après ce même document, pas d'après le texte des paragraphes.
+- id: ifrs-9-ifrs-7-electricite-dependant-nature
+  title: 'IFRS 9 / IFRS 7 : contrats d''électricité dépendant de la nature (décembre 2024)'
+  short: IFRS 9 PPA
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2025/1266/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-12-18'
+  effectiveRule: 'UE : application au plus tard à l''ouverture du premier exercice commençant le 1er janvier 2026
+    ou après (art. 2) ; l''annexe (IFRS 9, § 7.1.15) autorise l''application anticipée. IASB : exercices ouverts
+    à compter du 1er janvier 2026, application anticipée possible.'
+  effectiveFrom: '2026-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2025/1266 de la Commission du 30 juin 2025
+    ojDate: '2025-07-01'
+  quote: exercice commençant le 1er janvier 2026 ou après cette date.
+  normatifSourceIds:
+  - ifrs-9
+  - ifrs-7
+  exposeCycles: false
+  outdatedInProbant: Le registre ne mentionne pas ces modifications, en vigueur depuis les exercices 2026 pour les
+    contrats d'achat d'électricité (PPA) dépendant de la nature.
+  integration: a_integrer
+  limits:
+  - Date IASB lue sur https://www.ifrs.org/projects/completed-projects/2024/power-purchase-agreements/ le 09/11/2026.
+- id: ameliorations-annuelles-volume-11
+  title: Améliorations annuelles des normes IFRS — volume 11 (juillet 2024)
+  short: Améliorations 11
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2025/1331/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-07-18'
+  effectiveRule: 'UE : application au plus tard à l''ouverture du premier exercice commençant le 1er janvier 2026
+    ou après (art. 2) ; normes modifiées : IFRS 1, IFRS 7, IFRS 9, IFRS 10 et IAS 7. IASB : 1er janvier 2026.'
+  effectiveFrom: '2026-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2025/1331 de la Commission du 9 juillet 2025
+    ojDate: '2025-07-10'
+  quote: exercice commençant le 1er janvier 2026 ou après cette date.
+  normatifSourceIds:
+  - ifrs-7
+  - ifrs-9
+  - ifrs-10
+  - ias-7
+  exposeCycles: false
+  outdatedInProbant: Aucune entrée ne porte ces modifications. Selon l'IFRS Foundation, elles touchent IAS 7 (méthode
+    du coût), IFRS 9 (décomptabilisation des dettes locatives, prix de transaction), IFRS 10 (agent de facto) et
+    IFRS 7 (résultat de décomptabilisation, informations sur le risque de crédit).
+  integration: a_integrer
+  limits:
+  - IFRS 1 est modifiée mais absente du registre. Sujets lus dans « Changes in this edition » 2026, pas dans les
+    paragraphes eux-mêmes.
+- id: ias-21-absence-convertibilite
+  title: 'IAS 21 : absence de convertibilité (août 2023) — norme absente du registre'
+  short: IAS 21
+  kind: absence_registre
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2024/2862/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-08-15'
+  effectiveRule: 'UE : les entreprises appliquent les modifications au plus tard à l''ouverture de leur premier
+    exercice commençant le 1er janvier 2025 ou après (art. 2).'
+  effectiveFrom: '2025-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2024/2862 de la Commission du 12 novembre 2024
+    ojDate: '2024-11-13'
+  quote: commençant le 1er janvier 2025 ou après cette date
+  normatifSourceIds: []
+  outdatedInProbant: IAS 21 n'a aucune entrée dans data/sources/ifrs.yml ; data/ifrs/standards.yml l'a (iasbEffectiveDate
+    null).
+  integration: a_integrer
+  limits:
+  - Date d'émission (15/08/2023) lue dans le rapport EFRAG. Date d'effet IASB non relue séparément ; EFRAG ne donne
+    que la date UE (1er janvier 2025).
+- id: ias-21-monnaie-presentation-hyperinflationniste
+  title: 'IAS 21 : conversion dans une monnaie de présentation hyperinflationniste (novembre 2025)'
+  short: IAS 21 hyper.
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; adoption UE en cours
+  officialUrl: https://www.efrag.org/sites/default/files/media/document/2026-09/EFRAG%20Endorsement%20Status%20Report%2024%20September%202026.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2025-11-13'
+  effectiveRule: 'IASB : 1er janvier 2027 (modifie aussi IFRS 19 et IAS 29). UE : non adoptée au 24/09/2026 ; avis
+    EFRAG du 26/02/2026, vote ARC du 10/07/2026, adoption attendue au T4 2026.'
+  effectiveFrom: '2027-01-01'
+  euEndorsement:
+    status: En attente
+    regulation: null
+    ojDate: null
+  quote: Translation to a Hyperinflationary Presentation Currency (issued on 13 November 2025)
+  normatifSourceIds: []
+  outdatedInProbant: Absente du registre normatif, comme IAS 21 elle-même.
+  integration: a_surveiller
+  integrationNote: Norme absente du registre ; adoption UE en attente.
+  limits:
+  - 'Date IASB lue dans « Changes in this edition » 2026. Un projet de règlement couvrant IAS 21, IFRS 19 et IAS
+    29 (D(2026) 117053, Conseil ST-12186-2026) n''apparaît que dans les résultats de recherche : non lu.'
+- id: ias-1-passifs-non-courants-covenants
+  title: 'IAS 1 : classement courant / non courant et passifs non courants assortis de covenants'
+  short: IAS 1 covenants
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2023/2822/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2022-10-31'
+  effectiveRule: 'UE : application au plus tard à l''ouverture du premier exercice commençant le 1er janvier 2024
+    ou après (art. 2). Le règlement adopte ensemble les modifications de 2020 (classement courant / non courant
+    et report de date) et de 2022 (covenants).'
+  effectiveFrom: '2024-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2023/2822 de la Commission du 19 décembre 2023
+    ojDate: '2023-12-20'
+  quote: de leur premier exercice commençant le 1er janvier 2024 ou après cette date.
+  normatifSourceIds:
+  - ias-1
+  cycleSlugs:
+  - covenants-gearing-icr
+  - dettes-financieres-emprunts
+  exposeCycles: false
+  outdatedInProbant: ias-1 n'indique ni édition ni modification. IAS 1 modifiée s'applique aux exercices ouverts
+    de 2024 à 2026, puis IFRS 18 la supprime pour les exercices ouverts à compter du 01/01/2027.
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : note sur IAS 1. La fiche « Covenants, gearing et ICR » n''expose
+    pas le classement des dettes assorties de covenants.'
+  limits:
+  - Date d'émission (31/10/2022) et regroupement des trois textes lus dans le rapport EFRAG. Date d'effet IASB non
+    relue séparément.
+- id: ias-7-ifrs-7-financement-fournisseurs
+  title: 'IAS 7 / IFRS 7 : accords de financement des fournisseurs (mai 2023)'
+  short: IAS 7 SFA
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2024/1317/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-05-25'
+  effectiveRule: 'UE : application au plus tard à l''ouverture du premier exercice commençant le 1er janvier 2024
+    ou après (art. 2).'
+  effectiveFrom: '2024-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2024/1317 de la Commission du 15 mai 2024
+    ojDate: '2024-05-16'
+  quote: de leur premier exercice commençant le 1er janvier 2024 ou après cette date.
+  normatifSourceIds:
+  - ias-7
+  - ifrs-7
+  cycleSlugs:
+  - dettes-fournisseurs
+  - tableau-flux-tresorerie
+  exposeCycles: false
+  outdatedInProbant: 'ias-7 et ifrs-7 ne datent aucune version : les informations sur l''affacturage inversé et
+    les accords de financement des fournisseurs ne sont pas signalées.'
+  integration: a_integrer
+  limits:
+  - Date d'émission (25/05/2023) lue dans le rapport EFRAG. Date d'effet IASB non relue séparément.
+- id: ifrs-16-cession-bail
+  title: 'IFRS 16 : dette locative dans une cession-bail (septembre 2022)'
+  short: IFRS 16 LB
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2023/2579/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2022-09-22'
+  effectiveRule: 'UE : les entreprises appliquent les modifications au plus tard à l''ouverture de leur premier
+    exercice commençant le 1er janvier 2024 ou après (art. 2). IASB (annexe C, C1D) : exercices ouverts à compter
+    du 1er janvier 2024 (lecture du dépôt, docs/ifrs/SOURCES.md, 29/10/2026).'
+  effectiveFrom: '2024-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2023/2579 de la Commission du 20 novembre 2023
+    ojDate: '2023-11-21'
+  quote: de leur premier exercice commençant le 1er janvier 2024 ou après cette date.
+  normatifSourceIds:
+  - ifrs-16
+  outdatedInProbant: 'L''entrée ifrs-16 du registre est exacte mais non datée. Dans le module IFRS 16, l''édition
+    UE déclarée (lib/ifrs/leases/rule.ts : « règlement (UE) 2023/1803 (JO L 237 du 26.9.2023) », version d''origine)
+    ne contient ni 102A, C1D, C20E (cession-bail, 2023/2579) ni la modification du § 49 par IFRS 18. Le dépôt le
+    documente (hors V1), mais cette édition n''est pas le texte UE en vigueur depuis 2024.'
+  integration: a_integrer
+  limits:
+  - Date d'émission (22/09/2022) lue dans le rapport EFRAG.
+- id: ias-12-pilier-2
+  title: 'IAS 12 : réforme fiscale internationale, règles du Pilier 2 (mai 2023)'
+  short: IAS 12 P2
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; Commission européenne (adoption)
+  officialUrl: https://eur-lex.europa.eu/eli/reg/2023/2468/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-05-23'
+  effectiveRule: 'UE (art. 2) : § 4A et 88A (exception temporaire aux impôts différés du Pilier 2) applicables dès
+    la publication des modifications, de manière rétrospective selon IAS 8 ; § 88B à 88D (informations) pour les
+    exercices ouverts à compter du 1er janvier 2023 ; pas d''informations exigées pour les périodes intermédiaires
+    closes au plus tard le 31/12/2023.'
+  effectiveFrom: '2023-01-01'
+  euEndorsement:
+    status: Adoptée
+    regulation: Règlement (UE) 2023/2468 de la Commission du 8 novembre 2023
+    ojDate: '2023-11-09'
+  quote: dès la publication de ces modifications
+  normatifSourceIds:
+  - ias-12
+  outdatedInProbant: Le résumé d'ias-12 (« Impôts exigibles et différés ») ignore l'exception temporaire et les
+    informations Pilier 2. L'IASB garde un projet de maintenance pour décider de supprimer cette exception ou de
+    la rendre permanente. Un exposé-sondage modifiant IFRS 18 (présentation des taxes qui ne sont pas des charges
+    d'impôt selon IAS 12) est annoncé au T4 2026.
+  integration: a_integrer
+  limits:
+  - 'effectiveFrom = date des informations (2023-01-01) ; l''exception s''applique dès la publication, rétrospectivement.
+    Le projet de maintenance vient de l''« IASB Update November 2026 CMAC Meeting » (présentation de l''IFRS Foundation,
+    avertissement : vues du présentateur) ; la page projet ifrs.org ne mentionne pas l''exception.'
+- id: ias-39-role-residuel-couverture
+  title: 'IAS 39 : remplacée par IFRS 9 sauf pour l''option de comptabilité de couverture'
+  short: IAS 39
+  kind: remplacement
+  group: ifrs
+  issuer: IASB
+  officialUrl: https://www.ifrs.org/issued-standards/list-of-standards/ias-39-financial-instruments-recognition-and-measurement/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: IAS 39 est remplacée par IFRS 9, sauf le choix de méthode qui permet de continuer à appliquer ses
+    dispositions de comptabilité de couverture ; IAS 39, réduite à ces dispositions, reste en vigueur.
+  effectiveFrom: null
+  quote: IAS 39, which now contains only its requirements for hedge accounting, also remains effective.
+  normatifSourceIds:
+  - ias-39
+  - ifrs-9
+  outdatedInProbant: 'Le libellé « IAS 39 — Instruments financiers : comptabilisation et évaluation » ne décrit
+    plus le contenu de la norme : elle ne contient plus que la comptabilité de couverture. Le statut RECOMMANDE
+    est ambigu : pour une entité qui a choisi de garder la couverture IAS 39, ces dispositions s''imposent.'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé et note (comptabilité de couverture seulement).'
+  limits:
+  - 'Le « carve-out » européen sur la couverture de juste valeur d''un portefeuille (macro-couverture) n''a pas
+    été vérifié dans le règlement (UE) 2023/1803 : non affirmé.'
+- id: ias-37-ameliorations-ciblees-en-projet
+  title: 'IAS 37 : améliorations ciblées des provisions — aucun amendement publié au 09/11/2026'
+  short: IAS 37 (projet)
+  kind: amendement
+  group: ifrs
+  issuer: IASB
+  officialUrl: https://www.ifrs.org/projects/work-plan/provisions/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: 'Aucune règle d''effet : exposé-sondage du 12/11/2024 (comptabilisation, coûts inclus dans l''évaluation,
+    taux d''actualisation), toujours en redélibération (réunion du 23/09/2026). Prochaine étape « Final Amendments
+    », attendue au S1 2027 selon l''IASB Update de novembre 2026.'
+  effectiveFrom: null
+  quote: to continue redeliberating the proposals in the Exposure Draft
+  normatifSourceIds:
+  - ias-37
+  exposeCycles: false
+  outdatedInProbant: 'Rien de périmé : ias-37 reste exacte au 09/11/2026. À surveiller : un amendement est attendu
+    en 2027.'
+  integration: a_surveiller
+  integrationNote: Aucun amendement publié ; redélibération en cours.
+  limits:
+  - La page projet ne donne pas de date pour l'étape suivante ; « H1 2027 » vient de la présentation CMAC de novembre
+    2026 (IFRS Foundation, vues du présentateur).
+- id: ias-36-goodwill-depreciation-en-projet
+  title: 'IAS 36 / IFRS 3 : informations sur les regroupements, goodwill et dépréciation — aucun amendement publié'
+  short: IAS 36 (projet)
+  kind: amendement
+  group: ifrs
+  issuer: IASB
+  officialUrl: https://www.ifrs.org/projects/work-plan/goodwill-and-impairment/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: 'Aucune règle d''effet : exposé-sondage de mars 2024 en redélibération. La présentation CMAC de
+    novembre 2026 annonce une décision sur la direction du projet au S1 2027. Les propositions IAS 36 portent sur
+    l''affectation du goodwill aux UGT, l''indication du secteur et la valeur d''utilité.'
+  effectiveFrom: null
+  quote: The IASB is redeliberating the proposals.
+  normatifSourceIds:
+  - ias-36
+  - ifrs-3
+  exposeCycles: false
+  outdatedInProbant: 'Rien de périmé : ias-36 et ifrs-3 restent exactes au 09/11/2026.'
+  integration: a_surveiller
+  integrationNote: Aucun amendement publié ; redélibération en cours.
+  limits:
+  - Pas d'amendement d'IAS 36 publié en 2025-2026 selon la page projet ; calendrier tiré de la présentation CMAC
+    (vues du présentateur).
+- id: exemples-incertitudes-etats-financiers-2025
+  title: Exemples illustratifs « Disclosures about Uncertainties in the Financial Statements » (novembre 2025)
+  short: Exemples IASB
+  kind: amendement
+  group: ifrs
+  issuer: IASB
+  officialUrl: https://www.ifrs.org/content/dam/ifrs/shop/bb2026-changesinthisedition.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: null
+  effectiveRule: 'Exemples illustratifs, non intégrés aux normes : ni date d''effet ni dispositions transitoires.
+    L''IASB attend une mise en œuvre « en temps utile ». Ils accompagnent IFRS 7, IFRS 18, IAS 1, IAS 8, IAS 36
+    et IAS 37.'
+  effectiveFrom: null
+  quote: do not have an effective date or transition requirements
+  normatifSourceIds:
+  - ifrs-7
+  - ias-1
+  - ias-8
+  - ias-36
+  - ias-37
+  exposeCycles: false
+  outdatedInProbant: Absents du registre. C'est le seul texte IASB de 2025-2026 qui touche IAS 36 et IAS 37 ; il
+    est non normatif.
+  integration: a_surveiller
+  integrationNote: Exemples illustratifs non normatifs.
+  limits:
+  - 'Mois de publication (novembre 2025) lu, pas le jour : publishedOn null. Les exemples eux-mêmes n''ont pas été
+    lus.'
+- id: ias-28-option-juste-valeur-2026
+  title: 'IAS 28 : modifications de l''option juste valeur pour les entreprises associées et coentreprises (juin
+    2026)'
+  short: IAS 28
+  kind: amendement
+  group: ifrs
+  issuer: IASB ; adoption UE en cours
+  officialUrl: https://www.ifrs.org/news-and-events/news/2026/06/iasb-issues-amendments-clarifying-fair-value-option-ias-28/
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-06-26'
+  effectiveRule: 'IASB : les modifications prennent effet lors de la première application d''IFRS 18 (rapport EFRAG
+    : 01/01/2027). UE : non adoptées au 24/09/2026 ; vote ARC du 21/09/2026, adoption attendue T4 2026 / T1 2027.'
+  effectiveFrom: '2027-01-01'
+  euEndorsement:
+    status: En attente
+    regulation: null
+    ojDate: null
+  quote: The amendments take effect when a company first applies IFRS 18.
+  normatifSourceIds:
+  - ias-28
+  outdatedInProbant: ias-28 ne signale ni cette modification ni celles apportées par IFRS 18 ; un projet « Equity
+    Method » (IAS 28 révisée) est aussi attendu au S1 2027.
+  integration: a_integrer
+  limits:
+  - Date d'effet 01/01/2027 lue dans le rapport EFRAG ; la page IASB ne donne pas de date calendaire. Calendrier
+    « Equity Method » tiré de la présentation CMAC de novembre 2026.
+- id: ifrs-20-actifs-passifs-reglementaires
+  title: IFRS 20 Actifs et passifs réglementaires (mai 2026) — norme absente du registre
+  short: IFRS 20
+  kind: absence_registre
+  group: ifrs
+  issuer: IASB ; adoption UE non lancée au 24/09/2026
+  officialUrl: https://www.efrag.org/sites/default/files/media/document/2026-09/EFRAG%20Endorsement%20Status%20Report%2024%20September%202026.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2026-05-27'
+  effectiveRule: 'Date d''effet IASB : 01/01/2029 (rapport EFRAG du 24/09/2026). UE : non adoptée ; aucune étape
+    d''adoption achevée au 24/09/2026.'
+  effectiveFrom: '2029-01-01'
+  euEndorsement:
+    status: En attente
+    regulation: null
+    ojDate: null
+  quote: IFRS 20 Regulatory Assets and Regulatory Liabilities
+  normatifSourceIds: []
+  outdatedInProbant: Absente du registre ; utile seulement pour des activités à tarifs régulés.
+  integration: a_surveiller
+  integrationNote: Activités à tarifs régulés seulement ; adoption UE non lancée.
+  limits:
+  - Page IASB de la norme non lue ; date d'effet reprise du rapport EFRAG.
+- id: reglement-ue-2023-1803-socle-adoption
+  title: 'Règlement (UE) 2023/1803 : socle des IFRS adoptées dans l''UE, modifié par chaque adoption'
+  short: Règl. 2023/1803
+  kind: absence_registre
+  group: ifrs
+  issuer: Commission européenne
+  officialUrl: https://data.consilium.europa.eu/doc/document/ST-11918-2026-INIT/fr/pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2023-09-26'
+  effectiveRule: 'Les normes adoptées se lisent dans le règlement (UE) 2023/1803 tel que modifié : chaque adoption
+    est un règlement de la Commission « modifiant le règlement (UE) 2023/1803 » (2023/2468, 2023/2579, 2023/2822,
+    2024/1317, 2024/2862, 2025/1047, 2025/1266, 2025/1331, 2026/338). Selon le dépôt, son art. 4 abroge le règlement
+    (CE) n° 1126/2008.'
+  effectiveFrom: null
+  quote: ont été adoptées par le règlement (UE) 2023/1803 de la Commission
+  normatifSourceIds:
+  - eurlex-1606-2002
+  - efrag
+  - ifrs-standards-master
+  exposeCycles: false
+  outdatedInProbant: 'L''en-tête d''ifrs.yml (« Application UE : règlement CE 1606/2002 après adoption EFRAG »)
+    est inexact : l''EFRAG rend un avis, l''adoption est un règlement de la Commission modifiant 2023/1803, et aucune
+    entrée ne cite 2023/1803. EUR-Lex propose une version consolidée datée du 08/03/2026.'
+  integration: partiel
+  integrationNote: 'Registre corrigé le 09/11/2026 : en-tête du fichier IFRS corrigé. Aucune source ne cite encore
+    le règlement (UE) 2023/1803.'
+  limits:
+  - Abrogation du règlement 1126/2008 et publication au JO L 237 du 26.9.2023 reprises de docs/ifrs/SOURCES.md (PDF
+    lu localement le 02/11/2026). Consolidation 02023R1803-20260308 vue dans les résultats de recherche EUR-Lex,
+    version non ouverte.
+- id: efrag-statut-adoption-adresse
+  title: 'EFRAG : rapport de statut d''adoption à jour au 24/09/2026 et adresse de suivi'
+  short: EFRAG
+  kind: adresse_officielle
+  group: ifrs
+  issuer: EFRAG
+  officialUrl: https://www.efrag.org/en/financial-reporting/endorsement-status
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-09-24'
+  effectiveRule: 'Sans objet (adresse) : la page de suivi est https://www.efrag.org/en/financial-reporting/endorsement-status
+    ; dernier rapport du 24/09/2026 (PDF lu, empreinte en tête de fichier).'
+  effectiveFrom: null
+  quote: IASB/IFRIC documents not yet endorsed
+  normatifSourceIds:
+  - efrag
+  outdatedInProbant: 'L''entrée efrag pointe vers la page d''accueil https://www.efrag.org et porte le type EU_REGULATION,
+    alors que l''EFRAG n''adopte pas de règlement. lib/knowledge/registry.ts cite le rapport du 23/07/2026 et data/ifrs/standards.yml
+    celui du 17/07/2026 : le rapport courant est celui du 24/09/2026.'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : adresse de la page de statut d''adoption et note sur le rôle
+    de l''EFRAG (type de source inchangé).'
+  limits:
+  - 'La citation vient du PDF du 24/09/2026. Le rapport n''indique pas les numéros de règlement : ils ont été lus
+    sur EUR-Lex.'
+- id: pcg-libelle-sans-version
+  title: 'PCG : le libellé « règlement ANC n° 2014-03 modifié » ne dit pas quelle version s''applique'
+  short: PCG version
+  kind: amendement
+  group: france
+  issuer: Autorité des normes comptables
+  officialUrl: https://www.anc.gouv.fr/plan-comptable-general-0
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: L'ANC publie la version consolidée « au 1er janvier 2026 » (PCG--1er-janvier-2026.pdf). Elle intègre
+    ANC 2022-06 et 2024-07, mais pas ANC 2026-03 (exercices ouverts dès 2027) ni la rédaction 2026-04 de l'art.
+    515-1 (french-gaap.ts, lecture du 13/10/2026). Une période se lit dans le texte applicable à sa date d'ouverture.
+  effectiveFrom: '2026-01-01'
+  quote: Plan comptable général - Règlement ANC 2014-03 (Version 2026)
+  normatifSourceIds:
+  - pcg
+  - anc-reglementation
+  exposeCycles: false
+  outdatedInProbant: '« Plan comptable général (règlement ANC n° 2014-03 modifié) » ne dit pas quelle édition il
+    vise. Selon l''exercice, la numérotation diffère : résultat exceptionnel en 946-67 / 947-77 (PCG 2024), 513-5
+    (ANC 2022-06) ou 531-5 (ANC 2026-03) ; IS en 515-1 ou 542-1. lib/knowledge/french-gaap.ts résout déjà ce point,
+    mais le registre normatif ne s''y rattache pas.'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : la source « PCG » dit que la version applicable dépend de l''exercice
+    et renvoie au résolveur daté.'
+  limits:
+  - La page PCG ne mentionne ni 2026-03 ni 2026-04 au 09/11/2026. La numérotation est reprise de french-gaap.ts.
+- id: anc-2026-01-crypto-actifs
+  title: 'Règlement ANC n° 2026-01 : comptabilisation des crypto-actifs par toutes les entreprises (exercices 2027)'
+  short: ANC 2026-01
+  kind: absence_registre
+  group: france
+  issuer: Autorité des normes comptables
+  officialUrl: https://www.anc.gouv.fr/files/anc/files/1_Normes_fran%C3%A7aises/Reglements/2026/2026%20homologu%C3%A9/REGLT_2026_01_JO-site.pdf
+  readAt: '2026-11-09'
+  access: read_official_pdf
+  publishedOn: '2026-09-03'
+  effectiveRule: 'Art. 9 : comptes afférents aux exercices ouverts à compter du 1er janvier 2027 ; anticipation
+    possible sur l''exercice en cours à la publication au JO. Homologué par arrêté du 12/08/2026, publié au JO du
+    03/09/2026 ; il remplace la section 9 « Crypto-actifs et assimilés » (chapitre I, titre VI, livre II du PCG).'
+  effectiveFrom: '2027-01-01'
+  quote: Homologué par arrêté du 12 août 2026
+  normatifSourceIds: []
+  outdatedInProbant: Absent du registre, de french-gaap.ts et de la version consolidée au 01/01/2026.
+  integration: a_integrer
+  limits:
+  - Texte JO lu (11 pages) ; contenu des art. 619-1 et suivants non analysé. Le règlement 2026-02 (établissements
+    bancaires) n'a pas été lu.
+- id: directive-2013-34-csrd-2022-2464
+  title: 'Directive 2013/34/UE modifiée par la CSRD (directive (UE) 2022/2464) : informations en matière de durabilité'
+  short: CSRD
+  kind: amendement
+  group: ue
+  issuer: Parlement européen et Conseil
+  officialUrl: https://eur-lex.europa.eu/eli/dir/2022/2464/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2022-12-16'
+  effectiveRule: Directive du 14/12/2022 (JO L 322 du 16.12.2022). Les dates d'application d'origine (art. 5, §
+    2) n'ont pas été relues ; elles ont été reportées par la directive (UE) 2025/794, puis le périmètre a été modifié
+    par la directive (UE) 2026/470.
+  effectiveFrom: null
+  quote: modifiant le règlement (UE) no 537/2014 et les directives 2004/109/CE, 2006/43/CE et 2013/34/UE
+  normatifSourceIds:
+  - eurlex-2013-34
+  exposeCycles: false
+  outdatedInProbant: Le libellé « Directive 2013/34/UE — États financiers annuels et consolidés » et l'URL du texte
+    d'origine (CELEX:32013L0034) ne signalent ni les modifications CSRD, ni la directive seuils 2023/2775, ni les
+    directives 2025/794 et 2026/470 ; aucune version consolidée n'est datée.
+  integration: a_integrer
+  limits:
+  - Article 5, § 2, d'origine non lu (texte tronqué à la lecture). La liste des modifications de 2013/34 n'est pas
+    exhaustive.
+- id: directive-deleguee-2023-2775-seuils-taille
+  title: 'Directive déléguée (UE) 2023/2775 : relèvement des critères de taille de la directive 2013/34/UE'
+  short: Seuils UE
+  kind: amendement
+  group: ue
+  issuer: Commission européenne
+  officialUrl: https://eur-lex.europa.eu/eli/dir_del/2023/2775/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2023-12-21'
+  effectiveRule: 'Transposition au plus tard le 24/12/2024 ; application aux exercices commençant le 1er janvier
+    2024 ou après, les États membres pouvant l''autoriser dès les exercices commençant le 1er janvier 2023. Seuils
+    : micro 450 000 € de bilan / 900 000 € de CA net ; petites 5 000 000 € / 10 000 000 € (plafond optionnel 7 500
+    000 € / 15 000 000 €) ; moyennes 25 000 000 € / 50 000 000 €.'
+  effectiveFrom: '2024-01-01'
+  quote: Ils appliquent ces dispositions aux exercices commençant le 1er janvier 2024 ou après cette date.
+  normatifSourceIds:
+  - eurlex-2013-34
+  outdatedInProbant: Le registre ne cite aucun seuil de taille ; l'entrée eurlex-2013-34 ne porte pas cette modification.
+  integration: a_integrer
+  limits:
+  - L'attribution du couple 25 M€ / 50 M€ aux moyennes entreprises est une lecture de l'art. 3, § 3 modifié (l'extrait
+    lu ne nomme pas la catégorie) ; elle concorde avec le décret français 2024-152 (D. 123-200, 3°).
+- id: directive-2025-794-stop-the-clock
+  title: 'Directive (UE) 2025/794 « stop-the-clock » : report de deux ans de la CSRD (vagues 2 et 3) et du devoir
+    de vigilance'
+  short: Stop-the-clock
+  kind: amendement
+  group: ue
+  issuer: Parlement européen et Conseil
+  officialUrl: https://eur-lex.europa.eu/eli/dir/2025/794/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2025-04-16'
+  effectiveRule: 'Art. 1er : l''art. 5, § 2, b) de la directive 2022/2464 vise les exercices commençant le 1er janvier
+    2027 ou après et le c) ceux commençant le 1er janvier 2028 ou après. Art. 3 : transposition au plus tard le
+    31/12/2025. Art. 4 : entrée en vigueur le lendemain de la publication (17/04/2025). Art. 2 : reports correspondants
+    de la directive (UE) 2024/1760 (vigilance).'
+  effectiveFrom: '2025-04-17'
+  quote: en ce qui concerne les exercices commençant le 1er janvier 2027 ou après cette date
+  normatifSourceIds:
+  - eurlex-2013-34
+  exposeCycles: false
+  outdatedInProbant: Absente du registre. Les vagues visées (grandes entreprises hors première vague, PME cotées)
+    sont identifiées par les considérants, pas par l'article.
+  integration: a_integrer
+  limits:
+  - Les vagues sont décrites d'après les considérants, que la lecture a résumés.
+- id: directive-2026-470-omnibus-i
+  title: 'Directive (UE) 2026/470 « Omnibus I » : périmètre CSRD resserré (plus de 1 000 salariés et CA net supérieur
+    à 450 M€)'
+  short: Omnibus I
+  kind: amendement
+  group: ue
+  issuer: Parlement européen et Conseil
+  officialUrl: https://eur-lex.europa.eu/eli/dir/2026/470/oj/fra
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2026-02-26'
+  effectiveRule: 'Directive du 24/02/2026 modifiant les directives 2006/43/CE, 2013/34/UE, (UE) 2022/2464 et (UE)
+    2024/1760. Art. 19 bis, § 1 de 2013/34 modifié : informations en matière de durabilité exigées des entreprises
+    dont le CA net dépasse 450 000 000 € et l''effectif moyen 1 000 salariés. Art. 5, § 1 : transposition des art.
+    1er à 3 au plus tard le 19/03/2027 (vigilance : 26/07/2028). Art. 6 : entrée en vigueur le vingtième jour suivant
+    la publication. L''art. 3, § 13 de 2013/34 prévoit désormais un réexamen des seuils de taille au moins tous
+    les cinq ans.'
+  effectiveFrom: '2026-03-18'
+  quote: supérieur à 450 000 000 EUR et dépassent un nombre moyen de 1 000 salariés
+  normatifSourceIds:
+  - eurlex-2013-34
+  exposeCycles: false
+  outdatedInProbant: 'État au 09/11/2026 : adoptée et en vigueur au niveau UE, délai de transposition non échu.
+    Le registre n''en dit rien ; son résumé de 2013/34 reste au cadre d''avant la CSRD.'
+  integration: a_integrer
+  limits:
+  - effectiveFrom calculé (vingtième jour après le 26/02/2026), non lu comme date. La transposition française d'Omnibus
+    I n'a pas été recherchée. Le considérant 31 évoque une application aux exercices commençant le 1er janvier 2027
+    et des exemptions possibles pour 2025-2026 ; ce point n'a pas été vérifié dans les articles.
+- id: transposition-fr-seuils-decret-2024-152
+  title: 'Décret n° 2024-152 du 28 février 2024 : transposition française des critères de taille (2023/2775)'
+  short: Décret 2024-152
+  kind: amendement
+  group: france
+  issuer: Gouvernement (décret, NOR ECOT2403438D)
+  officialUrl: https://www.legifrance.gouv.fr/jorf/id/JORFTEXT000049209674
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-02-29'
+  effectiveRule: 'Art. 4 : entrée en vigueur le 01/03/2024 ; s''applique aux comptes et rapports afférents aux exercices
+    ouverts à compter du 1er janvier 2024 ; les mandats de CAC en cours se poursuivent jusqu''à expiration (L. 821-44).
+    Art. 2 : D. 123-200 relevé à 450 000 / 900 000 (1°), 7 500 000 / 15 000 000 (2°) et 25 000 000 / 50 000 000
+    (3°) ; D. 230-1, D. 230-2, D. 232-8-1, D. 221-5 et D. 821-172 également relevés.'
+  effectiveFrom: '2024-01-01'
+  quote: Les dispositions du présent décret entrent en vigueur le 1er mars 2024.
+  normatifSourceIds:
+  - eurlex-2013-34
+  outdatedInProbant: L'entrée legifrance-code-commerce ne date ni ne cite aucun seuil. Les catégories d'entreprise
+    (micro, petite, moyenne) dépendent de ces seuils pour les exercices ouverts dès 2024.
+  integration: a_integrer
+  limits:
+  - Les seuils D. 230-1 (groupes) et D. 232-8-1 n'ont pas été rattachés ici à leur objet. Le décret transpose la
+    directive 2023/2775 (notice).
+- id: transposition-fr-stop-the-clock-loi-2025-391
+  title: 'Loi n° 2025-391 du 30 avril 2025, art. 7 : report français des vagues CSRD (art. 33 de l''ordonnance n°
+    2023-1142)'
+  short: Loi 2025-391
+  kind: absence_registre
+  group: france
+  issuer: Parlement (loi)
+  officialUrl: https://www.legifrance.gouv.fr/jorf/article_jo/JORFARTI000051539030
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: 'Art. 7, I : à l''art. 33 de l''ordonnance n° 2023-1142, II, 2° l''année 2025 devient 2027 et au
+    3° l''année 2026 devient 2028. Ajout d''un allègement d''informations (annexe C d''ESRS 1) pour les rapports
+    des trois premiers exercices ouverts à compter du 1er janvier 2024. Art. 7, II : ajout à l''art. L. 232-23 du
+    code de commerce (omission motivée au dépôt au greffe).'
+  effectiveFrom: null
+  quote: 'l''année : « 2025 » est remplacée par l''année : « 2027 »'
+  normatifSourceIds: []
+  outdatedInProbant: Absente du registre.
+  integration: a_integrer
+  limits:
+  - 'Date de publication au JO et date d''effet de l''art. 33 modifié non lues sur une page officielle : publishedOn
+    et effectiveFrom à null.'
+- id: seuils-cac-d221-5-relevement-2024
+  title: 'Seuils de désignation d''un CAC relevés depuis 2019 : 5 M€ de bilan, 10 M€ de CA HT, 50 salariés (D. 221-5)'
+  short: Seuils CAC
+  kind: absence_registre
+  group: france
+  issuer: Gouvernement (décret n° 2024-152)
+  officialUrl: https://www.legifrance.gouv.fr/codes/article_lc/LEGIARTI000049216674
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2024-02-29'
+  effectiveRule: 'D. 221-5 (version en vigueur depuis le 01/03/2024, pour les comptes et rapports des exercices
+    ouverts à compter du 1er janvier 2024) : total du bilan 5 000 000 €, CA HT 10 000 000 €, 50 salariés en moyenne
+    ; plus d''obligation si deux des trois critères ne sont pas dépassés pendant les deux exercices précédant l''expiration
+    du mandat. Seuils de 2019 remplacés : 4 000 000 € et 8 000 000 € (décret 2024-152, art. 2, II). D. 821-172 (L.
+    821-43, al. 3) : 2 500 000 €, 5 000 000 €, 25 salariés, contre 2 000 000 € et 4 000 000 € auparavant.'
+  effectiveFrom: '2024-01-01'
+  quote: le total du bilan est fixé à 5 000 000 euros
+  normatifSourceIds: []
+  outdatedInProbant: Le registre ne cite pas ces seuils ; tout seuil 4 M€ / 8 M€ / 50 hérité du décret 2019-514
+    serait périmé pour les exercices ouverts dès le 01/01/2024. Les mandats en cours se poursuivent jusqu'à expiration.
+  integration: a_integrer
+  limits:
+  - D. 221-5 vise L. 221-9 (SNC) ; son extension aux autres formes (par exemple L. 227-9-1 pour les SAS, L. 821-43)
+    vient d'un résultat de recherche Légifrance, non relu article par article. L'objet de l'al. 3 de L. 821-43 n'a
+    pas été lu.
+- id: loi-sapin2-article-17-modifie-2025
+  title: 'Loi Sapin II, art. 17 modifié par la loi n° 2025-532 du 13 juin 2025 : exploitants d''installations portuaires
+    ajoutés'
+  short: Sapin II art. 17
+  kind: amendement
+  group: france
+  issuer: Parlement (loi n° 2025-532 visant à sortir la France du piège du narcotrafic)
+  officialUrl: https://www.legifrance.gouv.fr/loda/article_lc/LEGIARTI000033562135
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: null
+  effectiveRule: 'Version de l''art. 17 en vigueur depuis le 15/06/2025, « Modifié par LOI n°2025-532 du 13 juin
+    2025 - art. 54 (V) ». L''art. 54 insère au I un 3° qui vise les présidents, directeurs généraux et gérants des
+    personnes morales exploitant des installations portuaires. Seuils du I dans la version lue : au moins 500 salariés
+    et CA (ou CA consolidé) supérieur à 100 M€.'
+  effectiveFrom: '2025-06-15'
+  quote: 3° Aux présidents, directeurs généraux et gérants des personnes morales exploitant des installations portuaires
+  normatifSourceIds:
+  - loi-sapin2
+  outdatedInProbant: Le résumé de loi-sapin2 (« obligations ... pour les entités assujetties (art. 17) ») reste
+    juste mais n'a pas de date de version ; le périmètre s'étend depuis le 15/06/2025 aux exploitants portuaires,
+    quelle que soit leur taille.
+  integration: a_integrer
+  limits:
+  - 'La page de l''art. 17 cite « art. 54 (V) » ; dans l''art. 54 lu, la modification figure au III : écart de renvoi
+    non résolu. L''historique complet des versions n''était pas affiché. Le texte de l''art. 54 renvoie à l''art.
+    L. 5332-16, 2° du code des transports, non lu.'
+- id: afa-recommandations-version-2020-adresse
+  title: 'Recommandations de l''AFA : version du 4 décembre 2020, publiée au JO du 12 janvier 2021, toujours en
+    vigueur'
+  short: AFA
+  kind: adresse_officielle
+  group: france
+  issuer: Agence française anticorruption
+  officialUrl: https://www.agence-francaise-anticorruption.gouv.fr/toutes-les-ressources/les-recommandations-de-lafa
+  readAt: '2026-11-09'
+  access: read_official_page
+  publishedOn: '2021-01-12'
+  effectiveRule: Avis relatif aux recommandations de l'AFA (NOR ECOZ2035293V, version du 4 décembre 2020), JORF
+    n° 0010 du 12/01/2021, texte n° 61. Elles entrent en vigueur le lendemain de leur publication et annulent et
+    remplacent celles du JO du 22/12/2017. L'AFA ne s'y réfère que pour les contrôles ouverts à compter du sixième
+    mois suivant leur entrée en vigueur. La page ne signale aucune version ni consultation plus récente au 09/11/2026.
+  effectiveFrom: '2021-01-13'
+  quote: remplacent celles parues au Journal officiel de la République française le 22 décembre 2017
+  normatifSourceIds:
+  - afa-sapin2
+  outdatedInProbant: 'L''entrée afa-sapin2 pointe vers la page d''accueil et parle de « Guides Sapin II » ; les
+    recommandations sont un texte distinct des guides. Son résumé dit « opposable dans le cadre du contrôle AFA
+    pour les entités assujetties ». Or le texte (§ 8 à 11) dit qu''elles ne créent pas d''obligation juridique et
+    sont opposables à l''AFA : une organisation qui les suit bénéficie d''une présomption simple de conformité.
+    Le sens est inversé.'
+  integration: integre
+  integrationNote: 'Registre corrigé le 09/11/2026 : libellé, adresse et résumé de la source AFA (sans obligation
+    juridique, opposables à l''AFA, § 8 et 10 lus).'
+  limits:
+  - PDF « Recommandations AFA.pdf » lu (87 pages). Entrée en vigueur calculée (lendemain du 12/01/2021). Présence
+    au sommaire du JORF du 12/01/2021 lue sur https://www.legifrance.gouv.fr/jorf/jo/2021/01/12/0010 ; le texte
+    JORFTEXT000042932087 n'a pas été ouvert. Les guides thématiques de l'AFA n'ont pas été recensés.

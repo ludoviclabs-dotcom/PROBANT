@@ -1,0 +1,18 @@
+{
+  "route": "/normatif/sources/cc-capitaux-propres",
+  "width": 1024,
+  "document": {
+    "scrollWidth": 1024,
+    "clientWidth": 1024
+  },
+  "overflowing": [],
+  "ambiance": "papier",
+  "background": "rgb(243, 239, 230)",
+  "tabs": {
+    "current": "Sources normatives",
+    "visible": true,
+    "wraps": "wrap",
+    "height": 48
+  },
+  "axe": {}
+}

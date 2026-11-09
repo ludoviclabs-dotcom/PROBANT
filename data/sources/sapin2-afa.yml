@@ -1,14 +1,13 @@
 # Lutte anticorruption — Loi Sapin II / Agence française anticorruption (AFA)
 sources:
   - id: afa-sapin2
-    label: Agence française anticorruption — Guides Sapin II
+    label: "Agence française anticorruption — Recommandations (avis publié au JO du 12/01/2021)"
     type: AFA
-    url: https://www.agence-francaise-anticorruption.gouv.fr
+    url: "https://www.agence-francaise-anticorruption.gouv.fr/toutes-les-ressources/les-recommandations-de-lafa"
     status: RECOMMANDE
-    summary: >
-      Recommandations AFA sur la prévention et la détection de la corruption
-      (cartographie des risques, contrôles comptables anticorruption). Force de
-      recommandation, opposable dans le cadre du contrôle AFA pour les entités assujetties.
+    summary: "Recommandations de l'AFA sur la prévention et la détection de la corruption (cartographie des risques, contrôles comptables anticorruption). Elles ne créent pas d'obligation juridique ; elles sont opposables à l'AFA lors de ses contrôles : une organisation qui s'y conforme peut s'en prévaloir."
+    verifiedAt: "2026-11-09"
+    verifiedNote: "PDF « Recommandations AFA » lu le 09/11/2026, § 8 (« ne créent pas d'obligation juridique ») et § 10 (« opposables à l'AFA »)."
 
   - id: loi-sapin2
     label: Loi n° 2016-1691 (Sapin II) — Transparence, lutte contre la corruption

@@ -1,0 +1,18 @@
+{
+  "route": "/normatif/sources",
+  "width": 390,
+  "document": {
+    "scrollWidth": 390,
+    "clientWidth": 390
+  },
+  "overflowing": [],
+  "ambiance": "papier",
+  "background": "rgb(243, 239, 230)",
+  "tabs": {
+    "current": "Sources normatives",
+    "visible": true,
+    "wraps": "nowrap",
+    "height": 44
+  },
+  "axe": {}
+}

@@ -1,74 +1,49 @@
-import { FileJson, FileSpreadsheet, FileText } from "lucide-react";
 import { loadAllCycles } from "@/lib/audit-cycles/loader";
-import { PageHeader } from "@/components/probant/PageHeader";
+import p from "@/components/charte/page.module.css";
+import n from "@/components/normatif/normatif.module.css";
+
+const FORMATS = [
+  { format: "JSON", title: "Cartographie complète", desc: "Toutes les fiches avec l'intégralité des champs structurés.", href: "/api/normatif/export?format=json" },
+  { format: "CSV", title: "Synthèse tabulaire", desc: "Une ligne par cycle : famille, comptes, compteurs, statut.", href: "/api/normatif/export?format=csv" },
+  { format: "Markdown", title: "Cartographie lisible", desc: "Toutes les fiches, l'une après l'autre, en texte structuré.", href: "/api/normatif/export?format=md" },
+] as const;
+
+export const metadata = { title: "Export" };
 
 export default async function ExportPage() {
   const cycles = await loadAllCycles();
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <PageHeader
-        title="Export de la cartographie"
-        subtitle={`Exportez les ${cycles.length} cycles d'audit dans le format de votre choix pour archivage, revue ou intégration.`}
-      />
+    <>
+      <header className={p.intro}>
+        <div className={p.introMain}>
+          <p className={p.eyebrow}>Audit Normatif 360 · export</p>
+          <h1 className={p.title}>Export de la cartographie</h1>
+          <p className={p.lead}>
+            Les {cycles.length} cycles d&apos;audit dans le format de votre choix, pour archivage, revue ou intégration.
+          </p>
+        </div>
+      </header>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <ExportCard
-          icon={FileJson}
-          title="JSON complet"
-          desc="Toutes les fiches avec l'intégralité des champs structurés."
-          href="/api/normatif/export?format=json"
-          hex="#5b9dff"
-        />
-        <ExportCard
-          icon={FileSpreadsheet}
-          title="CSV de synthèse"
-          desc="Une ligne par cycle : famille, comptes, compteurs, statut."
-          href="/api/normatif/export?format=csv"
-          hex="#22c55e"
-        />
-        <ExportCard
-          icon={FileText}
-          title="Markdown global"
-          desc="Cartographie complète lisible, fiche par fiche."
-          href="/api/normatif/export?format=md"
-          hex="#a78bfa"
-        />
-      </div>
+      <ul className={n.rows} aria-label="Formats d'export">
+        {FORMATS.map((f) => (
+          <li key={f.format} className={n.exportRow}>
+            <span className={n.exportFormat}>{f.format}</span>
+            <div>
+              <p className={n.lineTitle}>{f.title}</p>
+              <p className={n.lineText}>{f.desc}</p>
+            </div>
+            <a href={f.href} className={p.btnSecondary}>
+              Télécharger
+            </a>
+          </li>
+        ))}
+      </ul>
 
-      <p className="mt-5 text-[11px] leading-relaxed text-[var(--pb-text-faint)]">
-        Les exports reflètent l'état actuel des fichiers YAML de <code>data/</code>.
-        Le contenu est en statut « revue requise » : à valider par un expert audit
-        avant toute utilisation opposable.
+      <p className={p.note}>
+        Les exports reflètent l&apos;état actuel des fichiers YAML de <code>data/</code>. Le contenu est en statut « revue
+        requise » : à valider par un expert audit avant toute utilisation opposable.
       </p>
-    </div>
-  );
-}
-
-function ExportCard({
-  icon: Icon,
-  title,
-  desc,
-  href,
-  hex,
-}: {
-  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
-  title: string;
-  desc: string;
-  href: string;
-  hex: string;
-}) {
-  return (
-    <a
-      href={href}
-      className="flex flex-col rounded-xl border border-[var(--pb-border)] bg-[var(--pb-surface)] p-4 transition-colors hover:border-[var(--pb-border-strong)] hover:bg-[var(--pb-surface-2)]"
-    >
-      <Icon className="h-6 w-6" style={{ color: hex }} />
-      <h3 className="mt-2 text-[13px] font-semibold text-[var(--pb-text)]">{title}</h3>
-      <p className="mt-1 text-[11px] leading-relaxed text-[var(--pb-text-muted)]">{desc}</p>
-      <span className="mt-3 text-[11px] font-medium" style={{ color: hex }}>
-        Télécharger →
-      </span>
-    </a>
+    </>
   );
 }

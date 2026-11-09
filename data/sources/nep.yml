@@ -1,123 +1,192 @@
 # Normes d'exercice professionnel (NEP) françaises — CNCC / H3C-H2A
-# Source maîtresse : https://www.cncc.fr/les-normes-dexercice-professionnel.html
+# Source maîtresse : référentiel normatif publié par la H2A (https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/).
+# Texte opposable : articles A. 821-62 et suivants du code de commerce (Légifrance). La page CNCC des NEP
+# (https://www.cncc.fr/les-normes-dexercice-professionnel.html) renvoie vers une page 404 (relevé du 09/11/2026).
 # Supervision : Haute autorité de l'audit (H2A, ex-H3C).
+# Depuis le 09/11/2026, chaque NEP pointe vers sa page du référentiel normatif publié par la H2A
+# (https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/, index lu ce jour) ;
+# la page CNCC reste la source de la fiche « CNCC — Normes d'exercice professionnel ». L'ancien domaine h2a.fr ne répond pas.
 sources:
   - id: nep-cncc-master
-    label: CNCC — Normes d'exercice professionnel
+    label: "Normes d'exercice professionnel (NEP) — référentiel homologué"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/"
     status: OBLIGATOIRE
-    summary: Normes homologuées applicables au commissariat aux comptes en France.
+    summary: "NEP homologuées par arrêté du garde des Sceaux et codifiées aux articles A. 821-62 et suivants du code de commerce ; la H2A publie le référentiel. La CNCC reste une source de doctrine, pas la source officielle des NEP."
+    note: "Ancienne adresse CNCC (https://www.cncc.fr/les-normes-dexercice-professionnel.html) redirigée vers une page 404 au 09/11/2026."
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026."
 
   - id: h2a-master
-    label: H2A (ex-H3C) — Supervision de l'audit légal
+    label: "H2A (Haute autorité de l'audit, ex-H3C) — référentiel normatif des commissaires aux comptes"
     type: H3C_H2A
-    url: https://www.h2a.fr
+    url: "https://h2a-france.org/referentiel-normatif-et-code-de-deontologie/acceder-au-referentiel-normatif/"
     status: OBLIGATOIRE
     summary: Autorité publique de supervision des commissaires aux comptes.
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Page « Référentiel normatif » de la H2A lue le 09/11/2026 (l'ancien domaine h2a.fr ne répond pas)."
 
   - id: nep-200
-    label: NEP 200 — Principes applicables à l'audit des comptes
+    label: "NEP 200 — Principes applicables à l'audit des comptes mis en œuvre dans le cadre de la certification des comptes"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/audit-des-comptes-mis-en-oeuvre-dans-le-cadre-de-la-certification-des-comptes/"
     status: OBLIGATOIRE
+    article: "A. 821-63 du code de commerce"
     summary: Principes généraux et objectifs de l'audit légal.
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-63, publication au JO du 30/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-240
-    label: NEP 240 — Prise en considération de la possibilité de fraudes
+    label: "NEP 240 — Prise en considération de la possibilité de fraudes lors de l'audit des comptes"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/lettre-a-elise/"
     status: OBLIGATOIRE
+    article: "A. 821-80 du code de commerce"
     summary: Équivalent français d'ISA 240 — présomption de fraude au revenu.
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-80, publication au JO du 31/12/2023."
 
   - id: nep-300
-    label: NEP 300 — Planification de l'audit
+    label: "NEP 300 — Planification de l'audit"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/planification-de-laudit/"
     status: OBLIGATOIRE
+    article: "A. 821-69 du code de commerce"
+    knowledgeSourceId: h2a-nep-300
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-69, publication au JO du 30/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-315
-    label: NEP 315 — Connaissance de l'entité et évaluation du risque d'anomalies significatives
+    label: "NEP 315 — Prise de connaissance de l'entité et de son environnement, identification et évaluation du risque d'anomalies significatives dans les comptes"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/connaissance-de-lentite-et-de-son-environnement-et-evaluation-du-risque-danomalies-significatives-dans-les-comptes/"
     status: OBLIGATOIRE
+    article: "A. 821-72 du code de commerce"
+    knowledgeSourceId: h2a-nep-315
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-72, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-320
-    label: NEP 320 — Anomalies significatives et seuil de signification
+    label: "NEP 320 — Application de la notion de caractère significatif lors de la planification et de la réalisation d'un audit"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/application-de-la-notion-de-caractere-significatif-lors-de-la-planification-et-de-la-realisation-dun-audit/"
     status: OBLIGATOIRE
+    article: "A. 821-70 du code de commerce"
+    knowledgeSourceId: h2a-nep-320
     summary: Impose la détermination et la documentation du seuil, sans pourcentage imposé.
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-70, publication au JO du 31/12/2023."
 
   - id: nep-330
-    label: NEP 330 — Procédures d'audit mises en œuvre à l'issue de l'évaluation des risques
+    label: "NEP 330 — Procédures d'audit mises en œuvre par le commissaire aux comptes à l'issue de sa prise de connaissance de l'entité et de son environnement et de son évaluation du risque d'anomalies significatives dans les comptes"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/procedures-daudit-mises-en-oeuvre-par-le-commissaire-aux-comptes-a-lissue-de-son-evaluation-des-risques/"
     status: OBLIGATOIRE
+    article: "A. 821-73 du code de commerce"
+    knowledgeSourceId: h2a-nep-330
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-73, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-450
-    label: NEP 450 — Évaluation des anomalies relevées au cours de l'audit
+    label: "NEP 450 — Évaluation des anomalies relevées au cours de l'audit"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/evaluation-des-anomalies-relevees-au-cours-de-laudit/"
     status: OBLIGATOIRE
+    article: "A. 821-71 du code de commerce"
+    knowledgeSourceId: h2a-nep-450
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-71, publication au JO du 31/12/2023."
 
   - id: nep-500
-    label: NEP 500 — Caractère probant des éléments collectés
+    label: "NEP 500 — Caractère probant des éléments collectés"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/caractere-probant-des-elements-collectes/"
     status: OBLIGATOIRE
+    article: "A. 821-74 du code de commerce"
+    knowledgeSourceId: h2a-nep-500
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-74, publication au JO du 31/12/2023."
 
   - id: nep-501
-    label: NEP 501 — Caractère probant — applications spécifiques
+    label: "NEP 501 — Caractère probant des éléments collectés (applications spécifiques)"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/caractere-probant-des-elements-collectes-applications-specifiques/"
     status: OBLIGATOIRE
+    article: "A. 821-75 du code de commerce"
+    knowledgeSourceId: h2a-nep-501
     summary: Stocks, litiges et informations sectorielles.
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-75, publication au JO du 30/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-505
-    label: NEP 505 — Demandes de confirmation des tiers
+    label: "NEP 505 — Demandes de confirmation des tiers"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/demandes-de-confirmation-des-tiers/"
     status: OBLIGATOIRE
+    article: "A. 821-76 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-76, publication au JO du 31/12/2023."
 
   - id: nep-520
-    label: NEP 520 — Procédures analytiques
+    label: "NEP 520 — Procédures analytiques"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/procedures-analytiques/"
     status: OBLIGATOIRE
+    article: "A. 821-77 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-77, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-530
-    label: NEP 530 — Sélection des éléments à contrôler
+    label: "NEP 530 — Sélection des éléments à contrôler"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/selection-des-elements-a-controler/"
     status: OBLIGATOIRE
+    article: "A. 821-78 du code de commerce"
+    knowledgeSourceId: h2a-nep-530
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-78, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-540
-    label: NEP 540 — Appréciation des estimations comptables
+    label: "NEP 540 — Audit des estimations comptables et des informations y afférentes fournies dans l'annexe"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/audit-des-estimations-comptables-et-des-informations-y-afferentes-fournies-dans-lannexe/"
     status: OBLIGATOIRE
+    article: "A. 821-82 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-82, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-550
-    label: NEP 550 — Relations et transactions avec les parties liées
+    label: "NEP 550 — Relations et transactions avec les parties liées"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/relations-et-transactions-avec-les-parties-liees/"
     status: OBLIGATOIRE
+    article: "A. 821-84 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-84, publication au JO du 19/11/2024. Version révisée (homologation de novembre 2024) : le contenu des fiches cycles n'a pas été relu au regard de cette révision."
 
   - id: nep-560
-    label: NEP 560 — Événements postérieurs à la clôture
+    label: "NEP 560 — Événements postérieurs à la clôture de l'exercice"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/evenements-posterieurs-a-la-cloture-de-lexercice/"
     status: OBLIGATOIRE
+    article: "A. 821-85 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-85, publication au JO du 31/12/2023."
 
   - id: nep-570
-    label: NEP 570 — Continuité d'exploitation
+    label: "NEP 570 — Continuité d'exploitation"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/continuite-dexploitation/"
     status: OBLIGATOIRE
+    article: "A. 821-83 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-83, publication au JO du 31/12/2023."
 
   - id: nep-580
-    label: NEP 580 — Déclarations de la direction
+    label: "NEP 580 — Déclarations de la direction"
     type: NEP
-    url: https://www.cncc.fr/les-normes-dexercice-professionnel.html
+    url: "https://h2a-france.org/normes/declarations-de-la-direction/"
     status: OBLIGATOIRE
+    article: "A. 821-79 du code de commerce"
+    verifiedAt: "2026-11-09"
+    verifiedNote: "Index du référentiel normatif de la H2A lu le 09/11/2026 : titre officiel, article A. 821-79, publication au JO du 31/12/2023."

@@ -1,72 +1,81 @@
-"use client";
-
 import Link from "next/link";
-import { ArrowLeft, Menu } from "lucide-react";
-import { CycleSidebar } from "@/components/normatif/CycleSidebar";
-import { useNavDrawer } from "@/components/probant/useNavDrawer";
+import { charteFonts } from "@/app/fonts";
+import { Logo } from "@/components/charte/Logo";
+import { NormatifNav } from "@/components/normatif/NormatifNav";
+import { VeilleAge } from "@/components/normatif/VeilleAge";
+import { VeilleGlyph, formatDate } from "@/components/normatif/VeilleMarks";
+import { loadVeilleReport } from "@/lib/audit-cycles/loader";
+import n from "@/components/normatif/normatif.module.css";
 
-export default function NormatifLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Tiroir de navigation (< md), même motif que app/dashboard/layout.tsx
-  // (voir components/probant/useNavDrawer.ts).
-  const { open: navOpen, close: closeNav, toggle: toggleNav, navRef, toggleRef } = useNavDrawer();
+export const metadata = {
+  title: { default: "Audit Normatif 360 — PROBANT", template: "%s — Audit Normatif 360" },
+  description: "Base de connaissance normative des cycles d'audit financier, et veille datée sur ce qui est périmé.",
+};
+
+/**
+ * Châssis d'Audit Normatif 360 — ambiance « papier » de la charte, dans le prolongement de la section 04 de la
+ * landing : repère PROBANT, onglets du module, bandeau d'état (avertissement d'expertise et veille) toujours
+ * visible, puis le contenu, qui défile avec le document.
+ */
+export default async function NormatifLayout({ children }: { children: React.ReactNode }) {
+  const veille = await loadVeilleReport();
+  const enVigueur = veille ? veille.counts.enVigueurAIntegrer + veille.counts.sansDateAIntegrer : 0;
 
   return (
-    <div className="flex h-dvh overflow-hidden bg-[var(--pb-bg)]">
-      {navOpen && (
-        <div
-          aria-hidden="true"
-          className="fixed inset-0 z-[45] bg-black/60 md:hidden"
-          onClick={closeNav}
-        />
-      )}
-      <CycleSidebar
-        ref={navRef}
-        open={navOpen}
-        onNavigate={closeNav}
-        onClose={closeNav}
-      />
-      <div className="flex min-w-0 flex-1 flex-col" inert={navOpen}>
-        {/* Sous sm, le titre (sans élément focalisable) passe sur sa propre ligne. */}
-        <header className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-2 border-b border-[var(--pb-border)] bg-[var(--pb-surface)] px-4 py-3 md:gap-x-4 md:px-6">
-          <button
-            ref={toggleRef}
-            type="button"
-            aria-label="Ouvrir la navigation"
-            aria-controls="normatif-nav"
-            aria-expanded={navOpen}
-            onClick={toggleNav}
-            className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-[var(--pb-border)] text-[var(--pb-text-muted)] hover:text-[var(--pb-text)] md:hidden"
-          >
-            <Menu className="h-4 w-4" />
-          </button>
-          <Link
-            href="/"
-            className="flex shrink-0 items-center gap-1.5 text-[12px] text-[var(--pb-text-faint)] transition-colors hover:text-[var(--pb-text)]"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Accueil
-          </Link>
-          <div className="h-4 w-px shrink-0 bg-[var(--pb-border)] max-sm:hidden" />
-          <div className="min-w-0 max-sm:order-last max-sm:basis-full">
-            <div className="text-sm font-semibold text-[var(--pb-text)]">
-              Audit Normatif 360
-            </div>
-            <div className="text-[10px] text-[var(--pb-text-faint)]">
-              Cartographie exhaustive des cycles d'audit financier
-            </div>
-          </div>
-          <div className="ml-auto flex items-center gap-2">
-            <span className="rounded-md border border-[#eab308]/30 bg-[#292207] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[#eab308]">
-              Contenu à valider
+    <div data-ambiance="papier" data-document-surface className={`${charteFonts} ${n.root}`}>
+      <a href="#contenu" className={n.skip}>
+        Aller au contenu
+      </a>
+      <header className={n.header}>
+        <Link href="/" aria-label="PROBANT — accueil" className={n.brand}>
+          <Logo size="md" />
+        </Link>
+        <span className={n.module}>
+          Audit Normatif 360 <span className={n.moduleNote}>base de connaissance</span>
+        </span>
+        <Link href="/dashboard/synthese" className={n.fecLink}>
+          Analyse FEC →
+        </Link>
+      </header>
+      <NormatifNav veilleOpen={enVigueur} />
+      <div className={`${n.ribbon} ${n.plane2}`} role="note" aria-label="État du référentiel">
+        <span className={n.ribbonItem}>
+          <VeilleGlyph glyph="sq-line" />
+          <span>
+            Contenu à valider par un expert
+            <span className={n.ribbonLong}> : citations, paragraphes et seuils en statut « revue requise »</span>.
+          </span>
+        </span>
+        {veille ? (
+          <span className={n.ribbonItem}>
+            <VeilleGlyph glyph={enVigueur > 0 ? "sq-fill" : "dot"} />
+            <span>
+              Veille arrêtée au {formatDate(veille.arreteAu)} (<VeilleAge arreteAu={veille.arreteAu} />) :{" "}
+              {enVigueur > 0 ? (
+                <Link href="/normatif/veille" className={n.ribbonLink}>
+                  {enVigueur} évolution{enVigueur > 1 ? "s" : ""} en vigueur à reprendre
+                </Link>
+              ) : (
+                <Link href="/normatif/veille" className={n.ribbonLink}>
+                  aucune évolution en vigueur à reprendre
+                </Link>
+              )}
             </span>
-          </div>
-        </header>
-        <main className="flex-1 overflow-y-auto">{children}</main>
+          </span>
+        ) : (
+          <span className={n.ribbonItem}>
+            <VeilleGlyph glyph="ring" />
+            Aucune veille arrêtée : la fraîcheur des sources n&apos;est pas établie.
+          </span>
+        )}
       </div>
+      <main id="contenu" className={n.main}>
+        {children}
+      </main>
+      <footer className={n.footer}>
+        <span>Audit Normatif 360 — base de connaissance normative, complémentaire à l&apos;analyse FEC de PROBANT.</span>
+        <span className={n.footerMono}>ISA · NEP · IFRS · PCG · Code de commerce · CGI · UE · AFA</span>
+      </footer>
     </div>
   );
 }
