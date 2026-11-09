@@ -143,7 +143,7 @@ evolutions:
     '
   provenance: lib/knowledge/french-gaap.ts — PDF ANC lu le 13/10/2026 (en-tête d'homologation, art. 27).
   limits:
-  - La nouvelle définition n'est pas recopiée ici: la lire à l'article 513-5 avant de réécrire la fiche.
+  - "La nouvelle définition n'est pas recopiée ici : la lire à l'article 513-5 avant de réécrire la fiche."
 - id: anc-2024-07-autres-fonds-propres
   title: Règlement ANC 2024-07 — distinction dettes et autres fonds propres
   short: ANC 2024-07

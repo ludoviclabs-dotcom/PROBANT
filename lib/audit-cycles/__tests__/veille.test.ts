@@ -333,6 +333,22 @@ describe("validation de la veille", () => {
     );
   });
 
+  it("refuse un texte devenu objet : un « : » non quoté en YAML (régression du panneau de détail)", () => {
+    // `- La nouvelle définition n'est pas recopiée ici : la lire…` est lu par YAML comme { "La nouvelle … ici": "la lire…" }.
+    const asObject = { "La nouvelle définition n'est pas recopiée ici": "la lire à l'article 513-5" } as unknown as string;
+    const issues = validateVeille({
+      ...base,
+      veille: veilleOf([
+        evolution("limite-objet", { normatifSourceIds: ["isa-570"], limits: [asObject] }),
+        evolution("note-objet", { normatifSourceIds: ["isa-570"], integrationNote: asObject }),
+        evolution("titre-objet", { normatifSourceIds: ["isa-570"], title: asObject }),
+      ]),
+    });
+    expect(issues.map((i) => i.field)).toEqual(
+      expect.arrayContaining(["evolutions.limite-objet.limits", "evolutions.note-objet.integrationNote", "evolutions.titre-objet.title"]),
+    );
+  });
+
   it("n'exige pas d'adresse pour un fait officiellement illisible", () => {
     const issues = validateVeille({
       ...base,

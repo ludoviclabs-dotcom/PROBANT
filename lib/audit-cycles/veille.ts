@@ -392,6 +392,24 @@ export function validateVeille(input: Pick<VeilleInput, "veille" | "sources" | "
     const at = `evolutions.${e.id}`;
     if (seen.has(e.id)) issues.push({ field: at, message: "Identifiant en double." });
     seen.add(e.id);
+    // Types : en YAML, un « : » non quoté dans un texte en fait un objet, que le panneau de détail ne sait pas
+    // afficher (React refuse un objet comme enfant). La veille est écrite à la main : on le vérifie ici.
+    for (const key of ["title", "short", "issuer", "effectiveRule", "outdatedInProbant"] as const) {
+      if (typeof e[key] !== "string" || e[key].trim() === "") issues.push({ field: `${at}.${key}`, message: "Texte attendu (chaîne non vide)." });
+    }
+    for (const key of ["officialUrl", "quote", "applicability", "integrationNote", "provenance"] as const) {
+      const value = e[key];
+      if (value !== null && value !== undefined && typeof value !== "string") {
+        issues.push({ field: `${at}.${key}`, message: "Texte attendu : un « : » non quoté en YAML produit un objet." });
+      }
+    }
+    for (const key of ["limits", "normatifSourceIds", "cycleSlugs", "methodologySlugs"] as const) {
+      const list = e[key];
+      if (list === undefined) continue;
+      if (!Array.isArray(list) || list.some((item) => typeof item !== "string")) {
+        issues.push({ field: `${at}.${key}`, message: "Liste de chaînes attendue : un « : » non quoté en YAML produit un objet." });
+      }
+    }
     for (const id of e.normatifSourceIds ?? []) {
       if (!sourceIds.has(id)) issues.push({ field: `${at}.normatifSourceIds`, message: `Source inconnue du registre : ${id}` });
     }
