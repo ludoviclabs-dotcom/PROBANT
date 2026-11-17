@@ -3,11 +3,18 @@ name: CI
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
-# Une seule exécution par branche : une nouvelle poussée annule la précédente.
+# Une seule exécution par workflow et par ref : une nouvelle poussée annule la
+# précédente (les runs obsolètes ne continuent pas à consommer des minutes).
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # Aucun droit par défaut : chaque job demande ce dont il a besoin.
@@ -27,7 +34,7 @@ jobs:
   verify:
     name: lint · typecheck · test · build
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -87,7 +94,7 @@ jobs:
   migrations:
     name: migrations · aller-retour
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
 
     services:
       postgres:
@@ -164,7 +171,7 @@ jobs:
   fixtures:
     name: fixtures d'ingestion
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -195,7 +202,7 @@ jobs:
   e2e:
     name: E2E Playwright · axe
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     needs: verify
     steps:
       - name: Checkout
@@ -242,7 +249,7 @@ jobs:
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 15
     needs: verify
     steps:
       - name: Checkout
@@ -278,7 +285,7 @@ jobs:
   supply-chain:
     name: dependency scan · SBOM
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -317,7 +324,7 @@ jobs:
   codeql:
     name: CodeQL
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 10
     permissions:
       contents: read
       security-events: write
@@ -342,7 +349,7 @@ jobs:
   secret-scan:
     name: secret scan
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
       - name: Checkout
         uses: actions/checkout@v4
